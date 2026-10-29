@@ -1,2 +1,2 @@
-/** 业务使用的仓储接口。 当前仅声明模块边界，业务待实现。 */
+/** 这里定义业务需要的存取接口，文件怎么读写由基础设施层负责，具体代码后面再写。 */
 package com.travelassistant.server.domain.repository;

@@ -1,2 +1,2 @@
-/** Spring AI 与 DeepSeek 适配。 当前仅声明模块边界，业务待实现。 */
+/** 这里接入 Spring AI 和 DeepSeek，具体代码后面再写。 */
 package com.travelassistant.server.infrastructure.ai;

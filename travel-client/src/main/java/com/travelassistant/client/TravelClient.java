@@ -7,7 +7,7 @@ import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
 import java.io.IOException;
-/** Connectivity entry point. Business menus will be added during V1. */
+/** 先检查能不能连上后端，V1 的业务菜单后面再补。 */
 public class TravelClient {
  public static void main(String[] args) {
   String base = args.length > 0 ? args[0] : "http://localhost:8080";

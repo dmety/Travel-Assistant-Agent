@@ -1,2 +1,2 @@
-/** 账号与会话用例。 当前仅声明模块边界，业务待实现。 */
+/** 这里处理注册、登录和会话，具体业务后面再写。 */
 package com.travelassistant.server.application.account;

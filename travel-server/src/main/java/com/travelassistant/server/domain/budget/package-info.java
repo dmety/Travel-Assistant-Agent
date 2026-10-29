@@ -1,2 +1,2 @@
-/** 金额和预算规则。 当前仅声明模块边界，业务待实现。 */
+/** 这里放金额和预算计算规则，具体代码后面再写。 */
 package com.travelassistant.server.domain.budget;

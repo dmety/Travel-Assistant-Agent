@@ -1,2 +1,2 @@
-/** 旅行方案、两种类型及时间规则。 当前仅声明模块边界，业务待实现。 */
+/** 这里放旅行方案、两种行程类型和时间规则，具体代码后面再写。 */
 package com.travelassistant.server.domain.trip;

@@ -1,2 +1,2 @@
-/** V2 高德工具适配。 当前仅声明模块边界，业务待实现。 */
+/** V2 会在这里接入高德的查询工具，具体代码后面再写。 */
 package com.travelassistant.server.infrastructure.amap;
