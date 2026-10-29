@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 public class SecurityConfiguration {
  @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
  @Bean SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-  // Keep CSRF protection enabled for the future cookie-based session endpoints.
+  // 后面会用 Cookie 维持登录状态，这里保留 CSRF 防护，防止请求被冒用。
   return http.authorizeHttpRequests(a -> a.requestMatchers("/api/health").permitAll().anyRequest().authenticated())
    .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
    .build();

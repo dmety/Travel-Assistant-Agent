@@ -1,2 +1,2 @@
-/** Agent 编排与用户确认流程。 当前仅声明模块边界，业务待实现。 */
+/** 这里组织 Agent 的执行流程，生成的方案要先让用户确认，具体业务后面再写。 */
 package com.travelassistant.server.application.agent;

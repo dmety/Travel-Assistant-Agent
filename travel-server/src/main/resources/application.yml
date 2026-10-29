@@ -12,5 +12,4 @@ spring:
     name: travel-assistant
 travel:
   data-directory: ${TRAVEL_DATA_DIR:./data}
-# AI client is a library dependency; no external request is made at startup.
-# DEEPSEEK_API_KEY and AMAP_API_KEY will be consumed by their adapters.
+
