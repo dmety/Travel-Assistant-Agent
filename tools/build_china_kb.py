@@ -6,8 +6,8 @@
 数据源 : OpenStreetMap / Overpass API
         完全免费、无需 Key、ODbL 开源许可（允许缓存/存储/修改）
 输出   :
-  data/china_attractions.json         全量景点（Agent 主知识库）
-  data/china_attractions_index.json   按 省 -> 市 -> [景点id] 分组索引（便于检索）
+  data/china_attractions_osm.json         全量景点（OSM 原始基底，供融合库输入）
+  data/china_attractions_osm_index.json   按 省 -> 市 -> [景点id] 分组索引（便于检索）
 
 用法:
   python tools/build_china_kb.py            # 默认跑 8 个核心旅游城市（种子库）
@@ -184,9 +184,9 @@ def main():
         "attractions": all_spots,
     }
     os.makedirs("data", exist_ok=True)
-    with open("data/china_attractions.json", "w", encoding="utf-8") as f:
+    with open("data/china_attractions_osm.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    with open("data/china_attractions_index.json", "w", encoding="utf-8") as f:
+    with open("data/china_attractions_osm_index.json", "w", encoding="utf-8") as f:
         json.dump({
             "generated_at": result["generated_at"],
             "source": result["source"],
@@ -195,8 +195,8 @@ def main():
         }, f, ensure_ascii=False, indent=2)
 
     print(f"\n[完成] 共 {len(all_spots)} 个中国景点，写入:", file=sys.stderr)
-    print("  data/china_attractions.json", file=sys.stderr)
-    print("  data/china_attractions_index.json", file=sys.stderr)
+    print("  data/china_attractions_osm.json", file=sys.stderr)
+    print("  data/china_attractions_osm_index.json", file=sys.stderr)
     print("\n各城市新增:", file=sys.stderr)
     for c, n in city_stats:
         print(f"  {c}: {n}", file=sys.stderr)

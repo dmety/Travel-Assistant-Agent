@@ -1,6 +1,7 @@
 **/target/
 .tools/
-data/
+data/*
+!data/china_attractions.json
 .idea/
 *.iml
 .env

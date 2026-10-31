@@ -19,8 +19,8 @@ sys.path.insert(0, HERE)
 from kb.amap_source import AmapClient, load_api_key  # noqa: E402
 from kb.models import norm_name  # noqa: E402
 
-UNIFIED_PATH = "data/china_attractions_unified.json"
-INDEX_PATH = "data/china_attractions_unified_index.json"
+UNIFIED_PATH = "data/china_attractions.json"
+INDEX_PATH = "data/china_attractions_index.json"
 
 
 def pick_targets(attractions):

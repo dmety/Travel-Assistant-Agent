@@ -7,13 +7,13 @@
   B 路线 : 高德 Amap Web服务        (商业免费额度，补强 等级/评分/开放时间/票价/电话/图片)
 
 流程:
-  1. 载入 OSM 基底 data/china_attractions.json
+  1. 载入 OSM 基底 data/china_attractions_osm.json
   2. 逐城市用高德 POI 检索拉取权威景点，按 (省, 归一名) 与 OSM 匹配：
      - 命中 -> 补强等级/评分/开放时间/票价/电话/地址/图片，source 标记合并
      - 未命中 -> 作为高德专属记录追加（补齐 OSM 超时缺失的城市）
   3. 落库:
-     data/china_attractions_unified.json          融合知识库（Agent 主库）
-     data/china_attractions_unified_index.json    省->市->[id] 检索索引
+     data/china_attractions.json          融合知识库（Agent 主库）
+     data/china_attractions_index.json    省->市->[id] 检索索引
 
 用法:
   python tools/build_unified_kb.py                 # 全量 39 城融合
@@ -32,9 +32,9 @@ from kb.models import from_osm, norm_name  # noqa: E402
 from kb.amap_source import AmapClient, from_amap, load_api_key  # noqa: E402
 from build_china_kb import CITIES  # noqa: E402
 
-OSM_PATH = "data/china_attractions.json"
-OUT_PATH = "data/china_attractions_unified.json"
-INDEX_PATH = "data/china_attractions_unified_index.json"
+OSM_PATH = "data/china_attractions_osm.json"
+OUT_PATH = "data/china_attractions.json"
+INDEX_PATH = "data/china_attractions_index.json"
 
 
 def merge_city(attractions, by_key, client, city):

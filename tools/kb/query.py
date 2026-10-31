@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 知识库检索助手 —— 供 Travel-Assistant-Agent 调用。
-加载融合知识库(china_attractions_unified.json)，提供按城市 / 类型 / 关键词 / 坐标的检索。
+加载知识库(china_attractions.json)，提供按城市 / 类型 / 关键词 / 坐标的检索。
 """
 import json
 import os
 
 DEFAULT_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "data", "china_attractions_unified.json",
+    "data", "china_attractions.json",
 )
 
 
