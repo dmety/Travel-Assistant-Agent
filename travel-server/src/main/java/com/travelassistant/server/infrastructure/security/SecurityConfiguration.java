@@ -36,7 +36,7 @@ public class SecurityConfiguration {
 
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/health", "/api/login", "/api/account/register",
-                "/", "/login", "/login.html", "/register.html").permitAll()
+                "/", "/login", "/login.html", "/register.html", "/app", "/app.html").permitAll()
             .anyRequest().authenticated())
 
         // 服务端会话：认证成功后创建 HttpSession，并通过 JSESSIONID Cookie 维持。

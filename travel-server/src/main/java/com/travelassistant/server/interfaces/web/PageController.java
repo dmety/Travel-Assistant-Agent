@@ -14,4 +14,9 @@ public class PageController {
   public String loginPage() {
     return "forward:/login.html";
   }
+
+  @GetMapping("/app")
+  public String appPage() {
+    return "forward:/app.html";
+  }
 }

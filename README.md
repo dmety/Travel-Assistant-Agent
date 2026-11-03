@@ -44,7 +44,7 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 
 ## 认证与账号
 
-服务端采用 Spring Security + 自定义用户读取（`UserDetailsService`），**已替换**启动时随机密码的默认 `user` 账号。密码以 BCrypt 哈希存储，账号落盘到服务端 JSON（`TRAVEL_DATA_DIR/accounts.json`，已被 `.gitignore` 排除）。认证使用服务端会话（HttpSession）+ JSESSIONID Cookie 维持登录态；退出会使会话失效并清除 Cookie。
+服务端采用 Spring Security + 自定义用户读取（`UserDetailsService`），**已替换**启动时随机密码的默认 `user` 账号。密码以 BCrypt 哈希存储，账号落盘到服务端 JSON（`TRAVEL_DATA_DIR/accounts.json`，已纳入版本控制）。认证使用服务端会话（HttpSession）+ JSESSIONID Cookie 维持登录态；退出会使会话失效并清除 Cookie。
 
 | 接口 | 方法 | 鉴权 | 说明 |
 |---|---|---|---|
@@ -56,7 +56,9 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 
 控制台客户端可演示登录流程：`java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 <用户名> <密码>`。
 
-健康检查为 `GET /api/health`。其余接口默认需要认证；业务菜单、Agent 与行程存储尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 即账号落盘目录。
+**浏览器测试前端**：启动服务后打开 `http://localhost:8080/app`（登录页为 `http://localhost:8080/login`），可直接注册/登录并在线测试全部行程接口——行程增删查、五大板块编辑、成员权限管理、版本冲突（409）处理。仅用于本地联调，非生产 UI。
+
+健康检查为 `GET /api/health`。其余接口默认需要认证。**行程管理接口**（多份行程 CRUD、方案/每日安排/交通/住宿/费用五大板块、板块级成员权限、乐观锁版本冲突）已实现，详见 [服务端 REST 接口文档](docs/服务端REST接口文档.md)；业务菜单与 Agent 尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 即账号与行程落盘目录。
 
 `DEEPSEEK_API_KEY` 和 `AMAP_API_KEY` 在后续适配器中通过环境变量读取，不提交密钥。Spring AI 与 Spring Boot 的版本在父 pom 中统一管理。
 
