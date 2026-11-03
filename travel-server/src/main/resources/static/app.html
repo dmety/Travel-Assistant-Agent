@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旅行助手 · 接口测试台</title>
+  <style>
+    :root { --primary:#2563eb; --ok:#16a34a; --err:#dc2626; --bg:#f1f5f9; --line:#e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:var(--bg); color:#0f172a; padding:24px 16px; }
+    .card { background:#fff; width:100%; max-width:920px; margin:0 auto; border-radius:14px;
+            box-shadow:0 10px 30px rgba(15,23,42,.08); padding:24px; }
+    h1 { font-size:20px; margin:0 0 4px; }
+    h2 { font-size:16px; margin:18px 0 10px; }
+    .sub { color:#64748b; font-size:13px; margin:0 0 16px; }
+    .muted { color:#94a3b8; font-size:12px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .row.between { justify-content:space-between; }
+    input, textarea, select { padding:9px 11px; border:1px solid #cbd5e1; border-radius:8px;
+            font-size:14px; font-family:inherit; }
+    input:focus, textarea:focus { outline:2px solid var(--primary); border-color:var(--primary); }
+    textarea { width:100%; font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; resize:vertical; }
+    button { padding:9px 14px; border:0; border-radius:8px; background:var(--primary); color:#fff;
+             font-size:14px; cursor:pointer; }
+    button.secondary { background:#e2e8f0; color:#0f172a; }
+    button.danger { background:#fee2e2; color:#991b1b; }
+    button.sm { padding:5px 10px; font-size:13px; }
+    .status { margin-top:12px; padding:10px 12px; border-radius:8px; font-size:13px; white-space:pre-wrap;
+              word-break:break-all; display:none; }
+    .status.ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .status.err { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    hr { border:0; border-top:1px solid var(--line); margin:20px 0; }
+    .list { display:flex; flex-direction:column; gap:8px; }
+    .item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
+            border:1px solid var(--line); border-radius:8px; }
+    .item .meta { color:#64748b; font-size:12px; }
+    .create { display:flex; flex-direction:column; gap:8px; margin-top:12px;
+              padding:12px; border:1px dashed var(--line); border-radius:8px; }
+    .panel { margin-top:16px; border:1px solid var(--line); border-radius:10px; padding:16px; }
+    .it-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .tab { padding:7px 12px; border-radius:8px; cursor:pointer; background:#e2e8f0; font-size:13px; user-select:none; }
+    .tab.active { background:var(--primary); color:#fff; }
+    .tabpane { display:none; }
+    .tabpane.active { display:block; }
+    .sec-actions { display:flex; gap:8px; margin-top:8px; align-items:center; }
+    .mem { display:flex; justify-content:space-between; align-items:center; padding:8px 10px;
+           border:1px solid var(--line); border-radius:8px; margin-bottom:6px; }
+    .mem .tags { font-size:12px; color:#2563eb; }
+    .checks { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
+    .checks label { font-size:13px; color:#475569; display:flex; align-items:center; gap:4px; }
+    .me { font-size:13px; color:#16a34a; font-weight:600; margin-left:8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>旅行助手 · 接口测试台</h1>
+    <p class="sub">本地联调用：登录走会话 Cookie，行程增改走乐观锁 version。所有请求同源。</p>
+
+    <!-- 认证 -->
+    <div class="row">
+      <input id="user" placeholder="用户名" autocomplete="username" style="width:140px;" />
+      <input id="pass" type="password" placeholder="密码" autocomplete="current-password" style="width:140px;" />
+      <button id="loginBtn">登录</button>
+      <button id="regBtn" class="secondary">注册</button>
+      <button id="logoutBtn" class="secondary">退出</button>
+      <span id="meInfo" class="me"></span>
+    </div>
+    <div id="msg" class="status"></div>
+
+    <hr />
+
+    <!-- 行程列表 -->
+    <div class="row between">
+      <h2 style="margin:0;">我的行程</h2>
+      <button id="refreshListBtn" class="secondary sm">刷新列表</button>
+    </div>
+    <div id="itList" class="list"><span class="muted">未加载</span></div>
+
+    <div class="create">
+      <input id="newTitle" placeholder="新行程标题" style="max-width:280px;" />
+      <textarea id="newPlan" rows="2" placeholder='方案 JSON（可选），如 {"destination":"云南","summary":"昆大丽"}'></textarea>
+      <div><button id="createBtn">创建行程</button></div>
+    </div>
+
+    <!-- 行程详情 -->
+    <div id="itineraryPanel" class="panel" style="display:none;">
+      <div class="it-head">
+        <div><b id="itTitle"></b> <span id="itMeta" class="muted"></span></div>
+        <div>
+          <button id="refreshItBtn" class="secondary sm">刷新</button>
+          <button id="deleteItBtn" class="danger sm">删除</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="secTabs">
+        <div class="tab active" data-sec="plan">方案</div>
+        <div class="tab" data-sec="daily">每日安排</div>
+        <div class="tab" data-sec="transports">交通</div>
+        <div class="tab" data-sec="lodgings">住宿</div>
+        <div class="tab" data-sec="expenses">费用</div>
+        <div class="tab" data-sec="members">成员</div>
+      </div>
+
+      <div class="tabpane active" data-sec="plan">
+        <textarea id="ta_plan" rows="6"></textarea>
+        <div class="sec-actions"><button data-save="plan">保存方案 (PUT)</button></div>
+      </div>
+      <div class="tabpane" data-sec="daily">
+        <textarea id="ta_daily" rows="8"></textarea>
+        <div class="sec-actions"><button data-save="daily">保存每日安排 (PUT)</button></div>
+      </div>
+      <div class="tabpane" data-sec="transports">
+        <textarea id="ta_transports" rows="8"></textarea>
+        <div class="sec-actions"><button data-save="transports">保存交通 (PUT)</button></div>
+      </div>
+      <div class="tabpane" data-sec="lodgings">
+        <textarea id="ta_lodgings" rows="8"></textarea>
+        <div class="sec-actions"><button data-save="lodgings">保存住宿 (PUT)</button></div>
+      </div>
+      <div class="tabpane" data-sec="expenses">
+        <textarea id="ta_expenses" rows="8"></textarea>
+        <div class="sec-actions"><button data-save="expenses">保存费用 (PUT)</button></div>
+      </div>
+      <div class="tabpane" data-sec="members">
+        <div id="memList"></div>
+        <h2 style="font-size:14px;margin:14px 0 6px;">添加 / 更新成员</h2>
+        <div class="row">
+          <input id="memUser" placeholder="成员用户名" style="width:160px;" />
+          <button id="memSaveBtn">保存成员</button>
+        </div>
+        <div class="checks" id="memChecks">
+          <label><input type="checkbox" value="PLAN" />方案</label>
+          <label><input type="checkbox" value="DAILY" />每日安排</label>
+          <label><input type="checkbox" value="TRANSPORT" />交通</label>
+          <label><input type="checkbox" value="LODGING" />住宿</label>
+          <label><input type="checkbox" value="EXPENSE" />费用</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const SECTIONS = ['plan','daily','transports','lodgings','expenses'];
+    const FIELD = { plan:'plan', daily:'dailySchedules', transports:'transports', lodgings:'lodgings', expenses:'expenses' };
+    let state = { id:null, version:0 };
+
+    function show(msg, kind) {
+      const el = $('msg'); el.textContent = msg; el.className = 'status ' + (kind || '');
+    }
+    async function api(method, path, body, isJson) {
+      const opt = { method, credentials: 'same-origin' };
+      if (body !== undefined) {
+        opt.headers = { 'Content-Type': isJson ? 'application/json' : 'application/x-www-form-urlencoded' };
+        opt.body = isJson ? JSON.stringify(body) : body;
+      }
+      return fetch(path, opt);
+    }
+
+    // ---- 认证 ----
+    async function refreshMe() {
+      try {
+        const res = await api('GET', '/api/account/me');
+        if (res.ok) { const u = await res.json(); $('meInfo').textContent = '已登录: ' + u.username; return true; }
+        $('meInfo').textContent = ''; return false;
+      } catch (e) { $('meInfo').textContent = ''; return false; }
+    }
+    $('loginBtn').onclick = async () => {
+      const u = $('user').value.trim(), p = $('pass').value;
+      const res = await api('POST', '/api/login',
+        'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p), false);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { show('登录成功: ' + (d.username || u), 'ok'); await refreshMe(); await refreshList(); }
+      else show('登录失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+    $('regBtn').onclick = async () => {
+      const u = $('user').value.trim(), p = $('pass').value;
+      const res = await api('POST', '/api/account/register', { username:u, password:p }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 201) show('注册成功，请点「登录」。', 'ok');
+      else show('注册失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+    $('logoutBtn').onclick = async () => {
+      const res = await api('POST', '/api/logout');
+      const d = await res.json().catch(() => ({}));
+      show('已退出: ' + (d.loggedOut ? '会话失效' : 'OK'), 'ok'); $('meInfo').textContent = '';
+      $('itList').innerHTML = '<span class="muted">未加载</span>'; $('itineraryPanel').style.display = 'none';
+    };
+
+    // ---- 行程列表 ----
+    async function refreshList() {
+      const res = await api('GET', '/api/itineraries');
+      if (!res.ok) { $('itList').innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
+      const list = await res.json();
+      if (!list.length) { $('itList').innerHTML = '<span class="muted">暂无行程</span>'; return; }
+      $('itList').innerHTML = '';
+      list.forEach(it => {
+        const div = document.createElement('div'); div.className = 'item';
+        div.innerHTML = '<div><b>' + escapeHtml(it.title) + '</b> <span class="meta">v' + it.version +
+          ' · owner ' + escapeHtml(it.owner) + '</span></div>';
+        const btn = document.createElement('button'); btn.className = 'sm'; btn.textContent = '打开';
+        btn.onclick = () => openItinerary(it.id);
+        div.appendChild(btn); $('itList').appendChild(div);
+      });
+    }
+    $('refreshListBtn').onclick = refreshList;
+
+    // ---- 创建 ----
+    $('createBtn').onclick = async () => {
+      const title = $('newTitle').value.trim();
+      if (!title) { show('请填写标题', 'err'); return; }
+      let plan = null;
+      const raw = $('newPlan').value.trim();
+      if (raw) { try { plan = JSON.parse(raw); } catch (e) { show('方案 JSON 解析失败: ' + e.message, 'err'); return; } }
+      const res = await api('POST', '/api/itineraries', { title, plan }, true);
+      if (res.status === 201) { const it = await res.json(); show('已创建: ' + it.title + ' (v' + it.version + ')', 'ok');
+        $('newTitle').value = ''; $('newPlan').value = ''; await refreshList(); await openItinerary(it.id); }
+      else { const d = await res.json().catch(()=>({})); show('创建失败(' + res.status + '): ' + (d.error||''), 'err'); }
+    };
+
+    // ---- 打开 / 渲染行程 ----
+    async function openItinerary(id) {
+      const res = await api('GET', '/api/itineraries/' + id);
+      if (!res.ok) { show('打开失败(' + res.status + ')', 'err'); return; }
+      applyItinerary(await res.json());
+    }
+    function applyItinerary(it) {
+      state.id = it.id; state.version = it.version;
+      $('itineraryPanel').style.display = 'block';
+      $('itTitle').textContent = it.title;
+      $('itMeta').textContent = 'version ' + it.version + ' · owner ' + it.owner;
+      SECTIONS.forEach(s => {
+        const val = it[FIELD[s]];
+        $(('ta_' + s)).value = JSON.stringify(val === undefined ? (s === 'plan' ? {} : []) : val, null, 2);
+      });
+      renderMembers(it.members || []);
+    }
+    $('refreshItBtn').onclick = () => { if (state.id) openItinerary(state.id); };
+    $('deleteItBtn').onclick = async () => {
+      if (!state.id) return;
+      if (!confirm('确认删除该行程？')) return;
+      const res = await api('DELETE', '/api/itineraries/' + state.id);
+      if (res.ok) { show('已删除', 'ok'); $('itineraryPanel').style.display = 'none'; await refreshList(); }
+      else { const d = await res.json().catch(()=>({})); show('删除失败(' + res.status + '): ' + (d.error||''), 'err'); }
+    };
+
+    // ---- 板块标签切换 ----
+    $('secTabs').querySelectorAll('.tab').forEach(t => {
+      t.onclick = () => {
+        $('secTabs').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tabpane').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.querySelector('.tabpane[data-sec="' + t.dataset.sec + '"]').classList.add('active');
+      };
+    });
+
+    // ---- 保存板块 ----
+    document.querySelectorAll('[data-save]').forEach(btn => {
+      btn.onclick = async () => {
+        const sec = btn.dataset.save; const ta = $('ta_' + sec);
+        let payload;
+        try { payload = JSON.parse(ta.value); } catch (e) { show(sec + ' JSON 解析失败: ' + e.message, 'err'); return; }
+        const res = await api('PUT', '/api/itineraries/' + state.id + '/' + sec + '?version=' + state.version, payload, true);
+        if (res.ok) { applyItinerary(await res.json()); show('已保存 ' + sec + '，新版本 ' + state.version, 'ok'); }
+        else {
+          const d = await res.json().catch(()=>({}));
+          const cv = res.headers.get('X-Version');
+          show('保存失败(' + res.status + ')' + (cv ? ' 服务端当前版本=' + cv : '') + ': ' + (d.error || ''), 'err');
+        }
+      };
+    });
+
+    // ---- 成员 ----
+    function renderMembers(members) {
+      const box = $('memList'); box.innerHTML = '';
+      if (!members.length) { box.innerHTML = '<span class="muted">暂无成员</span>'; return; }
+      members.forEach(m => {
+        const div = document.createElement('div'); div.className = 'mem';
+        div.innerHTML = '<div><b>' + escapeHtml(m.username) + '</b> <span class="tags">' +
+          (m.editSections && m.editSections.length ? m.editSections.join(', ') : '（仅查看）') + '</span></div>';
+        const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
+        const upd = document.createElement('button'); upd.className = 'sm secondary'; upd.textContent = '编辑';
+        upd.onclick = () => { $('memUser').value = m.username;
+          $('memChecks').querySelectorAll('input').forEach(c => c.checked = (m.editSections||[]).includes(c.value)); };
+        const del = document.createElement('button'); del.className = 'sm danger'; del.textContent = '移除';
+        del.onclick = () => removeMember(m.username);
+        wrap.appendChild(upd); wrap.appendChild(del); div.appendChild(wrap); box.appendChild(div);
+      });
+    }
+    $('memSaveBtn').onclick = async () => {
+      const username = $('memUser').value.trim();
+      if (!username) { show('请填写成员用户名', 'err'); return; }
+      const secs = [...$('memChecks').querySelectorAll('input:checked')].map(c => c.value);
+      const res = await api('POST', '/api/itineraries/' + state.id + '/members?version=' + state.version,
+        { username, editSections: secs }, true);
+      if (res.ok) { applyItinerary(await res.json()); show('已添加/更新成员 ' + username, 'ok'); $('memUser').value=''; }
+      else { const d = await res.json().catch(()=>({})); const cv = res.headers.get('X-Version');
+        show('成员操作失败(' + res.status + ')' + (cv ? ' 当前版本=' + cv : '') + ': ' + (d.error||''), 'err'); }
+    };
+    async function removeMember(username) {
+      if (!confirm('移除成员 ' + username + '？')) return;
+      const res = await api('DELETE', '/api/itineraries/' + state.id + '/members/' + encodeURIComponent(username) + '?version=' + state.version);
+      if (res.ok) { applyItinerary(await res.json()); show('已移除 ' + username, 'ok'); }
+      else { const d = await res.json().catch(()=>({})); show('移除失败(' + res.status + '): ' + (d.error||''), 'err'); }
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // ---- 初始化 ----
+    (async () => { await refreshMe(); await refreshList(); })();
+  </script>
+</body>
+</html>
