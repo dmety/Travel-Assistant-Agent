@@ -21,6 +21,7 @@ DISPLAY_FIELDS = [
 # 元数据字段（数据治理用，不进入展示层，避免被渲染成"暂无"）
 META_FIELDS = [
     "same_name_group", "ticket_status", "open_time_status", "same_name_risk",
+    "merge_review",
 ]
 
 def field_to_display(value):
