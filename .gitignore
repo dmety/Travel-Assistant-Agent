@@ -9,3 +9,5 @@ data/*
 .env
 *.log
 .workbuddy/
+# 测试从模块目录运行时会把业务数据写到 travel-server/data/，属测试产物
+travel-server/data/
