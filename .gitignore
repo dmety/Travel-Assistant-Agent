@@ -3,6 +3,7 @@
 data/*
 !data/china_attractions.json
 !data/accounts.json
+!data/itineraries.json
 .idea/
 *.iml
 .env
