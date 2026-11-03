@@ -41,7 +41,21 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 
 其他电脑将 localhost 替换为服务端可达地址；部署时配置 HTTPS，避免明文传输凭据。设置 `SESSION_COOKIE_SECURE=true` 启用安全会话 Cookie。
 
-健康检查为 `GET /api/health`。当前其他接口默认需要认证；登录接口、业务菜单、Agent 和存储尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 是预留数据目录参数，当前尚无数据写入。
+## 认证与账号
+
+服务端采用 Spring Security + 自定义用户读取（`UserDetailsService`），**已替换**启动时随机密码的默认 `user` 账号。密码以 BCrypt 哈希存储，账号落盘到服务端 JSON（`TRAVEL_DATA_DIR/accounts.json`，已被 `.gitignore` 排除）。认证使用服务端会话（HttpSession）+ JSESSIONID Cookie 维持登录态；退出会使会话失效并清除 Cookie。
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/health` | GET | 公开 | 健康检查 |
+| `/api/account/register` | POST | 公开 | 注册并写入服务端 JSON；重复用户名返回 409，弱密码返回 400 |
+| `/api/login` | POST | 公开 | 表单登录（`username`/`password`），成功建立会话并下发 JSESSIONID |
+| `/api/account/me` | GET | 需登录 | 返回当前用户名与角色 |
+| `/api/logout` | POST | 需登录 | 使会话失效并清除 JSESSIONID |
+
+控制台客户端可演示登录流程：`java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 <用户名> <密码>`。
+
+健康检查为 `GET /api/health`。其余接口默认需要认证；业务菜单、Agent 与行程存储尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 即账号落盘目录。
 
 `DEEPSEEK_API_KEY` 和 `AMAP_API_KEY` 在后续适配器中通过环境变量读取，不提交密钥。Spring AI 与 Spring Boot 的版本在父 pom 中统一管理。
 
