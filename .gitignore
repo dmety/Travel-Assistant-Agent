@@ -2,6 +2,7 @@
 .tools/
 data/*
 !data/china_attractions.json
+!data/accounts.json
 .idea/
 *.iml
 .env
