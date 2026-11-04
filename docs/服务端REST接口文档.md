@@ -55,6 +55,23 @@
 > 校验类错误信息形如 `{ "error": "费用金额不能为负数：-999.99（交通）" }`；
 > 成员级 404 额外带回 `id` 与 `username`，便于区分「行程不存在」与「成员不存在」。
 
+### 1.5 异常与状态码映射（服务端实现）
+
+错误响应由统一异常处理生成，下表与代码一一对应，便于排查「接口返回 400/403/404/409 到底是哪条规则触发的」。
+
+| 异常 | HTTP | 响应体 | 触发场景 |
+|---|---|---|---|
+| `InvalidAccountException` | 400 | `{ "error": "<原因>" }` | 注册时用户名/密码不符合长度与字符规则 |
+| `DuplicateAccountException` | 409 | `{ "error": "账号已存在: xxx" }` | 注册时用户名已存在 |
+| `MethodArgumentNotValidException` | 400 | `{ "error": "<首个字段校验消息>" }` | 请求体 Bean Validation 失败（如 `title` 为 `@NotBlank`） |
+| `InvalidItineraryException` | 400 | `{ "error": "<原因>" }` | 标题为空、费用为负、住宿日期倒置、邀请未注册用户等业务校验 |
+| `ItineraryForbiddenException` | 403 | `{ "error": "无权限" }` | 非参与者访问；成员编辑未授权板块；非 owner 管理成员或删除 |
+| `ItineraryNotFoundException` | 404 | `{ "error": "行程不存在", "id": "..." }` | 行程 ID 不存在 |
+| `MemberNotFoundException` | 404 | `{ "error": "成员不存在", "id": "...", "username": "..." }` | 目标用户不在成员列表中（不递增版本号） |
+| `VersionConflictException` | 409 | `{ "error": "版本冲突，已被他人修改", "currentVersion": N }`，响应头带 `X-Version` | 提交的 `version` 与服务端不一致 |
+
+> 未登录访问受保护接口由 Spring Security 直接返回 **401**，不经过上述处理器。
+
 ---
 
 ## 2. 账号与认证

@@ -109,4 +109,4 @@
 | 凤凰岭森林公园 | 三亚 | `osm-way-675580207` | `osm-way-675580208` |
 | 孔子像 | 福州 | `osm-node-4336476909` | `osm-node-6721129809` |
 
-影响：KB 总数 11862 → **11858**（删 4 条）；`same_name_risk` 65 → 57；`merge_review` 24 → 16。`cross_city` 12 条不变（跨城市同名不合并）。删除追溯见 `F:/wb_tmp/merge_log.json`。
+影响：KB 总数 11862 → **11858**（删 4 条）；`same_name_risk` 65 → 57；`merge_review` 24 → 16。`cross_city` 12 条不变（跨城市同名不合并）。删除明细以本节表格为准，可逐条追溯；复现脚本为 `tools/merge_candidates.py`（幂等）。
