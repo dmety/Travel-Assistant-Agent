@@ -1,6 +1,6 @@
 # Travel Assistant 服务端接口文档
 
-> 适用分支：`zipei`　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
+> 适用版本：`main`（自 `8214902` 合入起生效）　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
 >
 > 本文档覆盖**账号与认证**与**行程管理**两套 REST 接口，包含请求/响应示例、数据模型、权限模型与乐观锁机制。
 
@@ -21,9 +21,20 @@
 - 退出调用 `/api/logout`，服务端使会话失效并清除 `JSESSIONID`。
 
 ### 1.3 公开的接口（无需登录）
-`GET /api/health`、`POST /api/account/register`、`POST /api/login`、`GET /`、`GET /login`、`GET /login.html`、`GET /register.html`。
+
+与 `SecurityConfiguration#permitAll()` 保持一致，共 9 项：
+
+| 路径 | 说明 |
+|---|---|
+| `GET /api/health` | 健康检查 |
+| `POST /api/account/register` | 注册 |
+| `POST /api/login` | 表单登录 |
+| `GET /`、`GET /login`、`GET /login.html` | 登录页（注册在页内切换标签完成） |
+| `GET /app`、`GET /app.html` | 接口测试台页面 |
 
 其余 `/api/**` 均要求登录，未登录直接返回 **401**（不跳转登录页，便于 JSON 客户端处理）。
+
+> **待确认项**：`SecurityConfiguration` 另放行了 `/register.html`，但 `travel-server/src/main/resources/static/` 下并无该文件（注册实际在 `login.html` 内完成）。保留放行不影响功能，是否删除该条目需与开发负责人确认；确认后本表同步更新。
 
 ### 1.4 统一错误响应
 除登录/退出外，错误统一为 JSON：
