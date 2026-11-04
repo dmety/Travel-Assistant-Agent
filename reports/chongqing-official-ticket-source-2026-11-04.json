@@ -1,0 +1,76 @@
+{
+  "source_title": "游·重庆（重庆市文化和旅游发展委员会）",
+  "source_url": "https://whlyw.cq.gov.cn/zjwl/yzq/",
+  "source_snapshot_date": "截至2025年12月",
+  "retrieved_at": "2026-11-04",
+  "rows": [
+    {
+      "source_name": "重庆磁器口古镇",
+      "district": "沙坪坝区",
+      "level": "4A",
+      "open_air": "是",
+      "fee": "否",
+      "high_season_ticket": "0",
+      "low_season_ticket": "0",
+      "kb_id": "osm-way-1242282393",
+      "kb_name": "磁器口古镇"
+    },
+    {
+      "source_name": "重庆建川博物馆",
+      "district": "九龙坡区",
+      "level": "4A",
+      "open_air": "否",
+      "fee": "是",
+      "high_season_ticket": "50",
+      "low_season_ticket": "50",
+      "kb_id": "osm-node-4145017447",
+      "kb_name": "建川博物馆"
+    },
+    {
+      "source_name": "重庆市规划展览馆",
+      "district": "南岸区",
+      "level": "4A",
+      "open_air": "否",
+      "fee": "否",
+      "high_season_ticket": "0",
+      "low_season_ticket": "0",
+      "kb_id": "osm-way-1055574267",
+      "kb_name": "重庆市规划展览馆"
+    },
+    {
+      "source_name": "重庆华生园金色蛋糕梦幻王国",
+      "district": "大渡口区",
+      "level": "3A",
+      "open_air": "否",
+      "fee": "是",
+      "high_season_ticket": "30",
+      "low_season_ticket": "30",
+      "kb_id": "osm-node-13449220312",
+      "kb_name": "华生园金色蛋糕梦幻王国"
+    }
+  ],
+  "review_only": [
+    {
+      "source_name": "重庆动物园",
+      "district": "九龙坡区",
+      "level": "4A",
+      "fee": "是",
+      "high_season_ticket": "25",
+      "low_season_ticket": "20",
+      "kb_id": "osm-way-413053012",
+      "kb_ticket_already_present": true,
+      "decision": "values agree; no change"
+    },
+    {
+      "source_name": "重庆湖广会馆",
+      "district": "渝中区",
+      "level": "4A",
+      "fee": "是",
+      "high_season_ticket": "25",
+      "low_season_ticket": "25",
+      "kb_id": "osm-way-866088553",
+      "kb_ticket_already_present": true,
+      "decision": "conflicts with KB text stating 32 full price and 16 concession price effective 2025-04-21; no overwrite"
+    }
+  ]
+}

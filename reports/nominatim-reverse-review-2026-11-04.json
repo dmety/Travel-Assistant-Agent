@@ -1,0 +1,494 @@
+[
+  {
+    "input_id": "amap-B0FFGXTU5E",
+    "input_name": "金海湾滨江公园",
+    "input_city": "重庆市",
+    "input_province": "重庆市",
+    "input_lat": 29.633833,
+    "input_lon": 106.461443,
+    "query_lat_wgs84": 29.636404633929,
+    "query_lon_wgs84": 106.45747293531386,
+    "response": {
+      "place_id": 241813962,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 672172637,
+      "lat": "29.6361968",
+      "lon": "106.4576168",
+      "category": "highway",
+      "type": "tertiary",
+      "place_rank": 26,
+      "importance": 0.05338816891737236,
+      "addresstype": "tertiary",
+      "name": "金海大道",
+      "display_name": "金海大道, 大竹林街道, 两江新区, 重庆市, 400031, 中国",
+      "address": {
+        "road": "金海大道",
+        "suburb": "大竹林街道",
+        "city": "两江新区",
+        "district": "两江新区",
+        "state": "重庆市",
+        "ISO3166-2-lvl4": "CN-CQ",
+        "postcode": "400031",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "金海大道",
+        "name:en": "Jinhai Avenue",
+        "name:zh": "金海大道"
+      },
+      "boundingbox": [
+        "29.6245035",
+        "29.6516533",
+        "106.4511158",
+        "106.4682273"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B03670VA8J",
+    "input_name": "滇池学院",
+    "input_city": "昆明市",
+    "input_province": "云南省",
+    "input_lat": 24.972498,
+    "input_lon": 102.6738,
+    "query_lat_wgs84": 24.975546388885935,
+    "query_lon_wgs84": 102.67245178328169,
+    "response": {
+      "place_id": 240804928,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 248183776,
+      "lat": "24.9752935",
+      "lon": "102.6721919",
+      "category": "amenity",
+      "type": "university",
+      "place_rank": 30,
+      "importance": 6.800564583805626e-05,
+      "addresstype": "amenity",
+      "name": "云南大学滇池学院",
+      "display_name": "云南大学滇池学院, 滇池路, 昆明滇池国家旅游度假区, 西山区, 昆明市, 云南省, 650228, 中国",
+      "address": {
+        "amenity": "云南大学滇池学院",
+        "road": "滇池路",
+        "suburb": "昆明滇池国家旅游度假区",
+        "city": "西山区",
+        "state": "云南省",
+        "ISO3166-2-lvl4": "CN-YN",
+        "postcode": "650228",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "云南大学滇池学院",
+        "name:en": "Yunnan University Dianchi College",
+        "name:zh": "云南大学滇池学院"
+      },
+      "boundingbox": [
+        "24.9739406",
+        "24.9771612",
+        "102.6689122",
+        "102.6750009"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B036702A40",
+    "input_name": "昆明医科大学海源学院",
+    "input_city": "昆明市",
+    "input_province": "云南省",
+    "input_lat": 25.069714,
+    "input_lon": 102.663024,
+    "query_lat_wgs84": 25.072771385882092,
+    "query_lon_wgs84": 102.6616996687293,
+    "response": {
+      "place_id": 241570210,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 248184021,
+      "lat": "25.0726483",
+      "lon": "102.6615827",
+      "category": "amenity",
+      "type": "university",
+      "place_rank": 30,
+      "importance": 6.800564583805626e-05,
+      "addresstype": "amenity",
+      "name": "昆明医学院海源学院",
+      "display_name": "昆明医学院海源学院, 海源北路, 国家高新技术产业开发区, 五华区, 昆明市, 云南省, 650018, 中国",
+      "address": {
+        "amenity": "昆明医学院海源学院",
+        "road": "海源北路",
+        "suburb": "国家高新技术产业开发区",
+        "district": "五华区",
+        "city": "昆明市",
+        "state": "云南省",
+        "ISO3166-2-lvl4": "CN-YN",
+        "postcode": "650018",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "昆明医学院海源学院"
+      },
+      "boundingbox": [
+        "25.0711578",
+        "25.0745959",
+        "102.6599054",
+        "102.6633697"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B0378008FA",
+    "input_name": "玉龙雪山国家级风景名胜区",
+    "input_city": "丽江市",
+    "input_province": "云南省",
+    "input_lat": 27.098052,
+    "input_lon": 100.258558,
+    "query_lat_wgs84": 27.101547937919023,
+    "query_lon_wgs84": 100.25742829787261,
+    "response": {
+      "place_id": 241447085,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 1000080667,
+      "lat": "27.1018109",
+      "lon": "100.2574093",
+      "category": "tourism",
+      "type": "museum",
+      "place_rank": 30,
+      "importance": 6.17769130998248e-05,
+      "addresstype": "tourism",
+      "name": "玉龙雪山冰川博物馆",
+      "display_name": "玉龙雪山冰川博物馆, S223, 大具乡, 玉龙纳西族自治县, 丽江市, 云南省, 中国",
+      "address": {
+        "tourism": "玉龙雪山冰川博物馆",
+        "road": "S223",
+        "town": "大具乡",
+        "city": "玉龙纳西族自治县",
+        "state": "云南省",
+        "ISO3166-2-lvl4": "CN-YN",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "玉龙雪山冰川博物馆",
+        "name:zh": "玉龙雪山冰川博物馆"
+      },
+      "boundingbox": [
+        "27.1014029",
+        "27.1023811",
+        "100.2568334",
+        "100.2578227"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B038300GWH",
+    "input_name": "崖州古城",
+    "input_city": "三亚市",
+    "input_province": "海南省",
+    "input_lat": 18.370693,
+    "input_lon": 109.166017,
+    "query_lat_wgs84": 18.372287337993956,
+    "query_lon_wgs84": 109.16191967346982,
+    "response": {
+      "place_id": 238784060,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 389404545,
+      "lat": "18.3723842",
+      "lon": "109.1619170",
+      "category": "highway",
+      "type": "secondary",
+      "place_rank": 26,
+      "importance": 0.05339333562218658,
+      "addresstype": "secondary",
+      "name": "",
+      "display_name": "崖城街道, 崖州区, 三亚市, 海南省, 中国",
+      "address": {
+        "suburb": "崖城街道",
+        "city": "崖州区",
+        "state": "海南省",
+        "ISO3166-2-lvl4": "CN-HI",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": null,
+      "boundingbox": [
+        "18.3723827",
+        "18.3724096",
+        "109.1614913",
+        "109.1628212"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B037B0OCLA",
+    "input_name": "念青唐古拉山",
+    "input_city": "拉萨市",
+    "input_province": "西藏自治区",
+    "input_lat": 30.544908,
+    "input_lon": 91.130087,
+    "query_lat_wgs84": 30.54754442848438,
+    "query_lon_wgs84": 91.12851907698465,
+    "response": {
+      "place_id": 241580423,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "node",
+      "osm_id": 13273271051,
+      "lat": "30.5472159",
+      "lon": "91.1280862",
+      "category": "shop",
+      "type": "ticket",
+      "place_rank": 30,
+      "importance": 6.812008850228149e-05,
+      "addresstype": "shop",
+      "name": "",
+      "display_name": "当亚线, 公塘乡, 当雄县 འདམ་གཞུང་རྫོང་།, 拉萨市 ལྷ་ས་གྲོང་ཁྱེར།, 西藏自治区 བོད་རང་སྐྱོང་ལྗོངས།, 中国",
+      "address": {
+        "road": "当亚线",
+        "town": "公塘乡",
+        "county": "当雄县 འདམ་གཞུང་རྫོང་།",
+        "city": "拉萨市 ལྷ་ས་གྲོང་ཁྱེར།",
+        "state": "西藏自治区 བོད་རང་སྐྱོང་ལྗོངས།",
+        "ISO3166-2-lvl4": "CN-XZ",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": null,
+      "boundingbox": [
+        "30.5471659",
+        "30.5472659",
+        "91.1280362",
+        "91.1281362"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B01C317HS4",
+    "input_name": "哈尔滨工业大学附属中学校",
+    "input_city": "哈尔滨市",
+    "input_province": "黑龙江省",
+    "input_lat": 45.661858,
+    "input_lon": 126.611289,
+    "query_lat_wgs84": 45.65992172256267,
+    "query_lon_wgs84": 126.60539113512966,
+    "response": {
+      "place_id": 228003430,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 674141180,
+      "lat": "45.6600737",
+      "lon": "126.6060257",
+      "category": "amenity",
+      "type": "parking",
+      "place_rank": 30,
+      "importance": 7.037689784080289e-05,
+      "addresstype": "amenity",
+      "name": "",
+      "display_name": "前卫大街, 王岗镇, 南岗区, 哈尔滨市, 平房区, 黑龙江省, 150000, 中国",
+      "address": {
+        "road": "前卫大街",
+        "town": "王岗镇",
+        "district": "南岗区",
+        "city": "哈尔滨市",
+        "state": "黑龙江省",
+        "ISO3166-2-lvl4": "CN-HL",
+        "postcode": "150000",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": null,
+      "boundingbox": [
+        "45.6595534",
+        "45.6605941",
+        "126.6052038",
+        "126.6068476"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B0FFGA0LN4",
+    "input_name": "庐州公园",
+    "input_city": "合肥市",
+    "input_province": "安徽省",
+    "input_lat": 31.885208,
+    "input_lon": 117.229673,
+    "query_lat_wgs84": 31.887217714113884,
+    "query_lon_wgs84": 117.2241826914037,
+    "response": {
+      "place_id": 225553236,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 1460932620,
+      "lat": "31.8866685",
+      "lon": "117.2237338",
+      "category": "leisure",
+      "type": "pitch",
+      "place_rank": 30,
+      "importance": 6.629205767905726e-05,
+      "addresstype": "leisure",
+      "name": "滑板运动场",
+      "display_name": "滑板运动场, 沿河西路, 雁栖社区, 大杨镇, 庐阳区, 合肥市, 安徽省, 230000, 中国",
+      "address": {
+        "leisure": "滑板运动场",
+        "road": "沿河西路",
+        "neighbourhood": "雁栖社区",
+        "town": "大杨镇",
+        "city": "庐阳区",
+        "state": "安徽省",
+        "ISO3166-2-lvl4": "CN-AH",
+        "postcode": "230000",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "滑板运动场"
+      },
+      "boundingbox": [
+        "31.8863812",
+        "31.8869529",
+        "117.2234386",
+        "117.2240286"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B0137024B7",
+    "input_name": "河北青年管理干部学院",
+    "input_city": "石家庄市",
+    "input_province": "河北省",
+    "input_lat": 38.029777,
+    "input_lon": 114.557111,
+    "query_lat_wgs84": 38.02924681615472,
+    "query_lon_wgs84": 114.55126638965743,
+    "response": {
+      "place_id": 218664923,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 1185220274,
+      "lat": "38.0292392",
+      "lon": "114.5512154",
+      "category": "amenity",
+      "type": "school",
+      "place_rank": 30,
+      "importance": 6.782253757529591e-05,
+      "addresstype": "amenity",
+      "name": "",
+      "display_name": "槐中路, 东苑街道, 裕华区, 石家庄市, 河北省, 050031, 中国",
+      "address": {
+        "road": "槐中路",
+        "suburb": "东苑街道",
+        "district": "裕华区",
+        "city": "石家庄市",
+        "state": "河北省",
+        "ISO3166-2-lvl4": "CN-HE",
+        "postcode": "050031",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": null,
+      "boundingbox": [
+        "38.0286962",
+        "38.0299669",
+        "114.5499827",
+        "114.5524587"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B0IDORK7B2",
+    "input_name": "石人沟",
+    "input_city": "乌鲁木齐市",
+    "input_province": "新疆维吾尔自治区",
+    "input_lat": 43.821953,
+    "input_lon": 87.788291,
+    "query_lat_wgs84": 43.8205857368769,
+    "query_lon_wgs84": 87.78525930624743,
+    "response": {
+      "place_id": 214045273,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 987300260,
+      "lat": "43.8195796",
+      "lon": "87.7838656",
+      "category": "highway",
+      "type": "unclassified",
+      "place_rank": 26,
+      "importance": 0.053388335240711036,
+      "addresstype": "unclassified",
+      "name": "石人子沟中路",
+      "display_name": "石人子沟中路, 蝴蝶谷社区, 石人子沟街道, 水磨沟区 بۇلاقتاغ رايونى, 乌鲁木齐市 ئۈرۈمچى, 新疆维吾尔自治区 شىنجاڭ ئۇيغۇر ئاپتونوم رايونی, 830000, 中国",
+      "address": {
+        "road": "石人子沟中路",
+        "neighbourhood": "蝴蝶谷社区",
+        "suburb": "石人子沟街道",
+        "district": "水磨沟区 بۇلاقتاغ رايونى",
+        "city": "乌鲁木齐市 ئۈرۈمچى",
+        "state": "新疆维吾尔自治区 شىنجاڭ ئۇيغۇر ئاپتونوم رايونی",
+        "ISO3166-2-lvl4": "CN-XJ",
+        "postcode": "830000",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "石人子沟中路"
+      },
+      "boundingbox": [
+        "43.8125499",
+        "43.8236303",
+        "87.7801399",
+        "87.8001863"
+      ]
+    }
+  },
+  {
+    "input_id": "amap-B0K2A7ZHHK",
+    "input_name": "内蒙古警察学院",
+    "input_city": "呼和浩特市",
+    "input_province": "内蒙古自治区",
+    "input_lat": 40.573018,
+    "input_lon": 111.817192,
+    "query_lat_wgs84": 40.57181996892852,
+    "query_lon_wgs84": 111.81039042476347,
+    "response": {
+      "place_id": 218972374,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "way",
+      "osm_id": 545743778,
+      "lat": "40.5682155",
+      "lon": "111.8115052",
+      "category": "highway",
+      "type": "tertiary",
+      "place_rank": 26,
+      "importance": 0.05339831616693366,
+      "addresstype": "tertiary",
+      "name": "云港大道",
+      "display_name": "云港大道, 恼木七太村, 盛乐镇, 和林格尔县 ᠬᠣᠷᠢᠨᠭᠡᠷ ᠰᠢᠶᠠᠨ, 呼和浩特市, 内蒙古自治区 ᠦᠪᠦᠷ ᠮᠣᠩᠭᠤᠯ ᠤᠨ ᠥᠪᠡᠷᠲᠡᠭᠡᠨ ᠵᠠᠰᠠᠬᠣ ᠣᠷᠣᠨ, 011500, 中国",
+      "address": {
+        "road": "云港大道",
+        "hamlet": "恼木七太村",
+        "town": "盛乐镇",
+        "county": "和林格尔县 ᠬᠣᠷᠢᠨᠭᠡᠷ ᠰᠢᠶᠠᠨ",
+        "city": "呼和浩特市",
+        "state": "内蒙古自治区 ᠦᠪᠦᠷ ᠮᠣᠩᠭᠤᠯ ᠤᠨ ᠥᠪᠡᠷᠲᠡᠭᠡᠨ ᠵᠠᠰᠠᠬᠣ ᠣᠷᠣᠨ",
+        "ISO3166-2-lvl4": "CN-NM",
+        "postcode": "011500",
+        "country": "中国",
+        "country_code": "cn"
+      },
+      "namedetails": {
+        "name": "云港大道",
+        "name:zh": "云港大道"
+      },
+      "boundingbox": [
+        "40.5588877",
+        "40.5712527",
+        "111.7813026",
+        "111.8213253"
+      ]
+    }
+  }
+]

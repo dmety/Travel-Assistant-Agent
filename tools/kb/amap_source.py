@@ -132,8 +132,9 @@ def from_amap(p: dict) -> "object":
             if "景区" in tg and any(ch.isdigit() for ch in tg):
                 level = tg
                 break
+    amap_id = "amap-" + (p.get("id", "") or "")
     return Attraction(
-        id="amap-" + (p.get("id", "") or ""),
+        id=amap_id,
         name=p.get("name", ""),
         type=t.split(";")[0] if t else "",
         city=p.get("cityname", "") or p.get("adname", ""),
@@ -151,4 +152,8 @@ def from_amap(p: dict) -> "object":
         photos=photo_urls,
         source="Amap",
         sources=["Amap"],
+        source_ids=[amap_id] if amap_id != "amap-" else [],
+        coordinateSystem="GCJ-02",
+        ticket_status="unverified" if ticket else "pending",
+        open_time_status="unverified" if (biz.get("opentime2") or biz.get("open_time")) else "pending",
     )

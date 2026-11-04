@@ -1,0 +1,103 @@
+{
+  "applied_at": "2026-11-04",
+  "changed_count": 9,
+  "basis": [
+    "Each changed row's sole source ID is its Amap primary ID and its only declared source is Amap.",
+    "tools/kb/amap_source.py::from_amap sets coordinateSystem=GCJ-02.",
+    "Amap official FAQ states that Amap Open Platform services use GCJ-02."
+  ],
+  "official_source_url": "https://lbs.amap.com/faq/advisory/others/39838",
+  "osm_linkage_inferred": false,
+  "records": [
+    {
+      "id": "amap-B0FFGXTU5E",
+      "name": "金海湾滨江公园",
+      "city": "重庆市",
+      "source_ids": [
+        "amap-B0FFGXTU5E"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B0378008FA",
+      "name": "玉龙雪山国家级风景名胜区",
+      "city": "丽江市",
+      "source_ids": [
+        "amap-B0378008FA"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B038300GWH",
+      "name": "崖州古城",
+      "city": "三亚市",
+      "source_ids": [
+        "amap-B038300GWH"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B037B0OCLA",
+      "name": "念青唐古拉山",
+      "city": "拉萨市",
+      "source_ids": [
+        "amap-B037B0OCLA"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B01C317HS4",
+      "name": "哈尔滨工业大学附属中学校",
+      "city": "哈尔滨市",
+      "source_ids": [
+        "amap-B01C317HS4"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B0FFGA0LN4",
+      "name": "庐州公园",
+      "city": "合肥市",
+      "source_ids": [
+        "amap-B0FFGA0LN4"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B0137024B7",
+      "name": "河北青年管理干部学院",
+      "city": "石家庄市",
+      "source_ids": [
+        "amap-B0137024B7"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B0IDORK7B2",
+      "name": "石人沟",
+      "city": "乌鲁木齐市",
+      "source_ids": [
+        "amap-B0IDORK7B2"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    },
+    {
+      "id": "amap-B0K2A7ZHHK",
+      "name": "内蒙古警察学院",
+      "city": "呼和浩特市",
+      "source_ids": [
+        "amap-B0K2A7ZHHK"
+      ],
+      "old_coordinateSystem": "mixed",
+      "new_coordinateSystem": "GCJ-02"
+    }
+  ]
+}

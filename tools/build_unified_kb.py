@@ -28,13 +28,14 @@ from datetime import datetime, timezone
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from kb.models import from_osm, norm_name  # noqa: E402
+from kb.models import from_osm, is_missing_value, norm_name  # noqa: E402
 from kb.amap_source import AmapClient, from_amap, load_api_key  # noqa: E402
 from build_china_kb import CITIES  # noqa: E402
 
-OSM_PATH = "data/china_attractions_osm.json"
-OUT_PATH = "data/china_attractions.json"
-INDEX_PATH = "data/china_attractions_index.json"
+BASE = os.path.dirname(HERE)
+OSM_PATH = os.path.join(BASE, "data", "china_attractions_osm.json")
+OUT_PATH = os.path.join(BASE, "data", "china_attractions.json")
+INDEX_PATH = os.path.join(BASE, "data", "china_attractions_index.json")
 
 
 def merge_city(attractions, by_key, client, city):
@@ -47,17 +48,55 @@ def merge_city(attractions, by_key, client, city):
     matched = added = 0
     for p in pois:
         a = from_amap(p)
-        cand = by_key.get((a.province, norm_name(a.name)))
-        if cand:
-            tgt = cand[0]
+        cand = by_key.get((a.province, norm_name(a.name)), [])
+        # Names produce candidates only. Merge only a unique same-city,
+        # nearby, unambiguous pair with known compatible coordinate systems.
+        # A duplicate name group is ambiguous even if only one member happens
+        # to fall inside the distance threshold. Require a singleton group and
+        # an explicit OSM -> Amap source pairing before automatic fusion.
+        eligible = []
+        for item in cand:
+            if len(cand) != 1 or not item.id.startswith("osm-") or not a.id.startswith("amap-"):
+                continue
+            # Explicitly reviewed risk flags always require human resolution.
+            # A short distance alone must not override a known name collision.
+            if item.same_name_risk or item.merge_review or a.same_name_risk or a.merge_review:
+                continue
+            if item.city != a.city or not a.city or not item.lat or not item.lon or not a.lat or not a.lon:
+                continue
+            left = item.coordinateSystem or ("WGS-84" if "OpenStreetMap" in item.source and "Amap" not in item.source else "")
+            right = a.coordinateSystem or "GCJ-02"
+            if left not in ("WGS-84", "GCJ-02") or right not in ("WGS-84", "GCJ-02"):
+                continue
+            from kb.models import gcj02_to_wgs84
+            la, lo = (gcj02_to_wgs84(item.lat, item.lon) if left == "GCJ-02" else (item.lat, item.lon))
+            ra, ro = (gcj02_to_wgs84(a.lat, a.lon) if right == "GCJ-02" else (a.lat, a.lon))
+            import math
+            dlat, dlon = math.radians(la-ra), math.radians(lo-ro)
+            h = math.sin(dlat/2)**2 + math.cos(math.radians(ra))*math.cos(math.radians(la))*math.sin(dlon/2)**2
+            if 6371008.8 * 2 * math.asin(min(1, math.sqrt(h))) <= 1000:
+                eligible.append(item)
+        if len(eligible) == 1:
+            tgt = eligible[0]
+            known_ids = list(tgt.source_ids or ([tgt.id] if tgt.id else []))
+            for source_id in (a.source_ids or [a.id]):
+                if source_id and source_id not in known_ids:
+                    known_ids.append(source_id)
+            tgt.source_ids = known_ids
             if not tgt.level:
                 tgt.level = a.level
             if not tgt.rating:
                 tgt.rating = a.rating
             if not tgt.open_time:
                 tgt.open_time = a.open_time
+                if a.open_time:
+                    tgt.open_time_source = a.open_time_source
+                    tgt.open_time_checked_at = a.open_time_checked_at
             if not tgt.ticket:
                 tgt.ticket = a.ticket
+                if a.ticket:
+                    tgt.ticket_source = a.ticket_source
+                    tgt.ticket_checked_at = a.ticket_checked_at
             if not tgt.tel:
                 tgt.tel = a.tel
             if not tgt.address:
@@ -68,6 +107,10 @@ def merge_city(attractions, by_key, client, city):
             if "Amap" not in tgt.sources:
                 tgt.sources.append("Amap")
             tgt.source = "OpenStreetMap + Amap"
+            # Coordinates stay from the OSM target; only descriptive fields
+            # are enriched from Amap, so the coordinate reference remains WGS-84.
+            tgt.ticket_status = "unverified" if a.ticket else tgt.ticket_status
+            tgt.open_time_status = "unverified" if a.open_time else tgt.open_time_status
             matched += 1
         else:
             attractions.append(a)
@@ -79,7 +122,40 @@ def merge_city(attractions, by_key, client, city):
 def build(osm_path, out_path, index_path, cities, key):
     with open(osm_path, encoding="utf-8") as f:
         osm_doc = json.load(f)
+    prior_by_id = {}
+    city_introductions = {}
+    if os.path.exists(out_path):
+        try:
+            with open(out_path, encoding="utf-8") as f:
+                prior_data = json.load(f)
+                prior_by_id = {a.get("id"): a for a in prior_data.get("attractions", []) if a.get("id")}
+                city_introductions = dict(prior_data.get("city_introductions", {}))
+                for a in prior_data.get("attractions", []):
+                    intro = a.get("city_intro")
+                    if intro and a.get("city"):
+                        city_introductions.setdefault(f"{a.get('province', '')}|{a['city']}", intro)
+        except (OSError, ValueError, TypeError):
+            prior_by_id = {}
     attractions = [from_osm(o) for o in osm_doc["attractions"]]
+    for attraction in attractions:
+        prior = prior_by_id.get(attraction.id, {})
+        known_ids = list(attraction.source_ids or ([attraction.id] if attraction.id else []))
+        for source_id in prior.get("source_ids") or ([prior.get("id")] if prior.get("id") else []):
+            if source_id and source_id not in known_ids:
+                known_ids.append(source_id)
+        attraction.source_ids = known_ids
+        for field in ("same_name_group", "same_name_risk", "merge_review"):
+            if prior.get(field):
+                setattr(attraction, field, prior[field])
+        if prior.get("city_intro") and attraction.city:
+            city_introductions.setdefault(f"{attraction.province}|{attraction.city}", prior["city_intro"])
+        for field in ("ticket", "open_time", "ticket_source", "ticket_checked_at", "open_time_source", "open_time_checked_at"):
+            if not is_missing_value(prior.get(field)):
+                value = prior[field]
+                setattr(attraction, field, value.strip() if isinstance(value, str) else value)
+                # No row-level verification evidence is currently stored, so
+                # historical "verified" labels cannot be carried forward.
+                setattr(attraction, field + "_status", "unverified")
     by_key = {}
     for a in attractions:
         by_key.setdefault((a.province, norm_name(a.name)), []).append(a)
@@ -100,7 +176,7 @@ def build(osm_path, out_path, index_path, cities, key):
     for a in attractions:
         index.setdefault(a.province, {}).setdefault(a.city, []).append(a.id)
 
-    n_level = sum(1 for a in attractions if a.level)
+    n_level = sum(1 for a in attractions if a.level not in (None, "", "其他"))
     n_rating = sum(1 for a in attractions if a.rating)
     n_open = sum(1 for a in attractions if a.open_time)
     n_img = sum(1 for a in attractions if a.image)
@@ -118,9 +194,12 @@ def build(osm_path, out_path, index_path, cities, key):
         "with_ticket": n_ticket,
         "with_image": n_img,
         "amap_stats": stats,
-        "attractions": [a.to_dict() for a in attractions],
+        "city_introductions": city_introductions,
+        "ticket_status_counts": {s: sum(1 for a in attractions if a.ticket_status == s) for s in ("verified", "unverified", "pending")},
+        "open_time_status_counts": {s: sum(1 for a in attractions if a.open_time_status == s) for s in ("verified", "unverified", "pending")},
+        "attractions": [{k: v for k, v in a.to_dict().items() if k != "city_intro"} for a in attractions],
     }
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     with open(index_path, "w", encoding="utf-8") as f:
