@@ -1,5 +1,6 @@
 package com.travelassistant.server.application.itinerary;
 
+import com.travelassistant.server.application.collaboration.ChangeLogRecorder;
 import com.travelassistant.server.domain.itinerary.DailyActivity;
 import com.travelassistant.server.domain.itinerary.DailySchedule;
 import com.travelassistant.server.domain.itinerary.Expense;
@@ -13,6 +14,7 @@ import com.travelassistant.server.infrastructure.persistence.AccountStore;
 import com.travelassistant.server.infrastructure.persistence.ItineraryStore;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -34,11 +36,13 @@ public class ItineraryService {
 
   private final ItineraryStore store;
   private final AccountStore accounts;
+  private final ChangeLogRecorder changeLog;
   private final Object[] writeLocks = new Object[LOCK_STRIPES];
 
-  public ItineraryService(ItineraryStore store, AccountStore accounts) {
+  public ItineraryService(ItineraryStore store, AccountStore accounts, ChangeLogRecorder changeLog) {
     this.store = store;
     this.accounts = accounts;
+    this.changeLog = changeLog;
     for (int i = 0; i < LOCK_STRIPES; i++) {
       writeLocks[i] = new Object();
     }
@@ -53,6 +57,7 @@ public class ItineraryService {
     validatePlanPeriod(plan);
     Itinerary it = Itinerary.create(owner, title.trim(), plan);
     store.save(it);
+    changeLog.record(it.id(), owner, "ITINERARY", "创建行程「" + it.title() + "」", it.version());
     return it;
   }
 
@@ -73,6 +78,8 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireOwner(it, user);
       store.delete(id);
+      // 行程没了，指向它的留言与修改记录也不该留着
+      changeLog.purge(id);
       return null;
     });
   }
@@ -91,6 +98,7 @@ public class ItineraryService {
       validatePlanPeriod(plan);
       Itinerary updated = it.withPlan(plan);
       store.save(updated);
+      changeLog.record(id, user, "PLAN", describePlanChange(it.plan(), plan), updated.version());
       return updated;
     });
   }
@@ -106,11 +114,15 @@ public class ItineraryService {
       checkVersion(it, version);
       List<DailySchedule> filled = fillIds(daily, DailySchedule::id, (d, nid) -> {
         List<DailyActivity> acts = fillIds(d.activities(), DailyActivity::id,
-            (a, aid) -> new DailyActivity(aid, a.time(), a.title(), a.location(), a.note()));
+            (a, aid) -> new DailyActivity(aid, a.time(), a.title(), a.location(), a.note(),
+                a.startTime(), a.endTime()));
         return new DailySchedule(nid, d.date(), d.note(), acts);
       });
+      validateActivityTimes(filled);
       Itinerary updated = it.withDaily(filled);
       store.save(updated);
+      changeLog.record(id, user, "DAILY", "更新每日安排：" + filled.size() + " 天 / "
+          + countActivities(filled) + " 项", updated.version());
       return updated;
     });
   }
@@ -130,6 +142,8 @@ public class ItineraryService {
           t.flightNo(), t.seat(), t.note()));
       Itinerary updated = it.withTransports(filled);
       store.save(updated);
+      changeLog.record(id, user, "TRANSPORT", "更新交通：" + filled.size() + " 段",
+          updated.version());
       return updated;
     });
   }
@@ -148,6 +162,8 @@ public class ItineraryService {
       validateLodgingPeriods(filled);
       Itinerary updated = it.withLodgings(filled);
       store.save(updated);
+      changeLog.record(id, user, "LODGING", "更新住宿：" + filled.size() + " 处",
+          updated.version());
       return updated;
     });
   }
@@ -166,6 +182,8 @@ public class ItineraryService {
       validateNonNegativeAmounts(filled);
       Itinerary updated = it.withExpenses(filled);
       store.save(updated);
+      changeLog.record(id, user, "EXPENSE", "更新费用：" + filled.size() + " 笔",
+          updated.version());
       return updated;
     });
   }
@@ -194,6 +212,8 @@ public class ItineraryService {
       members.add(new Member(name, editSections));
       Itinerary updated = it.withMembers(members);
       store.save(updated);
+      changeLog.record(id, ownerUser, "MEMBER",
+          "添加成员 " + name + "（授权：" + sectionsText(editSections) + "）", updated.version());
       return updated;
     });
   }
@@ -220,6 +240,8 @@ public class ItineraryService {
       }
       Itinerary updated = it.withMembers(members);
       store.save(updated);
+      changeLog.record(id, user, "MEMBER",
+          "成员 " + user + " 加入（授权：" + sectionsText(editSections) + "）", updated.version());
       return updated;
     });
   }
@@ -242,7 +264,9 @@ public class ItineraryService {
         throw new MemberNotFoundException(id, user);
       }
       members.remove(index);
-      store.save(it.withMembers(members));
+      Itinerary updated = it.withMembers(members);
+      store.save(updated);
+      changeLog.record(id, user, "MEMBER", "成员 " + user + " 退出", updated.version());
       return null;
     });
   }
@@ -261,6 +285,9 @@ public class ItineraryService {
       members.set(index, new Member(memberUser, editSections));
       Itinerary updated = it.withMembers(members);
       store.save(updated);
+      changeLog.record(id, ownerUser, "MEMBER",
+          "调整成员 " + memberUser + " 的授权（" + sectionsText(editSections) + "）",
+          updated.version());
       return updated;
     });
   }
@@ -278,6 +305,7 @@ public class ItineraryService {
       members.remove(index);
       Itinerary updated = it.withMembers(members);
       store.save(updated);
+      changeLog.record(id, ownerUser, "MEMBER", "移除成员 " + memberUser, updated.version());
       return updated;
     });
   }
@@ -294,9 +322,26 @@ public class ItineraryService {
     }
   }
 
+  /**
+   * 安排结束时间不能早于开始时间（V2 第 3 节）。写入时拦截硬错误。
+   *
+   * <p>「超出旅行范围」和「同日重叠」只做体检提示、不拦截写入：前者可能是有意的
+   * 跨天交通安排，后者需要用户自己判断是否真的要调整顺序，服务端直接拒绝会挡掉
+   * 正在编辑中的中间状态（例如先把上下午调换位置）。倒置则是纯笔误，没有合理解释。
+   */
+  private void validateActivityTimes(List<DailySchedule> daily) {
+    for (DailySchedule day : daily) {
+      for (DailyActivity a : day.activities()) {
+        if (a.timeInverted()) {
+          throw new InvalidItineraryException("安排「" + describe(a.title()) + "」（" + day.date()
+              + "）的结束时间 " + a.endTime() + " 早于开始时间 " + a.startTime());
+        }
+      }
+    }
+  }
+
   /** 住宿离店日期不能早于入住日期（缺陷 D-5：此前会落出负时长）。 */
-  private void validateLodgingPeriods(List<Lodging> lodgings) {
-    for (Lodging l : lodgings) {
+  private void validateLodgingPeriods(List<Lodging> lodgings) {    for (Lodging l : lodgings) {
       if (l.checkIn() != null && l.checkOut() != null && l.checkOut().isBefore(l.checkIn())) {
         throw new InvalidItineraryException("离店日期不能早于入住日期：" + l.checkIn() + " → "
             + l.checkOut() + "（" + describe(l.name()) + "）");
@@ -322,6 +367,70 @@ public class ItineraryService {
 
   private String describe(String text) {
     return text == null || text.isBlank() ? "未命名" : text;
+  }
+
+  /** 方案变更摘要：只写真正变了的字段，避免每条记录都是同一句废话。 */
+  private String describePlanChange(Plan before, Plan after) {
+    if (after == null) {
+      return "清空方案";
+    }
+    Plan b = before == null ? Plan.empty() : before;
+    List<String> changed = new ArrayList<>();
+    if (!Objects.equals(b.destination(), after.destination())) {
+      changed.add("目的地改为「" + describe(after.destination()) + "」");
+    }
+    if (!Objects.equals(b.summary(), after.summary())) {
+      changed.add("概述已更新");
+    }
+    if (!Objects.equals(b.notes(), after.notes())) {
+      changed.add("备注已更新");
+    }
+    if (!Objects.equals(b.departDate(), after.departDate())
+        || !Objects.equals(b.returnDate(), after.returnDate())) {
+      changed.add("日期改为 " + dateRangeText(after));
+    }
+    return changed.isEmpty() ? "更新方案（内容无变化）" : "更新方案：" + String.join("；", changed);
+  }
+
+  private String dateRangeText(Plan plan) {
+    if (plan.departDate() == null && plan.returnDate() == null) {
+      return "未填写";
+    }
+    return (plan.departDate() == null ? "未填出发" : plan.departDate().toString())
+        + " ~ "
+        + (plan.returnDate() == null ? "未填返回" : plan.returnDate().toString());
+  }
+
+  /** 授权板块的中文描述，用于修改记录。 */
+  private String sectionsText(Set<Section> sections) {
+    if (sections == null || sections.isEmpty()) {
+      return "无";
+    }
+    List<String> names = new ArrayList<>();
+    for (Section s : Section.values()) {
+      if (sections.contains(s)) {
+        names.add(sectionName(s));
+      }
+    }
+    return names.isEmpty() ? "无" : String.join("、", names);
+  }
+
+  private String sectionName(Section s) {
+    return switch (s) {
+      case PLAN -> "方案";
+      case DAILY -> "每日安排";
+      case TRANSPORT -> "交通";
+      case LODGING -> "住宿";
+      case EXPENSE -> "费用";
+    };
+  }
+
+  private int countActivities(List<DailySchedule> daily) {
+    int total = 0;
+    for (DailySchedule d : daily) {
+      total += d.activities().size();
+    }
+    return total;
   }
 
   private int indexOfMember(List<Member> members, String username) {

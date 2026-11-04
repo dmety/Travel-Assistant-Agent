@@ -62,6 +62,22 @@ public class TravelClient {
             ? java.util.Arrays.copyOfRange(args, 6, args.length)
             : new String[0];
         cli.sendInvitation(args[4], args[5], sections);
+      } else if (args.length >= 3 && "ticket".equalsIgnoreCase(args[1])) {
+        // 购票辅助（V2）：ticket <景点名称>
+        cli.showTicket(String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length)));
+      } else if (args.length >= 5 && "timeline".equalsIgnoreCase(args[1])) {
+        // 协作记录（V2 §4）：timeline <用户名> <密码> <行程ID>
+        cli.loginOnly(args[2], args[3]);
+        cli.showTimeline(args[4]);
+      } else if (args.length >= 6 && "comment".equalsIgnoreCase(args[1])) {
+        // 留言（V2 §4）：comment <用户名> <密码> <行程ID> <内容…>
+        cli.loginOnly(args[2], args[3]);
+        cli.addComment(args[4], String.join(" ", java.util.Arrays.copyOfRange(args, 5, args.length)));
+      } else if (args.length >= 5 && "plan".equalsIgnoreCase(args[1])) {
+        // 规划草案（V2 §2）：plan <用户名> <密码> <目的地> [天数]
+        cli.loginOnly(args[2], args[3]);
+        Integer days = args.length >= 6 ? parseIntOrNull(args[5]) : null;
+        cli.showPlan(args[4], days);
       } else if (args.length >= 3) {
         cli.demoAuth(args[1], args[2]);
       } else {
@@ -75,6 +91,13 @@ public class TravelClient {
             + " invitations <用户名> <密码> accept|reject <邀请ID>");
         System.out.println("发起邀请：        java -jar travel-client.jar " + base
             + " invite <用户名> <密码> <行程ID> <受邀账号> [PLAN DAILY TRANSPORT LODGING EXPENSE]");
+        System.out.println("购票辅助：        java -jar travel-client.jar " + base + " ticket 西湖");
+        System.out.println("协作记录与留言：  java -jar travel-client.jar " + base
+            + " timeline <用户名> <密码> <行程ID>");
+        System.out.println("发表留言：        java -jar travel-client.jar " + base
+            + " comment <用户名> <密码> <行程ID> <内容…>");
+        System.out.println("规划草案：        java -jar travel-client.jar " + base
+            + " plan <用户名> <密码> <目的地> [天数]");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -274,6 +297,190 @@ public class TravelClient {
     }
   }
 
+  // ---- V2：协作记录、购票辅助、规划草案 ----
+
+  /** 打印留言与修改记录（V2 第 4 节）。 */
+  private void showTimeline(String itineraryId) throws Exception {
+    var commentsRes = get("/api/itineraries/" + itineraryId + "/comments");
+    var changelogRes = get("/api/itineraries/" + itineraryId + "/changelog?limit=20");
+    if (commentsRes.statusCode() != 200 || changelogRes.statusCode() != 200) {
+      System.out.println("读取协作信息失败：HTTP " + commentsRes.statusCode() + " / "
+          + changelogRes.statusCode() + " " + text(json.readTree(
+              commentsRes.body().isBlank() ? "{}" : commentsRes.body()), "error"));
+      return;
+    }
+
+    JsonNode comments = json.readTree(commentsRes.body());
+    JsonNode changelog = json.readTree(changelogRes.body());
+
+    System.out.println();
+    System.out.println("== 留言（共 " + comments.size() + " 条）==");
+    if (comments.isEmpty()) {
+      System.out.println("  （暂无留言）");
+    } else {
+      comments.forEach(c -> System.out.println("  [" + localTime(text(c, "createdAt")) + "] "
+          + text(c, "author") + "：" + text(c, "content")));
+    }
+
+    System.out.println();
+    System.out.println("== 修改记录（最近 " + changelog.size() + " 条，倒序）==");
+    if (changelog.isEmpty()) {
+      System.out.println("  （暂无记录）");
+    } else {
+      changelog.forEach(e -> System.out.println("  [" + localTime(text(e, "at")) + "] v"
+          + e.get("version").asLong() + " · " + text(e, "actor") + " · "
+          + text(e, "section") + "：" + text(e, "summary")));
+    }
+    System.out.println();
+    System.out.println("留言与记录都不改变行程版本号。");
+  }
+
+  /** 发表留言。 */
+  private void addComment(String itineraryId, String content) throws Exception {
+    if (content == null || content.isBlank()) {
+      System.out.println("留言内容不能为空。");
+      return;
+    }
+    var response = postJson("/api/itineraries/" + itineraryId + "/comments",
+        json.writeValueAsString(Map.of("content", content.trim())));
+    JsonNode body = response.body() == null || response.body().isBlank()
+        ? null : json.readTree(response.body());
+    if (response.statusCode() == 201) {
+      System.out.println("■ 留言已发表：" + text(body, "content"));
+      System.out.println("  作者 " + text(body, "author") + "　" + localTime(text(body, "createdAt")));
+      System.out.println("  留言不改变行程版本号。");
+    } else {
+      System.out.println("发表失败：HTTP " + response.statusCode() + " " + text(body, "error"));
+    }
+  }
+
+  /**
+   * 打印某景点的购票辅助信息。
+   *
+   * <p>没有收录入口时如实说明，不输出任何猜测链接；余票永远标注「未核验」。
+   */
+  private void showTicket(String name) throws Exception {
+    if (name == null || name.isBlank()) {
+      System.out.println("请提供景点名称，例如：ticket 西湖");
+      return;
+    }
+    var response = get("/api/tickets?name=" + encode(name.trim()));
+    JsonNode body = response.body() == null || response.body().isBlank()
+        ? null : json.readTree(response.body());
+    if (response.statusCode() != 200) {
+      System.out.println("查询失败：HTTP " + response.statusCode() + " " + text(body, "error"));
+      return;
+    }
+
+    System.out.println();
+    System.out.println("== 购票辅助：" + text(body, "attractionName") + " ==");
+    System.out.println("状态：" + text(body, "status")
+        + "　余票已核验：" + (body.path("stockVerified").asBoolean() ? "是" : "否"));
+    System.out.println("说明：" + text(body, "notice"));
+    System.out.println("来源：" + text(body, "source") + "　查询时间：" + localTime(text(body, "queriedAt")));
+
+    JsonNode channels = body.path("channels");
+    if (channels.isArray() && !channels.isEmpty()) {
+      channels.forEach(ch -> {
+        System.out.println();
+        System.out.println("  · " + text(ch, "channelName"));
+        System.out.println("    入口：" + text(ch, "officialUrl"));
+        System.out.println("    核验日期：" + (ch.hasNonNull("verifiedAt")
+            ? ch.get("verifiedAt").asText() : "未记录（使用前请再次确认）"));
+        JsonNode types = ch.path("ticketTypes");
+        if (types.isArray() && !types.isEmpty()) {
+          types.forEach(t -> System.out.println("    票种：" + text(t, "name") + "　"
+              + (t.hasNonNull("price")
+                  ? money(t.get("price")) + " " + text(t, "currency")
+                  : "价格未知")
+              + (t.hasNonNull("priceNote") ? "（" + t.get("priceNote").asText() + "）" : "")));
+        } else {
+          System.out.println("    票种：未查询到");
+        }
+        JsonNode rules = ch.path("rules");
+        if (rules.isArray() && !rules.isEmpty()) {
+          var list = new java.util.ArrayList<String>();
+          rules.forEach(r -> list.add(r.asText()));
+          System.out.println("    规则：" + String.join("；", list));
+        }
+      });
+    } else {
+      System.out.println("  没有经核验的官方入口，请自行进入景区官方渠道购买。");
+    }
+    System.out.println();
+    System.out.println("本系统不生成猜测链接，也不承诺余票。");
+  }
+
+  /** 打印一份规划草案（不落库，需用户另行确认保存）。 */
+  private void showPlan(String destination, Integer days) throws Exception {
+    var payload = new java.util.LinkedHashMap<String, Object>();
+    payload.put("destination", destination);
+    if (days != null) {
+      payload.put("days", days);
+    }
+    var response = postJson("/api/agent/plan", json.writeValueAsString(payload));
+    JsonNode body = response.body() == null || response.body().isBlank()
+        ? null : json.readTree(response.body());
+    if (response.statusCode() != 200) {
+      System.out.println("生成草案失败：HTTP " + response.statusCode() + " " + text(body, "error"));
+      return;
+    }
+
+    System.out.println();
+    System.out.println("== 规划草案：" + destination + " ==");
+
+    JsonNode candidates = body.path("candidates");
+    System.out.println("候选景点（共 " + candidates.size() + " 条，来自本地知识库）：");
+    if (candidates.isEmpty()) {
+      System.out.println("  （无）");
+    } else {
+      int index = 1;
+      for (JsonNode a : candidates) {
+        System.out.println("  " + index + ". " + text(a, "name") + "　"
+            + (a.hasNonNull("city") ? a.get("city").asText() : "")
+            + "　票价：" + (a.hasNonNull("ticket") ? a.get("ticket").asText() : "未知")
+            + "　开放：" + (a.hasNonNull("openTime") ? a.get("openTime").asText() : "未知")
+            + "　ID：" + text(a, "id"));
+        index++;
+      }
+    }
+
+    JsonNode weather = body.path("weather");
+    System.out.println();
+    if (weather.isMissingNode() || weather.isNull()) {
+      System.out.println("天气预报：未获取");
+    } else {
+      System.out.println("天气预报：" + text(weather, "city") + "（"
+          + text(weather, "reportTime") + " 发布）");
+      weather.path("days").forEach(d -> System.out.println("  " + text(d, "date") + " "
+          + text(d, "dayWeather") + " " + text(d, "dayTemp") + "°C "
+          + text(d, "dayWind") + text(d, "dayPower")));
+    }
+
+    System.out.println();
+    System.out.println("建议：");
+    System.out.println(body.hasNonNull("advice")
+        ? "  " + body.get("advice").asText().replace("\n", "\n  ")
+        : "  （未生成文字建议）");
+
+    JsonNode notices = body.path("notices");
+    if (notices.isArray() && !notices.isEmpty()) {
+      System.out.println();
+      System.out.println("需要你知道：");
+      notices.forEach(n -> System.out.println("  · " + n.asText()));
+    }
+
+    JsonNode sources = body.path("sources");
+    if (sources.isArray() && !sources.isEmpty()) {
+      var list = new java.util.ArrayList<String>();
+      sources.forEach(s -> list.add(s.asText()));
+      System.out.println();
+      System.out.println("数据来源：" + String.join("、", list));
+    }
+    System.out.println();
+    System.out.println("草案未保存。确认后再写入正式方案。");
+  }
+
   private String joinSections(JsonNode sections) {
     if (sections == null || !sections.isArray() || sections.isEmpty()) {
       return "（仅查看）";
@@ -288,6 +495,28 @@ public class TravelClient {
       return "未知";
     }
     return node.get(field).asText();
+  }
+
+  /** ISO 时间转本地可读格式；无法解析时原样返回。 */
+  private static String localTime(String iso) {
+    if (iso == null || iso.isBlank() || "未知".equals(iso)) {
+      return "未知";
+    }
+    try {
+      return java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+          .withZone(java.time.ZoneId.systemDefault())
+          .format(java.time.Instant.parse(iso));
+    } catch (RuntimeException e) {
+      return iso;
+    }
+  }
+
+  private static Integer parseIntOrNull(String raw) {
+    try {
+      return Integer.valueOf(raw.trim());
+    } catch (RuntimeException e) {
+      return null;
+    }
   }
 
   private HttpResponse<String> postEmpty(String path) throws Exception {

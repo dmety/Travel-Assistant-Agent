@@ -1,5 +1,6 @@
 package com.travelassistant.server.domain.budget;
 
+import com.travelassistant.server.domain.itinerary.DailyActivity;
 import com.travelassistant.server.domain.itinerary.DailySchedule;
 import com.travelassistant.server.domain.itinerary.Expense;
 import com.travelassistant.server.domain.itinerary.Itinerary;
@@ -181,8 +182,78 @@ public final class BudgetCalculator {
       }
     }
 
+    // V2 §3：安排级时间检查（缺失、倒置、同日重叠）
+    checkActivityTimes(itinerary, warnings);
+
     return new ItineraryChecks(itinerary.id(), itinerary.version(), warnings.isEmpty(),
         List.copyOf(warnings));
+  }
+
+  /**
+   * 安排级时间检查。
+   *
+   * <p>三条规则：
+   * <ul>
+   *   <li><b>缺失</b>：只看「整天都没有任何一项填了起止时间」的情况，避免历史数据
+   *       逐条刷屏。已有自由文本时间（如「上午」）的日程不视为缺失，那是有意的模糊安排。</li>
+   *   <li><b>倒置</b>：结束早于开始。写入时已拦截，这里兜住历史数据。</li>
+   *   <li><b>重叠</b>：同日两项的区间相交。用扫描线找出「与当前最晚结束项重叠」的对，
+   *       既不会漏报，也不会把 n 项互相重叠展开成 n² 条提示。
+   *       首尾相接（前一项 12:00 结束、后一项 12:00 开始）不算重叠。</li>
+   * </ul>
+   */
+  private static void checkActivityTimes(Itinerary itinerary, List<CheckWarning> warnings) {
+    List<DailySchedule> days = itinerary.dailySchedules();
+    for (int dayIndex = 0; dayIndex < days.size(); dayIndex++) {
+      DailySchedule day = days.get(dayIndex);
+      List<DailyActivity> acts = day.activities();
+      if (acts.isEmpty()) {
+        continue;
+      }
+      String dayPath = "dailySchedules[" + dayIndex + "]";
+
+      int missing = 0;
+      boolean anyTimed = false;
+      for (int i = 0; i < acts.size(); i++) {
+        DailyActivity a = acts.get(i);
+        if (a.timeInverted()) {
+          warnings.add(new CheckWarning("ACTIVITY_TIME_INVALID",
+              dayPath + ".activities[" + i + "].endTime",
+              "安排「" + describe(a.title()) + "」（" + day.date() + "）结束时间 "
+                  + a.endTime() + " 早于开始时间 " + a.startTime()));
+        }
+        if (a.hasTimeRange()) {
+          anyTimed = true;
+        } else if (a.time() == null || a.time().isBlank()) {
+          missing++;
+        }
+      }
+      if (missing > 0 && !anyTimed) {
+        warnings.add(new CheckWarning("ACTIVITY_TIME_MISSING", dayPath + ".activities",
+            day.date() + " 有 " + missing + " 项安排未填写起止时间，无法检查时间是否冲突"));
+      }
+
+      List<DailyActivity> timed = new ArrayList<>();
+      for (DailyActivity a : acts) {
+        if (a.hasTimeRange() && !a.timeInverted()) {
+          timed.add(a);
+        }
+      }
+      timed.sort(Comparator.comparing(DailyActivity::startTime)
+          .thenComparing(DailyActivity::endTime));
+      DailyActivity latest = null;
+      for (DailyActivity a : timed) {
+        if (latest != null && a.startTime().isBefore(latest.endTime())) {
+          warnings.add(new CheckWarning("ACTIVITY_TIME_OVERLAP", dayPath + ".activities",
+              day.date() + " 安排「" + describe(latest.title()) + "」（" + latest.startTime()
+                  + "–" + latest.endTime() + "）与「" + describe(a.title()) + "」（"
+                  + a.startTime() + "–" + a.endTime() + "）时间重叠，请确认是否需要调整"));
+        }
+        if (latest == null || a.endTime().isAfter(latest.endTime())) {
+          latest = a;
+        }
+      }
+    }
   }
 
   // ---- 内部辅助 ----

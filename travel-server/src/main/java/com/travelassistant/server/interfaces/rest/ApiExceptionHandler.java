@@ -1,6 +1,8 @@
 package com.travelassistant.server.interfaces.rest;
 
+import com.travelassistant.server.application.agent.InvalidPlanningRequestException;
 import com.travelassistant.server.application.attraction.AttractionUnavailableException;
+import com.travelassistant.server.application.collaboration.InvalidCommentException;
 import com.travelassistant.server.application.invitation.InvitationConflictException;
 import com.travelassistant.server.application.invitation.InvitationNotFoundException;
 import com.travelassistant.server.application.itinerary.InvalidItineraryException;
@@ -8,6 +10,8 @@ import com.travelassistant.server.application.itinerary.ItineraryForbiddenExcept
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
 import com.travelassistant.server.application.itinerary.MemberNotFoundException;
 import com.travelassistant.server.application.itinerary.VersionConflictException;
+import com.travelassistant.server.application.location.AmapUnavailableException;
+import com.travelassistant.server.application.ticket.InvalidTicketQueryException;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -63,6 +67,36 @@ public class ApiExceptionHandler {
   /** 业务校验失败：标题为空、费用为负、住宿日期倒置、邀请未注册用户等。 */
   @ExceptionHandler(InvalidItineraryException.class)
   public ResponseEntity<Map<String, Object>> invalid(InvalidItineraryException e) {
+    return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  /** 留言内容为空或超长。 */
+  @ExceptionHandler(InvalidCommentException.class)
+  public ResponseEntity<Map<String, Object>> invalidComment(InvalidCommentException e) {
+    return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  /** 购票查询参数不合法（既没给景点 id 也没给名称）。 */
+  @ExceptionHandler(InvalidTicketQueryException.class)
+  public ResponseEntity<Map<String, Object>> invalidTicketQuery(InvalidTicketQueryException e) {
+    return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  /**
+   * 高德查询不可用：未配置密钥、服务不可达、配额不足或返回错误。
+   *
+   * <p>统一 503 并带原因。不能退化成 200 + 空结果——那会被理解成「当地没有这个地方」。
+   */
+  @ExceptionHandler(AmapUnavailableException.class)
+  public ResponseEntity<Map<String, Object>> amapUnavailable(AmapUnavailableException e) {
+    return ResponseEntity.status(503).body(Map.of(
+        "error", "外部信息查询不可用",
+        "reason", e.getMessage() == null ? "未知原因" : e.getMessage()));
+  }
+
+  /** 规划请求不合法（如未填写目的地）。 */
+  @ExceptionHandler(InvalidPlanningRequestException.class)
+  public ResponseEntity<Map<String, Object>> invalidPlanning(InvalidPlanningRequestException e) {
     return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
   }
 

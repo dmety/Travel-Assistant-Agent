@@ -4,8 +4,9 @@
 
 Java 21 / Maven 多模块项目。当前进度：
 
-- **已实现**：账号与会话（BCrypt + JSESSIONID）、行程 CRUD、五大板块（方案/每日安排/交通/住宿/费用）、板块级成员权限、**邀请与成员协作（邀请—接受/拒绝/撤回、成员主动退出）**、乐观锁版本控制（并发下仅一次成功）、JSON 文件持久化与重启恢复、**景点查询（Python 离线构建 + Java 加载索引，支持城市/名称/ID 查询，缺库或损坏时停用并说明原因）**、**预算汇总与时间检查（出发/返回日期、按币种与类别汇总、行程体检）**、135 条接口测试（18 个测试类，无跳过）。
-- **未实现**：DeepSeek 三个 Agent 的编排与调用、高德地图接入，以及 V2/V3 全部功能。详见[各版本功能模块](docs/旅行助手-各版本功能模块.md)。
+- **已实现**：账号与会话（BCrypt + JSESSIONID）、行程 CRUD、五大板块（方案/每日安排/交通/住宿/费用）、板块级成员权限、**邀请与成员协作**、乐观锁版本控制（并发下仅一次成功）、JSON 文件持久化与重启恢复、**景点查询**（Python 离线构建 + Java 加载索引）、**预算汇总与时间检查**、**V2 四块能力**：详细时间检查（起止时间、重叠提示）、协作记录与留言、购票辅助（人工核验的官方入口，不生成猜测链接）、高德地点/天气/路线查询与规划草案；183 条接口测试（24 个测试类，无跳过）。
+- **未实现**：V3 全部功能（候选与投票、预算分析、综合决策建议、导出与归档）、票务完整交易（下单/支付/出票/退改）。详见[各版本功能模块](docs/旅行助手-各版本功能模块.md)。
+- **外部依赖可降级**：不配 `AMAP_KEY` 时地点/天气/路线返回 503 并说明原因；不配 `DEEPSEEK_API_KEY` 时规划草案仍返回带来源的候选，只是没有文字建议；没有购票入口配置时如实提示自行前往官方渠道。**本机不配置任何密钥也能完整跑起来。**
 
 ## 文档目录
 
@@ -105,6 +106,26 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 方案（`plan`）自 2026-11-04 起支持 `departDate`/`returnDate`，返回日期早于出发日期时写入直接返回 400；
 两个字段可为空以兼容历史数据，缺失由体检接口提示「未填写」。
 
+**V2 新增接口**：
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/itineraries/{id}/comments` | GET / POST | 参与者 | 留言。**不改变行程版本号**，作者取服务端会话 |
+| `/api/itineraries/{id}/changelog` | GET | 参与者 | 修改记录，倒序，`limit` 默认 50 / 上限 200；**只由服务端产生** |
+| `/api/tickets?attractionId=` / `?name=` | GET | 公开 | 购票辅助：官方入口、票种、规则、来源与查询时间；`stockVerified` 恒为 false |
+| `/api/tickets/channels` | GET | 公开 | 已收录的官方入口清单与说明 |
+| `/api/location/places`、`/weather`、`/route` | GET | 需登录 | 高德地点/天气/路线；未配置密钥时 503 + 原因 |
+| `/api/location/status` | GET | 需登录 | 是否已配置高德密钥 |
+| `/api/agent/plan` | POST | 需登录 | 规划草案，**不落库**；候选带 ID 与来源 |
+| `/api/agent/status` | GET | 需登录 | 模型是否已配置 |
+
+时间检查的两条口径值得先知道：**「结束早于开始」写入即 400**（纯笔误，没有合理解释）；
+**「同日重叠」「超出旅行范围」只做体检提示**，由用户判断是否调整——服务端直接拒绝会挡掉正在编辑的中间状态。
+
+购票辅助的边界：只展示人工维护白名单里的入口，文件默认不存在。**没有收录就明确说没有，
+不抓取、不推断、不生成任何链接**；没有库存接口，所以「余票未核验」是这一阶段唯一诚实的答案。
+配置格式见[接口文档 §3.14](docs/服务端REST接口文档.md)。
+
 控制台客户端可演示登录流程，并顺带打印第一份行程的预算与检查结果：`java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 <用户名> <密码>`。
 
 景点查询（控制台）：
@@ -127,13 +148,29 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 invite <创建者> <密码> <行程ID> <受邀账号> PLAN DAILY
 ```
 
-**浏览器测试前端**：启动服务后打开 `http://localhost:8080/app`（登录页为 `http://localhost:8080/login`），可直接注册/登录并在线测试全部行程接口——行程增删查、五大板块编辑、成员权限管理、邀请的发出/接受/拒绝/撤回、成员退出、版本冲突（409）处理。仅用于本地联调，非生产 UI。
+V2 相关命令：
 
-健康检查为 `GET /api/health`，景点查询为 `GET /api/attractions/**`，两者公开免登录；行程接口默认需要认证。**行程管理接口**（多份行程 CRUD、方案/每日安排/交通/住宿/费用五大板块、板块级成员权限、乐观锁版本冲突）已实现，详见 [服务端 REST 接口文档](docs/服务端REST接口文档.md)；业务菜单与 Agent 尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 即账号与行程落盘目录。
+```powershell
+# 购票辅助（无需登录）
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 ticket 西湖
+# 留言与修改记录
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 timeline <账号> <密码> <行程ID>
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 comment <账号> <密码> <行程ID> 第二天想加个灵隐寺
+# 规划草案（不落库）
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 plan <账号> <密码> 北京 2
+```
 
-`DEEPSEEK_API_KEY` 和 `AMAP_API_KEY` 在后续适配器中通过环境变量读取，不提交密钥。Spring AI 与 Spring Boot 的版本在父 pom 中统一管理。
+**浏览器测试前端**：启动服务后打开 `http://localhost:8080/app`（登录页为 `http://localhost:8080/login`），可直接注册/登录并在线测试全部行程接口——行程增删查、五大板块编辑、成员权限管理、邀请的发出/接受/拒绝/撤回、成员退出、版本冲突（409）处理、**协作留言与修改记录、购票信息、周边查询（地点/天气/能力状态）**。仅用于本地联调，非生产 UI。
 
-目标方案采用 Spring AI 加 Java 显式编排：V1 实现需求理解、景点推荐、行程规划三个 Agent，V2 增加票务 Agent 的购票辅助；完整下单与支付跳转为 V3 之后满足正式平台授权、接口和交易存储条件的扩展。保留现有单体及三模块，不立即引入额外多 Agent 框架。上述能力均待实现。
+健康检查为 `GET /api/health`，景点与购票查询公开免登录；行程、协作、高德与规划接口需要认证。
+
+`DEEPSEEK_API_KEY` 与 `AMAP_KEY`（高德 Web 服务）通过环境变量读取，不提交密钥。两者都为空时服务照常启动，
+相关接口降级并说明原因。密钥只出现在请求参数里，不写日志、不进异常消息。
+
+规划编排由 Java 显式完成：先检索本地景点库，再按需查天气与购票入口，最后交给模型组织语言。
+**模型只负责措辞，不改事实**——它拿到的全是已经查到的数据，输出也不会被解析成结构化指令。
+因此模型说不出一个库里没有的景点 ID。`travel.ai.api-key` 为空时不创建任何外部调用，
+这也是测试能强制断网运行的前提。具体边界见[多 Agent 与票务能力方案](docs/多Agent与票务能力方案.md)。
 
 景点 JSON 与 Python 离线构建工具已存在，Java 在线检索**已实现**：`tools/build_attraction_index.py` 生成精简索引库
 `data/attractions_index.json`，服务端启动时只读加载并建立城市/名称/ID 索引。当前 `data/china_attractions.json` 与
@@ -144,12 +181,14 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 2026-11-04 在 `wei` 分支实测：
 
 ```text
-Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 183, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-- 覆盖范围：账号与会话、行程 CRUD、五大板块读写、板块级权限、邀请流程（发出/接受/拒绝/撤回/退出、权限边界、重复处理 409、删除行程清理邀请、落盘）、乐观锁（含 12 路并发）、JSON 持久化与重启恢复、安全边界、景点查询（城市/名称/ID、条数限制、占位值规范化、缺库与损坏降级）、预算汇总与时间检查（多币种不合并、待填写标记、日期倒置拦截、体检提示）。
+- 覆盖范围：账号与会话、行程 CRUD、五大板块读写、板块级权限、邀请流程、乐观锁（含 12 路并发）、JSON 持久化与重启恢复、安全边界、景点查询、预算汇总与时间检查、**详细时间检查（倒置拦截/重叠提示/首尾相接）**、**留言与修改记录（含版本号隔离、防伪造 actor）**、**购票辅助（无入口文案、非法地址丢弃、余票未核验）**、**高德客户端解析与错误码翻译**、**规划草案的降级路径**。
 - 历史缺陷 D-1 ~ D-6 已修复并转为常驻回归用例（`KnownDefectTest`）。
+- 测试**强制把 `AMAP_KEY` 与 `DEEPSEEK_API_KEY` 置空**：本地配了环境变量也不会发起真实调用、不会产生费用。
 - 运行方式与分层说明见[测试说明](docs/测试说明.md)。
 
-上述结果证明**已实现的账号、行程、景点、预算与邀请功能可用**。未实现部分（Agent 编排、高德接入、V2/V3）不计入本次验证。
+上述结果证明**已实现的账号、行程、景点、预算、邀请与 V2 四项能力可用**。未实现部分（V3、票务完整交易）不计入本次验证；
+高德与模型的真实接口因未配置密钥，只验证了解析逻辑与降级路径，未做真实联调。

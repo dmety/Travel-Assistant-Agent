@@ -103,6 +103,9 @@
         <div class="tab" data-sec="members">成员</div>
         <div class="tab" data-sec="invite">邀请</div>
         <div class="tab" data-sec="budget">预算检查</div>
+        <div class="tab" data-sec="collab">协作</div>
+        <div class="tab" data-sec="ticket">购票</div>
+        <div class="tab" data-sec="geo">周边查询</div>
       </div>
 
       <div class="tabpane active" data-sec="plan">
@@ -183,6 +186,55 @@
           <button id="budgetRefreshBtn">刷新预算汇总与检查 (GET)</button>
         </div>
         <pre id="budgetOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:0;"></pre>
+      </div>
+
+      <div class="tabpane" data-sec="collab">
+        <div class="row">
+          <input id="cmContent" placeholder="写点什么，比如「第二天想加个灵隐寺」" style="flex:1;min-width:240px;" />
+          <button id="cmSendBtn">发表留言</button>
+          <button id="cmRefreshBtn" class="secondary">刷新</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          留言与修改记录都属于讨论信息，不会改变行程版本号，因此不会引发版本冲突。
+          修改记录只由服务端在写操作成功后产生，客户端无法伪造。
+        </div>
+        <h2 style="font-size:14px;margin:14px 0 6px;">留言</h2>
+        <div id="cmList"><span class="muted">打开行程后点击刷新</span></div>
+        <h2 style="font-size:14px;margin:16px 0 6px;">修改记录</h2>
+        <div id="clList"><span class="muted">打开行程后点击刷新</span></div>
+      </div>
+
+      <div class="tabpane" data-sec="ticket">
+        <div class="row">
+          <input id="tkName" placeholder="景点名称，如 西湖" style="width:200px;" />
+          <button id="tkBtn">查询购票信息</button>
+          <button id="tkChannelsBtn" class="secondary">已收录的官方入口</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          只展示人工核验过的官方入口。没有收录的景点会明确提示自行前往官方渠道，
+          系统不抓取、不推断、不生成任何链接；余票一律标记为「未核验」。
+        </div>
+        <pre id="tkOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:12px 0 0;"></pre>
+      </div>
+
+      <div class="tabpane" data-sec="geo">
+        <h2 style="font-size:14px;margin:0 0 6px;">地点检索（高德）</h2>
+        <div class="row">
+          <input id="geoKeywords" placeholder="关键词，如 西湖" style="width:180px;" />
+          <input id="geoCity" placeholder="城市（可选）" style="width:120px;" />
+          <button id="geoPlaceBtn">查地点</button>
+        </div>
+        <h2 style="font-size:14px;margin:14px 0 6px;">天气预报（高德）</h2>
+        <div class="row">
+          <input id="geoWeatherCity" placeholder="城市名或 adcode，如 杭州" style="width:180px;" />
+          <button id="geoWeatherBtn">查天气</button>
+          <button id="geoStatusBtn" class="secondary">查询能力状态</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          未配置高德密钥（AMAP_KEY）时，这三个查询会返回 503 并说明原因；
+          行程、景点、预算与协作功能不受影响。
+        </div>
+        <pre id="geoOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:12px 0 0;"></pre>
       </div>
     </div>
   </div>
@@ -283,6 +335,7 @@
       });
       renderMembers(it.members || []);
       loadItineraryInvitations();
+      loadCollab();
     }
     $('refreshItBtn').onclick = () => { if (state.id) openItinerary(state.id); };
     $('deleteItBtn').onclick = async () => {
@@ -486,8 +539,151 @@
       out.textContent = lines.join('\n');
     };
 
-    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    // ---- 协作（V2 §4：留言与修改记录） ----
+    function fmtTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      const p = (n) => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+        + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
 
+    function renderComments(list) {
+      const box = $('cmList');
+      if (!list.length) { box.innerHTML = '<span class="muted">还没有留言</span>'; return; }
+      box.innerHTML = '';
+      list.forEach(c => {
+        const div = document.createElement('div'); div.className = 'mem';
+        div.innerHTML = '<div><b>' + escapeHtml(c.author) + '</b> <span class="tags">'
+          + fmtTime(c.createdAt) + '</span></div>'
+          + '<div style="margin-top:4px;white-space:pre-wrap;">' + escapeHtml(c.content) + '</div>';
+        box.appendChild(div);
+      });
+    }
+
+    function renderChangelog(list) {
+      const box = $('clList');
+      if (!list.length) { box.innerHTML = '<span class="muted">暂无修改记录</span>'; return; }
+      box.innerHTML = '';
+      list.forEach(e => {
+        const div = document.createElement('div'); div.className = 'mem';
+        div.innerHTML = '<div><b>' + escapeHtml(e.actor) + '</b> <span class="tags">'
+          + escapeHtml(e.section) + ' · v' + e.version + ' · ' + fmtTime(e.at) + '</span></div>'
+          + '<div style="margin-top:4px;">' + escapeHtml(e.summary) + '</div>';
+        box.appendChild(div);
+      });
+    }
+
+    async function loadCollab() {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const [cRes, lRes] = await Promise.all([
+        api('GET', '/api/itineraries/' + state.id + '/comments'),
+        api('GET', '/api/itineraries/' + state.id + '/changelog?limit=50')
+      ]);
+      if (cRes.ok) renderComments(await cRes.json());
+      else $('cmList').innerHTML = '<span class="muted">留言加载失败(' + cRes.status + ')</span>';
+      if (lRes.ok) renderChangelog(await lRes.json());
+      else $('clList').innerHTML = '<span class="muted">修改记录加载失败(' + lRes.status + ')</span>';
+    }
+
+    $('cmRefreshBtn').onclick = loadCollab;
+
+    $('cmSendBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const content = $('cmContent').value.trim();
+      if (!content) { show('留言内容不能为空', 'err'); return; }
+      const res = await api('POST', '/api/itineraries/' + state.id + '/comments', { content }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { $('cmContent').value = ''; show('留言已发表（不改变版本号）', 'ok'); await loadCollab(); }
+      else show('发表失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+
+    // ---- 购票辅助（V2 票务） ----
+    function renderTicket(a) {
+      const out = $('tkOut');
+      const lines = [];
+      lines.push('景点：' + (a.attractionName || '（未指定）') + (a.city ? '（' + a.city + '）' : ''));
+      lines.push('状态：' + a.status + '　余票已核验：' + (a.stockVerified ? '是' : '否'));
+      lines.push('查询时间：' + fmtTime(a.queriedAt) + '　来源：' + (a.source || ''));
+      lines.push('');
+      lines.push('说明：' + a.notice);
+      if (a.channels && a.channels.length) {
+        a.channels.forEach(ch => {
+          lines.push('');
+          lines.push('— ' + ch.channelName + ' —');
+          lines.push('入口：' + ch.officialUrl);
+          lines.push('核验日期：' + (ch.verifiedAt || '未记录（使用前请再次确认）'));
+          lines.push('规则：' + ((ch.rules && ch.rules.length) ? ch.rules.join('；') : '未查询到'));
+          if (ch.ticketTypes && ch.ticketTypes.length) {
+            lines.push('票种：');
+            ch.ticketTypes.forEach(t => lines.push('  · ' + t.name + '　'
+              + (t.price != null ? t.price + ' ' + (t.currency || '') : '价格未知')
+              + (t.priceNote ? '（' + t.priceNote + '）' : '')));
+          } else lines.push('票种：未查询到');
+          if (ch.note) lines.push('备注：' + ch.note);
+        });
+      }
+      out.textContent = lines.join('\n');
+    }
+
+    $('tkBtn').onclick = async () => {
+      const name = $('tkName').value.trim();
+      if (!name) { show('请填写景点名称', 'err'); return; }
+      $('tkOut').textContent = '查询中…';
+      const res = await api('GET', '/api/tickets?name=' + encodeURIComponent(name));
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { $('tkOut').textContent = '查询失败(' + res.status + ')：' + (d.error || ''); return; }
+      renderTicket(d);
+    };
+
+    $('tkChannelsBtn').onclick = async () => {
+      $('tkOut').textContent = '加载中…';
+      const res = await api('GET', '/api/tickets/channels');
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { $('tkOut').textContent = '加载失败(' + res.status + ')：' + (d.error || ''); return; }
+      const lines = ['已收录官方入口：' + d.count + ' 条', d.verificationNote || ''];
+      if (d.problem) lines.push('配置问题：' + d.problem);
+      (d.channels || []).forEach(c => lines.push('  · ' + c.attractionName + '（' + c.city + '）→ '
+        + c.channelName + ' ' + c.officialUrl + '　核验：' + (c.verifiedAt || '未记录')));
+      if (!d.count) lines.push('  （当前没有任何配置，所有景点都会提示自行前往官方渠道）');
+      $('tkOut').textContent = lines.join('\n');
+    };
+
+    // ---- 周边查询（V2 §1：高德） ----
+    async function geoCall(path, label) {
+      const out = $('geoOut');
+      out.textContent = label + ' 查询中…';
+      const res = await api('GET', path);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        out.textContent = label + ' 失败(' + res.status + ')：' + (d.reason || d.error || '未知原因');
+        return;
+      }
+      out.textContent = JSON.stringify(d, null, 2);
+    }
+
+    $('geoPlaceBtn').onclick = () => {
+      const kw = $('geoKeywords').value.trim();
+      if (!kw) { show('请填写关键词', 'err'); return; }
+      const city = $('geoCity').value.trim();
+      geoCall('/api/location/places?keywords=' + encodeURIComponent(kw)
+        + (city ? '&city=' + encodeURIComponent(city) : ''), '地点检索');
+    };
+
+    $('geoWeatherBtn').onclick = () => {
+      const city = $('geoWeatherCity').value.trim();
+      if (!city) { show('请填写城市名或 adcode', 'err'); return; }
+      geoCall('/api/location/weather?city=' + encodeURIComponent(city), '天气');
+    };
+
+    $('geoStatusBtn').onclick = async () => {
+      const res = await api('GET', '/api/location/status');
+      const d = await res.json().catch(() => ({}));
+      $('geoOut').textContent = JSON.stringify(d, null, 2);
+    };
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     // ---- 初始化 ----
     (async () => { await refreshMe(); await refreshList(); })();
   </script>
