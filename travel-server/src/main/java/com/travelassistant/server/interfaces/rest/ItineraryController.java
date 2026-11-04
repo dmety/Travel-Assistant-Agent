@@ -1,9 +1,12 @@
 package com.travelassistant.server.interfaces.rest;
 
+import com.travelassistant.server.application.budget.BudgetService;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
 import com.travelassistant.server.application.itinerary.ItineraryService;
 import com.travelassistant.server.application.itinerary.VersionConflictException;
+import com.travelassistant.server.domain.budget.BudgetSummary;
+import com.travelassistant.server.domain.budget.ItineraryChecks;
 import com.travelassistant.server.domain.itinerary.DailySchedule;
 import com.travelassistant.server.domain.itinerary.Expense;
 import com.travelassistant.server.domain.itinerary.Itinerary;
@@ -36,9 +39,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/itineraries")
 public class ItineraryController {
   private final ItineraryService service;
+  private final BudgetService budgetService;
 
-  public ItineraryController(ItineraryService service) {
+  public ItineraryController(ItineraryService service, BudgetService budgetService) {
     this.service = service;
+    this.budgetService = budgetService;
   }
 
   private String me(UserDetails user) {
@@ -144,6 +149,22 @@ public class ItineraryController {
   public ResponseEntity<Itinerary> updateExpenses(@AuthenticationPrincipal UserDetails user,
       @PathVariable String id, @RequestParam long version, @RequestBody List<Expense> expenses) {
     return ResponseEntity.ok(service.updateExpenses(id, me(user), expenses, version));
+  }
+
+  // ---- 预算与时间检查（只读，不改变版本号） ----
+
+  @GetMapping("/{id}/budget")
+  public ResponseEntity<BudgetSummary> budget(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    long version = service.get(id, me(user)).version();
+    return ResponseEntity.ok().header("X-Version", Long.toString(version))
+        .body(budgetService.summarize(id, me(user)));
+  }
+
+  @GetMapping("/{id}/checks")
+  public ResponseEntity<ItineraryChecks> checks(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    return ResponseEntity.ok(budgetService.check(id, me(user)));
   }
 
   // ---- 成员管理（仅 owner） ----

@@ -50,6 +50,7 @@ public class ItineraryService {
     if (title == null || title.isBlank()) {
       throw new InvalidItineraryException("行程标题不能为空");
     }
+    validatePlanPeriod(plan);
     Itinerary it = Itinerary.create(owner, title.trim(), plan);
     store.save(it);
     return it;
@@ -87,6 +88,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireEdit(it, user, Section.PLAN);
       checkVersion(it, version);
+      validatePlanPeriod(plan);
       Itinerary updated = it.withPlan(plan);
       store.save(updated);
       return updated;
@@ -250,6 +252,22 @@ public class ItineraryService {
         throw new InvalidItineraryException("离店日期不能早于入住日期：" + l.checkIn() + " → "
             + l.checkOut() + "（" + describe(l.name()) + "）");
       }
+    }
+  }
+
+  /**
+   * 返回日期不能早于出发日期（V1 第 5 节「时间检查」）。
+   *
+   * <p>在写入时拦截，而不是只在体检接口里提示：错误数据一旦落盘，后续每次汇总都要重新解释它。
+   * 允许任一日期为空，缺失由体检接口提示「未填写」。
+   */
+  private void validatePlanPeriod(Plan plan) {
+    if (plan == null || plan.departDate() == null || plan.returnDate() == null) {
+      return;
+    }
+    if (plan.returnDate().isBefore(plan.departDate())) {
+      throw new InvalidItineraryException(
+          "返回日期不能早于出发日期：" + plan.departDate() + " → " + plan.returnDate());
     }
   }
 

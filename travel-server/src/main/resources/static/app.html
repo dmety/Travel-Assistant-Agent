@@ -101,10 +101,15 @@
         <div class="tab" data-sec="lodgings">住宿</div>
         <div class="tab" data-sec="expenses">费用</div>
         <div class="tab" data-sec="members">成员</div>
+        <div class="tab" data-sec="budget">预算检查</div>
       </div>
 
       <div class="tabpane active" data-sec="plan">
         <textarea id="ta_plan" rows="6"></textarea>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          支持字段：destination / summary / notes / departDate / returnDate（日期格式 YYYY-MM-DD）；
+          返回日期早于出发日期会被服务端拒绝（400）。
+        </div>
         <div class="sec-actions"><button data-save="plan">保存方案 (PUT)</button></div>
       </div>
       <div class="tabpane" data-sec="daily">
@@ -137,6 +142,13 @@
           <label><input type="checkbox" value="LODGING" />住宿</label>
           <label><input type="checkbox" value="EXPENSE" />费用</label>
         </div>
+      </div>
+
+      <div class="tabpane" data-sec="budget">
+        <div class="sec-actions">
+          <button id="budgetRefreshBtn">刷新预算汇总与检查 (GET)</button>
+        </div>
+        <pre id="budgetOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:0;"></pre>
       </div>
     </div>
   </div>
@@ -305,6 +317,44 @@
       if (res.ok) { applyItinerary(await res.json()); show('已移除 ' + username, 'ok'); }
       else { const d = await res.json().catch(()=>({})); show('移除失败(' + res.status + '): ' + (d.error||''), 'err'); }
     }
+
+    // ---- 预算与体检 ----
+    $('budgetRefreshBtn').onclick = async () => {
+      const out = $('budgetOut');
+      out.textContent = '加载中…';
+      const [bRes, cRes] = await Promise.all([
+        api('GET', '/api/itineraries/' + state.id + '/budget'),
+        api('GET', '/api/itineraries/' + state.id + '/checks')
+      ]);
+      if (!bRes.ok || !cRes.ok) {
+        out.textContent = '读取失败：HTTP ' + bRes.status + ' / ' + cRes.status;
+        show('预算或体检读取失败', 'err');
+        return;
+      }
+      const b = await bRes.json(), c = await cRes.json();
+      const money = (v) => Number(v).toFixed(2);
+      const lines = [];
+      lines.push('主要币种：' + b.primaryCurrency + '　计入条目：' + b.itemCount + '　待填写：' + b.pendingCount);
+      lines.push('');
+      lines.push('— 各币种合计（不做汇率换算）—');
+      if (!b.totals.length) { lines.push('  （无）'); }
+      b.totals.forEach(t => lines.push('  ' + t.currency + '  ' + money(t.amount) + '（' + t.itemCount + ' 条）'));
+      lines.push('');
+      lines.push('— 分类合计 —');
+      if (!b.byCategory.length) { lines.push('  （无）'); }
+      b.byCategory.forEach(t => lines.push('  [' + t.currency + '] ' + t.category + '  '
+        + money(t.amount) + '（' + t.itemCount + ' 条）'));
+      if (b.notes && b.notes.length) {
+        lines.push('');
+        lines.push('— 口径说明 —');
+        b.notes.forEach(n => lines.push('  · ' + n));
+      }
+      lines.push('');
+      lines.push('— 体检（版本 ' + c.version + '）—');
+      if (c.ok) { lines.push('  ✓ 未发现问题'); }
+      else { c.warnings.forEach(w => lines.push('  ✗ [' + w.code + '] ' + w.message)); }
+      out.textContent = lines.join('\n');
+    };
 
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 

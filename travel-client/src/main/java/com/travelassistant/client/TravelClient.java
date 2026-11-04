@@ -53,7 +53,7 @@ public class TravelClient {
         System.out.println("景点查询（交互）：java -jar travel-client.jar " + base + " attractions");
         System.out.println("按城市查询：      java -jar travel-client.jar " + base + " attractions 杭州");
         System.out.println("按 ID 查详情：    java -jar travel-client.jar " + base + " attractions --id <景点ID>");
-        System.out.println("登录演示：        java -jar travel-client.jar " + base + " <用户名> <密码>");
+        System.out.println("登录演示（含预算与检查）：java -jar travel-client.jar " + base + " <用户名> <密码>");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -100,7 +100,79 @@ public class TravelClient {
     if (me.statusCode() == 200) {
       JsonNode node = json.readTree(me.body());
       System.out.println("已以 " + node.get("username").asText() + " 的身份通过会话登录。");
+      // 4) 有行程时顺带打印第一份的预算汇总与体检结果（V1 第 5 节）
+      showBudgetAndChecks();
     }
+  }
+
+  /**
+   * 取「我的行程」第一份，打印预算汇总与体检提示。
+   *
+   * <p>多币种时按币种分行显示并注明「不做汇率换算」，避免把 100 元和 100 美元加成 200。
+   */
+  private void showBudgetAndChecks() throws Exception {
+    var list = get("/api/itineraries");
+    if (list.statusCode() != 200) {
+      System.out.println("行程列表：HTTP " + list.statusCode() + "（跳过预算汇总）");
+      return;
+    }
+    JsonNode items = json.readTree(list.body());
+    if (!items.isArray() || items.isEmpty()) {
+      System.out.println("尚未创建行程，暂无预算可汇总。");
+      return;
+    }
+    String id = items.get(0).get("id").asText();
+    String title = items.get(0).get("title").asText();
+
+    var budgetRes = get("/api/itineraries/" + id + "/budget");
+    var checksRes = get("/api/itineraries/" + id + "/checks");
+    if (budgetRes.statusCode() != 200 || checksRes.statusCode() != 200) {
+      System.out.println("预算/体检读取失败：HTTP " + budgetRes.statusCode() + " / "
+          + checksRes.statusCode());
+      return;
+    }
+    JsonNode budget = json.readTree(budgetRes.body());
+    JsonNode checks = json.readTree(checksRes.body());
+
+    System.out.println();
+    System.out.println("== 预算与检查：" + title + " ==");
+    System.out.println("主要币种：" + budget.get("primaryCurrency").asText()
+        + "　计入条目：" + budget.get("itemCount").asInt()
+        + "　待填写：" + budget.get("pendingCount").asInt());
+    for (JsonNode t : budget.get("totals")) {
+      System.out.println("  " + t.get("currency").asText() + "  " + money(t.get("amount"))
+          + "（" + t.get("itemCount").asInt() + " 条）");
+    }
+    for (JsonNode t : budget.get("byCategory")) {
+      System.out.println("  [" + t.get("currency").asText() + "] " + t.get("category").asText()
+          + "  " + money(t.get("amount")) + "（" + t.get("itemCount").asInt() + " 条）");
+    }
+    for (JsonNode note : budget.get("notes")) {
+      System.out.println("  · " + note.asText());
+    }
+    if (checks.get("ok").asBoolean()) {
+      System.out.println("  ✓ 体检未发现问题");
+    } else {
+      for (JsonNode w : checks.get("warnings")) {
+        System.out.println("  ✗ [" + w.get("code").asText() + "] " + w.get("message").asText());
+      }
+    }
+  }
+
+  /**
+   * 金额按两位小数显示。
+   *
+   * <p>接口返回的是 1400.00，但客户端用 {@code readTree} 解析后成为 Double 节点，
+   * 直接 {@code asText()} 会退化成 1400.0，金额显示必须补足两位。
+   */
+  private static String money(JsonNode amount) {
+    return amount == null || amount.isNull() ? "未知" : String.format("%.2f", amount.asDouble());
+  }
+
+  private HttpResponse<String> get(String path) throws Exception {
+    var request = HttpRequest.newBuilder(URI.create(base + path))
+        .timeout(Duration.ofSeconds(10)).GET().build();
+    return client.send(request, HttpResponse.BodyHandlers.ofString());
   }
 
   private HttpResponse<String> postJson(String path, String body) throws Exception {

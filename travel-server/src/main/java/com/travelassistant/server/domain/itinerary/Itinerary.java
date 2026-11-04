@@ -38,7 +38,7 @@ public record Itinerary(
     Instant now = Instant.now();
     return new Itinerary(
         UUID.randomUUID().toString(), owner, title, 1L, now, now,
-        List.of(), plan == null ? new Plan(null, null, null) : plan,
+        List.of(), plan == null ? Plan.empty() : plan,
         List.of(), List.of(), List.of(), List.of());
   }
 

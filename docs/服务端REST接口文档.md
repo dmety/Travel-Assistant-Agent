@@ -209,6 +209,9 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 - **更新**：`PUT /api/itineraries/{id}/plan?version={v}`（owner 或 `editSections` 含 `PLAN`）→ **200** 完整 `Itinerary`（version 已 +1）。
   请求体：`Plan`（见 §4.2）。
 
+> `plan` 自 2026-11-04 起支持 `departDate` / `returnDate`（`YYYY-MM-DD`）。两者都填写且返回早于出发时返回 **400**
+> `{ "error": "返回日期不能早于出发日期：2026-11-12 → 2026-11-10" }`，且**版本号不变**；任一为空不校验（缺失由 §3.11 体检提示）。
+
 ### 3.8 每日安排 DAILY
 - **查看**：`GET /api/itineraries/{id}/daily`（参与者）→ **200** `DailySchedule[]`，响应头含 `X-Version`。
 - **更新**：`PUT /api/itineraries/{id}/daily?version={v}`（owner 或含 `DAILY`）→ **200** `Itinerary`。
@@ -259,6 +262,79 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 
 ---
 
+### 3.11 预算汇总与行程体检（只读，参与者）
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/itineraries/{id}/budget` | 预算汇总，响应头含 `X-Version` |
+| `GET /api/itineraries/{id}/checks` | 行程体检，响应体内含 `version` |
+
+两个接口都是只读的，**不会递增版本号**；权限与行程查看权一致（owner 或成员），非参与者 **403**，未登录 **401**。
+
+`budget` 响应（多币种示例）：
+
+```json
+{
+  "primaryCurrency": "CNY",
+  "totals": [
+    { "currency": "CNY", "amount": 1400.00, "itemCount": 2 },
+    { "currency": "USD", "amount": 100.00, "itemCount": 1 }
+  ],
+  "byCategory": [
+    { "category": "交通", "currency": "CNY", "amount": 600.00, "itemCount": 1 },
+    { "category": "住宿", "currency": "CNY", "amount": 800.00, "itemCount": 1 },
+    { "category": "交通", "currency": "USD", "amount": 100.00, "itemCount": 1 }
+  ],
+  "itemCount": 3,
+  "pendingCount": 1,
+  "pending": [ { "id": "…", "category": "餐饮", "note": "未询价" } ],
+  "currencies": ["CNY", "USD"],
+  "mixedCurrency": true,
+  "notes": [
+    "存在 2 种币种（CNY、USD），本汇总未做汇率换算，请按币种分别核对，不要把不同币种的金额直接相加",
+    "有 1 笔费用未填写金额，已标记为待填写，未计入合计"
+  ]
+}
+```
+
+汇总口径（**与验收相关，不能简化**）：
+
+- **不跨币种相加**：不同币种分别成行、按「币种 + 类别」拆分。100 元与 100 美元相加得 200 是错的；汇率换算需要外部汇率源与时间点，本版本未实现，只给出提示。
+- `primaryCurrency`：条目最多的币种；平票时 `CNY` 优先，再按字典序，保证同一份数据每次结果一致。
+- `amount` 为 `null` 的费用进 `pending`，**不计入合计**；`amount` 为负的照实计入并在 `notes` 中点明（写入时已拦截，能出现的只可能是历史数据）。
+- `category` 为空归入「未分类」，`currency` 为空按 `CNY`；金额统一两位小数（`HALF_UP`），接口按 `1400.00` 输出，不会退化成 `1400.0`。
+
+`checks` 响应：
+
+```json
+{
+  "itineraryId": "…",
+  "version": 3,
+  "ok": false,
+  "warnings": [
+    { "code": "EXPENSE_AMOUNT_MISSING", "field": "expenses", "message": "有 1 笔费用未填写金额" },
+    { "code": "MIXED_CURRENCY", "field": "expenses", "message": "存在多种币种，未做汇率换算，预算总额按币种分别给出" }
+  ]
+}
+```
+
+`code` 为稳定标识（文案可调整，代码不变）：
+
+| code | 含义 |
+|---|---|
+| `DEPART_DATE_MISSING` / `RETURN_DATE_MISSING` | 出发/返回日期未填写 |
+| `RETURN_BEFORE_DEPART` | 返回早于出发（写入已拦截，仅历史数据会出现） |
+| `EXPENSE_AMOUNT_MISSING` | 有费用未填金额 |
+| `EXPENSE_NEGATIVE` | 有负数金额 |
+| `NO_EXPENSE` | 尚未记录任何费用 |
+| `MIXED_CURRENCY` | 存在多币种 |
+| `DAILY_OUT_OF_RANGE` / `TRANSPORT_OUT_OF_RANGE` / `LODGING_OUT_OF_RANGE` | 安排日期超出旅行时间范围 |
+| `LODGING_PERIOD_INVALID` | 离店早于入住（历史数据） |
+
+`ok=true` 表示没有需要用户处理的提示。日期区间倒置时**只报** `RETURN_BEFORE_DEPART`，不再逐条报越界——否则每条安排都会再报一次，噪声会掩盖真正的问题。
+
+---
+
 ## 4. 数据模型
 
 ### 4.1 Itinerary（行程聚合根）
@@ -283,6 +359,10 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | `destination` | string | 目的地 |
 | `summary` | string | 行程摘要 |
 | `notes` | string | 备注 |
+| `departDate` | string(date) | 出发日期 `YYYY-MM-DD`，可为 `null`（2026-11-04 新增） |
+| `returnDate` | string(date) | 返回日期 `YYYY-MM-DD`，可为 `null`；早于 `departDate` 时写入被拒（2026-11-04 新增） |
+
+> 历史行程的 `plan` 没有这两个键，读取时按 `null` 处理（不会报错），由 §3.11 体检提示「未填写」。
 
 ### 4.3 DailySchedule（每日安排）与 DailyActivity
 **DailySchedule**
