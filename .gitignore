@@ -4,8 +4,8 @@ data/*
 !data/china_attractions.json
 !data/attractions_index.json
 # 种子文件：空数组，供新环境初始化。运行态数据（accounts / itineraries /
-# invitations / comments / changelog）一律不进版本控制——里面是真实账号哈希
-# 与用户行程，提交等于把凭据散播到公开仓库。
+# invitations / comments / changelog / candidates / votes）一律不进版本控制——
+# 里面是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库。
 !data/*.example.json
 .idea/
 *.iml

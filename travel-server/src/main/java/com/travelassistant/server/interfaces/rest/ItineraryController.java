@@ -1,11 +1,13 @@
 package com.travelassistant.server.interfaces.rest;
 
 import com.travelassistant.server.application.budget.BudgetService;
+import com.travelassistant.server.application.export.ExportService;
 import com.travelassistant.server.application.invitation.InvitationService;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
 import com.travelassistant.server.application.itinerary.ItineraryService;
 import com.travelassistant.server.application.itinerary.VersionConflictException;
+import com.travelassistant.server.domain.budget.BudgetAnalysis;
 import com.travelassistant.server.domain.budget.BudgetSummary;
 import com.travelassistant.server.domain.budget.ItineraryChecks;
 import com.travelassistant.server.domain.itinerary.DailySchedule;
@@ -16,12 +18,16 @@ import com.travelassistant.server.domain.itinerary.Member;
 import com.travelassistant.server.domain.itinerary.Plan;
 import com.travelassistant.server.domain.itinerary.Section;
 import com.travelassistant.server.domain.itinerary.Transport;
+import com.travelassistant.server.interfaces.rest.dto.ActivityRequest;
 import com.travelassistant.server.interfaces.rest.dto.CreateItineraryRequest;
 import com.travelassistant.server.interfaces.rest.dto.MemberRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -42,12 +48,14 @@ public class ItineraryController {
   private final ItineraryService service;
   private final BudgetService budgetService;
   private final InvitationService invitationService;
+  private final ExportService exportService;
 
   public ItineraryController(ItineraryService service, BudgetService budgetService,
-      InvitationService invitationService) {
+      InvitationService invitationService, ExportService exportService) {
     this.service = service;
     this.budgetService = budgetService;
     this.invitationService = invitationService;
+    this.exportService = exportService;
   }
 
   private String me(UserDetails user) {
@@ -63,9 +71,17 @@ public class ItineraryController {
     return ResponseEntity.created(URI.create("/api/itineraries/" + it.id())).body(it);
   }
 
+  /**
+   * 列出我的行程。
+   *
+   * @param archived 省略时返回全部（归档与未归档）；{@code true} 只看归档；
+   *                 {@code false} 只看进行中。默认不过滤是为了兼容老客户端——
+   *                 升级后不该出现「我的行程凭空少了一半」。
+   */
   @GetMapping
-  public List<Itinerary> list(@AuthenticationPrincipal UserDetails user) {
-    return service.listForUser(me(user));
+  public List<Itinerary> list(@AuthenticationPrincipal UserDetails user,
+      @RequestParam(required = false) Boolean archived) {
+    return service.listForUser(me(user), archived);
   }
 
   @GetMapping("/{id}")
@@ -171,6 +187,69 @@ public class ItineraryController {
   public ResponseEntity<ItineraryChecks> checks(@AuthenticationPrincipal UserDetails user,
       @PathVariable String id) {
     return ResponseEntity.ok(budgetService.check(id, me(user)));
+  }
+
+  /**
+   * 预算分析（V3 第 2 节）：上限、预计、实际、差额与人均。
+   *
+   * @param travelers 参与分摊的人数；省略时按「创建者 + 成员」计算
+   */
+  @GetMapping("/{id}/budget/analysis")
+  public ResponseEntity<BudgetAnalysis> analysis(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id, @RequestParam(required = false) Integer travelers) {
+    long version = service.get(id, me(user)).version();
+    return ResponseEntity.ok().header("X-Version", Long.toString(version))
+        .body(budgetService.analyze(id, me(user), travelers));
+  }
+
+  /**
+   * 追加一项每日安排（V3「确认候选」与手工登记共用）。
+   *
+   * <p>与 {@code PUT /daily} 的区别：整份 PUT 适合表单编辑，这个方法只加一条，
+   * 客户端不需要先把整份日程读出来再整体回写——那是最容易覆盖别人改动的方式。
+   */
+  @PostMapping("/{id}/activities")
+  public ResponseEntity<Itinerary> appendActivity(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id, @RequestParam long version, @RequestBody ActivityRequest req) {
+    return ResponseEntity.ok(service.appendActivity(id, me(user), req.date(), req.title(),
+        req.location(), req.note(), version));
+  }
+
+  /**
+   * 导出文本摘要（V3 第 4 节）。
+   *
+   * <p>返回 {@code text/plain} 并带下载文件名。服务端不写用户的磁盘——
+   * 导出件的落点由调用方决定。
+   */
+  @GetMapping(value = "/{id}/export", produces = "text/plain;charset=UTF-8")
+  public ResponseEntity<String> export(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    String text = exportService.toText(id, me(user));
+    String name = exportService.fileName(id, me(user));
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment().filename(name, StandardCharsets.UTF_8).build()
+                .toString())
+        .body(text);
+  }
+
+  // ---- 归档（V3 第 4 节，仅 owner） ----
+
+  /**
+   * 归档：转为只读，数据全部保留。
+   *
+   * <p>不需要版本号：归档是一个开关，不是对方案内容的编辑；重复归档幂等。
+   */
+  @PostMapping("/{id}/archive")
+  public ResponseEntity<Itinerary> archive(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    return ResponseEntity.ok(service.archive(id, me(user)));
+  }
+
+  @PostMapping("/{id}/unarchive")
+  public ResponseEntity<Itinerary> unarchive(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    return ResponseEntity.ok(service.unarchive(id, me(user)));
   }
 
   // ---- 成员管理（仅 owner） ----

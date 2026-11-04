@@ -108,6 +108,109 @@ public final class BudgetCalculator {
         pending.size(), List.copyOf(pending), List.copyOf(currencies), mixed, List.copyOf(notes));
   }
 
+  /**
+   * 预算分析（V3 第 2 节）：上限、预计、实际、差额、人均与超支提示。
+   *
+   * <p>口径统一在「费用主币种」下计算。上限币种与之不一致时**不换算、也不硬减**，
+   * 直接标 {@code comparable=false}：5000 元上限减 800 美元支出得出的差额是错的，
+   * 与其给一个看起来精确的错误数字，不如说清楚为什么算不了。
+   *
+   * @param travelersOverride 调用方指定的人数；{@code null} 或非正数时按「创建者 + 成员」计算
+   */
+  public static BudgetAnalysis analyze(Itinerary itinerary, Integer travelersOverride) {
+    Plan plan = itinerary.plan();
+    BigDecimal limit = plan == null ? null : plan.budgetLimit();
+    String limitCurrency = (plan == null || plan.budgetCurrency() == null
+        || plan.budgetCurrency().isBlank())
+        ? DEFAULT_CURRENCY
+        : plan.budgetCurrency().strip().toUpperCase(Locale.ROOT);
+
+    BudgetSummary summary = summarize(itinerary);
+    String currency = summary.primaryCurrency();
+    BigDecimal estimated = summary.primaryTotal();
+
+    BigDecimal actual = BigDecimal.ZERO;
+    BigDecimal planned = BigDecimal.ZERO;
+    for (Expense e : expensesOf(itinerary)) {
+      if (e.amount() == null || !currencyOf(e).equals(currency)) {
+        continue;
+      }
+      if (e.actual()) {
+        actual = actual.add(e.amount());
+      } else {
+        planned = planned.add(e.amount());
+      }
+    }
+    actual = scale(actual);
+    planned = scale(planned);
+
+    boolean explicitTravelers = travelersOverride != null && travelersOverride > 0;
+    int travelers = explicitTravelers ? travelersOverride : defaultTravelers(itinerary);
+
+    boolean comparable = limit == null || limitCurrency.equals(currency);
+    BigDecimal remaining = null;
+    boolean overLimit = false;
+    BigDecimal overBy = null;
+    if (limit != null && comparable) {
+      remaining = scale(limit.subtract(estimated));
+      if (estimated.compareTo(limit) > 0) {
+        overLimit = true;
+        overBy = scale(estimated.subtract(limit));
+      }
+    }
+
+    List<CheckWarning> warnings = new ArrayList<>();
+    if (limit == null) {
+      warnings.add(new CheckWarning("BUDGET_LIMIT_MISSING", "plan.budgetLimit",
+          "未设定预算上限，无法判断是否超支"));
+    } else if (!comparable) {
+      warnings.add(new CheckWarning("BUDGET_CURRENCY_MISMATCH", "plan.budgetCurrency",
+          "预算上限币种为 " + limitCurrency + "，费用主币种为 " + currency
+              + "，未做汇率换算，差额未计算"));
+    } else if (overLimit) {
+      warnings.add(new CheckWarning("BUDGET_OVER_LIMIT", "plan.budgetLimit",
+          "预计总额 " + estimated.toPlainString() + " " + currency + " 已超预算上限 "
+              + limit.toPlainString() + "，超出 " + overBy.toPlainString()));
+    }
+    if (limit != null && comparable && actual.compareTo(limit) > 0) {
+      warnings.add(new CheckWarning("BUDGET_ACTUAL_OVER_LIMIT", "expenses",
+          "已发生费用 " + actual.toPlainString() + " " + currency + " 已超过预算上限 "
+              + limit.toPlainString() + "，继续安排前请先确认"));
+    }
+    if (planned.signum() > 0 && actual.signum() > 0 && actual.compareTo(planned) > 0) {
+      warnings.add(new CheckWarning("BUDGET_ACTUAL_OVER_PLAN", "expenses",
+          "已发生的费用（" + actual.toPlainString() + "）高于仍属预计的费用（"
+              + planned.toPlainString() + "），原计划可能偏低"));
+    }
+
+    List<String> notes = new ArrayList<>();
+    notes.add("人均按 " + travelers + " 人分摊" + (explicitTravelers ? "（调用方指定）" : "（创建者 + 成员）"));
+    if (!summary.mixedCurrency()) {
+      notes.add("预计总额 = 全部已填金额的费用；实际总额 = 标记为「已发生」的费用");
+    }
+    notes.addAll(summary.notes());
+
+    BigDecimal perPerson = divideOrZero(estimated, travelers);
+    BigDecimal perPersonActual = divideOrZero(actual, travelers);
+
+    return new BudgetAnalysis(currency, limit == null ? null : scale(limit), estimated, planned,
+        actual, remaining, comparable, overLimit, overBy, travelers, perPerson, perPersonActual,
+        List.copyOf(warnings), List.copyOf(notes));
+  }
+
+  /** 应参与分摊的人数：创建者 1 人 + 成员数，至少 1。 */
+  private static int defaultTravelers(Itinerary itinerary) {
+    int members = itinerary.members() == null ? 0 : itinerary.members().size();
+    return Math.max(1, members + 1);
+  }
+
+  private static BigDecimal divideOrZero(BigDecimal amount, int people) {
+    if (people <= 0) {
+      return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    }
+    return amount.divide(BigDecimal.valueOf(people), 2, RoundingMode.HALF_UP);
+  }
+
   /** 行程体检：日期缺失/倒置、费用待填写、多币种、各板块日期越界。 */
   public static ItineraryChecks check(Itinerary itinerary) {
     List<CheckWarning> warnings = new ArrayList<>();
@@ -184,6 +287,12 @@ public final class BudgetCalculator {
 
     // V2 §3：安排级时间检查（缺失、倒置、同日重叠）
     checkActivityTimes(itinerary, warnings);
+
+    // V3 §4：行程已结束且未归档，提示可以归档（只是提示，不自动归档）
+    if (!itinerary.archived() && ret != null && ret.isBefore(LocalDate.now())) {
+      warnings.add(new CheckWarning("TRIP_ENDED", "plan.returnDate",
+          "返回日期 " + ret + " 已过，行程已结束，可以归档保存"));
+    }
 
     return new ItineraryChecks(itinerary.id(), itinerary.version(), warnings.isEmpty(),
         List.copyOf(warnings));

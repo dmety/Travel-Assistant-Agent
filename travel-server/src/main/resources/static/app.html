@@ -106,6 +106,9 @@
         <div class="tab" data-sec="collab">协作</div>
         <div class="tab" data-sec="ticket">购票</div>
         <div class="tab" data-sec="geo">周边查询</div>
+        <div class="tab" data-sec="vote">候选投票</div>
+        <div class="tab" data-sec="advice">决策建议</div>
+        <div class="tab" data-sec="archive">归档导出</div>
       </div>
 
       <div class="tabpane active" data-sec="plan">
@@ -236,6 +239,53 @@
         </div>
         <pre id="geoOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:12px 0 0;"></pre>
       </div>
+
+      <div class="tabpane" data-sec="vote">
+        <div class="row">
+          <input id="cdName" placeholder="想去的地方，如 灵隐寺" style="width:200px;" />
+          <select id="cdKind" style="width:110px;">
+            <option value="ATTRACTION">景点</option>
+            <option value="LODGING">住宿</option>
+            <option value="OTHER">其它</option>
+          </select>
+          <button id="cdAddBtn">添加候选</button>
+          <button id="cdRefreshBtn" class="secondary">刷新</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          能查看该行程的人都可以提候选、投票，不需要板块编辑权——提候选是提议，不是改方案。
+          投票不改变行程版本号，也不会自动写入日程；点「确认加入」才真正写进某一天的安排。
+        </div>
+        <div id="cdList" style="margin-top:10px;"><span class="muted">打开行程后点击刷新</span></div>
+      </div>
+
+      <div class="tabpane" data-sec="advice">
+        <div class="row">
+          <input id="adTravelers" type="number" min="1" placeholder="人数（可选）" style="width:120px;" />
+          <label class="muted" style="font-size:12px;">
+            <input type="checkbox" id="adWeather" checked /> 查询天气
+          </label>
+          <button id="adBtn">生成综合建议</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          风险与调整建议由系统规则算出（预算、投票、时间冲突、交通衔接、住宿、天气），
+          模型只负责把这些事实组织成文字；未配置模型密钥时，规则结论照样完整。
+        </div>
+        <div id="adOut" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="tabpane" data-sec="archive">
+        <div class="row">
+          <button id="arArchiveBtn">归档（转为只读）</button>
+          <button id="arUnarchiveBtn" class="secondary">取消归档</button>
+          <button id="arExportBtn" class="secondary">导出文本摘要</button>
+          <button id="arStateBtn" class="secondary">查看状态</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          归档不删除任何数据，只是转为只读：之后所有写操作（含成员变更、候选投票）都会返回 409，
+          取消归档即可恢复。导出为纯文本，服务端不写本地磁盘，由浏览器负责保存。
+        </div>
+        <pre id="arOut" style="white-space:pre-wrap;font-size:12px;line-height:1.7;margin:12px 0 0;"></pre>
+      </div>
     </div>
   </div>
 
@@ -353,6 +403,9 @@
         document.querySelectorAll('.tabpane').forEach(x => x.classList.remove('active'));
         t.classList.add('active');
         document.querySelector('.tabpane[data-sec="' + t.dataset.sec + '"]').classList.add('active');
+        // 讨论类页签按需加载，避免每次打开行程都多打几个请求
+        if (state.id && t.dataset.sec === 'vote') loadBoard();
+        if (state.id && t.dataset.sec === 'archive') loadArchiveState();
       };
     });
 
@@ -681,6 +734,219 @@
       const res = await api('GET', '/api/location/status');
       const d = await res.json().catch(() => ({}));
       $('geoOut').textContent = JSON.stringify(d, null, 2);
+    };
+
+    // ---- 候选与投票（V3 §1） ----
+    function smallBtn(label, cls, onclick) {
+      const b = document.createElement('button');
+      b.className = 'sm ' + (cls || '');
+      b.textContent = label;
+      b.onclick = onclick;
+      return b;
+    }
+
+    function renderBoard(b) {
+      const box = $('cdList');
+      box.innerHTML = '';
+      if (!b.candidates || !b.candidates.length) {
+        const empty = document.createElement('div');
+        empty.className = 'muted';
+        empty.textContent = '还没有候选项，先在上面添加一个';
+        box.appendChild(empty);
+      } else {
+        b.candidates.forEach(t => {
+          const c = t.candidate;
+          const div = document.createElement('div');
+          div.className = 'mem';
+          const top = (c.id === b.leaderId) ? ' ★ 当前票数最高' : '';
+          div.innerHTML = '<div><b>' + escapeHtml(c.name) + '</b> <span class="tags">'
+            + escapeHtml(c.kind) + (c.city ? ' · ' + escapeHtml(c.city) : '')
+            + ' · ' + escapeHtml(c.proposedBy) + ' 提出' + escapeHtml(top) + '</span></div>'
+            + '<div style="margin-top:4px;font-size:12px;">支持 ' + t.support
+            + '　反对 ' + t.oppose + '　弃权 ' + t.abstain + '　净支持 ' + t.score + '</div>';
+          const wrap = document.createElement('div');
+          wrap.style.display = 'flex';
+          wrap.style.gap = '6px';
+          wrap.style.marginTop = '6px';
+          wrap.appendChild(smallBtn('支持', '', () => castVote(c.id, 'SUPPORT')));
+          wrap.appendChild(smallBtn('反对', 'secondary', () => castVote(c.id, 'OPPOSE')));
+          wrap.appendChild(smallBtn('弃权', 'secondary', () => castVote(c.id, 'ABSTAIN')));
+          wrap.appendChild(smallBtn('撤票', 'secondary', () => withdrawVote(c.id)));
+          wrap.appendChild(smallBtn('确认加入', '', () => applyCandidate(c)));
+          wrap.appendChild(smallBtn('删除', 'danger', () => removeCandidate(c.id)));
+          div.appendChild(wrap);
+          box.appendChild(div);
+        });
+      }
+      const notes = document.createElement('div');
+      notes.className = 'muted';
+      notes.style.fontSize = '12px';
+      notes.style.marginTop = '8px';
+      notes.textContent = '参与者 ' + b.participantCount + ' 人，已投票 ' + b.voterCount
+        + ' 人，共 ' + b.totalVotes + ' 票。' + ((b.notes || []).join('；'));
+      box.appendChild(notes);
+    }
+
+    async function loadBoard() {
+      if (!state.id) { $('cdList').innerHTML = '<span class="muted">请先打开行程</span>'; return; }
+      const res = await api('GET', '/api/itineraries/' + state.id + '/candidates');
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { $('cdList').innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
+      renderBoard(d);
+    }
+
+    $('cdRefreshBtn').onclick = loadBoard;
+
+    $('cdAddBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const name = $('cdName').value.trim();
+      if (!name) { show('请填写候选名称', 'err'); return; }
+      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates',
+        { kind: $('cdKind').value, name }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { $('cdName').value = ''; show('已添加候选「' + name + '」', 'ok'); await loadBoard(); }
+      else show('添加失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+
+    async function castVote(candidateId, choice) {
+      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates/'
+        + candidateId + '/votes', { choice }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) renderBoard(d);
+      else show('投票失败(' + res.status + '): ' + (d.error || ''), 'err');
+    }
+
+    async function withdrawVote(candidateId) {
+      const res = await api('DELETE', '/api/itineraries/' + state.id + '/candidates/'
+        + candidateId + '/votes');
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) renderBoard(d);
+      else show('撤票失败(' + res.status + '): ' + (d.error || ''), 'err');
+    }
+
+    async function removeCandidate(candidateId) {
+      if (!confirm('删除这个候选项？它名下的选票也会一并清除。')) return;
+      const res = await api('DELETE', '/api/itineraries/' + state.id + '/candidates/' + candidateId);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { show('已删除候选', 'ok'); await loadBoard(); }
+      else show('删除失败(' + res.status + '): ' + (d.error || ''), 'err');
+    }
+
+    async function applyCandidate(c) {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const day = prompt('把「' + c.name + '」加入哪一天？（格式 yyyy-mm-dd）', '');
+      if (!day) return;
+      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates/' + c.id
+        + '/apply?version=' + state.version, { date: day, title: c.name }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { applyItinerary(d); show('已加入 ' + day + ' 的每日安排（版本 ' + state.version + '）', 'ok'); }
+      else {
+        const cv = res.headers.get('X-Version');
+        show('加入失败(' + res.status + ')' + (cv ? ' 服务端版本=' + cv : '') + ': ' + (d.error || ''), 'err');
+      }
+    }
+
+    // ---- 综合决策建议（V3 §3） ----
+    function renderAdvice(r) {
+      const out = $('adOut');
+      out.innerHTML = '';
+      const section = (title) => {
+        const h = document.createElement('h2');
+        h.style.fontSize = '14px'; h.style.margin = '14px 0 6px'; h.textContent = title;
+        out.appendChild(h);
+      };
+      const line = (text, cls, size) => {
+        const d = document.createElement('div');
+        d.className = cls || 'mem';
+        if (size) d.style.fontSize = size;
+        d.textContent = text;
+        out.appendChild(d);
+        return d;
+      };
+
+      line('版本 v' + r.version + '　生成于 ' + fmtTime(r.generatedAt)
+        + '　来源：' + ((r.sources || []).join('、') || '无'), 'muted', '12px');
+
+      section('风险（' + r.risks.length + ' 条，按严重度排序）');
+      if (!r.risks.length) line('未发现明显问题', 'muted');
+      r.risks.forEach(x => {
+        const div = document.createElement('div');
+        div.className = 'mem';
+        div.innerHTML = '<div><b>' + escapeHtml(x.severity) + '</b> <span class="tags">'
+          + escapeHtml(x.code) + ' · 依据：' + escapeHtml(x.basis) + '</span></div>'
+          + '<div style="margin-top:4px;">' + escapeHtml(x.message) + '</div>'
+          + (x.suggestion ? '<div class="muted" style="margin-top:4px;font-size:12px;">→ '
+            + escapeHtml(x.suggestion) + '</div>' : '');
+        out.appendChild(div);
+      });
+
+      section('调整建议（系统规则）');
+      if (!(r.suggestions || []).length) line('暂无可调整项', 'muted');
+      (r.suggestions || []).forEach(s => line('· ' + s));
+
+      section('模型建议');
+      const adv = document.createElement('div');
+      adv.className = 'mem';
+      adv.style.whiteSpace = 'pre-wrap';
+      adv.textContent = r.advice || '（本次没有模型文字建议，原因见下方提示）';
+      out.appendChild(adv);
+
+      if ((r.notices || []).length) {
+        section('提示');
+        r.notices.forEach(n => line('· ' + n, 'muted', '12px'));
+      }
+    }
+
+    $('adBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const travelers = parseInt($('adTravelers').value, 10);
+      $('adOut').innerHTML = '<span class="muted">分析中…</span>';
+      const body = { includeWeather: $('adWeather').checked };
+      if (!isNaN(travelers) && travelers > 0) body.travelers = travelers;
+      const res = await api('POST', '/api/agent/itineraries/' + state.id + '/advice', body, true);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { $('adOut').textContent = '分析失败(' + res.status + ')：' + (d.error || ''); return; }
+      renderAdvice(d);
+    };
+
+    // ---- 归档与导出（V3 §4） ----
+    async function loadArchiveState() {
+      const out = $('arOut');
+      if (!state.id) { out.textContent = '请先打开行程'; return; }
+      const res = await api('GET', '/api/itineraries/' + state.id);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { out.textContent = '读取失败(' + res.status + ')'; return; }
+      out.textContent = '标题：' + d.title
+        + '\n版本：v' + d.version
+        + '\n状态：' + (d.archived ? '已归档（只读）' : '进行中')
+        + (d.archivedAt ? '\n归档时间：' + fmtTime(d.archivedAt) : '')
+        + '\n创建时间：' + fmtTime(d.createdAt)
+        + '\n更新时间：' + fmtTime(d.updatedAt);
+    }
+
+    $('arStateBtn').onclick = loadArchiveState;
+
+    $('arArchiveBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      if (!confirm('归档后行程转为只读，所有写操作都会被拒绝。确认归档？')) return;
+      const res = await api('POST', '/api/itineraries/' + state.id + '/archive');
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { applyItinerary(d); show('已归档（只读，版本 ' + state.version + '）', 'ok'); await loadArchiveState(); }
+      else show('归档失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+
+    $('arUnarchiveBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const res = await api('POST', '/api/itineraries/' + state.id + '/unarchive');
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { applyItinerary(d); show('已取消归档，可继续编辑', 'ok'); await loadArchiveState(); }
+      else show('操作失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+
+    $('arExportBtn').onclick = () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      // 同源新窗口：浏览器会带着会话 Cookie 请求，并按下发的文件名保存
+      window.open('/api/itineraries/' + state.id + '/export', '_blank');
     };
 
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

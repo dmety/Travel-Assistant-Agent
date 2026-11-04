@@ -1,6 +1,7 @@
 package com.travelassistant.server.application.budget;
 
 import com.travelassistant.server.application.itinerary.ItineraryService;
+import com.travelassistant.server.domain.budget.BudgetAnalysis;
 import com.travelassistant.server.domain.budget.BudgetCalculator;
 import com.travelassistant.server.domain.budget.BudgetSummary;
 import com.travelassistant.server.domain.budget.ItineraryChecks;
@@ -22,6 +23,15 @@ public class BudgetService {
 
   public BudgetSummary summarize(String itineraryId, String user) {
     return BudgetCalculator.summarize(itineraries.get(itineraryId, user));
+  }
+
+  /**
+   * 预算分析（V3 第 2 节）：上限、预计、实际、差额、人均与超支提示。
+   *
+   * @param travelers 参与分摊的人数；{@code null} 时按「创建者 + 成员」计算
+   */
+  public BudgetAnalysis analyze(String itineraryId, String user, Integer travelers) {
+    return BudgetCalculator.analyze(itineraries.get(itineraryId, user), travelers);
   }
 
   public ItineraryChecks check(String itineraryId, String user) {

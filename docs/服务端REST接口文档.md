@@ -1,8 +1,9 @@
 # Travel Assistant 服务端接口文档
 
-> 适用版本：`main`（自 `8214902` 合入起生效）　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
+> 适用版本：`wei`（V1 → V3 全部功能）　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
 >
-> 本文档覆盖**账号与认证**与**行程管理**两套 REST 接口，包含请求/响应示例、数据模型、权限模型与乐观锁机制。
+> 本文档覆盖**账号与认证**、**行程管理**、**协作与外部查询**、**团队决策与总结**四套 REST 接口，
+> 包含请求/响应示例、数据模型、权限模型与乐观锁机制。
 
 ---
 
@@ -82,6 +83,9 @@
 | `InvalidTicketQueryException` | 400 | `{ "error": "请提供景点 id 或景点名称" }` | 购票查询既没给 `attractionId` 也没给 `name` |
 | `AmapUnavailableException` | 503 | `{ "error": "外部信息查询不可用", "reason": "<原因>" }` | 未配置 `AMAP_KEY`、服务不可达、配额不足或高德返回错误 |
 | `InvalidPlanningRequestException` | 400 | `{ "error": "<原因>" }` | 规划请求缺 `destination` |
+| `ItineraryArchivedException` | 409 | `{ "error": "行程已归档，当前为只读状态…", "id": "...", "archived": true }` | 对已归档行程做任何写操作（含成员、候选、投票） |
+| `InvalidCandidateException` | 400 | `{ "error": "<原因>" }` | 候选名称为空/超长/重复，投票选项缺失，撤回没有的票 |
+| `CandidateNotFoundException` | 404 | `{ "error": "候选项不存在", "candidateId": "..." }` | 候选 ID 不存在或不属于该行程 |
 
 > 模型调用失败**不**走异常映射：`/api/agent/plan` 会降级为「只有检索结果、没有文字建议」，
 > 把原因写进响应的 `notices`，请求本身仍是 200。
@@ -678,6 +682,174 @@ POST /api/agent/plan
 - **400** `destination` 为空
 - 候选为空时先按 `preferences` 兜底检索，并提示「请确认目的地」
 
+### 3.17 候选与投票（V3 §1）
+
+成员为「要不要去某个地方」提候选并投票。**候选与选票都不进行程聚合**，因此这些操作
+不改变行程版本号，也不会因为有人投票而让正在编辑日程的人撞上 409。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/itineraries/{id}/candidates` | 添加候选，`201` |
+| `GET` | `/api/itineraries/{id}/candidates` | 候选看板（含票数、排序、并列与未投票提示） |
+| `DELETE` | `/api/itineraries/{id}/candidates/{candidateId}` | 删除候选（提出者本人或创建者），连带清票 |
+| `POST` | `/api/itineraries/{id}/candidates/{candidateId}/votes` | 投票或改票 |
+| `DELETE` | `/api/itineraries/{id}/candidates/{candidateId}/votes` | 撤回自己的票 |
+| `POST` | `/api/itineraries/{id}/candidates/{candidateId}/apply?version=N` | 确认候选，写入某一天的每日安排 |
+
+添加候选：
+
+```json
+POST /api/itineraries/{id}/candidates
+{ "kind": "ATTRACTION", "name": "灵隐寺", "city": "杭州", "note": "" }
+```
+
+`kind` 取 `ATTRACTION` / `LODGING` / `OTHER`，省略按景点处理。名称必填、≤80 字，
+同名同类型重复添加返回 **400**（不是静默产生两条一样的候选）。
+
+投票：
+
+```json
+POST /api/itineraries/{id}/candidates/{candidateId}/votes
+{ "choice": "SUPPORT" }
+```
+
+`choice` 取 `SUPPORT` / `OPPOSE` / `ABSTAIN`。**同一人对同一候选只保留一张票**——
+再次投票是改票（保留首次投票时间），不是叠加。返回更新后的看板。
+
+看板示例：
+
+```json
+{
+  "itineraryId": "…", "itineraryVersion": 4,
+  "participantCount": 2, "voterCount": 2, "candidateCount": 2, "totalVotes": 3,
+  "candidates": [
+    { "candidate": { "id": "…", "kind": "ATTRACTION", "name": "灵隐寺",
+                     "proposedBy": "v3peer", "createdAt": "…" },
+      "support": 1, "oppose": 0, "abstain": 0, "score": 1,
+      "votes": [ { "voter": "v3peer", "choice": "SUPPORT" } ] }
+  ],
+  "leaderId": "…", "tie": false,
+  "notes": ["投票只用于讨论，不会自动改动行程；确认后需由有权限的成员写入正式安排"]
+}
+```
+
+**排序口径**：净支持（支持 − 反对）→ 支持数 → 反对数（少者优先）→ 添加时间。
+用净支持而不是总票数，是因为「3 人支持 2 人反对」和「4 人支持 4 人反对」不是一回事，
+后者实际上是一次僵持。
+
+**平票不选赢家**：榜首并列时 `leaderId` 为 `null`、`tie` 为 `true`，并在 `notes` 里说明。
+系统没有资格用「谁先提的」替一群人做决定。
+
+**权限**：能查看行程的人就能提候选、投票，不需要板块编辑权——提候选是提议，不是改方案。
+删除候选限提出者本人或创建者。`apply` 需要 `DAILY` 编辑权与当前 `version`，
+因为它**真的会写每日安排**，并产生一条正常的修改记录。
+
+### 3.18 预算分析（V3 §2）
+
+```
+GET /api/itineraries/{id}/budget/analysis?travelers=2
+```
+
+```json
+{
+  "currency": "CNY", "limit": 2000.00,
+  "estimatedTotal": 2000.00, "plannedTotal": 800.00, "actualTotal": 1200.00,
+  "remaining": 0.00, "comparable": true, "overLimit": false, "overBy": null,
+  "travelers": 2, "perPerson": 1000.00, "perPersonActual": 600.00,
+  "warnings": [ { "code": "BUDGET_ACTUAL_OVER_PLAN", "field": "expenses", "message": "…" } ],
+  "notes": ["人均按 2 人分摊（创建者 + 成员）", "…"]
+}
+```
+
+- `estimatedTotal` = 全部已填金额的费用（含已发生）；`actualTotal` = 标记 `actual=true` 的部分。
+- `remaining` = `limit − estimatedTotal`；未设上限或币种不一致时为 `null`。
+- `travelers` 省略时按「创建者 + 成员」计算，可用查询参数覆盖。
+- **币种不一致不硬减**：`comparable=false`、`remaining=null`，并提示未做汇率换算。
+
+| 警告代码 | 含义 |
+|---|---|
+| `BUDGET_LIMIT_MISSING` | 未设定预算上限 |
+| `BUDGET_OVER_LIMIT` | 预计总额已超上限 |
+| `BUDGET_ACTUAL_OVER_LIMIT` | 已发生费用已超上限 |
+| `BUDGET_ACTUAL_OVER_PLAN` | 已发生高于仍属预计的部分，原计划可能偏低 |
+| `BUDGET_CURRENCY_MISMATCH` | 上限币种与费用主币种不一致 |
+
+只读接口，不改变版本号。
+
+### 3.19 综合决策建议（V3 §3）
+
+```
+POST /api/agent/itineraries/{id}/advice
+{ "travelers": 2, "includeWeather": true }
+```
+
+两个字段都可省略。返回：
+
+```json
+{
+  "itineraryId": "…", "version": 4, "title": "V3联调·杭州",
+  "votes": { … 看板同 §3.17 … },
+  "budget": { … 预算分析同 §3.18 … },
+  "checks": { … 体检同 §3.11 … },
+  "weather": null,
+  "risks": [
+    { "code": "BUDGET_OVER_LIMIT", "severity": "HIGH",
+      "message": "预计总额 2500.00 CNY 已超预算上限 2000，超出 500.00",
+      "basis": "预算", "suggestion": "先压缩住宿与交通……" }
+  ],
+  "suggestions": ["票数最高的是「灵隐寺」（支持 1／反对 0），确认后可以加入某一天的安排"],
+  "advice": null,
+  "notices": ["未接入实时天气（未配置高德密钥），天气相关的风险未纳入判断",
+              "未配置模型密钥（DEEPSEEK_API_KEY），本次不生成文字建议；风险与调整建议仍由系统规则给出"],
+  "sources": ["本系统行程数据", "成员投票"],
+  "generatedAt": "2026-11-04T14:03:00Z"
+}
+```
+
+`severity` 取 `HIGH` / `MEDIUM` / `INFO`，列表按严重度降序。规则覆盖：
+
+| 代码 | 严重度 | 依据 |
+|---|---|---|
+| `BUDGET_OVER_LIMIT`、`BUDGET_ACTUAL_OVER_LIMIT` | HIGH | 预算 |
+| `ACTIVITY_TIME_INVALID` | HIGH | 行程体检 |
+| `TRANSPORT_ARRIVAL_CONFLICT` | HIGH | 交通与每日安排（到达晚于当天安排） |
+| `ACTIVITY_TIME_OVERLAP`、`DAILY_OUT_OF_RANGE` | MEDIUM | 行程体检 |
+| `VOTE_TIE`、`NO_VOTE_YET`、`VOTE_PARTIAL` | MEDIUM / INFO | 投票 |
+| `NO_LODGING` | MEDIUM | 住宿（多晚行程无住宿） |
+| `WEATHER_BAD` | MEDIUM | 天气预报（旅行日期内有雨雪） |
+| `NO_CANDIDATE`、`NO_TRANSPORT`、`ITINERARY_ARCHIVED` | INFO | 对应板块 |
+
+**判断由 Java 做，模型只负责组织语言**：风险条目全部由规则算出，模型不可用时
+`advice` 为 `null`，但 `risks` 与 `suggestions` 完整保留。本接口**不写库**，
+建议要用户确认后才落到正式方案。
+
+### 3.20 归档（V3 §4）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/itineraries/{id}/archive` | 归档，转为只读（仅 owner），幂等 |
+| `POST` | `/api/itineraries/{id}/unarchive` | 取消归档（仅 owner），幂等 |
+| `GET` | `/api/itineraries?archived=true\|false` | 省略时返回全部 |
+
+归档不删除数据，只是禁止写入：此后**所有写操作**（五大板块、成员变更、候选与投票）
+一律返回 **409** 并带 `"archived": true`。用 409 而不是 403，是因为这不是权限问题——
+创建者自己也改不了，冲突语义才是「当前状态不允许这个操作」。
+
+需要版本号的接口在归档状态下先返回 409（归档），不会先报版本冲突，避免用户以为是并发问题。
+
+### 3.21 导出文本摘要（V3 §4）
+
+```
+GET /api/itineraries/{id}/export
+```
+
+返回 `text/plain;charset=UTF-8`，并带 `Content-Disposition: attachment` 与 UTF-8 文件名。
+内容包括：行程基本信息、成员与授权、方案、每日安排、交通、住宿、费用与小计、
+预算分析、候选与投票、行程检查，结尾附「不构成预订承诺、价格以官方为准」的说明。
+
+导出**纯文本**而不是 PDF/Word：没有字体与分页依赖，任何编辑器都能打开，也便于贴进群聊。
+服务端不写用户磁盘，落点由调用方决定。
+
 ---
 
 ## 4. 数据模型
@@ -697,6 +869,8 @@ POST /api/agent/plan
 | `transports` | Transport[] | 交通 |
 | `lodgings` | Lodging[] | 住宿 |
 | `expenses` | Expense[] | 费用 |
+| `archived` | boolean | 是否已归档（只读）；老 JSON 缺键时为 `false`（2026-11-04 V3 新增） |
+| `archivedAt` | string(ISO-8601) | 归档时间，未归档时为 `null`（2026-11-04 V3 新增） |
 
 ### 4.2 Plan（方案）
 | 字段 | 类型 | 说明 |
@@ -706,8 +880,11 @@ POST /api/agent/plan
 | `notes` | string | 备注 |
 | `departDate` | string(date) | 出发日期 `YYYY-MM-DD`，可为 `null`（2026-11-04 新增） |
 | `returnDate` | string(date) | 返回日期 `YYYY-MM-DD`，可为 `null`；早于 `departDate` 时写入被拒（2026-11-04 新增） |
+| `budgetLimit` | number | 预算上限，可为 `null`（未设定时预算分析不给差额）（2026-11-04 V3 新增） |
+| `budgetCurrency` | string | 上限币种，默认 `CNY`；与费用主币种不一致时不比较（2026-11-04 V3 新增） |
 
 > 历史行程的 `plan` 没有这两个键，读取时按 `null` 处理（不会报错），由 §3.11 体检提示「未填写」。
+> 预算上限同样允许为空：0 意味着「一分不花」，与「还没填」是两件事，不能互相冒充。
 
 ### 4.3 DailySchedule（每日安排）与 DailyActivity
 **DailySchedule**
@@ -768,6 +945,10 @@ POST /api/agent/plan
 | `currency` | string | 币种（如 CNY） |
 | `date` | string(`yyyy-MM-dd`) | 日期 |
 | `note` | string | 备注 |
+| `actual` | boolean | 是否已发生：`true` 计入「实际总额」，`false`（默认）算「预计」（2026-11-04 V3 新增） |
+
+> 用显式标记而不是「日期早于今天就算已发生」：一张补录的旧票据和一笔提前写下的预算，
+> 日期看起来可能完全一样，猜出来的「实际支出」没人敢用。
 
 ### 4.7 Member（成员）
 | 字段 | 类型 | 说明 |
@@ -812,7 +993,7 @@ POST /api/agent/plan
 | 地址 | 页面 | 功能 |
 |---|---|---|
 | `GET /`、`GET /login` | `login.html` | 登录 / 注册标签页，登录后展示当前会话，支持退出 |
-| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理 + **邀请页签（发出/接受/拒绝/撤回/退出行程）** + 预算检查 + **协作页签（留言/修改记录）** + **购票页签（官方入口查询）** + **周边查询页签（高德地点/天气/能力状态）**，自动携带 `version` 并展示 409 冲突 |
+| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理 + **邀请页签（发出/接受/拒绝/撤回/退出行程）** + 预算检查 + **协作页签（留言/修改记录）** + **购票页签（官方入口查询）** + **周边查询页签（高德地点/天气/能力状态）** + **候选投票页签（提候选/支持/反对/弃权/撤票/确认加入）** + **决策建议页签（风险与调整建议）** + **归档导出页签（归档/取消归档/导出文本）**，自动携带 `version` 并展示 409 冲突 |
 
 两个页面均通过 `fetch` 调用 §2/§3 的真实接口，会话基于同源 `JSESSIONID` Cookie。
 
@@ -857,10 +1038,15 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 - 邀请：`data/invitations.json`（数组，同上原子写）。**邀请不进行程聚合**，因此发出/撤回邀请不改行程 `version`。
 - 留言：`data/comments.json`；修改记录：`data/changelog.json`（同上原子写）。两者都**不进行程聚合**，
   因此评论不推动 `version`；单个行程的修改记录保留最近 500 条。
+- 候选：`data/candidates.json`；选票：`data/votes.json`（同上原子写）。同样**不进行程聚合**，
+  添加候选与投票都不推动 `version`；删除候选时连带删除它的选票。
 - 官方购票入口：`data/ticket_channels.json`（**只读**，人工维护白名单）。默认不存在，
   文件缺失或解析失败时购票辅助以「无经核验入口」运行，程序不覆盖原文件。
 - 景点库：`data/attractions_index.json`（只读，Python 离线构建产物）。
-- 四份运行数据文件按需创建，已由 `.gitignore` 排除；运行时由 `TRAVEL_DATA_DIR`（默认 `./data`）定位。
+- 运行数据文件按需创建，**全部由 `.gitignore` 排除**（含 accounts / itineraries / invitations /
+  comments / changelog / candidates / votes）。仓库里只保留 `data/*.example.json` 空数组种子，
+  用于说明初始形态；各 `Store` 在文件缺失时自动创建空文件，新克隆无需手工拷贝即可启动。
+  运行态数据里是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库，因此不跟踪。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
 
 ---

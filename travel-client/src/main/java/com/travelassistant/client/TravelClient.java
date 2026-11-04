@@ -78,6 +78,32 @@ public class TravelClient {
         cli.loginOnly(args[2], args[3]);
         Integer days = args.length >= 6 ? parseIntOrNull(args[5]) : null;
         cli.showPlan(args[4], days);
+      } else if (args.length >= 5 && "votes".equalsIgnoreCase(args[1])) {
+        // 候选与投票（V3 §1）：votes <用户名> <密码> <行程ID>
+        cli.loginOnly(args[2], args[3]);
+        cli.showBoard(args[4]);
+      } else if (args.length >= 6 && "candidate".equalsIgnoreCase(args[1])) {
+        // 添加候选：candidate <用户名> <密码> <行程ID> <名称> [ATTRACTION|LODGING|OTHER]
+        cli.loginOnly(args[2], args[3]);
+        cli.addCandidate(args[4], args[5],
+            args.length >= 7 ? args[6].toUpperCase() : "ATTRACTION");
+      } else if (args.length >= 7 && "vote".equalsIgnoreCase(args[1])) {
+        // 投票：vote <用户名> <密码> <行程ID> <候选ID> support|oppose|abstain
+        cli.loginOnly(args[2], args[3]);
+        cli.castVote(args[4], args[5], args[6]);
+      } else if (args.length >= 5 && "advice".equalsIgnoreCase(args[1])) {
+        // 综合决策建议（V3 §3）：advice <用户名> <密码> <行程ID>
+        cli.loginOnly(args[2], args[3]);
+        cli.showAdvice(args[4]);
+      } else if (args.length >= 5 && "export".equalsIgnoreCase(args[1])) {
+        // 导出文本摘要（V3 §4）：export <用户名> <密码> <行程ID>
+        cli.loginOnly(args[2], args[3]);
+        cli.exportText(args[4]);
+      } else if (args.length >= 5 && ("archive".equalsIgnoreCase(args[1])
+          || "unarchive".equalsIgnoreCase(args[1]))) {
+        // 归档/取消归档（V3 §4）：archive|unarchive <用户名> <密码> <行程ID>
+        cli.loginOnly(args[2], args[3]);
+        cli.setArchived(args[4], "archive".equalsIgnoreCase(args[1]));
       } else if (args.length >= 3) {
         cli.demoAuth(args[1], args[2]);
       } else {
@@ -98,6 +124,18 @@ public class TravelClient {
             + " comment <用户名> <密码> <行程ID> <内容…>");
         System.out.println("规划草案：        java -jar travel-client.jar " + base
             + " plan <用户名> <密码> <目的地> [天数]");
+        System.out.println("候选与投票：      java -jar travel-client.jar " + base
+            + " votes <用户名> <密码> <行程ID>");
+        System.out.println("添加候选：        java -jar travel-client.jar " + base
+            + " candidate <用户名> <密码> <行程ID> <名称> [ATTRACTION|LODGING|OTHER]");
+        System.out.println("投票：            java -jar travel-client.jar " + base
+            + " vote <用户名> <密码> <行程ID> <候选ID> support|oppose|abstain");
+        System.out.println("综合建议：        java -jar travel-client.jar " + base
+            + " advice <用户名> <密码> <行程ID>");
+        System.out.println("导出摘要：        java -jar travel-client.jar " + base
+            + " export <用户名> <密码> <行程ID>");
+        System.out.println("归档/取消归档：   java -jar travel-client.jar " + base
+            + " archive|unarchive <用户名> <密码> <行程ID>");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -479,6 +517,165 @@ public class TravelClient {
     }
     System.out.println();
     System.out.println("草案未保存。确认后再写入正式方案。");
+  }
+
+  // ---- V3：候选投票、综合建议、归档导出 ----
+
+  /** 候选与投票结果。票数并列时不给「最高」，与接口的口径一致。 */
+  private void showBoard(String itineraryId) throws Exception {
+    HttpResponse<String> res = get("/api/itineraries/" + itineraryId + "/candidates");
+    if (res.statusCode() != 200) {
+      System.out.println("读取候选失败：HTTP " + res.statusCode() + " " + res.body());
+      return;
+    }
+    JsonNode board = json.readTree(res.body());
+    System.out.println();
+    System.out.println("候选与投票（版本 v" + board.get("itineraryVersion").asLong()
+        + "，参与者 " + board.get("participantCount").asInt()
+        + " 人，已投 " + board.get("voterCount").asInt()
+        + " 人，共 " + board.get("totalVotes").asInt() + " 票）");
+
+    String leaderId = board.hasNonNull("leaderId") ? board.get("leaderId").asText() : "";
+    JsonNode list = board.get("candidates");
+    if (!list.isArray() || list.isEmpty()) {
+      System.out.println("  还没有候选项。");
+    } else {
+      int index = 1;
+      for (JsonNode tally : list) {
+        JsonNode c = tally.get("candidate");
+        boolean leading = c.get("id").asText().equals(leaderId);
+        System.out.println("  " + index++ + ". " + text(c, "name")
+            + "（" + text(c, "kind") + " · " + text(c, "proposedBy") + " 提出）"
+            + "支持 " + tally.get("support").asInt()
+            + " / 反对 " + tally.get("oppose").asInt()
+            + " / 弃权 " + tally.get("abstain").asInt()
+            + " · 净支持 " + tally.get("score").asInt()
+            + (leading ? "  ← 当前最高" : ""));
+        System.out.println("     ID: " + c.get("id").asText());
+      }
+    }
+
+    JsonNode notes = board.get("notes");
+    if (notes.isArray() && !notes.isEmpty()) {
+      System.out.println("说明：");
+      notes.forEach(n -> System.out.println("  · " + n.asText()));
+    }
+  }
+
+  /** 添加候选项。任何能看该行程的人都能提，不需要板块编辑权。 */
+  private void addCandidate(String itineraryId, String name, String kind) throws Exception {
+    var body = json.writeValueAsString(Map.of("kind", kind, "name", name));
+    HttpResponse<String> res = postJson("/api/itineraries/" + itineraryId + "/candidates", body);
+    JsonNode node = json.readTree(res.body());
+    if (res.statusCode() == 201) {
+      System.out.println("已添加候选：" + text(node, "name") + "（ID " + text(node, "id") + "）");
+    } else {
+      System.out.println("添加失败：HTTP " + res.statusCode() + " " + text(node, "error"));
+    }
+  }
+
+  /** 投票或改票。 */
+  private void castVote(String itineraryId, String candidateId, String choice) throws Exception {
+    String value = choice.toUpperCase();
+    if (!value.equals("SUPPORT") && !value.equals("OPPOSE") && !value.equals("ABSTAIN")) {
+      System.out.println("投票选项只能是 support / oppose / abstain");
+      return;
+    }
+    var body = json.writeValueAsString(Map.of("choice", value));
+    HttpResponse<String> res = postJson(
+        "/api/itineraries/" + itineraryId + "/candidates/" + candidateId + "/votes", body);
+    JsonNode board = json.readTree(res.body());
+    if (res.statusCode() == 200) {
+      System.out.println("已投票：" + value + "。当前共 " + board.get("totalVotes").asInt() + " 票");
+      showBoard(itineraryId);
+    } else {
+      System.out.println("投票失败：HTTP " + res.statusCode() + " " + text(board, "error"));
+    }
+  }
+
+  /** 综合决策建议：风险与建议由服务端规则给出，模型文字可能为空。 */
+  private void showAdvice(String itineraryId) throws Exception {
+    HttpResponse<String> res = postJson("/api/agent/itineraries/" + itineraryId + "/advice", "{}");
+    if (res.statusCode() != 200) {
+      System.out.println("生成建议失败：HTTP " + res.statusCode() + " " + res.body());
+      return;
+    }
+    JsonNode report = json.readTree(res.body());
+    System.out.println();
+    System.out.println("综合建议（版本 v" + report.get("version").asLong()
+        + "，生成于 " + localTime(text(report, "generatedAt")) + "）");
+
+    JsonNode risks = report.get("risks");
+    System.out.println();
+    System.out.println("风险：" + (risks == null ? 0 : risks.size()) + " 条");
+    if (risks != null) {
+      risks.forEach(r -> {
+        System.out.println("  [" + text(r, "severity") + "] " + text(r, "message"));
+        System.out.println("        依据：" + text(r, "basis")
+            + (r.hasNonNull("suggestion") ? "　建议：" + text(r, "suggestion") : ""));
+      });
+    }
+
+    JsonNode suggestions = report.get("suggestions");
+    System.out.println();
+    System.out.println("调整建议（规则）：");
+    if (suggestions == null || suggestions.isEmpty()) {
+      System.out.println("  （暂无）");
+    } else {
+      suggestions.forEach(s -> System.out.println("  · " + s.asText()));
+    }
+
+    System.out.println();
+    System.out.println("模型建议：");
+    System.out.println(report.hasNonNull("advice")
+        ? indent(report.get("advice").asText())
+        : "  （本次没有模型文字建议，原因见下方提示）");
+
+    JsonNode notices = report.get("notices");
+    if (notices != null && !notices.isEmpty()) {
+      System.out.println();
+      System.out.println("提示：");
+      notices.forEach(n -> System.out.println("  · " + n.asText()));
+    }
+    System.out.println();
+    System.out.println("建议不会自动保存。确认后再修改正式行程。");
+  }
+
+  /** 导出文本摘要：原样打印，由用户自行重定向到文件。 */
+  private void exportText(String itineraryId) throws Exception {
+    HttpResponse<String> res = get("/api/itineraries/" + itineraryId + "/export");
+    if (res.statusCode() != 200) {
+      System.out.println("导出失败：HTTP " + res.statusCode() + " " + res.body());
+      return;
+    }
+    System.out.println();
+    System.out.println(res.body());
+  }
+
+  /** 归档或取消归档。 */
+  private void setArchived(String itineraryId, boolean archived) throws Exception {
+    HttpResponse<String> res = postEmpty(
+        "/api/itineraries/" + itineraryId + (archived ? "/archive" : "/unarchive"));
+    if (res.statusCode() != 200) {
+      System.out.println("操作失败：HTTP " + res.statusCode() + " " + res.body());
+      return;
+    }
+    JsonNode node = json.readTree(res.body());
+    System.out.println(node.get("archived").asBoolean()
+        ? "已归档（只读），版本 v" + node.get("version").asLong()
+        : "已取消归档，可继续编辑，版本 v" + node.get("version").asLong());
+  }
+
+  /** 给多行文本加两格缩进，便于和上面的标题区分。 */
+  private static String indent(String block) {
+    if (block == null || block.isBlank()) {
+      return "  （空）";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (String line : block.split("\n")) {
+      sb.append("  ").append(line).append('\n');
+    }
+    return sb.toString().stripTrailing();
   }
 
   private String joinSections(JsonNode sections) {

@@ -11,7 +11,9 @@ import com.travelassistant.server.domain.itinerary.Plan;
 import com.travelassistant.server.domain.itinerary.Section;
 import com.travelassistant.server.domain.itinerary.Transport;
 import com.travelassistant.server.infrastructure.persistence.AccountStore;
+import com.travelassistant.server.infrastructure.persistence.DecisionStore;
 import com.travelassistant.server.infrastructure.persistence.ItineraryStore;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,12 +39,15 @@ public class ItineraryService {
   private final ItineraryStore store;
   private final AccountStore accounts;
   private final ChangeLogRecorder changeLog;
+  private final DecisionStore decisions;
   private final Object[] writeLocks = new Object[LOCK_STRIPES];
 
-  public ItineraryService(ItineraryStore store, AccountStore accounts, ChangeLogRecorder changeLog) {
+  public ItineraryService(ItineraryStore store, AccountStore accounts, ChangeLogRecorder changeLog,
+      DecisionStore decisions) {
     this.store = store;
     this.accounts = accounts;
     this.changeLog = changeLog;
+    this.decisions = decisions;
     for (int i = 0; i < LOCK_STRIPES; i++) {
       writeLocks[i] = new Object();
     }
@@ -62,8 +67,20 @@ public class ItineraryService {
   }
 
   public List<Itinerary> listForUser(String user) {
+    return listForUser(user, null);
+  }
+
+  /**
+   * 列出可见行程。
+   *
+   * @param archived {@code null} 表示不过滤（归档与未归档都返回，这是默认行为，
+   *                 避免老客户端升级后「行程凭空消失」）；{@code true} 只看归档；
+   *                 {@code false} 只看未归档
+   */
+  public List<Itinerary> listForUser(String user, Boolean archived) {
     return store.findAll().stream()
         .filter(it -> isParticipant(it, user))
+        .filter(it -> archived == null || it.archived() == archived)
         .toList();
   }
 
@@ -78,9 +95,46 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireOwner(it, user);
       store.delete(id);
-      // 行程没了，指向它的留言与修改记录也不该留着
+      // 行程没了，指向它的留言、修改记录、候选与选票也不该留着
       changeLog.purge(id);
+      decisions.purge(id);
       return null;
+    });
+  }
+
+  /**
+   * 归档行程（V3 第 4 节）。仅创建者可操作。
+   *
+   * <p>归档不是删除：数据全部保留，只是变成只读，并且默认不出现在「进行中」列表里。
+   * 是否允许重复归档保持幂等——已经是归档状态时直接返回，不涨版本号，
+   * 免得用户连点两次就因为版本冲突报错。
+   */
+  public Itinerary archive(String id, String user) {
+    return inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      requireOwner(it, user);
+      if (it.archived()) {
+        return it;
+      }
+      Itinerary updated = it.withArchived(true);
+      store.save(updated);
+      changeLog.record(id, user, "ARCHIVE", "归档行程（转为只读）", updated.version());
+      return updated;
+    });
+  }
+
+  /** 取消归档，恢复可编辑。仅创建者可操作；未归档时幂等返回。 */
+  public Itinerary unarchive(String id, String user) {
+    return inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      requireOwner(it, user);
+      if (!it.archived()) {
+        return it;
+      }
+      Itinerary updated = it.withArchived(false);
+      store.save(updated);
+      changeLog.record(id, user, "ARCHIVE", "取消归档，恢复可编辑", updated.version());
+      return updated;
     });
   }
 
@@ -178,7 +232,7 @@ public class ItineraryService {
       requireEdit(it, user, Section.EXPENSE);
       checkVersion(it, version);
       List<Expense> filled = fillIds(expenses, Expense::id, (e, nid) -> new Expense(
-          nid, e.category(), e.amount(), e.currency(), e.date(), e.note()));
+          nid, e.category(), e.amount(), e.currency(), e.date(), e.note(), e.actual()));
       validateNonNegativeAmounts(filled);
       Itinerary updated = it.withExpenses(filled);
       store.save(updated);
@@ -188,8 +242,57 @@ public class ItineraryService {
     });
   }
 
-  // ---- 成员管理（仅 owner） ----
+  /**
+   * 把一项安排追加到指定日期的每日安排里（V3「确认候选」与客户端手工登记共用）。
+   *
+   * <p>只追加、不替换：整份 {@code PUT /daily} 适合表单编辑，而「确认一个候选景点」
+   * 只需要往某天里加一条。分开发是为了避免为了加一条安排，客户端得先把整份日程读出来、
+   * 改完再整体回写——那是最容易覆盖别人改动的方式。
+   *
+   * @param date 目标日期；为 {@code null} 时抛业务异常
+   */
+  public Itinerary appendActivity(String id, String user, LocalDate date, String title,
+      String location, String note, long version) {
+    if (date == null) {
+      throw new InvalidItineraryException("请指定加入哪一天（date 不能为空）");
+    }
+    if (title == null || title.isBlank()) {
+      throw new InvalidItineraryException("安排名称不能为空");
+    }
+    return inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      requireEdit(it, user, Section.DAILY);
+      checkVersion(it, version);
 
+      DailyActivity activity = new DailyActivity(UUID.randomUUID().toString(), null,
+          title.strip(), location, note, null, null);
+      List<DailySchedule> daily = new ArrayList<>(it.dailySchedules());
+      int index = -1;
+      for (int i = 0; i < daily.size(); i++) {
+        if (date.equals(daily.get(i).date())) {
+          index = i;
+          break;
+        }
+      }
+      if (index >= 0) {
+        DailySchedule day = daily.get(index);
+        List<DailyActivity> acts = new ArrayList<>(day.activities());
+        acts.add(activity);
+        daily.set(index, new DailySchedule(day.id(), day.date(), day.note(), acts));
+      } else {
+        daily.add(new DailySchedule(UUID.randomUUID().toString(), date, "",
+            List.of(activity)));
+      }
+
+      Itinerary updated = it.withDaily(daily);
+      store.save(updated);
+      changeLog.record(id, user, "DAILY",
+          "新增安排「" + title.strip() + "」（" + date + "）", updated.version());
+      return updated;
+    });
+  }
+
+  // ---- 成员管理（仅 owner） ----
   public List<Member> getMembers(String id, String user) {
     return get(id, user).members();
   }
@@ -200,6 +303,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireOwner(it, ownerUser);
       checkVersion(it, version);
+      requireNotArchived(it);
       String name = memberUser == null ? "" : memberUser.trim();
       if (name.isEmpty()) {
         throw new InvalidItineraryException("成员用户名不能为空");
@@ -230,6 +334,7 @@ public class ItineraryService {
   public Itinerary joinAsMember(String id, String user, Set<Section> editSections) {
     return inWriteLock(id, () -> {
       Itinerary it = requireExists(id);
+      requireNotArchived(it);
       List<Member> members = new ArrayList<>(it.members());
       int index = indexOfMember(members, user);
       Member target = new Member(user, editSections);
@@ -255,6 +360,7 @@ public class ItineraryService {
   public void leave(String id, String user) {
     inWriteLock(id, () -> {
       Itinerary it = requireExists(id);
+      requireNotArchived(it);
       if (it.owner().equals(user)) {
         throw new InvalidItineraryException("行程创建者不能退出，如需终止请删除行程");
       }
@@ -277,6 +383,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireOwner(it, ownerUser);
       checkVersion(it, version);
+      requireNotArchived(it);
       List<Member> members = new ArrayList<>(it.members());
       int index = indexOfMember(members, memberUser);
       if (index < 0) {
@@ -297,6 +404,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireOwner(it, ownerUser);
       checkVersion(it, version);
+      requireNotArchived(it);
       List<Member> members = new ArrayList<>(it.members());
       int index = indexOfMember(members, memberUser);
       if (index < 0) {
@@ -458,6 +566,7 @@ public class ItineraryService {
   }
 
   private void requireEdit(Itinerary it, String user, Section section) {
+    requireNotArchived(it);
     if (it.owner().equals(user)) {
       return;
     }
@@ -473,6 +582,18 @@ public class ItineraryService {
   private void requireOwner(Itinerary it, String user) {
     if (!it.owner().equals(user)) {
       throw new ItineraryForbiddenException();
+    }
+  }
+
+  /**
+   * 已归档的行程只读（V3 第 4 节）。
+   *
+   * <p>放在所有写路径的共同入口上，而不是分散在各控制器里：归档的语义是「这份方案定稿了」，
+   * 任何一个板块还能改，这个语义就不成立。要改就先取消归档——那是一次明确的操作。
+   */
+  private void requireNotArchived(Itinerary it) {
+    if (it.archived()) {
+      throw new ItineraryArchivedException(it.id());
     }
   }
 

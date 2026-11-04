@@ -3,9 +3,12 @@ package com.travelassistant.server.interfaces.rest;
 import com.travelassistant.server.application.agent.InvalidPlanningRequestException;
 import com.travelassistant.server.application.attraction.AttractionUnavailableException;
 import com.travelassistant.server.application.collaboration.InvalidCommentException;
+import com.travelassistant.server.application.decision.CandidateNotFoundException;
+import com.travelassistant.server.application.decision.InvalidCandidateException;
 import com.travelassistant.server.application.invitation.InvitationConflictException;
 import com.travelassistant.server.application.invitation.InvitationNotFoundException;
 import com.travelassistant.server.application.itinerary.InvalidItineraryException;
+import com.travelassistant.server.application.itinerary.ItineraryArchivedException;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
 import com.travelassistant.server.application.itinerary.MemberNotFoundException;
@@ -98,6 +101,28 @@ public class ApiExceptionHandler {
   @ExceptionHandler(InvalidPlanningRequestException.class)
   public ResponseEntity<Map<String, Object>> invalidPlanning(InvalidPlanningRequestException e) {
     return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  /** 行程已归档：不是权限问题，创建者自己也改不了，因此用 409 而不是 403。 */
+  @ExceptionHandler(ItineraryArchivedException.class)
+  public ResponseEntity<Map<String, Object>> archived(ItineraryArchivedException e) {
+    return ResponseEntity.status(409).body(Map.of(
+        "error", e.getMessage(),
+        "id", e.itineraryId(),
+        "archived", true));
+  }
+
+  /** 候选参数不合法：名称为空、重复添加、投票选项缺失、撤回没有的票。 */
+  @ExceptionHandler(InvalidCandidateException.class)
+  public ResponseEntity<Map<String, Object>> invalidCandidate(InvalidCandidateException e) {
+    return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  @ExceptionHandler(CandidateNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> candidateNotFound(CandidateNotFoundException e) {
+    return ResponseEntity.status(404).body(Map.of(
+        "error", "候选项不存在",
+        "candidateId", e.candidateId()));
   }
 
   /** 景点知识库不可用（缺失/损坏）：503 并说明原因，不能伪装成"查无结果"。 */
