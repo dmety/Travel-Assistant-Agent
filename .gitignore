@@ -5,6 +5,7 @@ data/*
 !data/attractions_index.json
 !data/accounts.json
 !data/itineraries.json
+!data/invitations.json
 .idea/
 *.iml
 .env

@@ -4,8 +4,8 @@
 
 Java 21 / Maven 多模块项目。当前进度：
 
-- **已实现**：账号与会话（BCrypt + JSESSIONID）、行程 CRUD、五大板块（方案/每日安排/交通/住宿/费用）、板块级成员权限、乐观锁版本控制（并发下仅一次成功）、JSON 文件持久化与重启恢复、**景点查询（Python 离线构建 + Java 加载索引，支持城市/名称/ID 查询，缺库或损坏时停用并说明原因）**、**预算汇总与时间检查（出发/返回日期、按币种与类别汇总、行程体检）**、111 条接口测试（17 个测试类，无跳过）。
-- **未实现**：DeepSeek 三个 Agent 的编排与调用、高德地图接入、邀请的接受/拒绝流程，以及 V2/V3 全部功能。详见[各版本功能模块](docs/旅行助手-各版本功能模块.md)。
+- **已实现**：账号与会话（BCrypt + JSESSIONID）、行程 CRUD、五大板块（方案/每日安排/交通/住宿/费用）、板块级成员权限、**邀请与成员协作（邀请—接受/拒绝/撤回、成员主动退出）**、乐观锁版本控制（并发下仅一次成功）、JSON 文件持久化与重启恢复、**景点查询（Python 离线构建 + Java 加载索引，支持城市/名称/ID 查询，缺库或损坏时停用并说明原因）**、**预算汇总与时间检查（出发/返回日期、按币种与类别汇总、行程体检）**、135 条接口测试（18 个测试类，无跳过）。
+- **未实现**：DeepSeek 三个 Agent 的编排与调用、高德地图接入，以及 V2/V3 全部功能。详见[各版本功能模块](docs/旅行助手-各版本功能模块.md)。
 
 ## 文档目录
 
@@ -80,6 +80,21 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 票价、开放时间等字段缺失时，接口返回 `ticketText`/`openTimeText` 为「未知」，不会把缺失当成免费或全天开放。
 知识库缺失或损坏时查询返回 503 并说明原因（`reason`），且**不会覆盖或重建原库**。
 
+**邀请与成员协作**（需登录，邀请记录落盘 `TRAVEL_DATA_DIR/invitations.json`）：
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/itineraries/{id}/invitations` | POST | 仅创建者 | 按账号发起邀请；首次返回 201，命中同一待处理邀请返回 200（只更新授权板块） |
+| `/api/itineraries/{id}/invitations` | GET | 仅创建者 | 该行程的邀请记录（含已接受/已拒绝/已撤回） |
+| `/api/invitations` | GET | 需登录 | 我收到的待处理邀请（含行程标题、邀请人） |
+| `/api/invitations/{invId}/accept` | POST | 仅受邀者 | 接受后成为成员并获得邀请中指定的板块编辑权；已被处理返回 409 |
+| `/api/invitations/{invId}/reject` | POST | 仅受邀者 | 拒绝后不产生任何成员关系 |
+| `/api/invitations/{invId}` | DELETE | 仅创建者 | 撤回待处理邀请 |
+| `/api/itineraries/{id}/leave` | POST | 仅成员 | 成员主动退出；创建者不可退出（400），需删除行程 |
+
+**邀请不等于成员**：发出邀请不改变行程版本号，受邀者在接受前访问行程仍返回 403。
+`POST /api/itineraries/{id}/members` 保留为创建者直接授权的管理入口，与邀请流程并存。
+
 **预算与时间检查**（需登录，与行程查看权一致）：
 
 | 接口 | 方法 | 说明 |
@@ -100,7 +115,19 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 attractions --id <景点ID>
 ```
 
-**浏览器测试前端**：启动服务后打开 `http://localhost:8080/app`（登录页为 `http://localhost:8080/login`），可直接注册/登录并在线测试全部行程接口——行程增删查、五大板块编辑、成员权限管理、版本冲突（409）处理。仅用于本地联调，非生产 UI。
+邀请流程（控制台）：
+
+```powershell
+# 查看我收到的待处理邀请（含邀请 ID）
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 invitations <我的账号> <密码>
+# 接受 / 拒绝
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 invitations <账号> <密码> accept <邀请ID>
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 invitations <账号> <密码> reject <邀请ID>
+# 创建者发起邀请（后面列出授予的板块，省略表示仅查看）
+java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost:8080 invite <创建者> <密码> <行程ID> <受邀账号> PLAN DAILY
+```
+
+**浏览器测试前端**：启动服务后打开 `http://localhost:8080/app`（登录页为 `http://localhost:8080/login`），可直接注册/登录并在线测试全部行程接口——行程增删查、五大板块编辑、成员权限管理、邀请的发出/接受/拒绝/撤回、成员退出、版本冲突（409）处理。仅用于本地联调，非生产 UI。
 
 健康检查为 `GET /api/health`，景点查询为 `GET /api/attractions/**`，两者公开免登录；行程接口默认需要认证。**行程管理接口**（多份行程 CRUD、方案/每日安排/交通/住宿/费用五大板块、板块级成员权限、乐观锁版本冲突）已实现，详见 [服务端 REST 接口文档](docs/服务端REST接口文档.md)；业务菜单与 Agent 尚待实现。配置文件中的 `TRAVEL_DATA_DIR` 即账号与行程落盘目录。
 
@@ -117,12 +144,12 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 2026-11-04 在 `wei` 分支实测：
 
 ```text
-Tests run: 111, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 135, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-- 覆盖范围：账号与会话、行程 CRUD、五大板块读写、板块级权限、乐观锁（含 12 路并发）、JSON 持久化与重启恢复、安全边界、景点查询（城市/名称/ID、条数限制、占位值规范化、缺库与损坏降级）、预算汇总与时间检查（多币种不合并、待填写标记、日期倒置拦截、体检提示）。
+- 覆盖范围：账号与会话、行程 CRUD、五大板块读写、板块级权限、邀请流程（发出/接受/拒绝/撤回/退出、权限边界、重复处理 409、删除行程清理邀请、落盘）、乐观锁（含 12 路并发）、JSON 持久化与重启恢复、安全边界、景点查询（城市/名称/ID、条数限制、占位值规范化、缺库与损坏降级）、预算汇总与时间检查（多币种不合并、待填写标记、日期倒置拦截、体检提示）。
 - 历史缺陷 D-1 ~ D-6 已修复并转为常驻回归用例（`KnownDefectTest`）。
 - 运行方式与分层说明见[测试说明](docs/测试说明.md)。
 
-上述结果证明**已实现的账号、行程、景点与预算功能可用**。未实现部分（Agent 编排、高德接入、邀请流程、V2/V3）不计入本次验证。
+上述结果证明**已实现的账号、行程、景点、预算与邀请功能可用**。未实现部分（Agent 编排、高德接入、V2/V3）不计入本次验证。

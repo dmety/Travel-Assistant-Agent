@@ -46,13 +46,15 @@
 
 | HTTP | 含义 | 触发场景 |
 |---|---|---|
-| 400 | 请求参数/校验不合法 | 注册字段不合规、缺 `version`、类型错误、**行程标题为空**、**费用金额为负**、**住宿离店早于入住**、**邀请未注册用户** |
+| 400 | 请求参数/校验不合法 | 注册字段不合规、缺 `version`、类型错误、**行程标题为空**、**费用金额为负**、**住宿离店早于入住**、**邀请未注册用户 / 邀请自己 / 邀请已是成员**、**创建者尝试退出行程** |
 | 401 | 未登录 | 访问受保护接口但未带有效会话 |
-| 403 | 无权限 | 非参与者 / 成员无该板块编辑权 / 非 owner 操作成员或删除 |
-| 404 | 资源不存在 | 行程 `id` 不存在；**成员不在成员列表中** |
-| 409 | 版本冲突 | 提交 `version` 与服务端不一致（响应头带回 `X-Version`） |
+| 403 | 无权限 | 非参与者 / 成员无该板块编辑权 / 非 owner 操作成员或删除 / 非 owner 发起或撤回邀请 / 非受邀者处理邀请 |
+| 404 | 资源不存在 | 行程 `id` 不存在；**成员不在成员列表中**；**邀请 `id` 不存在** |
+| 409 | 版本冲突 | 提交 `version` 与服务端不一致（响应头带回 `X-Version`）；**邀请已被接受/拒绝/撤回后再次处理** |
 | 503 | 依赖不可用 | **景点知识库缺失或损坏**，查询已停用，响应带 `reason` |
-| 201 | 创建成功 | 注册 / 创建行程（带 `Location`） |
+| 201 | 创建成功 | 注册 / 创建行程 / 首次发出邀请（带 `Location`） |
+| 200 | 复用已存在资源 | 向同一受邀人重复发起邀请：不新增记录，只更新授权板块 |
+| 204 | 成功无内容 | 成员主动退出 |
 
 > 校验类错误信息形如 `{ "error": "费用金额不能为负数：-999.99（交通）" }`；
 > 成员级 404 额外带回 `id` 与 `username`，便于区分「行程不存在」与「成员不存在」。
@@ -72,6 +74,8 @@
 | `MemberNotFoundException` | 404 | `{ "error": "成员不存在", "id": "...", "username": "..." }` | 目标用户不在成员列表中（不递增版本号） |
 | `VersionConflictException` | 409 | `{ "error": "版本冲突，已被他人修改", "currentVersion": N }`，响应头带 `X-Version` | 提交的 `version` 与服务端不一致 |
 | `AttractionUnavailableException` | 503 | `{ "error": "景点查询已停用", "reason": "<原因>" }` | 景点库文件缺失、JSON 解析失败或结构异常 |
+| `InvitationNotFoundException` | 404 | `{ "error": "邀请不存在", "invitationId": "..." }` | 邀请 ID 不存在 |
+| `InvitationConflictException` | 409 | `{ "error": "邀请已被处理，不能再次变更", "invitationId": "...", "status": "ACCEPTED" }` | 邀请已接受/已拒绝/已撤回，不能再次变更 |
 
 > 未登录访问受保护接口由 Spring Security 直接返回 **401**，不经过上述处理器。
 
@@ -335,6 +339,67 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 
 ---
 
+### 3.12 邀请与成员退出（需求 §4）
+
+流程：**创建者发出邀请 → 受邀者登录后看到待处理邀请 → 接受（成为成员）或拒绝 → 创建者可撤回**。
+
+**邀请不是成员**：发出邀请不改变行程 `version`，受邀者在接受前访问行程仍为 **403**。
+这样创建者发邀请不会让正在编辑的人凭空撞上版本冲突。
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/itineraries/{id}/invitations` | POST | 仅创建者 | 发起邀请，请求体 `InviteRequest` |
+| `/api/itineraries/{id}/invitations` | GET | 仅创建者 | 该行程的邀请记录（含已处理），**不需要** `version` |
+| `/api/invitations` | GET | 需登录 | 我收到的待处理邀请，最新在前 |
+| `/api/invitations/{invId}/accept` | POST | 仅受邀者 | 接受并成为成员 |
+| `/api/invitations/{invId}/reject` | POST | 仅受邀者 | 拒绝 |
+| `/api/invitations/{invId}` | DELETE | 仅创建者 | 撤回待处理的邀请 |
+| `/api/itineraries/{id}/leave` | POST | 仅成员 | 主动退出，返回 **204** |
+
+**发起邀请**
+
+```json
+POST /api/itineraries/{id}/invitations
+{ "username": "guest_b", "editSections": ["DAILY", "EXPENSE"] }
+```
+
+- **201** 首次发出（带 `Location: /api/invitations/{invId}`，响应体 `InvitationView`）
+- **200** 同一行程同一受邀人已有待处理邀请：**不新增记录**，只更新 `editSections` 后重新发出
+- **400** 用户名为空 / 受邀账号未注册 / 邀请自己 / 该用户已是成员
+- **403** 非创建者
+- **404** 行程不存在
+
+**接受邀请**
+
+```
+POST /api/invitations/{invId}/accept
+```
+
+- **200** `InvitationView`（`status=ACCEPTED`，`respondedAt` 已填）
+- **403** 该邀请不是发给我的
+- **404** 邀请不存在
+- **409** 邀请已被处理（`status` 回带当前状态）
+
+> **接受不需要 `version`**：加入成员是受邀者对邀请的响应，不是与创建者的并发编辑。
+> 若要求版本号，受邀者得先取到行程最新版本，而创建者随时可能改动，一步能成的事会变成反复冲突。
+> 服务端在行程写锁内以「当前版本 + 1」写入，版本号仍严格递增。
+
+**撤回 / 拒绝** 同理，只有 `PENDING` 可处理；行程被删除时，其所有待处理邀请自动置为 `CANCELLED`。
+
+**成员退出**
+
+```
+POST /api/itineraries/{id}/leave     → 204
+```
+
+- **400** 创建者尝试退出（行程必须始终有归属人，需删除行程）
+- **404** 不是该行程成员
+
+> `POST /api/itineraries/{id}/members`（§3.10）保留为**创建者直接授权**的管理入口，与邀请流程并存；
+> 主流程建议走邀请，受邀者才有机会拒绝。
+
+---
+
 ## 4. 数据模型
 
 ### 4.1 Itinerary（行程聚合根）
@@ -423,6 +488,34 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | `username` | string | 成员用户名 |
 | `editSections` | Section[] | 可编辑板块集合（`PLAN`/`DAILY`/`TRANSPORT`/`LODGING`/`EXPENSE`） |
 
+### 4.8 Invitation（邀请）与 InvitationView
+
+**Invitation**（落盘结构，`data/invitations.json`）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | string | 邀请 ID |
+| `itineraryId` | string | 目标行程 ID |
+| `inviter` | string | 发起人（行程创建者） |
+| `invitee` | string | 受邀账号 |
+| `editSections` | Section[] | 接受后授予的板块编辑权；空数组表示仅查看 |
+| `status` | string | `PENDING` / `ACCEPTED` / `REJECTED` / `CANCELLED` |
+| `createdAt` | string(ISO-8601) | 发出时间 |
+| `respondedAt` | string(ISO-8601) \| null | 处理时间，未处理为 `null` |
+
+**InvitationView**（接口响应，比落盘结构多一个 `itineraryTitle`）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `itineraryTitle` | string \| null | 行程标题，**查询时实时取**，不存快照（行程可改名）；行程已删除时为 `null` |
+
+**InviteRequest**（发起邀请请求体）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `username` | string | 受邀账号，须已注册 |
+| `editSections` | Section[] | 可为空数组 |
+
+> 状态机只有一条正向路径 `PENDING → ACCEPTED / REJECTED / CANCELLED`，没有回退。
+> 已离开 `PENDING` 的邀请再次处理返回 **409**，不静默覆盖已有决定。
+
 ---
 
 ## 5. 测试前端页面
@@ -432,7 +525,7 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 地址 | 页面 | 功能 |
 |---|---|---|
 | `GET /`、`GET /login` | `login.html` | 登录 / 注册标签页，登录后展示当前会话，支持退出 |
-| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理，自动携带 `version` 并展示 409 冲突 |
+| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理 + **邀请页签（发出/接受/拒绝/撤回/退出行程）** + 预算检查，自动携带 `version` 并展示 409 冲突 |
 
 两个页面均通过 `fetch` 调用 §2/§3 的真实接口，会话基于同源 `JSESSIONID` Cookie。
 
@@ -474,7 +567,8 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 ## 7. 落盘与版本控制说明
 - 账号：`data/accounts.json`（数组，密码为 BCrypt 哈希）。
 - 行程：`data/itineraries.json`（数组，原子写：先写临时文件再 `ATOMIC_MOVE` 替换，读取走内存副本）。
-- 两份数据文件均已纳入 Git（空数组种子），运行时由 `TRAVEL_DATA_DIR`（默认 `./data`）定位。
+- 邀请：`data/invitations.json`（数组，同上原子写）。**邀请不进行程聚合**，因此发出/撤回邀请不改行程 `version`。
+- 三份数据文件均已纳入 Git（空数组种子），运行时由 `TRAVEL_DATA_DIR`（默认 `./data`）定位。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
 
 ---

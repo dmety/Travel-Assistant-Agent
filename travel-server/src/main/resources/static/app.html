@@ -101,6 +101,7 @@
         <div class="tab" data-sec="lodgings">住宿</div>
         <div class="tab" data-sec="expenses">费用</div>
         <div class="tab" data-sec="members">成员</div>
+        <div class="tab" data-sec="invite">邀请</div>
         <div class="tab" data-sec="budget">预算检查</div>
       </div>
 
@@ -142,6 +143,39 @@
           <label><input type="checkbox" value="LODGING" />住宿</label>
           <label><input type="checkbox" value="EXPENSE" />费用</label>
         </div>
+        <div class="sec-actions">
+          <button id="leaveBtn" class="secondary">退出该行程（仅成员）</button>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          上面的「保存成员」是创建者直接授权；邀请流程见「邀请」页签，受邀者可自行接受或拒绝。
+        </div>
+      </div>
+
+      <div class="tabpane" data-sec="invite">
+        <h2 style="font-size:14px;margin:0 0 6px;">发起邀请（仅创建者）</h2>
+        <div class="row">
+          <input id="invUser" placeholder="受邀账号" style="width:160px;" />
+          <button id="invSendBtn">发出邀请</button>
+        </div>
+        <div class="checks" id="invChecks">
+          <label><input type="checkbox" value="PLAN" />方案</label>
+          <label><input type="checkbox" value="DAILY" />每日安排</label>
+          <label><input type="checkbox" value="TRANSPORT" />交通</label>
+          <label><input type="checkbox" value="LODGING" />住宿</label>
+          <label><input type="checkbox" value="EXPENSE" />费用</label>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;">
+          发出邀请不会改变行程版本号；受邀者登录后需在下方「我收到的邀请」里接受，才会成为成员。
+        </div>
+
+        <h2 style="font-size:14px;margin:16px 0 6px;">本行程的邀请记录</h2>
+        <div id="invList"></div>
+
+        <h2 style="font-size:14px;margin:16px 0 6px;">我收到的邀请</h2>
+        <div class="sec-actions">
+          <button id="invRefreshMineBtn" class="secondary">刷新我的邀请</button>
+        </div>
+        <div id="invMine"></div>
       </div>
 
       <div class="tabpane" data-sec="budget">
@@ -248,6 +282,7 @@
         $(('ta_' + s)).value = JSON.stringify(val === undefined ? (s === 'plan' ? {} : []) : val, null, 2);
       });
       renderMembers(it.members || []);
+      loadItineraryInvitations();
     }
     $('refreshItBtn').onclick = () => { if (state.id) openItinerary(state.id); };
     $('deleteItBtn').onclick = async () => {
@@ -317,6 +352,101 @@
       if (res.ok) { applyItinerary(await res.json()); show('已移除 ' + username, 'ok'); }
       else { const d = await res.json().catch(()=>({})); show('移除失败(' + res.status + '): ' + (d.error||''), 'err'); }
     }
+
+    // ---- 邀请（V1 §4：邀请—接受/拒绝） ----
+    async function loadItineraryInvitations() {
+      const box = $('invList');
+      if (!state.id) { box.innerHTML = '<span class="muted">请先打开行程</span>'; return; }
+      const res = await api('GET', '/api/itineraries/' + state.id + '/invitations');
+      if (res.status === 403) { box.innerHTML = '<span class="muted">仅行程创建者可查看邀请记录</span>'; return; }
+      if (!res.ok) { box.innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
+      const list = await res.json();
+      if (!list.length) { box.innerHTML = '<span class="muted">暂无邀请</span>'; return; }
+      box.innerHTML = '';
+      list.forEach(inv => {
+        const div = document.createElement('div'); div.className = 'mem';
+        const secs = (inv.editSections && inv.editSections.length) ? inv.editSections.join(', ') : '（仅查看）';
+        div.innerHTML = '<div><b>' + escapeHtml(inv.invitee) + '</b> <span class="tags">'
+          + inv.status + ' · ' + secs + '</span></div>';
+        if (inv.status === 'PENDING') {
+          const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
+          const btn = document.createElement('button'); btn.className = 'sm danger'; btn.textContent = '撤回';
+          btn.onclick = () => cancelInvitation(inv.id);
+          wrap.appendChild(btn); div.appendChild(wrap);
+        }
+        box.appendChild(div);
+      });
+    }
+
+    async function loadMyInvitations() {
+      const box = $('invMine'); box.innerHTML = '<span class="muted">加载中…</span>';
+      const res = await api('GET', '/api/invitations');
+      if (!res.ok) { box.innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
+      const list = await res.json();
+      if (!list.length) { box.innerHTML = '<span class="muted">没有待处理的邀请</span>'; return; }
+      box.innerHTML = '';
+      list.forEach(inv => {
+        const div = document.createElement('div'); div.className = 'mem';
+        const secs = (inv.editSections && inv.editSections.length) ? inv.editSections.join(', ') : '（仅查看）';
+        div.innerHTML = '<div><b>' + escapeHtml(inv.itineraryTitle || '（行程已删除）')
+          + '</b> <span class="tags">来自 ' + escapeHtml(inv.inviter) + ' · ' + secs + '</span></div>';
+        const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
+        const ok = document.createElement('button'); ok.className = 'sm'; ok.textContent = '接受';
+        ok.onclick = () => respondInvitation(inv.id, 'accept');
+        const no = document.createElement('button'); no.className = 'sm danger'; no.textContent = '拒绝';
+        no.onclick = () => respondInvitation(inv.id, 'reject');
+        wrap.appendChild(ok); wrap.appendChild(no); div.appendChild(wrap); box.appendChild(div);
+      });
+    }
+
+    $('invSendBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      const username = $('invUser').value.trim();
+      if (!username) { show('请填写受邀账号', 'err'); return; }
+      const secs = [...$('invChecks').querySelectorAll('input:checked')].map(c => c.value);
+      const res = await api('POST', '/api/itineraries/' + state.id + '/invitations',
+        { username, editSections: secs }, true);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        show((res.status === 201 ? '已发出邀请给 ' : '已更新待处理邀请 ') + username + '（等待对方接受）', 'ok');
+        $('invUser').value = '';
+        await loadItineraryInvitations();
+      } else show('邀请失败(' + res.status + '): ' + (d.error || ''), 'err');
+    };
+
+    async function cancelInvitation(id) {
+      if (!confirm('撤回这条邀请？')) return;
+      const res = await api('DELETE', '/api/invitations/' + id);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { show('已撤回邀请', 'ok'); await loadItineraryInvitations(); }
+      else show('撤回失败(' + res.status + '): ' + (d.error || ''), 'err');
+    }
+
+    async function respondInvitation(id, action) {
+      const res = await api('POST', '/api/invitations/' + id + '/' + action);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        show(action === 'accept' ? '已接受邀请，现在可以查看并编辑该行程' : '已拒绝邀请', 'ok');
+        await loadMyInvitations(); await refreshList();
+        if (action === 'accept' && d.itineraryId) await openItinerary(d.itineraryId);
+      } else show('操作失败(' + res.status + '): ' + (d.error || ''), 'err');
+    }
+
+    $('invRefreshMineBtn').onclick = loadMyInvitations;
+
+    $('leaveBtn').onclick = async () => {
+      if (!state.id) { show('请先打开行程', 'err'); return; }
+      if (!confirm('确认退出该行程？退出后将失去访问权。')) return;
+      const res = await api('POST', '/api/itineraries/' + state.id + '/leave');
+      if (res.status === 204) {
+        show('已退出该行程', 'ok');
+        $('itineraryPanel').style.display = 'none'; state.id = null;
+        await refreshList();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        show('退出失败(' + res.status + '): ' + (d.error || ''), 'err');
+      }
+    };
 
     // ---- 预算与体检 ----
     $('budgetRefreshBtn').onclick = async () => {

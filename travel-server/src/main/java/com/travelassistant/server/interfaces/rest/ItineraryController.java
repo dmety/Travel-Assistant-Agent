@@ -1,6 +1,7 @@
 package com.travelassistant.server.interfaces.rest;
 
 import com.travelassistant.server.application.budget.BudgetService;
+import com.travelassistant.server.application.invitation.InvitationService;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
 import com.travelassistant.server.application.itinerary.ItineraryService;
@@ -40,10 +41,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ItineraryController {
   private final ItineraryService service;
   private final BudgetService budgetService;
+  private final InvitationService invitationService;
 
-  public ItineraryController(ItineraryService service, BudgetService budgetService) {
+  public ItineraryController(ItineraryService service, BudgetService budgetService,
+      InvitationService invitationService) {
     this.service = service;
     this.budgetService = budgetService;
+    this.invitationService = invitationService;
   }
 
   private String me(UserDetails user) {
@@ -73,6 +77,8 @@ public class ItineraryController {
   public ResponseEntity<Map<String, Object>> delete(@AuthenticationPrincipal UserDetails user,
       @PathVariable String id) {
     service.delete(id, me(user));
+    // 行程没了，指向它的待处理邀请也必须失效，否则受邀者会看到一条永远接受不了的邀请
+    invitationService.cancelPendingOf(id);
     return ResponseEntity.ok(Map.of("deleted", true));
   }
 
@@ -191,5 +197,18 @@ public class ItineraryController {
   public ResponseEntity<Itinerary> removeMember(@AuthenticationPrincipal UserDetails user,
       @PathVariable String id, @PathVariable String username, @RequestParam long version) {
     return ResponseEntity.ok(service.removeMember(id, me(user), username, version));
+  }
+
+  /**
+   * 成员主动退出（需求 §4）。
+   *
+   * <p>不需要版本号：退出是成员对自己身份的操作，不属于板块内容的并发编辑；
+   * 若要求版本号，成员得先读到最新版本才能退出，反而拖住流程。
+   */
+  @PostMapping("/{id}/leave")
+  public ResponseEntity<Void> leave(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id) {
+    service.leave(id, me(user));
+    return ResponseEntity.noContent().build();
   }
 }

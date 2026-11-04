@@ -1,6 +1,8 @@
 package com.travelassistant.server.interfaces.rest;
 
 import com.travelassistant.server.application.attraction.AttractionUnavailableException;
+import com.travelassistant.server.application.invitation.InvitationConflictException;
+import com.travelassistant.server.application.invitation.InvitationNotFoundException;
 import com.travelassistant.server.application.itinerary.InvalidItineraryException;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
@@ -28,6 +30,22 @@ public class ApiExceptionHandler {
         "error", "成员不存在",
         "id", e.itineraryId(),
         "username", e.username()));
+  }
+
+  @ExceptionHandler(InvitationNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> invitationNotFound(InvitationNotFoundException e) {
+    return ResponseEntity.status(404).body(Map.of(
+        "error", "邀请不存在",
+        "invitationId", e.invitationId()));
+  }
+
+  /** 邀请已被处理：不静默覆盖已接受/已拒绝/已撤回的决定。 */
+  @ExceptionHandler(InvitationConflictException.class)
+  public ResponseEntity<Map<String, Object>> invitationConflict(InvitationConflictException e) {
+    return ResponseEntity.status(409).body(Map.of(
+        "error", "邀请已被处理，不能再次变更",
+        "invitationId", e.invitationId(),
+        "status", e.status().name()));
   }
 
   @ExceptionHandler(ItineraryForbiddenException.class)

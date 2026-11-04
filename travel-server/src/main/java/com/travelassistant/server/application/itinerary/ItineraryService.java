@@ -198,6 +198,55 @@ public class ItineraryService {
     });
   }
 
+  /**
+   * 受邀者接受邀请后加入成员（由 {@code InvitationService} 调用）。
+   *
+   * <p>这里**不校验版本号**：加入成员是受邀者对邀请的响应，不是与其他人的并发编辑；
+   * 若要求版本号，受邀者得先在「我收到的邀请」里拿到行程版本，而创建者随时可能改动，
+   * 一步就能成功的事会变成反复冲突。写入仍在行程写锁内完成，版本号照常 +1。
+   *
+   * <p>幂等：已是成员时只更新授权板块，不重复追加。
+   */
+  public Itinerary joinAsMember(String id, String user, Set<Section> editSections) {
+    return inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      List<Member> members = new ArrayList<>(it.members());
+      int index = indexOfMember(members, user);
+      Member target = new Member(user, editSections);
+      if (index >= 0) {
+        members.set(index, target);
+      } else {
+        members.add(target);
+      }
+      Itinerary updated = it.withMembers(members);
+      store.save(updated);
+      return updated;
+    });
+  }
+
+  /**
+   * 成员主动退出（需求 §4「成员可主动退出」）。
+   *
+   * <p>创建者不能退出：行程必须始终有归属人，否则会变成无人可管理、也无人可删除的孤儿数据。
+   * 创建者要终止行程应当删除它。
+   */
+  public void leave(String id, String user) {
+    inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      if (it.owner().equals(user)) {
+        throw new InvalidItineraryException("行程创建者不能退出，如需终止请删除行程");
+      }
+      List<Member> members = new ArrayList<>(it.members());
+      int index = indexOfMember(members, user);
+      if (index < 0) {
+        throw new MemberNotFoundException(id, user);
+      }
+      members.remove(index);
+      store.save(it.withMembers(members));
+      return null;
+    });
+  }
+
   public Itinerary updateMember(String id, String ownerUser, String memberUser,
       Set<Section> editSections, long version) {
     return inWriteLock(id, () -> {
