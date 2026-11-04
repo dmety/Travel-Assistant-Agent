@@ -22,13 +22,14 @@
 
 ### 1.3 公开的接口（无需登录）
 
-与 `SecurityConfiguration#permitAll()` 保持一致，共 9 项：
+与 `SecurityConfiguration#permitAll()` 保持一致，共 11 项：
 
 | 路径 | 说明 |
 |---|---|
 | `GET /api/health` | 健康检查 |
 | `POST /api/account/register` | 注册 |
 | `POST /api/login` | 表单登录 |
+| `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /`、`GET /login`、`GET /login.html` | 登录页（注册在页内切换标签完成） |
 | `GET /app`、`GET /app.html` | 接口测试台页面 |
 
@@ -50,6 +51,7 @@
 | 403 | 无权限 | 非参与者 / 成员无该板块编辑权 / 非 owner 操作成员或删除 |
 | 404 | 资源不存在 | 行程 `id` 不存在；**成员不在成员列表中** |
 | 409 | 版本冲突 | 提交 `version` 与服务端不一致（响应头带回 `X-Version`） |
+| 503 | 依赖不可用 | **景点知识库缺失或损坏**，查询已停用，响应带 `reason` |
 | 201 | 创建成功 | 注册 / 创建行程（带 `Location`） |
 
 > 校验类错误信息形如 `{ "error": "费用金额不能为负数：-999.99（交通）" }`；
@@ -69,6 +71,7 @@
 | `ItineraryNotFoundException` | 404 | `{ "error": "行程不存在", "id": "..." }` | 行程 ID 不存在 |
 | `MemberNotFoundException` | 404 | `{ "error": "成员不存在", "id": "...", "username": "..." }` | 目标用户不在成员列表中（不递增版本号） |
 | `VersionConflictException` | 409 | `{ "error": "版本冲突，已被他人修改", "currentVersion": N }`，响应头带 `X-Version` | 提交的 `version` 与服务端不一致 |
+| `AttractionUnavailableException` | 503 | `{ "error": "景点查询已停用", "reason": "<原因>" }` | 景点库文件缺失、JSON 解析失败或结构异常 |
 
 > 未登录访问受保护接口由 Spring Security 直接返回 **401**，不经过上述处理器。
 
@@ -393,3 +396,145 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 - 行程：`data/itineraries.json`（数组，原子写：先写临时文件再 `ATOMIC_MOVE` 替换，读取走内存副本）。
 - 两份数据文件均已纳入 Git（空数组种子），运行时由 `TRAVEL_DATA_DIR`（默认 `./data`）定位。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
+
+---
+
+## 8. 景点查询（只读知识库）
+
+景点能力沿用「Python 离线构建、Java 在线检索」的分工：离线脚本把融合库清洗成精简索引库，
+服务端启动时**只读**加载并在内存建索引，查询不访问磁盘、不写任何文件。
+
+### 8.1 数据来源与加载
+
+| 项 | 说明 |
+|---|---|
+| 离线构建 | `python tools/build_attraction_index.py` → `data/attractions_index.json`（只读 `china_attractions.json`，输出路径与输入相同时拒绝执行） |
+| 加载时机 | 服务端启动，`AttractionStore#load()` |
+| 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
+| 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |
+| 当前规模 | 11,858 条，66 个城市，13MB → 5.7MB |
+
+### 8.2 按城市查询
+
+```
+GET /api/attractions?city=杭州&limit=20
+```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `city` | 二选一 | 城市或省份名，支持别名：`杭州`/`杭州市`、`浙江`/`浙江省` |
+| `name` | 二选一 | 景点名称；`city` 与 `name` 同时给出时 **`city` 优先** |
+| `limit` | 否 | 返回条数，默认 20，上限 50；非正数回落默认 |
+
+响应：
+
+```json
+{
+  "matched": 438,
+  "returned": 3,
+  "limit": 3,
+  "message": null,
+  "items": [
+    {
+      "id": "amap-B023B07SDX",
+      "name": "东方文化园",
+      "city": "杭州市",
+      "province": "浙江省",
+      "type": "风景名胜",
+      "level": "4A景区",
+      "rating": "4.4",
+      "openTime": "全年 07:30–17:00开放 最晚进入16:30；国庆节 07:30–21:00开放 最晚进入20:30",
+      "ticket": "旺季（1-6月、10月）100元/人，淡季（7-9月、11-12月）80元/人；……",
+      "address": "大湾路17号",
+      "tel": "0571-82338072",
+      "website": null,
+      "image": null,
+      "description": null,
+      "lat": 30.10239,
+      "lon": 120.19792,
+      "source": "Amap",
+      "sources": ["Amap"],
+      "ticketText": "旺季（1-6月、10月）100元/人，……",
+      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……"
+    }
+  ]
+}
+```
+
+字段语义：
+
+| 字段 | 说明 |
+|---|---|
+| `matched` | **截断前**的命中总数 |
+| `returned` | 实际返回条数（= `min(matched, limit)`） |
+| `limit` | 生效的条数上限（已归一化） |
+| `message` | 无结果或缺参时的提示；有结果时为 `null` |
+| `ticket` / `openTime` | 原始值，库中缺失时为 `null` |
+| `ticketText` / `openTimeText` | 展示值，缺失时固定为「未知」 |
+
+> 调用方**不得**把 `ticket = null` 解释为「免费」，也不得把 `openTime = null` 解释为「全天开放」。
+
+### 8.3 按名称查询
+
+```
+GET /api/attractions?name=西湖&limit=5
+```
+
+三级匹配，命中即止：
+
+1. **精确名**：名称完全相等；
+2. **前缀**：名称以关键词开头（如「西湖天地」「西湖公园」）；
+3. **包含**：名称中含关键词。
+
+先精确、再前缀、最后包含，是为了避免「西湖」把「**东西湖**区图书馆」这类非目标结果排到前面。
+关键词为空时直接返回提示，不返回全库。
+
+### 8.4 按 ID 查详情
+
+```
+GET /api/attractions/{id}
+```
+
+- 命中：`200`，返回单个景点对象（字段同 §8.2 的 `items[]`）；
+- 不存在：`404` `{ "error": "景点不存在", "id": "..." }`；
+- 库不可用：`503`（见 §8.6）。
+
+### 8.5 知识库状态
+
+```
+GET /api/attractions/status
+```
+
+可用时：
+
+```json
+{ "available": true, "count": 11858, "cityCount": 126, "loadedAt": "2026-11-04T11:28:28Z",
+  "path": "./data/attractions_index.json" }
+```
+
+不可用时：
+
+```json
+{ "available": false, "reason": "景点知识库文件不存在：……（请先运行 python tools/build_attraction_index.py）",
+  "path": "./data/attractions_index.json" }
+```
+
+`cityCount` 为**含别名的索引条目数**（同一城市会有「杭州」「杭州市」两个键），不等于城市数。
+
+### 8.6 库缺失或损坏时的降级
+
+| 场景 | 查询接口 | 状态接口 | 磁盘文件 |
+|---|---|---|---|
+| 文件不存在 | `503` + `reason` 含「不存在」 | `available=false` | **不自动创建** |
+| JSON 解析失败 | `503` + `reason` 含「解析失败」 | `available=false` | **不覆盖、不改写** |
+| 缺 `attractions` 数组 | `503` + `reason` 含「结构异常」 | `available=false` | **不覆盖** |
+| 全部记录不可解析 | `503` + `reason` 说明条数 | `available=false` | **不覆盖** |
+
+降级时刻意返回 503 而不是空列表：空列表会让调用方误判为「知识库里确实没有这个景点」，
+而实际原因是库没加载成功。修复动作一律交给离线构建流程人工执行。
+
+### 8.7 已知限制
+
+- 票价、开放时间、等级、评分均为**离线快照**，不保证实时性；票价覆盖极低（11,858 条中仅 752 条有值）。
+- 坐标存在 WGS-84（OSM）与 GCJ-02（高德）混用，偏差约 50–500 米，未做统一转换。
+- 只做 `limit` 截断，没有分页游标；超过 50 条需收窄查询条件。

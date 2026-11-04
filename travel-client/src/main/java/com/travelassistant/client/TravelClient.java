@@ -37,11 +37,23 @@ public class TravelClient {
     var cli = new TravelClient(base);
     try {
       cli.checkHealth();
-      if (args.length >= 3) {
+      if (args.length >= 2 && "attractions".equalsIgnoreCase(args[1])) {
+        // 景点查询：attractions（交互） / attractions 杭州（一次性） / attractions --id <ID>
+        var console = new AttractionConsole(base);
+        if (args.length >= 4 && "--id".equalsIgnoreCase(args[2])) {
+          console.detailByIdAndPrint(args[3]);
+        } else if (args.length >= 3) {
+          console.searchAndPrint(args[2]);
+        } else {
+          console.runInteractive();
+        }
+      } else if (args.length >= 3) {
         cli.demoAuth(args[1], args[2]);
       } else {
-        System.out.println("当前是工程骨架，注册、行程与 Agent 业务尚未实现。");
-        System.out.println("提示：java -jar travel-client.jar " + base + " <用户名> <密码> 可演示登录流程。");
+        System.out.println("景点查询（交互）：java -jar travel-client.jar " + base + " attractions");
+        System.out.println("按城市查询：      java -jar travel-client.jar " + base + " attractions 杭州");
+        System.out.println("按 ID 查详情：    java -jar travel-client.jar " + base + " attractions --id <景点ID>");
+        System.out.println("登录演示：        java -jar travel-client.jar " + base + " <用户名> <密码>");
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

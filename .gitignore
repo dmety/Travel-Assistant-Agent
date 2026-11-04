@@ -2,6 +2,7 @@
 .tools/
 data/*
 !data/china_attractions.json
+!data/attractions_index.json
 !data/accounts.json
 !data/itineraries.json
 .idea/

@@ -1,5 +1,6 @@
 package com.travelassistant.server.interfaces.rest;
 
+import com.travelassistant.server.application.attraction.AttractionUnavailableException;
 import com.travelassistant.server.application.itinerary.InvalidItineraryException;
 import com.travelassistant.server.application.itinerary.ItineraryForbiddenException;
 import com.travelassistant.server.application.itinerary.ItineraryNotFoundException;
@@ -45,6 +46,14 @@ public class ApiExceptionHandler {
   @ExceptionHandler(InvalidItineraryException.class)
   public ResponseEntity<Map<String, Object>> invalid(InvalidItineraryException e) {
     return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+  }
+
+  /** 景点知识库不可用（缺失/损坏）：503 并说明原因，不能伪装成"查无结果"。 */
+  @ExceptionHandler(AttractionUnavailableException.class)
+  public ResponseEntity<Map<String, Object>> attractionUnavailable(AttractionUnavailableException e) {
+    return ResponseEntity.status(503).body(Map.of(
+        "error", "景点查询已停用",
+        "reason", e.getMessage()));
   }
 
   /** Bean Validation 失败（如 {@code @NotBlank} 的标题）。 */
