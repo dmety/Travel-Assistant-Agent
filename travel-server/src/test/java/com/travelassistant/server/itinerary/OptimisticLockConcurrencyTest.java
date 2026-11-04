@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,12 +36,11 @@ import org.springframework.test.context.DynamicPropertySource;
  * <p>为什么单独一个类：MockMvc 是单线程模拟，无法复现真实的并发竞态，
  * 必须起真实容器（随机端口）并发打 HTTP。
  *
- * <p>缺陷 D-6：{@code ItineraryService} 的「读版本 → 校验 → 写回」不是原子操作，
- * 版本检查发生在加锁之前，导致多个同版本请求同时通过校验，后写覆盖前写。
- * 实测 12 个并发请求全部返回 200，只有 1 条修改真正生效，11 条静默丢失。
+ * <p>缺陷 D-6（已修复）：原实现中「读版本 → 校验 → 写回」不是原子操作，版本检查发生在加锁之前，
+ * 导致多个同版本请求同时通过校验，后写覆盖前写（12 路并发全部 200，11 条静默丢失）。
+ * 现由 {@code ItineraryService} 的行程维度写锁保证原子性，本用例为回归门禁。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Disabled("D-6：并发同版本更新全部成功，乐观锁在并发下失效；修复后启用")
 @DisplayName("D-6 乐观锁并发安全")
 class OptimisticLockConcurrencyTest {
 
