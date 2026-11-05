@@ -1,4 +1,5 @@
 """Persist and exact-match the ten-row public preview of Wenzhou's KB dataset."""
+import tempfile
 import json
 import os
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 PREVIEW=Path(os.environ["TEMP"])/"wenzhou-preview-data.json"
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-OUT_PATH=ROOT/"reports"/"wenzhou-public-preview-2026-11-04.json"
+OUT_PATH=Path(tempfile.gettempdir()) / "travel-assistant-kb-work" / "wenzhou-public-preview-2026-11-04.json"
 
 def main():
     raw=json.loads(PREVIEW.read_text(encoding="utf-8-sig"))
@@ -33,6 +34,7 @@ def main():
         "reason":"Public preview returns ten rows only; none exactly match a KB attraction. Full paginated data API requires registered application appsecret. Preview has average_price but no ticket_price field, so zero average price is not evidence of free admission.",
         "preview_records":records,
     }
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"preview_rows":len(records),"exact_name_matches":len(matches),"imported":False},ensure_ascii=False))
 

@@ -1,16 +1,56 @@
+# Java / Maven 构建产物
 **/target/
-.tools/
-data/*
-!data/china_attractions.json
-!data/attractions_index.json
-# 种子文件：空数组，供新环境初始化。运行态数据（accounts / itineraries /
-# invitations / comments / changelog / candidates / votes）一律不进版本控制——
-# 里面是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库。
-!data/*.example.json
+*.class
+
+# Python 缓存与本地虚拟环境
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# 本地依赖与工具链
+node_modules/
+/.tools/
+/.workbuddy/
+
+# IDE 与系统本地文件
 .idea/
+.vscode/
 *.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 密钥与本地环境；示例不得含真实密钥
 .env
+.env.*
+!.env.example
+!.env.sample
+
+# 日志、临时文件与本地输出
 *.log
-.workbuddy/
-# 测试从模块目录运行时会把业务数据写到 travel-server/data/，属测试产物
-travel-server/data/
+*.tmp
+*.temp
+*.swp
+*.swo
+~$*
+/.tmp/
+/tmp/
+/temp/
+/outputs/
+/previews/
+/screenshots/
+
+# 运行态数据不提交；保留全国知识库与初始化种子
+/data/*
+!/data/china_attractions.json
+!/data/attractions_index.json
+!/data/*.example.json
+/travel-server/data/
+
+# 不整体忽略 reports/，保留必要来源证据和用户要求的清单。
+# 不全局忽略 JSON、CSV、PDF、图片或压缩包，以免隐藏必要交付物。
+# 忽略规则不会取消已跟踪文件，也不会自动清理文件。

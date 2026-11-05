@@ -1,4 +1,5 @@
 """Find reviewable exact-name Amap-to-OSM node candidates in local PBF; evidence only."""
+import tempfile
 import json
 import math
 import os
@@ -10,7 +11,7 @@ from .models import gcj02_to_wgs84
 
 ROOT=Path(__file__).resolve().parents[2]
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-OUTPUT_PATH=ROOT/"reports"/"amap-osm-node-candidates-2026-11-04.json"
+OUTPUT_PATH=Path(tempfile.gettempdir()) / "travel-assistant-kb-work" / "amap-osm-node-candidates-2026-11-04.json"
 PBF_PATH=Path(os.environ.get("TEMP","."))/"travel-assistant-china-latest.osm.pbf"
 FEATURE_KEYS=("tourism","leisure","amenity","historic","natural","boundary","railway","name:en","addr:city","addr:province","addr:state")
 
@@ -62,6 +63,7 @@ def main():
             if c["distance_m"]<=50 and any(k in c["tags"] for k in ("tourism","leisure","amenity","historic","natural")):
                 one_to_one.append(c)
     output={"source":"Geofabrik China OSM PBF","source_url":"https://download.geofabrik.de/asia/china-latest.osm.pbf","retrieved_at":datetime.now(timezone.utc).isoformat(),"scope":"Amap-primary GCJ-02 rows only; exact normalized name, <=100m converted distance, no existing OSM ID/risk flags; evidence only","eligible_amap_rows":len(targets),"raw_candidates_within_100m":len(candidates),"eligible_rows_with_candidate":len(by_kb),"unique_one_to_one_at_50m_with_feature_tag":len(one_to_one),"candidates":sorted(candidates,key=lambda x:(x["kb_id"],x["distance_m"]))}
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({k:output[k] for k in ("eligible_amap_rows","raw_candidates_within_100m","eligible_rows_with_candidate","unique_one_to_one_at_50m_with_feature_tag")},ensure_ascii=False))
     print(OUTPUT_PATH)

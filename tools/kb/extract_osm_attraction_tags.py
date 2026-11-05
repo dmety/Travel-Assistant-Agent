@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-OUTPUT_PATH = ROOT / "reports" / "osm-attraction-tag-import-2026-11-04.json"
+OUTPUT_PATH = ROOT / "reports" / "evidence" / "osm-attraction-tag-import-2026-11-04.json"
 DEFAULT_PBF = Path(os.environ.get("TEMP", "/tmp")) / "travel-assistant-china-latest.osm.pbf"
 PBF_PATH = Path(os.environ.get("OSM_CHINA_PBF", str(DEFAULT_PBF)))
 OSM_ID_PATTERN = re.compile(r"^osm-(node|way|relation)-(\d+)$")

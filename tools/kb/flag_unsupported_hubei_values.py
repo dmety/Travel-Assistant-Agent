@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 KB_PATH = ROOT / "data" / "china_attractions.json"
-AUDIT_PATH = ROOT / "reports" / "hubei-unsupported-values-2026-11-04.json"
+AUDIT_PATH = ROOT / "reports" / "archive" / "hubei-unsupported-values-2026-11-04.json"
 
 
 def populated(value):

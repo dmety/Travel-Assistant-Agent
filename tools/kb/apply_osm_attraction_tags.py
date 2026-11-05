@@ -8,7 +8,7 @@ from .models import is_missing_value
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-EVIDENCE_PATH = ROOT / "reports" / "osm-attraction-tag-import-2026-11-04.json"
+EVIDENCE_PATH = ROOT / "reports" / "evidence" / "osm-attraction-tag-import-2026-11-04.json"
 
 
 def osm_url(osm_id: str) -> str:

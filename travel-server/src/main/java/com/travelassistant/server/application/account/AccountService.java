@@ -26,7 +26,9 @@ public class AccountService {
     }
     String passwordHash = passwordEncoder.encode(rawPassword);
     Account account = new Account(username, passwordHash, List.of("ROLE_USER"));
-    store.save(account);
+    if (!store.createIfAbsent(account)) {
+      throw new DuplicateAccountException(username);
+    }
     return account;
   }
 

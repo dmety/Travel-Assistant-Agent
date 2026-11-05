@@ -44,7 +44,7 @@ public class AccountStore {
       accounts = new ArrayList<>(List.of(loaded));
       log.info("已从 {} 加载 {} 个账号", file, accounts.size());
     } else {
-      write();
+      write(accounts);
       log.info("账号文件不存在，已创建空文件 {}", file);
     }
   }
@@ -57,20 +57,23 @@ public class AccountStore {
     return accounts.stream().anyMatch(a -> a.username().equals(username));
   }
 
-  /** 落盘保存（存在则覆盖）。写入期间持有锁，保证文件最终一致。 */
-  public synchronized void save(Account account) {
+  /** 原子创建：同名账号不能覆盖；落盘失败不发布到内存。 */
+  public synchronized boolean createIfAbsent(Account account) {
+    if (exists(account.username())) {
+      return false;
+    }
     List<Account> updated = new ArrayList<>(accounts);
-    updated.removeIf(a -> a.username().equals(account.username()));
     updated.add(account);
+    write(updated);
     accounts = updated;
-    write();
+    return true;
   }
 
-  private void write() {
+  private void write(List<Account> snapshot) {
     try {
       Path dir = file.getParent();
       Path tmp = Files.createTempFile(dir, "accounts", ".tmp");
-      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), accounts);
+      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), snapshot);
       try {
         Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
       } catch (AtomicMoveNotSupportedException e) {

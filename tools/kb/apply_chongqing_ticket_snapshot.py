@@ -11,7 +11,7 @@ from .models import is_missing_value
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-SOURCE_PATH = ROOT / "reports" / "chongqing-official-ticket-source-2026-11-04.json"
+SOURCE_PATH = ROOT / "reports" / "evidence" / "chongqing-official-ticket-source-2026-11-04.json"
 
 
 def render_ticket(row: dict, snapshot_date: str) -> str:

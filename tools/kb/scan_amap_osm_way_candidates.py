@@ -5,6 +5,7 @@ requiring exact normalized names, a unique eligible candidate within 100 m,
 no pre-existing OSM ID, and no KB risk/review flags. A separate reviewer and
 apply step enforce tighter distance, feature and administrative checks.
 """
+import tempfile
 import json
 import math
 import os
@@ -17,7 +18,7 @@ from .models import gcj02_to_wgs84
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-OUTPUT_PATH = ROOT / "reports" / "amap-osm-way-candidates-2026-11-04.json"
+OUTPUT_PATH = Path(tempfile.gettempdir()) / "travel-assistant-kb-work" / "amap-osm-way-candidates-2026-11-04.json"
 PBF_PATH = Path(os.environ.get("TEMP", ".")) / "travel-assistant-china-latest.osm.pbf"
 FEATURE_KEYS = ("tourism", "leisure", "amenity", "historic", "natural", "boundary", "addr:city", "addr:province", "addr:state")
 
@@ -160,6 +161,7 @@ def main():
         "candidates": sorted(unique, key=lambda item: (item["kb_id"], item["distance_m"])),
         "rejected_close_candidate_rows": sum(1 for items in by_kb.values() if len(items) != 1),
     }
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({k: report[k] for k in ("eligible_amap_rows", "exact_name_ways", "raw_pairs_within_100m", "kb_rows_with_way_candidate", "one_to_one_way_candidates_within_50m", "rejected_close_candidate_rows")}, ensure_ascii=False))
     print(OUTPUT_PATH)

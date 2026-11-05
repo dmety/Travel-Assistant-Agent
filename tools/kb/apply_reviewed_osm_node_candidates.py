@@ -5,8 +5,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-REVIEW_PATH=ROOT/"reports"/"amap-osm-node-candidate-review-2026-11-04.json"
-APPLIED_PATH=ROOT/"reports"/"amap-osm-approved-node-links-2026-11-04.json"
+REVIEW_PATH=ROOT/"reports" / "evidence" / "amap-osm-node-candidate-review-2026-11-04.json"
+APPLIED_PATH=ROOT/"reports" / "evidence" / "amap-osm-approved-node-links-2026-11-04.json"
 PBF_SOURCE="https://download.geofabrik.de/asia/china-latest.osm.pbf"
 MAX_DISTANCE_M=25
 FEATURES={
