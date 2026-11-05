@@ -35,6 +35,22 @@ public class CollaborationStore {
   /** 单个行程保留的修改记录上限（超出后丢弃最旧的）。 */
   public static final int MAX_CHANGES_PER_ITINERARY = 500;
 
+  /**
+   * 修改记录的时间序，由远到近。
+   *
+   * <p>不能只用 {@code at}：{@code Instant.now()} 的精度取决于操作系统与时钟实现，
+   * 同一个请求里连续产生的两条记录可能拿到完全相同的时间戳（实测本机 175 条记录中
+   * 有 20 组相同）。而 {@code Stream.sorted} 是稳定排序，{@code reversed()} 也不会翻转
+   * 相等元素——于是「创建行程」会一直排在「更新方案」前面，与「最近的在最前」的契约相反。
+   *
+   * <p>{@code version} 由行程聚合单调递增，且在同一个行程内唯一，作为第二排序键既稳定
+   * 又符合业务含义：同一次写入里版本大的必然发生在后。
+   */
+  private static final Comparator<ChangeEntry> OLDEST_FIRST =
+      Comparator.comparing(ChangeEntry::at).thenComparingLong(ChangeEntry::version);
+
+  private static final Comparator<ChangeEntry> NEWEST_FIRST = OLDEST_FIRST.reversed();
+
   private final ObjectMapper mapper;
   private final Path commentFile;
   private final Path changeFile;
@@ -93,13 +109,16 @@ public class CollaborationStore {
   /**
    * 某行程的修改记录，按时间倒序（最近一次在最前，符合「谁刚改了什么」的查看习惯）。
    *
+   * <p>时间相同则按行程版本号倒序，见 {@link #NEWEST_FIRST}——只用时间戳会在
+   * 「同一毫秒内连续写两次」时把顺序排反。
+   *
    * @param limit 最多返回条数，{@code <= 0} 时取默认 50
    */
   public List<ChangeEntry> findChanges(String itineraryId, int limit) {
     int size = limit <= 0 ? 50 : limit;
     return changes.stream()
         .filter(c -> c.itineraryId().equals(itineraryId))
-        .sorted(Comparator.comparing(ChangeEntry::at).reversed())
+        .sorted(NEWEST_FIRST)
         .limit(size)
         .toList();
   }
@@ -111,7 +130,7 @@ public class CollaborationStore {
 
     List<ChangeEntry> sameItinerary = updated.stream()
         .filter(c -> c.itineraryId().equals(entry.itineraryId()))
-        .sorted(Comparator.comparing(ChangeEntry::at))
+        .sorted(OLDEST_FIRST)
         .toList();
     if (sameItinerary.size() > MAX_CHANGES_PER_ITINERARY) {
       List<String> drop = sameItinerary.subList(0,
