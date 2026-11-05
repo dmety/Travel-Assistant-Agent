@@ -1,3 +1,5 @@
+> 历史归档：以下是当时的治理或调研记录，数字、路径及结论不代表当前状态；当前核验清单见 [current](../current/知识库范围与最全景点清单.md)。
+
 # 知识库六项问题快照（2026-11-05）
 
 来源：当前 `data/china_attractions.json`，由 `python -m tools.kb.quality_report` 重算。票价和开放时间缺失按 `tools.kb.models.is_missing_value` 口径统计。

@@ -8,8 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMP = Path(os.environ["TEMP"]) / "beijing-attractions"
-MATCH_PATH = ROOT / "reports" / "beijing-official-list-match-2026-11-04.json"
-OUT_PATH = ROOT / "reports" / "beijing-official-detail-snapshot-2026-11-04.json"
+MATCH_PATH = ROOT / "reports" / "archive" / "beijing-official-list-match-2026-11-04.json"
+OUT_PATH = ROOT / "reports" / "evidence" / "beijing-official-detail-snapshot-2026-11-04.json"
 LIST_URL = "https://whlyj.beijing.gov.cn/ggfw/ly/202511/t20251119_4287815.html"
 
 

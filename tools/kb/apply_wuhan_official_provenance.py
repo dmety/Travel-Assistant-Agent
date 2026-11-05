@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-EVIDENCE_PATH = ROOT / "reports" / "wuhan-official-provenance-2026-11-05.json"
+EVIDENCE_PATH = ROOT / "reports" / "evidence" / "wuhan-official-provenance-2026-11-05.json"
 
 
 def main() -> None:

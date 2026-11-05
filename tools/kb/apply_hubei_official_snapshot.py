@@ -7,8 +7,8 @@ from .models import is_missing_value
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-SOURCE_PATH = ROOT / "reports" / "hubei-official-ticket-hours-2026-11-04.json"
-SUPPLEMENT_PATH = ROOT / "reports" / "hubei-official-museum-ticket-supplement-2026-11-04.json"
+SOURCE_PATH = ROOT / "reports" / "evidence" / "hubei-official-ticket-hours-2026-11-04.json"
+SUPPLEMENT_PATH = ROOT / "reports" / "evidence" / "hubei-official-museum-ticket-supplement-2026-11-04.json"
 
 
 def main():

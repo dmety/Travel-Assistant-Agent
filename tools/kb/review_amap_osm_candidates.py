@@ -1,4 +1,5 @@
 """Apply additional uniqueness, lineage, same-name and admin-tag screens."""
+import tempfile
 import argparse
 import json
 import unicodedata
@@ -7,8 +8,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-CANDIDATE_PATH=ROOT/"reports"/"amap-osm-node-candidates-2026-11-04.json"
-OUTPUT_PATH=ROOT/"reports"/"amap-osm-node-candidate-review-2026-11-04.json"
+CANDIDATE_PATH=Path(tempfile.gettempdir())/"travel-assistant-kb-work"/"amap-osm-node-candidates-2026-11-04.json"
+OUTPUT_PATH=Path(tempfile.gettempdir())/"travel-assistant-kb-work"/"amap-osm-candidate-review.json"
 
 def norm(s): return "".join(unicodedata.normalize("NFKC",str(s or "")).casefold().split())
 def norm_admin(s): return norm(s).replace("自治区","").replace("特别行政区","").replace("自治州","").replace("省","").replace("市","").replace("地区","")

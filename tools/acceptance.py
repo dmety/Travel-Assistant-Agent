@@ -1,4 +1,4 @@
-"""任务2/3/4真实服务验收。先mvn verify，再从仓库根目录运行此脚本。
+"""真实服务回归入口：先 mvn clean verify，再运行 python -B tools/acceptance.py。
 
 仅使用标准库、临时数据目录和随机端口；不调用外部API，不改动用户数据。
 """
@@ -75,7 +75,8 @@ def main():
                     f'--travel.data-directory={data}',
                     f'--travel.attraction-kb-path={ROOT / "data/attractions_index.json"}',
                     '--travel.amap.key=', '--travel.ai.api-key='], cwd=ROOT, env=env,
-                    stdout=log, stderr=subprocess.STDOUT)
+                    stdout=log, stderr=subprocess.STDOUT,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
                 for _ in range(120):
                     if process.poll() is not None:
                         raise RuntimeError('server exited; see ' + str(log.name))
@@ -89,7 +90,7 @@ def main():
 
             try:
                 base = start()
-                subprocess.run([sys.executable, str(ROOT / 'examples/itinerary_usecase_hangzhou.py'),
+                subprocess.run([sys.executable, '-B', str(ROOT / 'tools/itinerary_acceptance.py'),
                     '--base', base, '--fail-fast', '--quiet-json'], cwd=ROOT, env=env, check=True)
                 owner, stranger = client(), client()
                 credentials = {'username': 'acceptance_owner', 'password': 'Password123'}
@@ -128,9 +129,14 @@ def main():
                 owner = client()
                 request(owner, base, '/api/login', credentials, form=True)
                 check(request(owner, base, path)[0] == 404, 'deleted itinerary stays absent after restart')
+            except Exception:
+                log.flush()
+                print('SERVER LOG (tail):', flush=True)
+                print(Path(log.name).read_text(encoding='utf-8', errors='replace')[-6000:], flush=True)
+                raise
             finally:
                 stop()
-    print('ALL TASK 2/3/4 ACCEPTANCE CHECKS PASSED')
+    print('ALL REAL-SERVICE ACCEPTANCE CHECKS PASSED')
 
 
 if __name__ == '__main__':
