@@ -8,6 +8,7 @@ import com.travelassistant.server.application.itinerary.VersionConflictException
 import com.travelassistant.server.domain.itinerary.Itinerary;
 import com.travelassistant.server.domain.itinerary.Plan;
 import com.travelassistant.server.infrastructure.persistence.ItineraryStore;
+import com.travelassistant.server.infrastructure.persistence.AccountStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.lang.management.ManagementFactory;
@@ -17,14 +18,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * 乐观锁原子性的<b>确定性</b>复现（缺陷 D-6）。
  *
- * <p>为什么不用并发压测：{@link OptimisticLockStressTest} 那种「打 12 个并发看结果」的写法
+ * <p>为什么不用并发压测：{@link OptimisticLockConcurrencyTest} 那种「打 12 个并发看结果」的写法
  * 依赖线程调度，实测每轮只有 10%~20% 概率暴露问题，冷启动时才会接近 100%。
  * 用它判定修复，会出现「缺陷还在但测试偶然变绿」的假象。
  *
@@ -34,14 +34,13 @@ import org.junit.jupiter.api.Test;
  * 等待超时直接使测试失败，不会冒充线程中断，也不会继续使用失效的同步条件。
  *
  * <ul>
- *   <li>当前实现：版本校验在锁外，两个线程都能通过 → 两个都返回成功 → 用例失败。</li>
+ *   <li>未修复实现：版本校验在锁外，两个线程都能通过 → 两个都返回成功 → 用例失败。</li>
  *   <li>修复后（比对版本与写入在同一把锁内完成）：后到者必然发现版本已是 2
  *       → 抛 {@link VersionConflictException} → 用例通过。</li>
  * </ul>
  *
  * <p>判定标准是「恰好一个成功、另一个冲突」，与线程快慢无关，跑多少次结果都一样。
  */
-@Disabled("D-6 未修复：启用后必定失败（2026-11-05 连跑 3 次均为 2 个成功、0 个冲突）。修复后删掉本注解即应转绿")
 @DisplayName("D-6 乐观锁原子性（确定性复现）")
 class OptimisticLockAtomicityTest {
 
@@ -55,7 +54,9 @@ class OptimisticLockAtomicityTest {
     ReadBarrierStore store = new ReadBarrierStore(mapper, dataDir.toString());
     store.init();
 
-    ItineraryService service = new ItineraryService(store);
+    AccountStore accounts = new AccountStore(mapper, dataDir.toString());
+    accounts.init();
+    ItineraryService service = new ItineraryService(store, accounts);
     String id = service.create(OWNER, "并发测试", new Plan("杭州", "初始", "")).id();
 
     AtomicInteger success = new AtomicInteger();

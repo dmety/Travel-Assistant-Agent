@@ -28,6 +28,17 @@ class Attraction:
     description: str = ""
     source: str = ""          # OpenStreetMap / Amap / OpenStreetMap + Amap
     sources: list = field(default_factory=list)
+    source_ids: list = field(default_factory=list)  # IDs for each source represented by this row
+    coordinateSystem: str = ""  # CRS of the primary lat/lon pair
+    same_name_group: str = ""
+    same_name_risk: str = ""
+    merge_review: str = ""
+    ticket_status: str = "pending"
+    open_time_status: str = "pending"
+    ticket_source: str = ""
+    ticket_checked_at: str = ""
+    open_time_source: str = ""
+    open_time_checked_at: str = ""
 
     def to_dict(self):
         return asdict(self)
@@ -38,6 +49,22 @@ def norm_name(name: str) -> str:
     if not name:
         return ""
     return re.sub(r"\s+", "", str(name))
+
+
+def is_missing_value(value) -> bool:
+    """Return whether a ticket/open-time value is absent or a placeholder.
+
+    Explicit free-admission text is deliberately not treated as missing.
+    """
+    if value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    normalized = value.strip().casefold()
+    return normalized in {
+        "", "暂无", "无", "未知", "不详", "待补充", "待核实", "待确认",
+        "待完善", "未提供", "数据缺失", "null", "none", "n/a", "na",
+    }
 
 
 def from_osm(o: dict) -> "Attraction":
@@ -57,4 +84,6 @@ def from_osm(o: dict) -> "Attraction":
         description=o.get("description") or "",
         source="OpenStreetMap",
         sources=["OpenStreetMap"],
+        source_ids=[o.get("id", "")] if o.get("id") else [],
+        coordinateSystem="WGS-84",
     )

@@ -1,0 +1,82 @@
+{
+  "checked_at": "2026-11-04",
+  "scope": "Search for reusable bulk public datasets with attraction ticket prices and/or opening hours, then assess safe importability into data/china_attractions.json.",
+  "conclusion": "No nationwide, current, openly licensed dataset with both fields and a verifiable bulk download was found. Existing public-source imports remain the safest data currently added. Commercial or permission-gated sources are recorded as leads, not imported.",
+  "resources": [
+    {
+      "name": "CnOpenData China attractions and ratings database",
+      "url": "https://www.cnopendata.com/data/m/recent/scenic-area.html",
+      "coverage_claim": "More than one million attractions nationwide; data through 2025-06; lists market/actual price and opening hours.",
+      "access": "Paid/licensed subscription; complete download and API require purchase/contact.",
+      "decision": "Not downloaded or imported. Could be reconsidered only after license, freshness, field provenance, and cost are reviewed."
+    },
+    {
+      "name": "China City Attraction Details / Qunar-derived community dataset",
+      "url": "https://hyper.ai/cn/datasets/37330/",
+      "coverage_claim": "352 cities x 100 places, with admission and opening-hour fields.",
+      "access": "Community dataset linked to Kaggle; page says data was scraped from Qunar and provides only educational-use notice, with no clear reuse license. Snapshot is about two years old.",
+      "decision": "Not imported because provenance/license is unclear and ticket/hour values are stale-risk."
+    },
+    {
+      "name": "China scenic attraction collection (2022-06-03)",
+      "url": "https://d.itadn.com/i0_28902398779/B/584812",
+      "coverage_claim": "Approximately 12,000 attractions; page says ticket prices and opening hours are included.",
+      "access": "Download is gated by login/credits; source provenance and redistribution license are not stated on the page.",
+      "decision": "Not downloaded or imported. Age and provenance make it unsuitable as direct truth without an audit."
+    },
+    {
+      "name": "Beijing government open data: graded scenic-area ticket prices",
+      "url": "https://data.beijing.gov.cn/zyml/ajg/slyw/cfb6367dcc9c4e37b4ec9f975109c973.htm",
+      "coverage_claim": "218 Beijing records with fee status and seasonal prices; published 2026-01-20.",
+      "access": "The data page documents API access via a registered userKey. Existing detail-page enrichment covered 15 prices and 3 opening-hour values from public attraction pages; the dataset API was not called.",
+      "decision": "Keep as an official-source lead; API bulk access requires account credential."
+    },
+    {
+      "name": "Wenzhou government open data: scenic-area information",
+      "url": "https://data.wenzhou.gov.cn/jdop_front/detail/data.do?iid=9307",
+      "coverage_claim": "91 records; includes opening hours and ticket price fields.",
+      "access": "Only 10 public preview rows were visible; full API requires registered appsecret. Preview had no exact name match in this KB, and average-price=0 is not proof of a free ticket.",
+      "decision": "No KB rows imported. No access-control bypass attempted."
+    },
+    {
+      "name": "Shenzhen government open data: sightseeing-spot ticket price table",
+      "url": "https://opendata.sz.gov.cn/data/dataSet/toDataDetails/29200_04300770",
+      "coverage_claim": "50 records, ticket-price list, last updated 2023-12-13.",
+      "access": "Official portal labels the resource unconditional open, but direct non-browser retrieval returned HTTP 403 in this session; no file was obtained.",
+      "decision": "Not imported. If browser download becomes available, reassess freshness and exact KB matches before applying."
+    },
+    {
+      "name": "OpenStreetMap China PBF fee/opening_hours tags",
+      "url": "https://download.geofabrik.de/asia/china.html",
+      "coverage_claim": "Current PBF scanned against linked attraction IDs; per-object fee/charge/opening_hours tags.",
+      "access": "Public download; source IDs and object links retained.",
+      "decision": "Imported only exact linked-object tags where KB fields were empty. Expanded exact-name, point-to-way-geometry review added 1,861 unique OSM way IDs. Current OSM-sourced values are 126 ticket/fee labels and 163 opening-hours texts; the latest way-linked import added 24 ticket/fee labels and 4 opening-hours texts. All remain unverified because OSM tags are not official current operating guarantees."
+    }
+  ],
+  "current_kb_after_import": {
+    "records": 11858,
+    "ticket_missing": 10956,
+    "open_time_missing": 7064,
+    "ticket_nonempty_unverified": 902,
+    "open_time_nonempty_unverified": 4794,
+    "ticket_verified": 0,
+    "open_time_verified": 0,
+    "latest_osm_tag_delta": {
+      "ticket": 24,
+      "opening_hours": 4
+    },
+    "osm_source_totals": {
+      "ticket_or_fee_labels": 126,
+      "opening_hours_labels": 163,
+      "paid_but_amount_unknown": 32,
+      "linked_osm_ids": 5996,
+      "objects_with_relevant_tags": 370
+    },
+    "new_osm_way_source_links": 1861,
+    "merged_source_rows": 2172,
+    "mixed_coordinate_rows": 0,
+    "strict_quality_gate_remaining": {
+      "merged_rows_missing_amap_id": 249
+    }
+  }
+}
