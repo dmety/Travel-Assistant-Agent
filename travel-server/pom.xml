@@ -8,6 +8,10 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>travel-server</artifactId>
+  <!-- jacoco 会覆盖它；先置空，避免未执行 prepare-agent 时 @{argLine} 残留字面量导致 JVM 启动失败 -->
+  <properties>
+    <argLine></argLine>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.travelassistant</groupId>
@@ -46,6 +50,58 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- 覆盖率：prepare-agent 把 argLine 注入 surefire/failsafe，report 在 verify 阶段出 HTML/CSV -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- 快档：单元 + 切片 + 集成，排除跨进程端到端与压力观察类 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+            <exclude>**/*StressTest.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <!-- 全档：mvn verify 才跑的端到端测试（当前无 *IT，保留约定） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <!-- jacoco 的 argLine 不会自动传给 failsafe，必须显式 late replacement -->
+          <argLine>@{argLine}</argLine>
+          <includes>
+            <include>**/*IT.java</include>
+          </includes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

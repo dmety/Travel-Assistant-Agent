@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("景点库损坏")
 class AttractionCorruptTest {
 
-  private static final Path DATA_DIR = createTempDir();
+  private static final Path DATA_DIR = com.travelassistant.server.TestDataDirs.sub("attraction-corrupt");
   private static final Path KB = DATA_DIR.resolve("attractions_index.json");
   private static final String BROKEN = "{\"attractions\": [ {\"id\": \"x\", 这不是合法JSON";
 
@@ -73,13 +73,5 @@ class AttractionCorruptTest {
     assertThat(Files.readString(KB, StandardCharsets.UTF_8))
         .as("加载失败后不得改写库文件")
         .isEqualTo(BROKEN);
-  }
-
-  private static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("travel-attraction-corrupt-");
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 }

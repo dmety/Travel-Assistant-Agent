@@ -44,7 +44,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @DisplayName("D-6 乐观锁并发安全")
 class OptimisticLockConcurrencyTest {
 
-  private static final Path DATA_DIR = createTempDir();
+  private static final Path DATA_DIR = com.travelassistant.server.TestDataDirs.sub("concurrency");
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final int CONCURRENCY = 12;
 
@@ -54,14 +54,6 @@ class OptimisticLockConcurrencyTest {
   @DynamicPropertySource
   static void dataDirectory(DynamicPropertyRegistry registry) {
     registry.add("travel.data-directory", () -> DATA_DIR.toString());
-  }
-
-  private static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("travel-concurrency-test-");
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
   }
 
   @Test

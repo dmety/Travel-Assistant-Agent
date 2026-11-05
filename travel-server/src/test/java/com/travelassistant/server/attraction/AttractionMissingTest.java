@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("景点库缺失")
 class AttractionMissingTest {
 
-  private static final Path DATA_DIR = createTempDir();
+  private static final Path DATA_DIR = com.travelassistant.server.TestDataDirs.sub("attraction-missing");
   private static final Path KB = DATA_DIR.resolve("attractions_index.json");
 
   @Autowired
@@ -69,13 +69,5 @@ class AttractionMissingTest {
   @DisplayName("不自动创建库文件，原路径保持不存在")
   void doesNotCreateFile() {
     assertThat(Files.exists(KB)).as("缺库时不得自动生成文件").isFalse();
-  }
-
-  private static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("travel-attraction-missing-");
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 }
