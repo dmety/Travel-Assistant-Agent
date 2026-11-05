@@ -25,6 +25,10 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 class ItineraryIntegrationTest {
 
+  /** 每次运行独立目录，避免上一轮残留的行程影响「全链路」断言。 */
+  private static final java.nio.file.Path DATA_DIR =
+      com.travelassistant.server.TestDataDirs.sub("integration");
+
   @Autowired
   private MockMvc mvc;
 
@@ -33,7 +37,7 @@ class ItineraryIntegrationTest {
 
   @DynamicPropertySource
   static void props(org.springframework.test.context.DynamicPropertyRegistry registry) {
-    registry.add("travel.data-directory", () -> "target/itinerary-test-data");
+    registry.add("travel.data-directory", DATA_DIR::toString);
   }
 
   private MockHttpSession registerAndLogin(String username, String password) throws Exception {
@@ -68,10 +72,10 @@ class ItineraryIntegrationTest {
 
     // owner 可见
     mvc.perform(get("/api/itineraries/" + id).session(owner)).andExpect(status().isOk());
-    // 出现在 owner 列表
+    // 出现在 owner 列表（断言「包含」而不是下标：列表顺序取决于存储数组顺序，不该被测试依赖）
     mvc.perform(get("/api/itineraries").session(owner))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(id));
+        .andExpect(jsonPath("$[*].id", org.hamcrest.Matchers.hasItem(id)));
 
     // owner 改方案（version=1 -> 2）
     mvc.perform(put("/api/itineraries/" + id + "/plan").session(owner).param("version", "1")

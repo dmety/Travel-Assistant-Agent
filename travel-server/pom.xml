@@ -8,6 +8,10 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>travel-server</artifactId>
+  <!-- jacoco 会覆盖它；先置空，避免未执行 prepare-agent 时 @{argLine} 残留字面量导致 JVM 启动失败 -->
+  <properties>
+    <argLine></argLine>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.travelassistant</groupId>
@@ -46,6 +50,166 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!--
+        覆盖率三道工序：prepare-agent 注入 argLine，report 出 HTML/CSV，check 在 verify 卡住退化。
+
+        阈值口径（括号内为 2026-11-05 开启时的实测值）：
+          模块        行 83 %（85.28）、分支 64 %（66.08）
+          application.itinerary  行 92 %（94.8）、分支 77 %（79.3）
+          domain.itinerary       行 93 %（95.4）、分支 75 %（77.3）
+          domain.budget          行 92 %（94.4）、分支 81 %（83.5）
+          interfaces.rest        行 93 %（95.3）、分支 70 %（72.4）
+          infrastructure.persistence 行 88 %（90.1）、分支 65 %（67.3）
+        统一留 2～3 个百分点余量：让「新增一个有分支的接口、测试下一轮再补」这类正常迭代
+        不至于立刻挡构建；再往下掉就是真退化，不是还没写完。
+        只升不降：实测超过阈值 3 个点以上时，把该阈值上调 1 个点。
+      -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <configuration>
+          <rules>
+            <!-- 模块整体。低于这个数说明这一轮根本没写测试，不用看细节就知道有问题 -->
+            <rule>
+              <element>BUNDLE</element>
+              <limits>
+                <limit>
+                  <counter>LINE</counter>
+                  <value>COVEREDRATIO</value>
+                  <minimum>0.83</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter>
+                  <value>COVEREDRATIO</value>
+                  <minimum>0.64</minimum>
+                </limit>
+              </limits>
+            </rule>
+            <!--
+              以下是《测试策略-行程模块》覆盖的五个包，逐个卡。
+              注意 PACKAGE 元素是「每个包各算各的」，不会汇总成一个数——所以不能只写
+              domain.*，那等于要求 domain.location（行 65 %）也达标。
+              location / ticket / agent / ai 这几个包当前覆盖率本来就低，
+              放进来的结果只会是「把阈值改小」，而不是「把测试补上」，故不纳入。
+            -->
+            <rule>
+              <element>PACKAGE</element>
+              <includes><include>com.travelassistant.server.application.itinerary</include></includes>
+              <limits>
+                <limit>
+                  <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.92</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.77</minimum>
+                </limit>
+              </limits>
+            </rule>
+            <rule>
+              <element>PACKAGE</element>
+              <includes><include>com.travelassistant.server.domain.itinerary</include></includes>
+              <limits>
+                <limit>
+                  <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.93</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.75</minimum>
+                </limit>
+              </limits>
+            </rule>
+            <rule>
+              <element>PACKAGE</element>
+              <includes><include>com.travelassistant.server.domain.budget</include></includes>
+              <limits>
+                <limit>
+                  <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.92</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.81</minimum>
+                </limit>
+              </limits>
+            </rule>
+            <rule>
+              <element>PACKAGE</element>
+              <includes><include>com.travelassistant.server.interfaces.rest</include></includes>
+              <limits>
+                <limit>
+                  <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.93</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.70</minimum>
+                </limit>
+              </limits>
+            </rule>
+            <rule>
+              <element>PACKAGE</element>
+              <includes><include>com.travelassistant.server.infrastructure.persistence</include></includes>
+              <limits>
+                <limit>
+                  <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.88</minimum>
+                </limit>
+                <limit>
+                  <counter>BRANCH</counter><value>COVEREDRATIO</value><minimum>0.65</minimum>
+                </limit>
+              </limits>
+            </rule>
+          </rules>
+        </configuration>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <!-- 必须排在 report 之后：同阶段内按声明顺序执行 -->
+          <execution>
+            <id>check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- 快档：单元 + 切片 + 集成，排除跨进程端到端与压力观察类 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+            <exclude>**/*StressTest.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <!-- 全档：mvn verify 才跑的端到端测试（当前无 *IT，保留约定） -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <!-- jacoco 的 argLine 不会自动传给 failsafe，必须显式 late replacement -->
+          <argLine>@{argLine}</argLine>
+          <includes>
+            <include>**/*IT.java</include>
+          </includes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

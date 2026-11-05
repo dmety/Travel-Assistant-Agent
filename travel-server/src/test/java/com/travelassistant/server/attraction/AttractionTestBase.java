@@ -16,14 +16,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * 景点查询测试基类：把数据目录与景点库都指向独立临时目录，
+ * 景点查询测试基类：数据目录与景点库都指向本次运行专属目录（{@code target/test-data} 下），
  * 库内容来自 classpath 的 {@code attractions-test.json}（5 条，含占位值与缺失字段）。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 abstract class AttractionTestBase {
 
-  protected static final Path DATA_DIR = tempDir();
+  protected static final Path DATA_DIR = com.travelassistant.server.TestDataDirs.sub("attraction");
   protected static final Path KB = DATA_DIR.resolve("attractions_index.json");
 
   static {
@@ -47,14 +47,6 @@ abstract class AttractionTestBase {
   static void properties(DynamicPropertyRegistry registry) {
     registry.add("travel.data-directory", () -> DATA_DIR.toString());
     registry.add("travel.attraction-kb-path", () -> KB.toString());
-  }
-
-  protected static Path tempDir() {
-    try {
-      return Files.createTempDirectory("travel-attraction-test-");
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 
   /** 读取响应体为 JSON 树，固定 UTF-8 避免中文断言受平台编码影响。 */

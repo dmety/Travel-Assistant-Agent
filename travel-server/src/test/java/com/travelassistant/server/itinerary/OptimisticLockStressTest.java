@@ -59,7 +59,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @DisplayName("D-6 乐观锁并发压力观察（参考用例，不参与判定）")
 class OptimisticLockStressTest {
 
-  private static final Path DATA_DIR = createTempDir();
+  private static final Path DATA_DIR = com.travelassistant.server.TestDataDirs.sub("stress");
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final int CONCURRENCY = 12;
   private static final int ROUNDS = 10;
@@ -70,14 +70,6 @@ class OptimisticLockStressTest {
   @DynamicPropertySource
   static void dataDirectory(DynamicPropertyRegistry registry) {
     registry.add("travel.data-directory", () -> DATA_DIR.toString());
-  }
-
-  private static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("travel-stress-test-");
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
   }
 
   @Test

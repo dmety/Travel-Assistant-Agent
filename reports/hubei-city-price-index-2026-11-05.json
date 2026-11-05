@@ -1,0 +1,36 @@
+{
+  "retrieved_at": "2026-11-05",
+  "purpose": "湖北省政府定价景区票价的市州批量来源目录；仅作为查找入口，条目级导入前仍需核对价格表本身与景区身份。",
+  "province_index": {
+    "official_url": "https://fgw.hubei.gov.cn/fbjd/zc/zcwj/gg/202604/t20260430_5926383.shtml",
+    "official_fetch_note": "省发改委页面在本次抓取时返回412；市州链接从汇总页取得，汇总页自称转录省发改委2026-04-30公告。",
+    "link_catalog_source": "https://www.chacewang.com/newsdetail/news955982.html"
+  },
+  "municipal_sources": [
+    {"region": "武汉市", "url": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/t20260427_2757794.html", "page_audit": "opened_official_page_pdf_link", "note": "2026年度政府定价景区清单；23项。"},
+    {"region": "襄阳市", "url": "https://fgw.xiangyang.gov.cn/zwgk/zc/gsgg/202604/t20260429_3993466.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "宜昌市", "url": "https://www.yichang.gov.cn/zfxxgk/show.html?aid=1&id=244177", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "黄石市", "url": "https://fgw.huangshi.gov.cn/xwzx/tzgg/202604/t20260428_1324164.html", "page_audit": "opened_official_page_table", "note": "页面可见政府定价票价与配套交通收费。"},
+    {"region": "十堰市", "url": "https://fgw.shiyan.gov.cn/xwzx/tzgg/202604/t20260428_4927362.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "荆州市", "url": "https://fgw.zwgk.jingzhou.gov.cn/35742/104220263/t123220263044/689613.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "荆门市", "url": "https://fgw.jingmen.gov.cn/art/2026/4/29/art_3164_1216656.html", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "鄂州市", "url": "https://fgw.ezhou.gov.cn/wjgz/sfqd_new/202604/t20260427_762507.html", "page_audit": "opened_official_page_title_date", "note": "页面标题与日期可见，具体附件/表格内容待读取。"},
+    {"region": "孝感市", "url": "https://xgfgw.xiaogan.gov.cn/fzgg/gsgg01/202604/t20260427_572860.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "黄冈市", "url": "https://fgw.hg.gov.cn/zwgk/public/content/1717604", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "咸宁市", "url": "https://fgw.xianning.gov.cn/zwdt/tzgg/202604/t20260430_4547741.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "随州市", "url": "https://www.suizhou.gov.cn/fgw/fbjd_27/zfxxgkgz/fdzdgknr/gsgg/202604/t20260428_1423088.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "恩施州", "url": "https://fgw.enshi.gov.cn/xxgk/fdzdgknr/qtzdnrgk/jgqd/202604/t20260428_1801119.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "仙桃市", "url": "https://www.xiantao.gov.cn/bmxxgk/xtsfgw/zfxxgk/fdzdgknr/qtzdgknr/gsgg/202604/t20260429_5924930.shtml", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "潜江市", "url": "https://www.hbqj.gov.cn/sfzhggwyh/zfxxgk/fdzdgknr/qtzdgknr_34504/jffw/202604/t20260427_5922879.html", "page_audit": "link_catalogued_not_page_audited"},
+    {"region": "神农架林区", "url": "https://fgw.snj.gov.cn/zc/202604/t20260428_5924393.shtml", "page_audit": "link_catalogued_not_page_audited"}
+  ],
+  "missing_from_catalog": [
+    {"region": "天门市", "status": "catalog_source_reports_no_government-priced_scenic_spots", "note": "不表示没有收费景区；只能说明该汇总目录没有政府定价景区清单链接。"}
+  ],
+  "limits": [
+    "政府定价清单不覆盖实行市场调节价的全部景区。",
+    "不在清单中不能推断免费。",
+    "本目录不是票价数据表，不能直接写入知识库。",
+    "开放时间不在这类价格清单字段内。"
+  ]
+}
