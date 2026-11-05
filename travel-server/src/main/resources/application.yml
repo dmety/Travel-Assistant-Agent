@@ -12,4 +12,20 @@ spring:
     name: travel-assistant
 travel:
   data-directory: ${TRAVEL_DATA_DIR:./data}
-
+  # 景点精简索引库（Python 离线构建产物，Java 只读加载，不覆盖）
+  attraction-kb-path: ${ATTRACTION_KB_PATH:${travel.data-directory}/attractions_index.json}
+  # 官方购票入口白名单（人工维护，只读）. 文件不存在即视为「没有经核验的入口」，
+  # 系统不会因此生成任何猜测链接。
+  ticket-channel-file: ${TICKET_CHANNEL_FILE:${travel.data-directory}/ticket_channels.json}
+  # 高德 Web 服务密钥。留空则地点/天气/路线查询整体停用，接口返回 503 并说明原因；
+  # 行程、景点、预算、协作等本地能力不受影响。
+  amap:
+    key: ${AMAP_KEY:}
+    timeout-ms: ${AMAP_TIMEOUT_MS:4000}
+  # DeepSeek 密钥。留空则 Agent 规划接口返回 503 并说明原因（工具层仍可独立测试）。
+  ai:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
+    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:20000}
+    max-tool-calls: ${AGENT_MAX_TOOL_CALLS:6}

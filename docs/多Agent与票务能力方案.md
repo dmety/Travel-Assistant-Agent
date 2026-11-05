@@ -6,7 +6,11 @@
 
 保留 Java 21、Spring Boot 单体及 travel-client / travel-common / travel-server 三模块。使用现有 Spring AI 接入模型，由 Java 显式编排流程；当前不增加多 Agent 框架、微服务、消息队列或向量数据库。
 
-Java 目前仅有健康接口、安全入口和客户端连接等工程骨架，Agent、业务存储、在线知识检索和票务能力均待实现。Python 已有离线采集、融合、补全及检索脚本，本地 JSON 已存在，但尚未接入 Java 在线流程。
+Java 侧已落地账号与会话、行程 CRUD 与板块级权限、版本控制、邀请与成员协作、景点只读检索、
+预算与时间检查、留言与修改记录、购票辅助、高德查询、规划草案，以及 V3 的候选与投票、预算分析、
+综合决策建议、归档与导出；Agent 由 Java 显式编排，模型只做措辞与理解，未配置密钥时整体降级。
+Python 已提供离线采集、融合、补全及检索脚本，其产物 `data/attractions_index.json` 由 Java 启动时只读加载。
+**尚未实现**：票务完整交易（下单/支付/出票/退改）、多角色拆分（需先有基线对比数据）。
 
 新增知识库不必然要求多 Agent。先完成单 Agent 检索生成基线，再拆分角色，以同一组需求比较约束满足率、无依据事实数量、未知费用披露、响应时间和模型用量。无改善的拆分可以合并。
 
@@ -81,7 +85,11 @@ TicketOrder 至少区分创建中、待支付、已支付、出票中、已出�
 | domain/ticket | TicketProduct、TicketSession；正式交易阶段增加 TicketOrder 和状态规则 |
 | infrastructure/ticketing | 官方入口配置；正式授权后实现平台适配器 |
 
-以上为待实现设计，不创建空类冒充功能。domain 不依赖 Spring AI；工具通过业务服务执行，模型不直接读写文件。
+**落地情况**：`application/ticket`（`TicketService`）、`domain/attraction`、`infrastructure/ticketing` 已实现；
+知识库实际落在 `application/attraction` 与 `infrastructure/persistence/AttractionStore`（不单独建
+`application/knowledge` 包，避免同一职责两处存放）；`PlanningState` 与三个规划 Agent **未拆分**，
+当前仍是一次请求出一份草案。`TicketOrder` 与订单编排待购票交易立项后实施。
+**不创建空类冒充功能**；domain 不依赖 Spring AI，工具通过业务服务执行，模型不直接读写文件。
 
 ## 7. 实施与验收
 

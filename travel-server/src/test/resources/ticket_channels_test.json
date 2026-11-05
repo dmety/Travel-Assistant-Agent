@@ -1,0 +1,48 @@
+{
+  "schema": "ticket-channel-v1",
+  "generated_at": "2026-11-04T00:00:00+08:00",
+  "note": "测试用官方入口配置：一条正常、一条地址非法、一条未记录核验日期",
+  "channels": [
+    {
+      "attractionId": "t-hz-001",
+      "attractionName": "西湖",
+      "city": "杭州",
+      "channelName": "西湖风景名胜区官方预约",
+      "officialUrl": "https://www.hzwestlake.gov.cn/ticket",
+      "ticketTypes": [
+        { "name": "游船（三潭印月）", "price": 55.00, "currency": "CNY", "priceNote": "含上岛" },
+        { "name": "环湖观光车", "price": null, "currency": null, "priceNote": "按段计费，现场公示" }
+      ],
+      "rules": ["需实名预约", "节假日建议提前 3 天"],
+      "source": "景区官网公示页面，人工核对",
+      "verifiedAt": "2026-11-01",
+      "note": "湖区本身免费开放"
+    },
+    {
+      "attractionId": "t-hz-002",
+      "attractionName": "灵隐寺",
+      "city": "杭州",
+      "channelName": "地址写错的入口",
+      "officialUrl": "ftp://example.com/ticket",
+      "ticketTypes": [],
+      "rules": [],
+      "source": "不应被加载",
+      "verifiedAt": null,
+      "note": "地址协议非法，加载时应被丢弃"
+    },
+    {
+      "attractionId": "t-hz-003",
+      "attractionName": "千岛湖",
+      "city": "杭州",
+      "channelName": "千岛湖景区官方渠道",
+      "officialUrl": "https://www.qiandaohu.gov.cn",
+      "ticketTypes": [
+        { "name": "中心湖区门票", "price": 130.00, "currency": "CNY", "priceNote": null }
+      ],
+      "rules": ["旺季需预约"],
+      "source": "景区公告",
+      "verifiedAt": null,
+      "note": "核验日期未记录"
+    }
+  ]
+}

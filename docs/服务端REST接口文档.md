@@ -1,8 +1,9 @@
 # Travel Assistant 服务端接口文档
 
-> 适用分支：`zipei`　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
+> 适用版本：`wei`（V1 → V3 全部功能）　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
 >
-> 本文档覆盖**账号与认证**与**行程管理**两套 REST 接口，包含请求/响应示例、数据模型、权限模型与乐观锁机制。
+> 本文档覆盖**账号与认证**、**行程管理**、**协作与外部查询**、**团队决策与总结**四套 REST 接口，
+> 包含请求/响应示例、数据模型、权限模型与乐观锁机制。
 
 ---
 
@@ -21,9 +22,23 @@
 - 退出调用 `/api/logout`，服务端使会话失效并清除 `JSESSIONID`。
 
 ### 1.3 公开的接口（无需登录）
-`GET /api/health`、`POST /api/account/register`、`POST /api/login`、`GET /`、`GET /login`、`GET /login.html`、`GET /register.html`。
+
+与 `SecurityConfiguration#permitAll()` 保持一致，共 12 项：
+
+| 路径 | 说明 |
+|---|---|
+| `GET /api/health` | 健康检查 |
+| `POST /api/account/register` | 注册 |
+| `POST /api/login` | 表单登录 |
+| `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
+| `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
+| `GET /`、`GET /login`、`GET /login.html` | 登录页（注册在页内切换标签完成） |
+| `GET /app`、`GET /app.html` | 接口测试台页面 |
 
 其余 `/api/**` 均要求登录，未登录直接返回 **401**（不跳转登录页，便于 JSON 客户端处理）。
+`/api/location/**`（高德）和 `/api/agent/**`（规划）都需要登录：前者按调用量计费，后者消耗模型配额。
+
+> **待确认项**：`SecurityConfiguration` 另放行了 `/register.html`，但 `travel-server/src/main/resources/static/` 下并无该文件（注册实际在 `login.html` 内完成）。保留放行不影响功能，是否删除该条目需与开发负责人确认；确认后本表同步更新。
 
 ### 1.4 统一错误响应
 除登录/退出外，错误统一为 JSON：
@@ -34,15 +49,48 @@
 
 | HTTP | 含义 | 触发场景 |
 |---|---|---|
-| 400 | 请求参数/校验不合法 | 注册字段不合规、缺 `version`、类型错误、**行程标题为空**、**费用金额为负**、**住宿离店早于入住**、**邀请未注册用户** |
+| 400 | 请求参数/校验不合法 | 注册字段不合规、缺 `version`、类型错误、**行程标题为空**、**费用金额为负**、**住宿离店早于入住**、**邀请未注册用户 / 邀请自己 / 邀请已是成员**、**创建者尝试退出行程** |
 | 401 | 未登录 | 访问受保护接口但未带有效会话 |
-| 403 | 无权限 | 非参与者 / 成员无该板块编辑权 / 非 owner 操作成员或删除 |
-| 404 | 资源不存在 | 行程 `id` 不存在；**成员不在成员列表中** |
-| 409 | 版本冲突 | 提交 `version` 与服务端不一致（响应头带回 `X-Version`） |
-| 201 | 创建成功 | 注册 / 创建行程（带 `Location`） |
+| 403 | 无权限 | 非参与者 / 成员无该板块编辑权 / 非 owner 操作成员或删除 / 非 owner 发起或撤回邀请 / 非受邀者处理邀请 |
+| 404 | 资源不存在 | 行程 `id` 不存在；**成员不在成员列表中**；**邀请 `id` 不存在** |
+| 409 | 版本冲突 | 提交 `version` 与服务端不一致（响应头带回 `X-Version`）；**邀请已被接受/拒绝/撤回后再次处理** |
+| 503 | 依赖不可用 | **景点知识库缺失或损坏**，查询已停用，响应带 `reason` |
+| 201 | 创建成功 | 注册 / 创建行程 / 首次发出邀请（带 `Location`） |
+| 200 | 复用已存在资源 | 向同一受邀人重复发起邀请：不新增记录，只更新授权板块 |
+| 204 | 成功无内容 | 成员主动退出 |
 
 > 校验类错误信息形如 `{ "error": "费用金额不能为负数：-999.99（交通）" }`；
 > 成员级 404 额外带回 `id` 与 `username`，便于区分「行程不存在」与「成员不存在」。
+
+### 1.5 异常与状态码映射（服务端实现）
+
+错误响应由统一异常处理生成，下表与代码一一对应，便于排查「接口返回 400/403/404/409 到底是哪条规则触发的」。
+
+| 异常 | HTTP | 响应体 | 触发场景 |
+|---|---|---|---|
+| `InvalidAccountException` | 400 | `{ "error": "<原因>" }` | 注册时用户名/密码不符合长度与字符规则 |
+| `DuplicateAccountException` | 409 | `{ "error": "账号已存在: xxx" }` | 注册时用户名已存在 |
+| `MethodArgumentNotValidException` | 400 | `{ "error": "<首个字段校验消息>" }` | 请求体 Bean Validation 失败（如 `title` 为 `@NotBlank`） |
+| `InvalidItineraryException` | 400 | `{ "error": "<原因>" }` | 标题为空、费用为负、住宿日期倒置、邀请未注册用户等业务校验 |
+| `ItineraryForbiddenException` | 403 | `{ "error": "无权限" }` | 非参与者访问；成员编辑未授权板块；非 owner 管理成员或删除 |
+| `ItineraryNotFoundException` | 404 | `{ "error": "行程不存在", "id": "..." }` | 行程 ID 不存在 |
+| `MemberNotFoundException` | 404 | `{ "error": "成员不存在", "id": "...", "username": "..." }` | 目标用户不在成员列表中（不递增版本号） |
+| `VersionConflictException` | 409 | `{ "error": "版本冲突，已被他人修改", "currentVersion": N }`，响应头带 `X-Version` | 提交的 `version` 与服务端不一致 |
+| `AttractionUnavailableException` | 503 | `{ "error": "景点查询已停用", "reason": "<原因>" }` | 景点库文件缺失、JSON 解析失败或结构异常 |
+| `InvitationNotFoundException` | 404 | `{ "error": "邀请不存在", "invitationId": "..." }` | 邀请 ID 不存在 |
+| `InvitationConflictException` | 409 | `{ "error": "邀请已被处理，不能再次变更", "invitationId": "...", "status": "ACCEPTED" }` | 邀请已接受/已拒绝/已撤回，不能再次变更 |
+| `InvalidCommentException` | 400 | `{ "error": "<原因>" }` | 留言内容为空或超过 2000 字 |
+| `InvalidTicketQueryException` | 400 | `{ "error": "请提供景点 id 或景点名称" }` | 购票查询既没给 `attractionId` 也没给 `name` |
+| `AmapUnavailableException` | 503 | `{ "error": "外部信息查询不可用", "reason": "<原因>" }` | 未配置 `AMAP_KEY`、服务不可达、配额不足或高德返回错误 |
+| `InvalidPlanningRequestException` | 400 | `{ "error": "<原因>" }` | 规划请求缺 `destination` |
+| `ItineraryArchivedException` | 409 | `{ "error": "行程已归档，当前为只读状态…", "id": "...", "archived": true }` | 对已归档行程做任何写操作（含成员、候选、投票） |
+| `InvalidCandidateException` | 400 | `{ "error": "<原因>" }` | 候选名称为空/超长/重复，投票选项缺失，撤回没有的票 |
+| `CandidateNotFoundException` | 404 | `{ "error": "候选项不存在", "candidateId": "..." }` | 候选 ID 不存在或不属于该行程 |
+
+> 模型调用失败**不**走异常映射：`/api/agent/plan` 会降级为「只有检索结果、没有文字建议」，
+> 把原因写进响应的 `notices`，请求本身仍是 200。
+
+> 未登录访问受保护接口由 Spring Security 直接返回 **401**，不经过上述处理器。
 
 ---
 
@@ -178,6 +226,9 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 - **更新**：`PUT /api/itineraries/{id}/plan?version={v}`（owner 或 `editSections` 含 `PLAN`）→ **200** 完整 `Itinerary`（version 已 +1）。
   请求体：`Plan`（见 §4.2）。
 
+> `plan` 自 2026-11-04 起支持 `departDate` / `returnDate`（`YYYY-MM-DD`）。两者都填写且返回早于出发时返回 **400**
+> `{ "error": "返回日期不能早于出发日期：2026-11-12 → 2026-11-10" }`，且**版本号不变**；任一为空不校验（缺失由 §3.11 体检提示）。
+
 ### 3.8 每日安排 DAILY
 - **查看**：`GET /api/itineraries/{id}/daily`（参与者）→ **200** `DailySchedule[]`，响应头含 `X-Version`。
 - **更新**：`PUT /api/itineraries/{id}/daily?version={v}`（owner 或含 `DAILY`）→ **200** `Itinerary`。
@@ -228,6 +279,579 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 
 ---
 
+### 3.11 预算汇总与行程体检（只读，参与者）
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/itineraries/{id}/budget` | 预算汇总，响应头含 `X-Version` |
+| `GET /api/itineraries/{id}/checks` | 行程体检，响应体内含 `version` |
+
+两个接口都是只读的，**不会递增版本号**；权限与行程查看权一致（owner 或成员），非参与者 **403**，未登录 **401**。
+
+`budget` 响应（多币种示例）：
+
+```json
+{
+  "primaryCurrency": "CNY",
+  "totals": [
+    { "currency": "CNY", "amount": 1400.00, "itemCount": 2 },
+    { "currency": "USD", "amount": 100.00, "itemCount": 1 }
+  ],
+  "byCategory": [
+    { "category": "交通", "currency": "CNY", "amount": 600.00, "itemCount": 1 },
+    { "category": "住宿", "currency": "CNY", "amount": 800.00, "itemCount": 1 },
+    { "category": "交通", "currency": "USD", "amount": 100.00, "itemCount": 1 }
+  ],
+  "itemCount": 3,
+  "pendingCount": 1,
+  "pending": [ { "id": "…", "category": "餐饮", "note": "未询价" } ],
+  "currencies": ["CNY", "USD"],
+  "mixedCurrency": true,
+  "notes": [
+    "存在 2 种币种（CNY、USD），本汇总未做汇率换算，请按币种分别核对，不要把不同币种的金额直接相加",
+    "有 1 笔费用未填写金额，已标记为待填写，未计入合计"
+  ]
+}
+```
+
+汇总口径（**与验收相关，不能简化**）：
+
+- **不跨币种相加**：不同币种分别成行、按「币种 + 类别」拆分。100 元与 100 美元相加得 200 是错的；汇率换算需要外部汇率源与时间点，本版本未实现，只给出提示。
+- `primaryCurrency`：条目最多的币种；平票时 `CNY` 优先，再按字典序，保证同一份数据每次结果一致。
+- `amount` 为 `null` 的费用进 `pending`，**不计入合计**；`amount` 为负的照实计入并在 `notes` 中点明（写入时已拦截，能出现的只可能是历史数据）。
+- `category` 为空归入「未分类」，`currency` 为空按 `CNY`；金额统一两位小数（`HALF_UP`），接口按 `1400.00` 输出，不会退化成 `1400.0`。
+
+`checks` 响应：
+
+```json
+{
+  "itineraryId": "…",
+  "version": 3,
+  "ok": false,
+  "warnings": [
+    { "code": "EXPENSE_AMOUNT_MISSING", "field": "expenses", "message": "有 1 笔费用未填写金额" },
+    { "code": "MIXED_CURRENCY", "field": "expenses", "message": "存在多种币种，未做汇率换算，预算总额按币种分别给出" }
+  ]
+}
+```
+
+`code` 为稳定标识（文案可调整，代码不变）：
+
+| code | 含义 |
+|---|---|
+| `DEPART_DATE_MISSING` / `RETURN_DATE_MISSING` | 出发/返回日期未填写 |
+| `RETURN_BEFORE_DEPART` | 返回早于出发（写入已拦截，仅历史数据会出现） |
+| `EXPENSE_AMOUNT_MISSING` | 有费用未填金额 |
+| `EXPENSE_NEGATIVE` | 有负数金额 |
+| `NO_EXPENSE` | 尚未记录任何费用 |
+| `MIXED_CURRENCY` | 存在多币种 |
+| `DAILY_OUT_OF_RANGE` / `TRANSPORT_OUT_OF_RANGE` / `LODGING_OUT_OF_RANGE` | 安排日期超出旅行时间范围 |
+| `LODGING_PERIOD_INVALID` | 离店早于入住（历史数据） |
+| `ACTIVITY_TIME_MISSING` | 某天所有安排都没填起止时间（一天最多一条，不逐条刷屏） |
+| `ACTIVITY_TIME_INVALID` | 安排结束早于开始（写入已拦截，仅历史数据会出现） |
+| `ACTIVITY_TIME_OVERLAP` | 同日两项安排时间重叠，需用户确认是否调整 |
+
+> `ACTIVITY_TIME_*` 为 V2 §3 新增。重叠用扫描线找出「与当前最晚结束项相交」的对，
+> 既不会漏报，也不会把 n 项互相重叠展开成 n² 条提示；首尾相接（前一项 12:00 结束、
+> 后一项 12:00 开始）不算重叠。整天只有自由文本时间（如「上午」）时**不判**为缺失，
+> 那是有意的模糊安排。
+
+`ok=true` 表示没有需要用户处理的提示。日期区间倒置时**只报** `RETURN_BEFORE_DEPART`，不再逐条报越界——否则每条安排都会再报一次，噪声会掩盖真正的问题。
+
+---
+
+### 3.12 邀请与成员退出（需求 §4）
+
+流程：**创建者发出邀请 → 受邀者登录后看到待处理邀请 → 接受（成为成员）或拒绝 → 创建者可撤回**。
+
+**邀请不是成员**：发出邀请不改变行程 `version`，受邀者在接受前访问行程仍为 **403**。
+这样创建者发邀请不会让正在编辑的人凭空撞上版本冲突。
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/itineraries/{id}/invitations` | POST | 仅创建者 | 发起邀请，请求体 `InviteRequest` |
+| `/api/itineraries/{id}/invitations` | GET | 仅创建者 | 该行程的邀请记录（含已处理），**不需要** `version` |
+| `/api/invitations` | GET | 需登录 | 我收到的待处理邀请，最新在前 |
+| `/api/invitations/{invId}/accept` | POST | 仅受邀者 | 接受并成为成员 |
+| `/api/invitations/{invId}/reject` | POST | 仅受邀者 | 拒绝 |
+| `/api/invitations/{invId}` | DELETE | 仅创建者 | 撤回待处理的邀请 |
+| `/api/itineraries/{id}/leave` | POST | 仅成员 | 主动退出，返回 **204** |
+
+**发起邀请**
+
+```json
+POST /api/itineraries/{id}/invitations
+{ "username": "guest_b", "editSections": ["DAILY", "EXPENSE"] }
+```
+
+- **201** 首次发出（带 `Location: /api/invitations/{invId}`，响应体 `InvitationView`）
+- **200** 同一行程同一受邀人已有待处理邀请：**不新增记录**，只更新 `editSections` 后重新发出
+- **400** 用户名为空 / 受邀账号未注册 / 邀请自己 / 该用户已是成员
+- **403** 非创建者
+- **404** 行程不存在
+
+**接受邀请**
+
+```
+POST /api/invitations/{invId}/accept
+```
+
+- **200** `InvitationView`（`status=ACCEPTED`，`respondedAt` 已填）
+- **403** 该邀请不是发给我的
+- **404** 邀请不存在
+- **409** 邀请已被处理（`status` 回带当前状态）
+
+> **接受不需要 `version`**：加入成员是受邀者对邀请的响应，不是与创建者的并发编辑。
+> 若要求版本号，受邀者得先取到行程最新版本，而创建者随时可能改动，一步能成的事会变成反复冲突。
+> 服务端在行程写锁内以「当前版本 + 1」写入，版本号仍严格递增。
+
+**撤回 / 拒绝** 同理，只有 `PENDING` 可处理；行程被删除时，其所有待处理邀请自动置为 `CANCELLED`。
+
+**成员退出**
+
+```
+POST /api/itineraries/{id}/leave     → 204
+```
+
+- **400** 创建者尝试退出（行程必须始终有归属人，需删除行程）
+- **404** 不是该行程成员
+
+> `POST /api/itineraries/{id}/members`（§3.10）保留为**创建者直接授权**的管理入口，与邀请流程并存；
+> 主流程建议走邀请，受邀者才有机会拒绝。
+
+---
+
+### 3.13 协作记录与留言（V2 §4）
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/itineraries/{id}/comments` | GET | 参与者 | 该行程的留言，按时间升序 |
+| `/api/itineraries/{id}/comments` | POST | 参与者 | 发表留言，返回 **201** |
+| `/api/itineraries/{id}/changelog` | GET | 参与者 | 修改记录，按时间倒序，`limit` 默认 50、上限 200 |
+
+**这两条都是旁路数据，不带 `version` 参数，也不会让行程版本号 +1。**
+留言是讨论，不是对方案的编辑；如果它推动版本号，正常聊天会把正在编辑的人挤进 409。
+
+**发表留言**
+
+```json
+POST /api/itineraries/{id}/comments
+{ "content": "第二天想加个灵隐寺" }
+```
+
+- **201** 返回 `Comment`，`author` 取自服务端会话，客户端无法自称
+- **400** 内容为空，或超过 2000 字
+- **403** 非该行程参与者
+- **404** 行程不存在
+
+**修改记录**
+
+```json
+GET /api/itineraries/{id}/changelog?limit=20
+
+[
+  { "id": "...", "itineraryId": "...", "actor": "owner_a",
+    "at": "2026-11-04T12:25:00Z", "section": "DAILY",
+    "summary": "更新每日安排：1 天 / 2 项", "version": 2 },
+  { "id": "...", "itineraryId": "...", "actor": "owner_a",
+    "at": "2026-11-04T12:24:00Z", "section": "ITINERARY",
+    "summary": "创建行程「V2联调」", "version": 1 }
+]
+```
+
+- `section` 取值：`ITINERARY` / `PLAN` / `DAILY` / `TRANSPORT` / `LODGING` / `EXPENSE` / `MEMBER`
+- **只由服务端在写操作成功后产生**，客户端不提交、也无法伪造；`actor` 一律取会话身份
+- 单个行程保留最近 500 条，超出丢弃最旧的；行程删除时留言与记录一并清空
+- 记录写入失败只记 WARN，**不会**让已经落盘的编辑回滚
+
+---
+
+### 3.14 购票辅助（V2 票务 Agent）
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/tickets` | GET | 公开 | 按 `attractionId` 或 `name` 查询购票辅助 |
+| `/api/tickets/channels` | GET | 公开 | 已收录的官方入口清单 |
+
+**这一节的核心是「没有时怎么说」**：只展示人工核验过的官方入口，未收录时明确提示自行前往官方渠道，
+**不抓取、不推断、不生成任何链接**；余票恒为未核验。
+
+```json
+GET /api/tickets?name=西湖
+
+{
+  "attractionId": "t-hz-001",
+  "attractionName": "西湖",
+  "city": "杭州",
+  "status": "CHANNEL_FOUND",
+  "stockVerified": false,
+  "channels": [
+    { "attractionId": "t-hz-001", "attractionName": "西湖", "city": "杭州",
+      "channelName": "西湖风景名胜区官方预约",
+      "officialUrl": "https://www.hzwestlake.gov.cn/ticket",
+      "ticketTypes": [
+        { "name": "游船（三潭印月）", "price": 55.00, "currency": "CNY", "priceNote": "含上岛" },
+        { "name": "环湖观光车", "price": null, "currency": null, "priceNote": "按段计费，现场公示" }
+      ],
+      "rules": ["需实名预约", "节假日建议提前 3 天"],
+      "source": "景区官网公示页面，人工核对",
+      "verifiedAt": "2026-11-01",
+      "note": "湖区本身免费开放" }
+  ],
+  "notice": "余票未核验：本系统未接入景区库存接口，购票前请以官方页面显示为准。",
+  "source": "景区官网公示页面，人工核对",
+  "queriedAt": "2026-11-04T12:25:04Z"
+}
+```
+
+**状态取值**
+
+| `status` | 含义 | `notice` |
+|---|---|---|
+| `CHANNEL_FOUND` | 命中配置中的官方入口 | 余票未核验（未记录核验日期时额外提示再次确认） |
+| `NO_VERIFIED_CHANNEL` | 没有经核验的入口 | 请自行进入景区官方网站或官方公众号，本系统不生成猜测链接 |
+
+- **400** 既没给 `attractionId` 也没给 `name`
+- 票价未知时 `price` 为 `null`，**不补成 0**——0 元会让预算把「不知道」算成「免费」
+- 同上：`stockVerified` 恒为 `false`，这一阶段没有接入任何库存接口
+
+**入口配置**（人工维护，默认不存在）
+
+```json
+// <data-directory>/ticket_channels.json
+{
+  "schema": "ticket-channel-v1",
+  "channels": [
+    {
+      "attractionId": "t-hz-001", "attractionName": "西湖", "city": "杭州",
+      "channelName": "西湖风景名胜区官方预约",
+      "officialUrl": "https://www.hzwestlake.gov.cn/ticket",
+      "ticketTypes": [], "rules": [], "source": "官网公示", "verifiedAt": "2026-11-01", "note": ""
+    }
+  ]
+}
+```
+
+也接受纯数组。加载规则：
+
+- 文件不存在 → 以「无经核验入口」运行，这是**默认状态**，仓库不内置任何链接
+- 解析失败 → 停用购票辅助并记 WARN，**不覆盖原文件**，留下现场供人工修复
+- 地址不是 `http/https` 绝对地址 → 丢弃该条并记 WARN，不能让它变成可点链接
+
+---
+
+### 3.15 外部信息查询（V2 §1，高德）
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/location/places` | GET | 需登录 | `keywords` 必填，`city` 可选，`limit` 默认 10 / 上限 25 |
+| `/api/location/weather` | GET | 需登录 | `city` 支持城市名或 adcode |
+| `/api/location/route` | GET | 需登录 | `mode`=WALKING/DRIVING/TRANSIT，`origin`/`destination` 为「经度,纬度」 |
+| `/api/location/status` | GET | 需登录 | 是否已配置密钥 |
+
+**需要登录**：高德接口按调用量计费，对外开放会让配额被匿名消耗。
+
+**未配置密钥（`AMAP_KEY` 为空）时一律 503，不是 200 + 空结果。**
+那会把「没接服务」表现成「当地没有这个地方」。
+
+```json
+// 503
+{ "error": "外部信息查询不可用",
+  "reason": "未配置高德 Web 服务密钥（环境变量 AMAP_KEY），地点、天气与路线查询已停用；行程、景点、预算与协作功能不受影响" }
+```
+
+**地点检索**
+
+```json
+GET /api/location/places?keywords=西湖&city=杭州&limit=5
+
+{
+  "keyword": "西湖", "city": "杭州",
+  "places": [
+    { "name": "西湖", "type": "风景名胜", "address": "龙井路1号",
+      "city": "杭州市", "district": "西湖区", "tel": "0571-1234",
+      "lat": 30.259, "lon": 120.13, "coordinateSystem": "GCJ-02", "distanceMeters": "0" }
+  ],
+  "source": "高德地图 Web 服务 · 地点检索",
+  "queriedAt": "2026-11-04T12:30:00Z",
+  "notice": null
+}
+```
+
+- 坐标固定标注 `GCJ-02`，**不能**与 WGS-84 直接混用
+- 结果为空时 `notice` 给出可操作提示，而不是干巴巴的空数组
+
+**天气预报**
+
+```json
+GET /api/location/weather?city=杭州
+
+{
+  "city": "杭州", "adcode": "330100", "reportTime": "2026-11-04 18:00:00",
+  "days": [ { "date": "2026-11-05", "dayWeather": "多云", "nightWeather": "晴",
+              "dayTemp": "22", "nightTemp": "14", "dayWind": "东北", "dayPower": "1-3",
+              "nightWind": "东北", "nightPower": "1-3" } ],
+  "source": "高德地图 Web 服务 · 天气预报",
+  "queriedAt": "2026-11-04T12:30:00Z"
+}
+```
+
+- 天气接口只认 adcode；传城市名时服务端先走地理编码解析，解析不到直接报错，**不拿猜的代码去查**
+- 这是**预报**，不是实时观测，展示时必须说明
+
+**路线规划**
+
+```json
+GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
+
+{
+  "mode": "WALKING", "originLngLat": "120.1,30.2", "destinationLngLat": "120.2,30.3",
+  "distanceMeters": 1600, "durationSeconds": 1200,
+  "distanceText": "1.6 公里", "durationText": "20 分钟",
+  "steps": [ { "instruction": "向东步行 300 米", "road": "北山街",
+               "distanceMeters": 300, "durationSeconds": 240 } ],
+  "source": "高德地图 Web 服务 · 路线规划",
+  "queriedAt": "2026-11-04T12:30:00Z"
+}
+```
+
+- 距离与耗时都是**预估**，不含等车、排队、检票时间
+- 公交必须给 `city`，否则报错；坐标格式不合法直接拒绝，不把错误坐标发给高德
+
+**错误码翻译**（`infocode` 保留在消息里便于排查）
+
+| infocode | 提示 |
+|---|---|
+| 10001 / 10009 | 密钥无效或与绑定平台不符 |
+| 10002 / 10010 / 10016 / 10019 / 10041 | 当前密钥没有该接口权限 |
+| 10003 / 10012 / 10017 / 10044 | 当日调用量已达上限 |
+| 10004 | 请求过于频繁 |
+| 10005 / 10006 / 10029 | IP 或域名不在白名单 |
+| 10013 / 10014 / 10015 | 服务未开通或已过期 |
+| 20000 / 20001 / 20002 | 请求参数不合法 |
+
+---
+
+### 3.16 规划草案（V2 §2）
+
+| 接口 | 方法 | 鉴权 | 说明 |
+|---|---|---|---|
+| `/api/agent/plan` | POST | 需登录 | 生成规划草案，**不落库** |
+| `/api/agent/status` | GET | 需登录 | 模型是否已配置 |
+
+**这条接口只生成草案，绝不写库。** 需求要求「用户确认后才将建议保存到正式方案」，
+保存必须由用户另行调用 §3.3 / §3.7 完成，两者之间隔着一次明确的人工确认。
+
+```json
+POST /api/agent/plan
+{ "destination": "北京", "days": 2, "preferences": ["人文"], "budget": 1500, "travelers": 2 }
+```
+
+```json
+{
+  "request": { ... },
+  "candidates": [ { "id": "amap-B000A7IKWK", "name": "故宫博物院", "city": "北京市",
+                    "level": "5A景区", "rating": "4.9", "ticket": "60元",
+                    "openTime": "08:30-17:00（周一闭馆）", "sources": ["OpenStreetMap", "Amap"], ... } ],
+  "weather": null,
+  "tickets": [ ... ],
+  "advice": null,
+  "notices": [
+    "未接入实时天气（未配置高德密钥），本草案不含天气信息",
+    "未配置模型密钥（DEEPSEEK_API_KEY），本次仅提供检索到的景点，未生成文字建议"
+  ],
+  "sources": ["本地景点知识库"],
+  "generatedAt": "2026-11-04T12:30:00Z"
+}
+```
+
+**编排方式**：由 Java 决定调用哪些工具（景点 → 天气 → 票务），模型只负责组织语言。
+每条建议都能追溯到来源，不会出现「没查就答」。
+
+**候选排序**：等级（5A > 4A > 3A）→ 评分 → 名称。知识库按名称排列，
+直接截断会拿到字母序靠前的普通景点，把故宫、颐和园挤掉。
+
+**降级是显式的，最差情况也不是「什么都给不了」**：
+
+| 情况 | 行为 |
+|---|---|
+| 景点库不可用 | `candidates` 为空 + `notices` 说明原因，请求仍是 200 |
+| 高德未配置 | 不查天气，`notices` 说明「未接入实时天气」 |
+| 模型未配置或调用失败 | `advice` 为 `null` + `notices` 说明原因，候选照常返回 |
+
+- **400** `destination` 为空
+- 候选为空时先按 `preferences` 兜底检索，并提示「请确认目的地」
+
+### 3.17 候选与投票（V3 §1）
+
+成员为「要不要去某个地方」提候选并投票。**候选与选票都不进行程聚合**，因此这些操作
+不改变行程版本号，也不会因为有人投票而让正在编辑日程的人撞上 409。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/itineraries/{id}/candidates` | 添加候选，`201` |
+| `GET` | `/api/itineraries/{id}/candidates` | 候选看板（含票数、排序、并列与未投票提示） |
+| `DELETE` | `/api/itineraries/{id}/candidates/{candidateId}` | 删除候选（提出者本人或创建者），连带清票 |
+| `POST` | `/api/itineraries/{id}/candidates/{candidateId}/votes` | 投票或改票 |
+| `DELETE` | `/api/itineraries/{id}/candidates/{candidateId}/votes` | 撤回自己的票 |
+| `POST` | `/api/itineraries/{id}/candidates/{candidateId}/apply?version=N` | 确认候选，写入某一天的每日安排 |
+
+添加候选：
+
+```json
+POST /api/itineraries/{id}/candidates
+{ "kind": "ATTRACTION", "name": "灵隐寺", "city": "杭州", "note": "" }
+```
+
+`kind` 取 `ATTRACTION` / `LODGING` / `OTHER`，省略按景点处理。名称必填、≤80 字，
+同名同类型重复添加返回 **400**（不是静默产生两条一样的候选）。
+
+投票：
+
+```json
+POST /api/itineraries/{id}/candidates/{candidateId}/votes
+{ "choice": "SUPPORT" }
+```
+
+`choice` 取 `SUPPORT` / `OPPOSE` / `ABSTAIN`。**同一人对同一候选只保留一张票**——
+再次投票是改票（保留首次投票时间），不是叠加。返回更新后的看板。
+
+看板示例：
+
+```json
+{
+  "itineraryId": "…", "itineraryVersion": 4,
+  "participantCount": 2, "voterCount": 2, "candidateCount": 2, "totalVotes": 3,
+  "candidates": [
+    { "candidate": { "id": "…", "kind": "ATTRACTION", "name": "灵隐寺",
+                     "proposedBy": "v3peer", "createdAt": "…" },
+      "support": 1, "oppose": 0, "abstain": 0, "score": 1,
+      "votes": [ { "voter": "v3peer", "choice": "SUPPORT" } ] }
+  ],
+  "leaderId": "…", "tie": false,
+  "notes": ["投票只用于讨论，不会自动改动行程；确认后需由有权限的成员写入正式安排"]
+}
+```
+
+**排序口径**：净支持（支持 − 反对）→ 支持数 → 反对数（少者优先）→ 添加时间。
+用净支持而不是总票数，是因为「3 人支持 2 人反对」和「4 人支持 4 人反对」不是一回事，
+后者实际上是一次僵持。
+
+**平票不选赢家**：榜首并列时 `leaderId` 为 `null`、`tie` 为 `true`，并在 `notes` 里说明。
+系统没有资格用「谁先提的」替一群人做决定。
+
+**权限**：能查看行程的人就能提候选、投票，不需要板块编辑权——提候选是提议，不是改方案。
+删除候选限提出者本人或创建者。`apply` 需要 `DAILY` 编辑权与当前 `version`，
+因为它**真的会写每日安排**，并产生一条正常的修改记录。
+
+### 3.18 预算分析（V3 §2）
+
+```
+GET /api/itineraries/{id}/budget/analysis?travelers=2
+```
+
+```json
+{
+  "currency": "CNY", "limit": 2000.00,
+  "estimatedTotal": 2000.00, "plannedTotal": 800.00, "actualTotal": 1200.00,
+  "remaining": 0.00, "comparable": true, "overLimit": false, "overBy": null,
+  "travelers": 2, "perPerson": 1000.00, "perPersonActual": 600.00,
+  "warnings": [ { "code": "BUDGET_ACTUAL_OVER_PLAN", "field": "expenses", "message": "…" } ],
+  "notes": ["人均按 2 人分摊（创建者 + 成员）", "…"]
+}
+```
+
+- `estimatedTotal` = 全部已填金额的费用（含已发生）；`actualTotal` = 标记 `actual=true` 的部分。
+- `remaining` = `limit − estimatedTotal`；未设上限或币种不一致时为 `null`。
+- `travelers` 省略时按「创建者 + 成员」计算，可用查询参数覆盖。
+- **币种不一致不硬减**：`comparable=false`、`remaining=null`，并提示未做汇率换算。
+
+| 警告代码 | 含义 |
+|---|---|
+| `BUDGET_LIMIT_MISSING` | 未设定预算上限 |
+| `BUDGET_OVER_LIMIT` | 预计总额已超上限 |
+| `BUDGET_ACTUAL_OVER_LIMIT` | 已发生费用已超上限 |
+| `BUDGET_ACTUAL_OVER_PLAN` | 已发生高于仍属预计的部分，原计划可能偏低 |
+| `BUDGET_CURRENCY_MISMATCH` | 上限币种与费用主币种不一致 |
+
+只读接口，不改变版本号。
+
+### 3.19 综合决策建议（V3 §3）
+
+```
+POST /api/agent/itineraries/{id}/advice
+{ "travelers": 2, "includeWeather": true }
+```
+
+两个字段都可省略。返回：
+
+```json
+{
+  "itineraryId": "…", "version": 4, "title": "V3联调·杭州",
+  "votes": { … 看板同 §3.17 … },
+  "budget": { … 预算分析同 §3.18 … },
+  "checks": { … 体检同 §3.11 … },
+  "weather": null,
+  "risks": [
+    { "code": "BUDGET_OVER_LIMIT", "severity": "HIGH",
+      "message": "预计总额 2500.00 CNY 已超预算上限 2000，超出 500.00",
+      "basis": "预算", "suggestion": "先压缩住宿与交通……" }
+  ],
+  "suggestions": ["票数最高的是「灵隐寺」（支持 1／反对 0），确认后可以加入某一天的安排"],
+  "advice": null,
+  "notices": ["未接入实时天气（未配置高德密钥），天气相关的风险未纳入判断",
+              "未配置模型密钥（DEEPSEEK_API_KEY），本次不生成文字建议；风险与调整建议仍由系统规则给出"],
+  "sources": ["本系统行程数据", "成员投票"],
+  "generatedAt": "2026-11-04T14:03:00Z"
+}
+```
+
+`severity` 取 `HIGH` / `MEDIUM` / `INFO`，列表按严重度降序。规则覆盖：
+
+| 代码 | 严重度 | 依据 |
+|---|---|---|
+| `BUDGET_OVER_LIMIT`、`BUDGET_ACTUAL_OVER_LIMIT` | HIGH | 预算 |
+| `ACTIVITY_TIME_INVALID` | HIGH | 行程体检 |
+| `TRANSPORT_ARRIVAL_CONFLICT` | HIGH | 交通与每日安排（到达晚于当天安排） |
+| `ACTIVITY_TIME_OVERLAP`、`DAILY_OUT_OF_RANGE` | MEDIUM | 行程体检 |
+| `VOTE_TIE`、`NO_VOTE_YET`、`VOTE_PARTIAL` | MEDIUM / INFO | 投票 |
+| `NO_LODGING` | MEDIUM | 住宿（多晚行程无住宿） |
+| `WEATHER_BAD` | MEDIUM | 天气预报（旅行日期内有雨雪） |
+| `NO_CANDIDATE`、`NO_TRANSPORT`、`ITINERARY_ARCHIVED` | INFO | 对应板块 |
+
+**判断由 Java 做，模型只负责组织语言**：风险条目全部由规则算出，模型不可用时
+`advice` 为 `null`，但 `risks` 与 `suggestions` 完整保留。本接口**不写库**，
+建议要用户确认后才落到正式方案。
+
+### 3.20 归档（V3 §4）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/itineraries/{id}/archive` | 归档，转为只读（仅 owner），幂等 |
+| `POST` | `/api/itineraries/{id}/unarchive` | 取消归档（仅 owner），幂等 |
+| `GET` | `/api/itineraries?archived=true\|false` | 省略时返回全部 |
+
+归档不删除数据，只是禁止写入：此后**所有写操作**（五大板块、成员变更、候选与投票）
+一律返回 **409** 并带 `"archived": true`。用 409 而不是 403，是因为这不是权限问题——
+创建者自己也改不了，冲突语义才是「当前状态不允许这个操作」。
+
+需要版本号的接口在归档状态下先返回 409（归档），不会先报版本冲突，避免用户以为是并发问题。
+
+### 3.21 导出文本摘要（V3 §4）
+
+```
+GET /api/itineraries/{id}/export
+```
+
+返回 `text/plain;charset=UTF-8`，并带 `Content-Disposition: attachment` 与 UTF-8 文件名。
+内容包括：行程基本信息、成员与授权、方案、每日安排、交通、住宿、费用与小计、
+预算分析、候选与投票、行程检查，结尾附「不构成预订承诺、价格以官方为准」的说明。
+
+导出**纯文本**而不是 PDF/Word：没有字体与分页依赖，任何编辑器都能打开，也便于贴进群聊。
+服务端不写用户磁盘，落点由调用方决定。
+
+---
+
 ## 4. 数据模型
 
 ### 4.1 Itinerary（行程聚合根）
@@ -245,6 +869,8 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | `transports` | Transport[] | 交通 |
 | `lodgings` | Lodging[] | 住宿 |
 | `expenses` | Expense[] | 费用 |
+| `archived` | boolean | 是否已归档（只读）；老 JSON 缺键时为 `false`（2026-11-04 V3 新增） |
+| `archivedAt` | string(ISO-8601) | 归档时间，未归档时为 `null`（2026-11-04 V3 新增） |
 
 ### 4.2 Plan（方案）
 | 字段 | 类型 | 说明 |
@@ -252,6 +878,13 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | `destination` | string | 目的地 |
 | `summary` | string | 行程摘要 |
 | `notes` | string | 备注 |
+| `departDate` | string(date) | 出发日期 `YYYY-MM-DD`，可为 `null`（2026-11-04 新增） |
+| `returnDate` | string(date) | 返回日期 `YYYY-MM-DD`，可为 `null`；早于 `departDate` 时写入被拒（2026-11-04 新增） |
+| `budgetLimit` | number | 预算上限，可为 `null`（未设定时预算分析不给差额）（2026-11-04 V3 新增） |
+| `budgetCurrency` | string | 上限币种，默认 `CNY`；与费用主币种不一致时不比较（2026-11-04 V3 新增） |
+
+> 历史行程的 `plan` 没有这两个键，读取时按 `null` 处理（不会报错），由 §3.11 体检提示「未填写」。
+> 预算上限同样允许为空：0 意味着「一分不花」，与「还没填」是两件事，不能互相冒充。
 
 ### 4.3 DailySchedule（每日安排）与 DailyActivity
 **DailySchedule**
@@ -266,10 +899,17 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `id` | string | 活动 ID（缺失由服务端补全） |
-| `time` | string | 时间（自由文本，如 "09:30"） |
+| `time` | string | 时间（自由文本，如 "09:30"、"上午"）；无法确定具体时刻时用它 |
 | `title` | string | 活动名称 |
 | `location` | string | 地点 |
 | `note` | string | 备注 |
+| `startTime` | string(`HH:mm`) | 开始时间，可为 `null`（2026-11-04 新增，V2 §3） |
+| `endTime` | string(`HH:mm`) | 结束时间，可为 `null`；**早于 `startTime` 时写入被拒（400）** |
+
+> 两个新字段都可空，历史数据没有这两个键时按 `null` 读取，不会报错。
+> 体检（§3.11）会提示整天都没填起止时间的安排、同日时间重叠、以及安排日期越界；
+> 只有「结束早于开始」在写入时就拦截——那是笔误，没有合理解释，
+> 而重叠和越界需要用户自己判断是否要调整。
 
 ### 4.4 Transport（交通）
 | 字段 | 类型 | 说明 |
@@ -305,12 +945,44 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | `currency` | string | 币种（如 CNY） |
 | `date` | string(`yyyy-MM-dd`) | 日期 |
 | `note` | string | 备注 |
+| `actual` | boolean | 是否已发生：`true` 计入「实际总额」，`false`（默认）算「预计」（2026-11-04 V3 新增） |
+
+> 用显式标记而不是「日期早于今天就算已发生」：一张补录的旧票据和一笔提前写下的预算，
+> 日期看起来可能完全一样，猜出来的「实际支出」没人敢用。
 
 ### 4.7 Member（成员）
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `username` | string | 成员用户名 |
 | `editSections` | Section[] | 可编辑板块集合（`PLAN`/`DAILY`/`TRANSPORT`/`LODGING`/`EXPENSE`） |
+
+### 4.8 Invitation（邀请）与 InvitationView
+
+**Invitation**（落盘结构，`data/invitations.json`）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | string | 邀请 ID |
+| `itineraryId` | string | 目标行程 ID |
+| `inviter` | string | 发起人（行程创建者） |
+| `invitee` | string | 受邀账号 |
+| `editSections` | Section[] | 接受后授予的板块编辑权；空数组表示仅查看 |
+| `status` | string | `PENDING` / `ACCEPTED` / `REJECTED` / `CANCELLED` |
+| `createdAt` | string(ISO-8601) | 发出时间 |
+| `respondedAt` | string(ISO-8601) \| null | 处理时间，未处理为 `null` |
+
+**InvitationView**（接口响应，比落盘结构多一个 `itineraryTitle`）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `itineraryTitle` | string \| null | 行程标题，**查询时实时取**，不存快照（行程可改名）；行程已删除时为 `null` |
+
+**InviteRequest**（发起邀请请求体）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `username` | string | 受邀账号，须已注册 |
+| `editSections` | Section[] | 可为空数组 |
+
+> 状态机只有一条正向路径 `PENDING → ACCEPTED / REJECTED / CANCELLED`，没有回退。
+> 已离开 `PENDING` 的邀请再次处理返回 **409**，不静默覆盖已有决定。
 
 ---
 
@@ -321,7 +993,7 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 地址 | 页面 | 功能 |
 |---|---|---|
 | `GET /`、`GET /login` | `login.html` | 登录 / 注册标签页，登录后展示当前会话，支持退出 |
-| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理，自动携带 `version` 并展示 409 冲突 |
+| `GET /app`、`GET /app.html` | `app.html` | **接口测试台**：登录/注册/退出 + 行程列表/创建/删除 + 五大板块编辑（JSON 编辑并 PUT）+ 成员权限管理 + **邀请页签（发出/接受/拒绝/撤回/退出行程）** + 预算检查 + **协作页签（留言/修改记录）** + **购票页签（官方入口查询）** + **周边查询页签（高德地点/天气/能力状态）** + **候选投票页签（提候选/支持/反对/弃权/撤票/确认加入）** + **决策建议页签（风险与调整建议）** + **归档导出页签（归档/取消归档/导出文本）**，自动携带 `version` 并展示 409 冲突 |
 
 两个页面均通过 `fetch` 调用 §2/§3 的真实接口，会话基于同源 `JSESSIONID` Cookie。
 
@@ -363,5 +1035,158 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 ## 7. 落盘与版本控制说明
 - 账号：`data/accounts.json`（数组，密码为 BCrypt 哈希）。
 - 行程：`data/itineraries.json`（数组，原子写：先写临时文件再 `ATOMIC_MOVE` 替换，读取走内存副本）。
-- 两份数据文件均已纳入 Git（空数组种子），运行时由 `TRAVEL_DATA_DIR`（默认 `./data`）定位。
+- 邀请：`data/invitations.json`（数组，同上原子写）。**邀请不进行程聚合**，因此发出/撤回邀请不改行程 `version`。
+- 留言：`data/comments.json`；修改记录：`data/changelog.json`（同上原子写）。两者都**不进行程聚合**，
+  因此评论不推动 `version`；单个行程的修改记录保留最近 500 条。
+- 候选：`data/candidates.json`；选票：`data/votes.json`（同上原子写）。同样**不进行程聚合**，
+  添加候选与投票都不推动 `version`；删除候选时连带删除它的选票。
+- 官方购票入口：`data/ticket_channels.json`（**只读**，人工维护白名单）。默认不存在，
+  文件缺失或解析失败时购票辅助以「无经核验入口」运行，程序不覆盖原文件。
+- 景点库：`data/attractions_index.json`（只读，Python 离线构建产物）。
+- 运行数据文件按需创建，**全部由 `.gitignore` 排除**（含 accounts / itineraries / invitations /
+  comments / changelog / candidates / votes）。仓库里只保留 `data/*.example.json` 空数组种子，
+  用于说明初始形态；各 `Store` 在文件缺失时自动创建空文件，新克隆无需手工拷贝即可启动。
+  运行态数据里是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库，因此不跟踪。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
+
+---
+
+## 8. 景点查询（只读知识库）
+
+景点能力沿用「Python 离线构建、Java 在线检索」的分工：离线脚本把融合库清洗成精简索引库，
+服务端启动时**只读**加载并在内存建索引，查询不访问磁盘、不写任何文件。
+
+### 8.1 数据来源与加载
+
+| 项 | 说明 |
+|---|---|
+| 离线构建 | `python tools/build_attraction_index.py` → `data/attractions_index.json`（只读 `china_attractions.json`，输出路径与输入相同时拒绝执行） |
+| 加载时机 | 服务端启动，`AttractionStore#load()` |
+| 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
+| 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |
+| 当前规模 | 11,858 条，66 个城市，13MB → 5.7MB |
+
+### 8.2 按城市查询
+
+```
+GET /api/attractions?city=杭州&limit=20
+```
+
+| 参数 | 必填 | 说明 |
+|---|---|---|
+| `city` | 二选一 | 城市或省份名，支持别名：`杭州`/`杭州市`、`浙江`/`浙江省` |
+| `name` | 二选一 | 景点名称；`city` 与 `name` 同时给出时 **`city` 优先** |
+| `limit` | 否 | 返回条数，默认 20，上限 50；非正数回落默认 |
+
+响应：
+
+```json
+{
+  "matched": 438,
+  "returned": 3,
+  "limit": 3,
+  "message": null,
+  "items": [
+    {
+      "id": "amap-B023B07SDX",
+      "name": "东方文化园",
+      "city": "杭州市",
+      "province": "浙江省",
+      "type": "风景名胜",
+      "level": "4A景区",
+      "rating": "4.4",
+      "openTime": "全年 07:30–17:00开放 最晚进入16:30；国庆节 07:30–21:00开放 最晚进入20:30",
+      "ticket": "旺季（1-6月、10月）100元/人，淡季（7-9月、11-12月）80元/人；……",
+      "address": "大湾路17号",
+      "tel": "0571-82338072",
+      "website": null,
+      "image": null,
+      "description": null,
+      "lat": 30.10239,
+      "lon": 120.19792,
+      "source": "Amap",
+      "sources": ["Amap"],
+      "ticketText": "旺季（1-6月、10月）100元/人，……",
+      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……"
+    }
+  ]
+}
+```
+
+字段语义：
+
+| 字段 | 说明 |
+|---|---|
+| `matched` | **截断前**的命中总数 |
+| `returned` | 实际返回条数（= `min(matched, limit)`） |
+| `limit` | 生效的条数上限（已归一化） |
+| `message` | 无结果或缺参时的提示；有结果时为 `null` |
+| `ticket` / `openTime` | 原始值，库中缺失时为 `null` |
+| `ticketText` / `openTimeText` | 展示值，缺失时固定为「未知」 |
+
+> 调用方**不得**把 `ticket = null` 解释为「免费」，也不得把 `openTime = null` 解释为「全天开放」。
+
+### 8.3 按名称查询
+
+```
+GET /api/attractions?name=西湖&limit=5
+```
+
+三级匹配，命中即止：
+
+1. **精确名**：名称完全相等；
+2. **前缀**：名称以关键词开头（如「西湖天地」「西湖公园」）；
+3. **包含**：名称中含关键词。
+
+先精确、再前缀、最后包含，是为了避免「西湖」把「**东西湖**区图书馆」这类非目标结果排到前面。
+关键词为空时直接返回提示，不返回全库。
+
+### 8.4 按 ID 查详情
+
+```
+GET /api/attractions/{id}
+```
+
+- 命中：`200`，返回单个景点对象（字段同 §8.2 的 `items[]`）；
+- 不存在：`404` `{ "error": "景点不存在", "id": "..." }`；
+- 库不可用：`503`（见 §8.6）。
+
+### 8.5 知识库状态
+
+```
+GET /api/attractions/status
+```
+
+可用时：
+
+```json
+{ "available": true, "count": 11858, "cityCount": 126, "loadedAt": "2026-11-04T11:28:28Z",
+  "path": "./data/attractions_index.json" }
+```
+
+不可用时：
+
+```json
+{ "available": false, "reason": "景点知识库文件不存在：……（请先运行 python tools/build_attraction_index.py）",
+  "path": "./data/attractions_index.json" }
+```
+
+`cityCount` 为**含别名的索引条目数**（同一城市会有「杭州」「杭州市」两个键），不等于城市数。
+
+### 8.6 库缺失或损坏时的降级
+
+| 场景 | 查询接口 | 状态接口 | 磁盘文件 |
+|---|---|---|---|
+| 文件不存在 | `503` + `reason` 含「不存在」 | `available=false` | **不自动创建** |
+| JSON 解析失败 | `503` + `reason` 含「解析失败」 | `available=false` | **不覆盖、不改写** |
+| 缺 `attractions` 数组 | `503` + `reason` 含「结构异常」 | `available=false` | **不覆盖** |
+| 全部记录不可解析 | `503` + `reason` 说明条数 | `available=false` | **不覆盖** |
+
+降级时刻意返回 503 而不是空列表：空列表会让调用方误判为「知识库里确实没有这个景点」，
+而实际原因是库没加载成功。修复动作一律交给离线构建流程人工执行。
+
+### 8.7 已知限制
+
+- 票价、开放时间、等级、评分均为**离线快照**，不保证实时性；票价覆盖极低（11,858 条中仅 752 条有值）。
+- 坐标存在 WGS-84（OSM）与 GCJ-02（高德）混用，偏差约 50–500 米，未做统一转换。
+- 只做 `limit` 截断，没有分页游标；超过 50 条需收窄查询条件。
