@@ -1,0 +1,540 @@
+{
+  "scope": "rows with an existing non-missing ticket or open_time; no new ticket/time fields added",
+  "scope_record_count": 4659,
+  "ticket_value_count": 810,
+  "open_time_value_count": 4653,
+  "issue_3": {
+    "duplicate_description_rows": 0,
+    "rows_with_city_intro_field": 0
+  },
+  "issue_4": {
+    "placeholder_values": 0,
+    "ticket_status_inconsistencies": 0,
+    "open_time_status_inconsistencies": 0
+  },
+  "issue_5": {
+    "coordinate_system_counts": {
+      "WGS-84": 267,
+      "GCJ-02": 4392
+    },
+    "osm_primary_mixed_coordinate_rows": 0,
+    "missing_coordinate_system": 0,
+    "unknown_coordinate_system": 0,
+    "missing_coordinates": 0,
+    "invalid_coordinates": 0
+  },
+  "issue_6": {
+    "relevant_ambiguous_same_name_groups": 13,
+    "relevant_ambiguous_groups_without_risk_flag": 0,
+    "risk_or_review_rows": 14,
+    "merge_review_rows": 13,
+    "merge_review_groups": 12,
+    "merged_source_rows": 1092,
+    "merged_rows_missing_osm_id": 0,
+    "merged_rows_missing_amap_id": 239,
+    "records_missing_source_ids": 0,
+    "records_missing_primary_source_id": 0,
+    "duplicate_source_id_rows": 0,
+    "cross_record_duplicate_source_ids_touching_scope": 0,
+    "source_metadata_inconsistencies": 0,
+    "review_groups": [
+      {
+        "name": "七宝古镇",
+        "members": [
+          {
+            "id": "osm-way-1194727456",
+            "city": "上海",
+            "address": "横沥路108号",
+            "lat": 31.1565334,
+            "lon": 121.3534705,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-1194727456"
+            ]
+          },
+          {
+            "id": "osm-way-1212781236",
+            "city": "上海",
+            "address": "上海市上海",
+            "lat": 31.1538708,
+            "lon": 121.3501418,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-1212781236"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "杭州动物园",
+        "members": [
+          {
+            "id": "osm-node-1259826992",
+            "city": "杭州",
+            "address": "虎跑路40号",
+            "lat": 30.2156829,
+            "lon": 120.1304625,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-1259826992"
+            ]
+          },
+          {
+            "id": "osm-way-504174138",
+            "city": "杭州",
+            "address": "杭州",
+            "lat": 30.215141,
+            "lon": 120.128343,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-504174138"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "狮子林",
+        "members": [
+          {
+            "id": "osm-node-4246892594",
+            "city": "苏州",
+            "address": "园林路23号",
+            "lat": 31.3234041,
+            "lon": 120.6247017,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-4246892594"
+            ]
+          },
+          {
+            "id": "osm-way-44679451",
+            "city": "苏州",
+            "address": "江苏省苏州",
+            "lat": 31.3231111,
+            "lon": 120.6248316,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-44679451"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "网师园",
+        "members": [
+          {
+            "id": "osm-node-5042033121",
+            "city": "苏州",
+            "address": "带城桥路阔家头巷11号",
+            "lat": 31.3003833,
+            "lon": 120.6298435,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-5042033121"
+            ]
+          },
+          {
+            "id": "osm-way-44679452",
+            "city": "苏州",
+            "address": "江苏省苏州",
+            "lat": 31.3004105,
+            "lon": 120.6297906,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-44679452"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "苏州乐园森林世界",
+        "members": [
+          {
+            "id": "osm-way-981545998",
+            "city": "苏州",
+            "address": "高新区象山路99号",
+            "lat": 31.3333716,
+            "lon": 120.4682113,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-981545998"
+            ]
+          },
+          {
+            "id": "osm-way-1266829911",
+            "city": "苏州",
+            "address": "江苏省苏州",
+            "lat": 31.3258166,
+            "lon": 120.4725444,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-1266829911"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "孙中山先生铜像",
+        "members": [
+          {
+            "id": "osm-node-12345219981",
+            "city": "南京",
+            "address": "新街口(新街口地铁站8号口步行90米)",
+            "lat": 32.0643805,
+            "lon": 118.8482847,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": "far_apart_6930m",
+            "merge_review": null,
+            "source_ids": [
+              "osm-node-12345219981"
+            ]
+          },
+          {
+            "id": "osm-way-961227001",
+            "city": "南京",
+            "address": "江苏省南京",
+            "lat": 32.0438288,
+            "lon": 118.7788626,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": "far_apart_6930m",
+            "merge_review": null,
+            "source_ids": [
+              "osm-way-961227001"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "黄鹤楼公园",
+        "members": [
+          {
+            "id": "osm-node-4448663394",
+            "city": "武汉",
+            "address": "蛇山西山坡特1号",
+            "lat": 30.5483762,
+            "lon": 114.2902776,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-4448663394"
+            ]
+          },
+          {
+            "id": "osm-way-1053516206",
+            "city": "武汉",
+            "address": "武汉市",
+            "lat": 30.546504,
+            "lon": 114.2986694,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-1053516206"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "日光岩",
+        "members": [
+          {
+            "id": "osm-node-1762860367",
+            "city": "厦门",
+            "address": "晃岩路62号",
+            "lat": 24.4446321,
+            "lon": 118.0622567,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-1762860367"
+            ]
+          },
+          {
+            "id": "osm-way-905748511",
+            "city": "厦门",
+            "address": "福建省厦门",
+            "lat": 24.4446221,
+            "lon": 118.0622843,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-905748511"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "亚龙湾热带天堂森林公园",
+        "members": [
+          {
+            "id": "osm-node-2783312831",
+            "city": "三亚",
+            "address": "三亚",
+            "lat": 18.2502076,
+            "lon": 109.6211539,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": "far_apart_1978m",
+            "merge_review": "candidate",
+            "source_ids": [
+              "osm-node-2783312831"
+            ]
+          },
+          {
+            "id": "osm-node-4756490218",
+            "city": "三亚",
+            "address": "海南省三亚",
+            "lat": 18.2509718,
+            "lon": 109.6211431,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": "far_apart_1978m",
+            "merge_review": "candidate",
+            "source_ids": [
+              "osm-node-4756490218"
+            ]
+          },
+          {
+            "id": "osm-way-1469685542",
+            "city": "三亚",
+            "address": "海南省三亚",
+            "lat": 18.2526166,
+            "lon": 109.6397161,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": "far_apart_1978m",
+            "merge_review": "candidate",
+            "source_ids": [
+              "osm-way-1469685542"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "清昭陵",
+        "members": [
+          {
+            "id": "osm-node-1005994065",
+            "city": "沈阳",
+            "address": "北塔街道泰山路12号北陵公园内",
+            "lat": 41.8508869,
+            "lon": 123.4212937,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-1005994065"
+            ]
+          },
+          {
+            "id": "osm-node-13762467104",
+            "city": "沈阳",
+            "address": "辽宁省沈阳",
+            "lat": 41.8443506,
+            "lon": 123.422445,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-13762467104"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "滕王阁",
+        "members": [
+          {
+            "id": "osm-node-1855702047",
+            "city": "南昌",
+            "address": "滕王阁街道仿古街58号",
+            "lat": 28.6840416,
+            "lon": 115.8756502,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": true,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-1855702047"
+            ]
+          },
+          {
+            "id": "osm-way-482592826",
+            "city": "南昌",
+            "address": "江西省南昌",
+            "lat": 28.6844275,
+            "lon": 115.8751811,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-482592826"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "绳金塔",
+        "members": [
+          {
+            "id": "osm-node-2265668998",
+            "city": "南昌",
+            "address": "绳金塔街1号(绳金塔地铁站3号口步行230米)",
+            "lat": 28.6641476,
+            "lon": 115.8949771,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-node-2265668998"
+            ]
+          },
+          {
+            "id": "osm-way-1122857535",
+            "city": "南昌",
+            "address": "江西省南昌",
+            "lat": 28.6642691,
+            "lon": 115.8949504,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": null,
+            "merge_review": "same_normalized_name_requires_identity_review",
+            "source_ids": [
+              "osm-way-1122857535"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "江西省博物馆",
+        "members": [
+          {
+            "id": "osm-node-2374761016",
+            "city": "南昌",
+            "address": "赣江北大道698号",
+            "lat": 28.6804323,
+            "lon": 115.8752217,
+            "coordinate_system": "WGS-84",
+            "in_scope": true,
+            "ticket_present": false,
+            "open_time_present": true,
+            "same_name_risk": "far_apart_3209m",
+            "merge_review": "review",
+            "source_ids": [
+              "osm-node-2374761016"
+            ]
+          },
+          {
+            "id": "osm-way-971091001",
+            "city": "南昌",
+            "address": "江西省南昌",
+            "lat": 28.7092503,
+            "lon": 115.8769494,
+            "coordinate_system": "WGS-84",
+            "in_scope": false,
+            "ticket_present": false,
+            "open_time_present": false,
+            "same_name_risk": "far_apart_3209m",
+            "merge_review": "review",
+            "source_ids": [
+              "osm-way-971091001"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

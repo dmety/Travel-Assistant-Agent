@@ -51,6 +51,67 @@ def norm_name(name: str) -> str:
     return re.sub(r"\s+", "", str(name))
 
 
+_GCJ_A = 6378245.0
+_GCJ_EE = 0.00669342162296594323
+
+
+def _out_of_china(lat: float, lon: float) -> bool:
+    return not (0.8293 <= lat <= 55.8271 and 72.004 <= lon <= 137.8347)
+
+
+def _transform_lat(x: float, y: float) -> float:
+    import math
+    value = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y
+    value += 0.2 * math.sqrt(abs(x))
+    value += (20.0 * math.sin(6.0 * x * math.pi) + 20.0 * math.sin(2.0 * x * math.pi)) * 2.0 / 3.0
+    value += (20.0 * math.sin(y * math.pi) + 40.0 * math.sin(y / 3.0 * math.pi)) * 2.0 / 3.0
+    value += (160.0 * math.sin(y / 12.0 * math.pi) + 320.0 * math.sin(y * math.pi / 30.0)) * 2.0 / 3.0
+    return value
+
+
+def _transform_lon(x: float, y: float) -> float:
+    import math
+    value = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y
+    value += 0.1 * math.sqrt(abs(x))
+    value += (20.0 * math.sin(6.0 * x * math.pi) + 20.0 * math.sin(2.0 * x * math.pi)) * 2.0 / 3.0
+    value += (20.0 * math.sin(x * math.pi) + 40.0 * math.sin(x / 3.0 * math.pi)) * 2.0 / 3.0
+    value += (150.0 * math.sin(x / 12.0 * math.pi) + 300.0 * math.sin(x / 30.0 * math.pi)) * 2.0 / 3.0
+    return value
+
+
+def wgs84_to_gcj02(lat: float, lon: float) -> tuple[float, float]:
+    """Approximate WGS-84 -> GCJ-02 conversion for mainland-China points."""
+    import math
+    lat, lon = float(lat), float(lon)
+    if _out_of_china(lat, lon):
+        return lat, lon
+    dlat = _transform_lat(lon - 105.0, lat - 35.0)
+    dlon = _transform_lon(lon - 105.0, lat - 35.0)
+    radlat = lat / 180.0 * math.pi
+    sinlat = math.sin(radlat)
+    magic = 1.0 - _GCJ_EE * sinlat * sinlat
+    sqrtmagic = math.sqrt(magic)
+    dlat = (dlat * 180.0) / ((_GCJ_A * (1.0 - _GCJ_EE)) / (magic * sqrtmagic) * math.pi)
+    dlon = (dlon * 180.0) / (_GCJ_A / sqrtmagic * math.cos(radlat) * math.pi)
+    return lat + dlat, lon + dlon
+
+
+def gcj02_to_wgs84(lat: float, lon: float) -> tuple[float, float]:
+    """Approximate inverse GCJ-02 -> WGS-84; Amap does not expose reverse conversion."""
+    lat, lon = float(lat), float(lon)
+    if _out_of_china(lat, lon):
+        return lat, lon
+    wgs_lat, wgs_lon = lat, lon
+    for _ in range(10):
+        converted_lat, converted_lon = wgs84_to_gcj02(wgs_lat, wgs_lon)
+        delta_lat, delta_lon = converted_lat - lat, converted_lon - lon
+        wgs_lat -= delta_lat
+        wgs_lon -= delta_lon
+        if max(abs(delta_lat), abs(delta_lon)) < 1e-9:
+            break
+    return wgs_lat, wgs_lon
+
+
 def is_missing_value(value) -> bool:
     """Return whether a ticket/open-time value is absent or a placeholder.
 

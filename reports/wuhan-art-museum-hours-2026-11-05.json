@@ -1,0 +1,55 @@
+{
+  "retrieved_at": "2026-11-05",
+  "source_url": "https://wlj.wuhan.gov.cn/zfxxgk/fdzdgknr/jgjj/zsdw/202310/t20231017_2281350.shtml",
+  "source_title": "武汉市文化和旅游局、武汉科学技术馆官方参观页",
+  "records": [
+    {
+      "kb_id": "osm-node-6954323026",
+      "kb_name": "武汉美术馆",
+      "province": "湖北省",
+      "city": "武汉",
+      "open_time_text": "周二至周日 09:00-17:00（16:30停止入馆），周一闭馆",
+      "source_excerpt": "武汉美术馆（汉口馆）和（琴台馆）：每周二至周日9:00—17:00，16:30停止入馆，每周一闭馆。",
+      "source_updated_at": "2026-04-03",
+      "status": "unverified",
+      "match_basis": "知识库记录名称与武汉市文化和旅游局页面场馆名称完全一致；坐标位于汉口馆附近。该页面同时列出两个场馆，知识库记录的具体分馆仍应核实。"
+    },
+    {
+      "kb_id": "osm-node-1881949079",
+      "kb_name": "八七会议会址纪念馆",
+      "province": "湖北省",
+      "city": "武汉",
+      "open_time_text": "每日 09:00-17:00（16:30停止入馆），每周五闭馆（法定节假日除外）",
+      "source_url": "https://wlj.wuhan.gov.cn/zfxxgk/fdzdgknr/jgjj/zsdw/202008/t20200827_1437249.shtml",
+      "source_excerpt": "武汉市文化和旅游局直属单位页面：地址为武汉市江岸区鄱阳街139号；开放时间为每日9:00-17:00（16:30停止入馆），每周五闭馆（法定节假日除外）。",
+      "source_updated_at": "2026-04-03",
+      "status": "unverified",
+      "match_basis": "知识库名称与官方场馆名称完全一致，城市一致；官方页面给出具体地址，但知识库当前仅记录泛化地址，仍需人工复核坐标与场馆入口。"
+    },
+    {
+      "kb_id": "osm-node-1419797805",
+      "kb_name": "武汉国民政府旧址纪念馆",
+      "province": "湖北省",
+      "city": "武汉",
+      "ticket_text": "免费开放",
+      "open_time_text": "周二至周日 09:00-17:00",
+      "source_url": "https://hbwh.wenming.cn/zt2025/wcnrxwhdcs/sxdd/202509/t20250924_9034782.html",
+      "source_excerpt": "武汉文明网场馆介绍明确该馆地址为江汉区中山大道708号，开放时间周二至周日9:00—17:00，开放方式为免费开放，团队参观需预约。",
+      "source_updated_at": "2025-09-19",
+      "status": "unverified",
+      "match_basis": "知识库POI名称与官方场馆名称完全一致，均为武汉；官方地址和库内泛化地址需后续通过坐标复核。"
+    },
+    {
+      "kb_id": "osm-way-410145301",
+      "kb_name": "武汉科学技术馆（新馆）",
+      "province": "湖北省",
+      "city": "武汉",
+      "ticket_text": "免费预约参观（馆方；需预约入馆）",
+      "open_time_text": "周三至周日 09:00-16:30；周一、周二闭馆（法定节假日另行通告）",
+      "source_url": "https://www.whstm.org.cn/shownews/detail/142",
+      "source_excerpt": "武汉科学技术馆官方观众预约须知：开馆时间周三至周日9:00—16:30，周一至周二闭馆（国家法定节假日期间另行通告）；实行免费预约参观。页面列明馆址为武汉市江岸区沿江大道91号。",
+      "status": "unverified",
+      "match_basis": "知识库记录名称、城市与馆方页面和OSM对象名称一致；馆方地址在沿江大道91号，仍需复核知识库POI坐标和场馆入口。"
+    }
+  ]
+}

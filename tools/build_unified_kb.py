@@ -36,6 +36,7 @@ BASE = os.path.dirname(HERE)
 OSM_PATH = os.path.join(BASE, "data", "china_attractions_osm.json")
 OUT_PATH = os.path.join(BASE, "data", "china_attractions.json")
 INDEX_PATH = os.path.join(BASE, "data", "china_attractions_index.json")
+MAX_CROSS_SOURCE_MERGE_DISTANCE_M = 100
 
 
 def merge_city(attractions, by_key, client, city):
@@ -46,6 +47,11 @@ def merge_city(attractions, by_key, client, city):
         print(f"    [Amap][{city}] 整体失败: {e}", flush=True)
         return 0, 0, 0
     matched = added = 0
+    source_id_owners = {}
+    for row in attractions:
+        ids = row.source_ids or ([row.id] if row.id else [])
+        for source_id in set(ids):
+            source_id_owners.setdefault(source_id, set()).add(row.id)
     for p in pois:
         a = from_amap(p)
         cand = by_key.get((a.province, norm_name(a.name)), [])
@@ -55,6 +61,17 @@ def merge_city(attractions, by_key, client, city):
         # to fall inside the distance threshold. Require a singleton group and
         # an explicit OSM -> Amap source pairing before automatic fusion.
         eligible = []
+        incoming_ids = set(a.source_ids or ([a.id] if a.id else []))
+        allowed_owner_id = cand[0].id if len(cand) == 1 else None
+        claimed_by_other = any(
+            owner_id != allowed_owner_id
+            for source_id in incoming_ids
+            for owner_id in source_id_owners.get(source_id, set())
+        )
+        if claimed_by_other:
+            # Never create a second row claiming a source ID already owned by
+            # another knowledge-base record.
+            continue
         for item in cand:
             if len(cand) != 1 or not item.id.startswith("osm-") or not a.id.startswith("amap-"):
                 continue
@@ -74,7 +91,7 @@ def merge_city(attractions, by_key, client, city):
             import math
             dlat, dlon = math.radians(la-ra), math.radians(lo-ro)
             h = math.sin(dlat/2)**2 + math.cos(math.radians(ra))*math.cos(math.radians(la))*math.sin(dlon/2)**2
-            if 6371008.8 * 2 * math.asin(min(1, math.sqrt(h))) <= 1000:
+            if 6371008.8 * 2 * math.asin(min(1, math.sqrt(h))) <= MAX_CROSS_SOURCE_MERGE_DISTANCE_M:
                 eligible.append(item)
         if len(eligible) == 1:
             tgt = eligible[0]
@@ -83,6 +100,8 @@ def merge_city(attractions, by_key, client, city):
                 if source_id and source_id not in known_ids:
                     known_ids.append(source_id)
             tgt.source_ids = known_ids
+            for source_id in incoming_ids:
+                source_id_owners.setdefault(source_id, set()).add(tgt.id)
             if not tgt.level:
                 tgt.level = a.level
             if not tgt.rating:
@@ -113,8 +132,12 @@ def merge_city(attractions, by_key, client, city):
             tgt.open_time_status = "unverified" if a.open_time else tgt.open_time_status
             matched += 1
         else:
+            if any(source_id_owners.get(source_id) for source_id in incoming_ids):
+                continue
             attractions.append(a)
             by_key.setdefault((a.province, norm_name(a.name)), []).append(a)
+            for source_id in incoming_ids:
+                source_id_owners.setdefault(source_id, set()).add(a.id)
             added += 1
     return matched, added, len(pois)
 
