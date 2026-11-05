@@ -360,15 +360,18 @@ public class ItineraryService {
   public void leave(String id, String user) {
     inWriteLock(id, () -> {
       Itinerary it = requireExists(id);
+      // 非成员先按「成员不存在」拒绝，再谈归档：否则非成员退出一个已归档行程会拿到
+      // 409 + archived，等于替对方确认了「这份行程存在且已定稿」
+      boolean ownerLeaving = it.owner().equals(user);
+      if (!ownerLeaving && indexOfMember(it.members(), user) < 0) {
+        throw new MemberNotFoundException(id, user);
+      }
       requireNotArchived(it);
-      if (it.owner().equals(user)) {
+      if (ownerLeaving) {
         throw new InvalidItineraryException("行程创建者不能退出，如需终止请删除行程");
       }
       List<Member> members = new ArrayList<>(it.members());
       int index = indexOfMember(members, user);
-      if (index < 0) {
-        throw new MemberNotFoundException(id, user);
-      }
       members.remove(index);
       Itinerary updated = it.withMembers(members);
       store.save(updated);
@@ -566,18 +569,28 @@ public class ItineraryService {
     }
   }
 
+  /**
+   * 板块编辑权限校验。
+   *
+   * <p>**先判权限，再判归档**。反过来的话，一个与这份行程毫无关系的人提交修改，
+   * 会先撞上「已归档」拿到 409 + {@code archived=true}，等于告诉对方「这个 id 存在、
+   * 而且已经定稿了」——即使只有 403 之外的这一点点差别，也足够用来探测别人的行程状态。
+   * 权限先命中时，非成员无论行程处于什么状态都只看到同一个 403，没有可对比的信息。
+   *
+   * <p>代价是「有权限但没给这个板块」的人拿到 403 而不是 409：他有查看权，
+   * 本来就知道这份行程的状态，不构成额外泄露。
+   */
   private void requireEdit(Itinerary it, String user, Section section) {
+    if (!it.owner().equals(user)) {
+      Member m = it.members().stream()
+          .filter(x -> x.username().equals(user))
+          .findFirst()
+          .orElse(null);
+      if (m == null || !m.editSections().contains(section)) {
+        throw new ItineraryForbiddenException();
+      }
+    }
     requireNotArchived(it);
-    if (it.owner().equals(user)) {
-      return;
-    }
-    Member m = it.members().stream()
-        .filter(x -> x.username().equals(user))
-        .findFirst()
-        .orElse(null);
-    if (m == null || !m.editSections().contains(section)) {
-      throw new ItineraryForbiddenException();
-    }
   }
 
   private void requireOwner(Itinerary it, String user) {

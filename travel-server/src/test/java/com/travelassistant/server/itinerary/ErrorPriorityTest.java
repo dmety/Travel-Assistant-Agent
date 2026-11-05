@@ -26,6 +26,9 @@ import org.springframework.test.web.servlet.MvcResult;
  * <p>当前实现的顺序是：{@code requireExists} → 参与/板块权限 → 归档 → 版本号。
  * 三者都能同时成立时，先命中的那个决定状态码。这里把它钉住，
  * 将来有人调整校验顺序时，这些用例会先红，而不是等线上反馈。
+ *
+ * <p>**权限必须先于归档**：非成员与这份行程没有任何关系，不该从「已归档」这种
+ * 具体状态里读到任何信息。所以非成员 + 已归档只回 403，不附 {@code archived}。
  */
 @DisplayName("错误优先级：不存在 → 无权限 → 已归档 → 版本冲突")
 class ErrorPriorityTest extends ApiTestBase {
@@ -124,5 +127,43 @@ class ErrorPriorityTest extends ApiTestBase {
     mvc.perform(get("/api/itineraries/" + id).session(stranger))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.error").value("无权限"));
+  }
+
+  @Test
+  @DisplayName("非成员 + 已归档：仍是 403，不因为「归档」提前泄露行程状态")
+  void nonMemberOnArchivedIsForbiddenNotArchived() throws Exception {
+    MockHttpSession owner = registerAndLogin();
+    String id = createItinerary(owner, "已归档且与你无关");
+    mvc.perform(post("/api/itineraries/" + id + "/archive").session(owner))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.archived").value(true));
+    MockHttpSession stranger = registerAndLogin();
+
+    MvcResult result = putPlan(id, stranger, 1);
+
+    assertThat(result.getResponse().getStatus()).isEqualTo(403);
+    var body = json.readTree(result.getResponse()
+        .getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+    assertThat(body.get("error").asText()).isEqualTo("无权限");
+    // 归档的响应体带 archived，这里必须没有——有的话就等于告诉外人「这行程已定稿」
+    assertThat(body.has("archived")).isFalse();
+  }
+
+  @Test
+  @DisplayName("非成员退出已归档行程：404「成员不存在」，不是 409「已归档」")
+  void nonMemberLeaveOnArchivedIsNotFound() throws Exception {
+    MockHttpSession owner = registerAndLogin();
+    String id = createItinerary(owner, "已归档，外人退出");
+    mvc.perform(post("/api/itineraries/" + id + "/archive").session(owner))
+        .andExpect(status().isOk());
+    MockHttpSession stranger = registerAndLogin();
+
+    MvcResult result = mvc.perform(post("/api/itineraries/" + id + "/leave").session(stranger))
+        .andReturn();
+
+    assertThat(result.getResponse().getStatus()).isEqualTo(404);
+    assertThat(result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+        .contains("成员不存在")
+        .doesNotContain("已归档");
   }
 }
