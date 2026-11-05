@@ -1,0 +1,30 @@
+{
+  "source_name": "2026年巩义市A级旅游景区信息",
+  "source_url": "https://gy.jiceng.zhengzhou.gov.cn/029002001/9954380.jhtml",
+  "publisher": "巩义市文化广电旅游体育局",
+  "source_updated_at": "2026-03-20",
+  "retrieved_at": "2026-11-04",
+  "matching_policy": "Only unique, same-city matches with a clear name alias were considered. Existing non-empty knowledge-base fields are never overwritten. Source values are imported as unverified.",
+  "rows": [
+    {
+      "kb_id": "amap-B0FFIMTR2P",
+      "kb_name": "浮戏山雪花洞风景区",
+      "kb_city": "郑州市",
+      "source_name": "浮戏山雪花洞",
+      "source_address": "河南省郑州市巩义市新中镇茶店村",
+      "ticket": "55元/人",
+      "open_time": "夏季：8:30—17:30；冬季：9:00—17:00",
+      "match_reason": "景区核心名称完全一致，知识库内该核心名称唯一，城市与源地址一致；仅知识库名称带有‘风景区’后缀。"
+    },
+    {
+      "kb_id": "amap-B0FFI6OU4A",
+      "kb_name": "巩义石窟寺",
+      "kb_city": "郑州市",
+      "source_name": "巩义石窟",
+      "source_address": "巩义市河洛镇寺湾村",
+      "ticket": "30元/人",
+      "open_time": "夏季：8:30—18:00；冬季：8:30—17:00",
+      "match_reason": "知识库名是‘巩义石窟’加‘寺’的常见全称形式，核心名称在知识库内唯一；城市与源地址一致。"
+    }
+  ]
+}

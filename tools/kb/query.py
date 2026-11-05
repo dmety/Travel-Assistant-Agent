@@ -25,6 +25,24 @@ def by_city(doc: dict, city: str) -> list:
             if a.get("city") == city or a.get("province") == city]
 
 
+def city_introduction(doc: dict, city: str, province: str = None) -> str:
+    """Return the deduplicated city introduction for an exact city key.
+
+    When province is omitted, return a result only if the city name is unique
+    across the stored introduction map.
+    """
+    city = (city or "").strip()
+    province = (province or "").strip()
+    introductions = doc.get("city_introductions", {})
+    if not city:
+        return ""
+    if province:
+        return introductions.get(f"{province}|{city}", "")
+    matches = [text for key, text in introductions.items()
+               if key.rsplit("|", 1)[-1] == city]
+    return matches[0] if len(matches) == 1 else ""
+
+
 def by_type(doc: dict, t: str) -> list:
     """按类型/分类检索（如 museum / 风景名胜 / 博物馆）。"""
     t = (t or "").strip()

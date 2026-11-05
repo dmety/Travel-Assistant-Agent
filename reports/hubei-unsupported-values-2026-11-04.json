@@ -1,0 +1,1240 @@
+{
+  "date": "2026-11-04",
+  "scope": "Hubei only",
+  "count": 137,
+  "updates": [
+    {
+      "id": "osm-node-1218840067",
+      "name": "武昌江滩",
+      "field": "open_time",
+      "value": "周一至周日 06:00-23:00；游船发班时间以票种实际标注为参考，具体以景区现场实际为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-node-4448663394",
+      "name": "黄鹤楼公园",
+      "field": "ticket",
+      "value": "免费(公园)；登黄鹤楼70元",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-node-4448663394",
+      "name": "黄鹤楼公园",
+      "field": "open_time",
+      "value": "日场:08:30-18:00开放(17:00停止售票,17:20停止入园)；夜场:19:30-22:00开放(21:30停止入园)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-node-6799539485",
+      "name": "江汉关博物馆",
+      "field": "open_time",
+      "value": "周一 全天关闭；周二至周日 09:00-17:00 最晚进入16:00；周一闭馆（法定节假日除外）",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-81641900",
+      "name": "黄鹤楼",
+      "field": "ticket",
+      "value": "日场成人70元",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-81641900",
+      "name": "黄鹤楼",
+      "field": "open_time",
+      "value": "周一至周日 08:30-18:00,19:30-22:30 最晚进入17:20",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-99465606",
+      "name": "武汉动物园",
+      "field": "open_time",
+      "value": "周一至周日 09:00-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-363656371",
+      "name": "湖北省博物馆",
+      "field": "open_time",
+      "value": "周二至周五09:00-17:00 最晚进入16:00；周六至周日 09:00-20:30 最晚进入19:30；周一 全天不开放（法定节假日除外） ；法定节假日 08:30-18:00开放 最晚进入17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-369445342",
+      "name": "武汉博物馆",
+      "field": "open_time",
+      "value": "10/01-10/02 09:00–17:00开放 最晚进入16:30；10/05-10/07 09:00–17:00开放 最晚进入16:30；10/03-10/04 09:00–20:30开放 最晚进入20:00；01/01-09/30 周一, 周三–周日 09:00–17:00开放 最晚进入16:30；10/08-12/31 周一, 周三–周日 09:00–17:00开放 最晚进入16:30；01/01-09/30 周二 全天不开放；10/08-12/31 周二 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节 09:00–17:00开放 最晚进入16:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-675321040",
+      "name": "晴川阁",
+      "field": "open_time",
+      "value": "日场 周二至周日 09:00-17:00开放（16:30停止售票，16:30停止入园）；夜场 周二至周日 18:30-21:30开放（21:00停止售票，21:00停止入园）；周一 闭馆（节假日除外）,17:00-18:30期间不可入园；具体开放时间以官方通知为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-1143665742",
+      "name": "辛亥革命博物院(南区)",
+      "field": "open_time",
+      "value": "1/1-12/31 周二–周日 09:00–17:00开放 最晚进入16:00；1/1-12/31 周一 全天不开放；国庆节 09:00–17:00开放；周一闭馆，国家法定节假日除外",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-1225822189",
+      "name": "武汉科学技术馆",
+      "field": "open_time",
+      "value": "周一至周二 全天关闭；周三至周日 09:00-16:30；闭馆时间:周一至周二（国家法定节假日期间另行通告）",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-1316372136",
+      "name": "盘龙城国家考古遗址公园",
+      "field": "open_time",
+      "value": "周一 全天关闭；周二至周日 09:00-17:00 最晚进入16:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "osm-way-1525005526",
+      "name": "铁机路江滩灯塔",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0A0CK",
+      "name": "东湖生态旅游风景区",
+      "field": "ticket",
+      "value": "免费(听涛、磨山、马鞍山森林公园及绿道免费开放)；落雁景区13元/人(学生老人半价6.5元)；磨山内樱花园60元、梅园40元、荷园10元等园中园另计",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0A0CK",
+      "name": "东湖生态旅游风景区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J0B5",
+      "name": "东湖磨山景区",
+      "field": "open_time",
+      "value": "周一至周日 08:30-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1H7IS",
+      "name": "昙华林",
+      "field": "open_time",
+      "value": "周一至周日 09:00-19:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1ASJQ",
+      "name": "东湖听涛景区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZT0",
+      "name": "解放公园",
+      "field": "open_time",
+      "value": "06:00-22:00,2026年2月15日至2026年2月23日正常营业",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1CE1H",
+      "name": "黄陂木兰文化生态旅游区",
+      "field": "ticket",
+      "value": "由木兰山、木兰天池、木兰草原、木兰云雾山等独立景区组成，各单独售票：木兰山70元、木兰天池70元、木兰草原70元、云雾山65元；学生及60-65岁老人半价",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1CE1H",
+      "name": "黄陂木兰文化生态旅游区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00；旅游区内各景区的开放时间不一，详情请以景区公示为准。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFK4IHIB",
+      "name": "巴公房子",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J076",
+      "name": "落雁景区",
+      "field": "ticket",
+      "value": "全价票13元/人；学生证及60-65岁老人半价6.5元；1.2米以下儿童及65岁以上免",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J076",
+      "name": "落雁景区",
+      "field": "open_time",
+      "value": "周一至周日 08:00-17:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFIPHLDP",
+      "name": "咸安坊",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0B79Q",
+      "name": "武汉木兰草原",
+      "field": "ticket",
+      "value": "70元(武汉市2026政府定价；1.2米以下儿童及65岁以上免，学生及60-65岁老人半价35元)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0B79Q",
+      "name": "武汉木兰草原",
+      "field": "open_time",
+      "value": "周一至周日 09:00-18:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHONIK0",
+      "name": "东湖绿道",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B00022",
+      "name": "中山公园",
+      "field": "open_time",
+      "value": "周一至周日 06:00-22:30 最晚进入22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZIP",
+      "name": "木兰山风景区",
+      "field": "ticket",
+      "value": "70元(武汉市2026政府定价；索道上行50元/下行40元另计；军人全年免票)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZIP",
+      "name": "木兰山风景区",
+      "field": "open_time",
+      "value": "周一至周日 07:00-18:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFID01CO",
+      "name": "楚河汉街",
+      "field": "open_time",
+      "value": "周一至周日 10:00-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZ9W",
+      "name": "归元禅寺",
+      "field": "open_time",
+      "value": "周一至周日 08:00-17:00 最晚进入16:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B05205",
+      "name": "龟山风景区",
+      "field": "open_time",
+      "value": "周一至周日 07:00-19:00 最晚进入19:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J1UY",
+      "name": "木兰天池",
+      "field": "ticket",
+      "value": "70元(武汉市2026政府定价；索道上行60元/下行70元另计；学生及60-65岁老人半价)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J1UY",
+      "name": "木兰天池",
+      "field": "open_time",
+      "value": "周一至周日 08:00-17:00 最晚进入16:30；园内项目营业时间:8:30-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFG83RE8",
+      "name": "武汉园博园",
+      "field": "open_time",
+      "value": "10月16日-10月29日:08:30-22:00；日场8:30-17:00,16:30停止入场,夜场:16:30-22:00,21:30停止入场；10月30日:15:00-24:00,检票时间15:00至22:00；10月31日:15:00-次日1:00,检票时间15:00至22:30；11月1日:15:00-24:00,检票时间15:00至22:00；11月02日-11月29日每周六、周日:08:30-22:00；日场8:30-17:00,16:30停止入场,夜场:16:30-22:00,21:30停止入场",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K60P",
+      "name": "木兰云雾山景区",
+      "field": "ticket",
+      "value": "65元(武汉市2026政府定价；环线观光车50元/人另计；索道上行70元/下行60元另计；学生及60-65岁老人半价)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K60P",
+      "name": "木兰云雾山景区",
+      "field": "open_time",
+      "value": "1月至2月,12月 周一至周日 08:00-17:00 最晚进入16:00；3月至11月 周一至周日 08:00-17:30 最晚进入16:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B15T7P",
+      "name": "海合安武汉极地海洋度假区",
+      "field": "open_time",
+      "value": "10月17日至11月8日:周一至周五:9:30-17:30（最晚检票17:00）；周六至周日:9:30-20:30（夜场检票16:00，最晚检票19:30）；11月9日至11月30日:9:30-17:00（最晚检票16:30）,具体以景区当日实际公示信息为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0G3TUP5MS",
+      "name": "二妃山花海",
+      "field": "open_time",
+      "value": "周一至周日 09:00-21:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZXU",
+      "name": "吹笛景区",
+      "field": "ticket",
+      "value": "免费开放，无需门票；开放8:30-17:00；园内烧烤炉租赁、共享电动车/自行车、东湖龙谷（陪同票10元、亲子套票89-128元）等体验项目单独收费",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZXU",
+      "name": "吹笛景区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHFEAL3",
+      "name": "东湖生态旅游风景区梨园",
+      "field": "ticket",
+      "value": "免费(东湖听涛景区组成部分，全天开放)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHFEAL3",
+      "name": "东湖生态旅游风景区梨园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1C9CL",
+      "name": "沙湖公园",
+      "field": "open_time",
+      "value": "周一至周日 06:00-22:00 最晚进入22:00；具体营业状态以当天开放情况为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFGJA77F",
+      "name": "江汉关大楼",
+      "field": "open_time",
+      "value": "周一 全天关闭；周二至周日 09:00-17:00 最晚进入16:00；周一闭馆 （国家法定节假日除外）。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1BQCY",
+      "name": "蔡甸广场",
+      "field": "open_time",
+      "value": "周一至周日 08:00-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0HGV6LXZE",
+      "name": "杨泗港大桥江滩公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K93G",
+      "name": "湖北省图书馆",
+      "field": "open_time",
+      "value": "周一 12:30-20:30；周二至周日 08:30-20:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J0AJ",
+      "name": "龙泉山风景区",
+      "field": "open_time",
+      "value": "周一至周日 08:30-17:00 最晚进入16:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IOU3",
+      "name": "武汉国际会展中心",
+      "field": "open_time",
+      "value": "周一至周日 09:00-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZVM",
+      "name": "洪山公园",
+      "field": "open_time",
+      "value": "周一至周日 07:00-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B19J3D",
+      "name": "洪山广场",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHUVVEA",
+      "name": "武汉野生动物王国",
+      "field": "open_time",
+      "value": "3月至6月 周一至周五 09:00-17:30 最晚进入16:30；3月至6月 周六至周日 09:00-18:30 最晚进入17:30 09-01至10-15 周一至周五 09:00-17:30 最晚进入16:30；09-01至10-15 周六至周日 09:00-18:30 最晚进入17:30；10-16至11-01 周一至周五 09:00-17:30 最晚进入16:30；10-16至11-01 周六至周日 09:00-18:00 最晚进入17:00；11-02至02-28 周一至周五 09:30-17:00 最晚进入16:00；11-02至02-28 周六至周日 09:30-17:30 最晚进入16:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0H3HD08QY",
+      "name": "江夏灵山生态文化旅游区",
+      "field": "open_time",
+      "value": "周一至周日 09:00-18:00 最晚进入17:00；瀑布开放时间 • 周末/节假日:10:30-12:00、14:00-15:30 • 工作日:11:00-12:00、14:00-15:00（视游客量灵活调整）",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K786",
+      "name": "宝通禅寺",
+      "field": "open_time",
+      "value": "周一至周日 07:00-16:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J0B9",
+      "name": "长春观",
+      "field": "open_time",
+      "value": "周一至周日 08:00-16:30；朔望日（农历初一、十五）6:00-16:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0J1VZ7KKC",
+      "name": "知音文化旅游区",
+      "field": "open_time",
+      "value": "周一至周日 09:00-12:00,14:30-18:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J0BX",
+      "name": "东湖海洋乐园",
+      "field": "open_time",
+      "value": "周一至周日 09:00-17:00开放(16:30停止入园)；劳动节 09:00-17:30开放；具体开放时间以官方通知为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JBO7VPZS",
+      "name": "凌波门东湖观景点",
+      "field": "open_time",
+      "value": "周一至周日 09:00-21:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0001B",
+      "name": "古琴台",
+      "field": "open_time",
+      "value": "1/1-12/31 周二–周日 09:00–17:00开放 最晚进入16:30；1/1-12/31 周一 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 09:00–17:00开放",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFGCIG85",
+      "name": "汉口江滩",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0JP4S",
+      "name": "武汉长江大桥",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00；武汉两江游览游船的开船时间以票种披露为参考，具体以景区现场实际为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0J0PH9OGT",
+      "name": "光谷多莫大教堂",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFLD8SMQ",
+      "name": "汉口历史文化风貌区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0LAGRAG9F",
+      "name": "凌波门",
+      "field": "open_time",
+      "value": "周一至周日 09:00-21:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JU3A1BBS",
+      "name": "黄鹤楼红墙",
+      "field": "ticket",
+      "value": "免费(司门口黄鹤楼站C出口外红墙打卡点，无需门票；黄鹤楼公园入园70元/人)",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JU3A1BBS",
+      "name": "黄鹤楼红墙",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHMCRER",
+      "name": "中国光谷科技会展中心",
+      "field": "open_time",
+      "value": "周一至周日 09:00-18:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFFHCEWA",
+      "name": "九峰国家森林公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFFFP4TK",
+      "name": "墨水湖公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0GUU6XS7D",
+      "name": "武汉观光游船(中华路1号码头)",
+      "field": "open_time",
+      "value": "周一至周日 06:30-20:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IRKH",
+      "name": "中国科学院武汉植物园",
+      "field": "ticket",
+      "value": "成人票35元，学生/6-18岁未成年人/60-64岁老人17.5元，6岁以下或1.2米以下、65岁以上免票；8:00-17:00（17:00停止入园）；门票+活体昆虫乐园65元、+植植屋亲子套票99元另计",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IRKH",
+      "name": "中国科学院武汉植物园",
+      "field": "open_time",
+      "value": "03-15至10-15 周一至周日 08:00-17:30 最晚进入17:30；10-16至03-14 周一至周日 08:00-17:00；周末营业时间可能会有所延长，具体以现场开放时间为准。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J01P",
+      "name": "江夏区青龙山国家森林公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0JO0N",
+      "name": "梁子湖风景区",
+      "field": "open_time",
+      "value": "周一至周日 09:00-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0LUTL5H3Y",
+      "name": "武汉麓客岛",
+      "field": "open_time",
+      "value": "周一至周日 10:00-20:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B08C1J",
+      "name": "紫阳公园",
+      "field": "open_time",
+      "value": "周一至周日 06:00-22:00 最晚进入21:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZH9",
+      "name": "新洲人民广场",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFGWMB0T",
+      "name": "鹦鹉洲汉阳桥梁主题公园",
+      "field": "open_time",
+      "value": "周一至周日 08:00-20:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1HB59",
+      "name": "大余湾",
+      "field": "ticket",
+      "value": "挂牌价60元，OTA成人49.9元，6-18岁儿童/学生/60-69岁老人28.9-30元；1.2米以下、70岁以上、现役军人、残疾人免票（70岁以上需购5元保险）；8:00-17:30（17:00停止入园）",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1HB59",
+      "name": "大余湾",
+      "field": "open_time",
+      "value": "周一至周日 08:00-18:30 最晚进入17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0INQD",
+      "name": "汉阳江滩",
+      "field": "open_time",
+      "value": "周一至周日 08:00-20:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFFQLIK2",
+      "name": "九真山风景区",
+      "field": "open_time",
+      "value": "周一至周日 08:30-17:30 最晚进入17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J071",
+      "name": "藏龙岛",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0I0IB",
+      "name": "金银湖国家城市湿地公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0G29RQWT4",
+      "name": "茗泉谷都市农业产业园",
+      "field": "open_time",
+      "value": "周一至周日 09:00-19:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFIAYWZP",
+      "name": "吉庆民俗街",
+      "field": "open_time",
+      "value": "周一至周日 08:00-02:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0G17OZO48",
+      "name": "东湖之眼",
+      "field": "open_time",
+      "value": "周一至周五 10:00-19:00开放 周六至周日 09:00-20:00开放；中秋节,国庆节 09:00-21:00开放；如遇特殊天气，达不到运营条件，现场会暂停接待，具体开放时间以官方通知为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0GKXSDUC7",
+      "name": "洪山江滩",
+      "field": "open_time",
+      "value": "(11月-4月)06:00-22:00；(5月-10月)06:00-22:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHFJA6N",
+      "name": "武汉木兰花乡旅游景区",
+      "field": "ticket",
+      "value": "成人票80元/人、优待票40元（儿童/老人/学生），木兰花乡+《楚地长歌》双园套票188元；活动期门票75元（原价158元，含不夜城+楚地长歌一二层）；OTA 72-78元起；开放10:00-22:30。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHFJA6N",
+      "name": "武汉木兰花乡旅游景区",
+      "field": "open_time",
+      "value": "周一至周日 09:00-21:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B16X9G",
+      "name": "东湖国际会议中心",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0L1ZUN2LX",
+      "name": "武昌湾1956公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0IUDKB3ZX",
+      "name": "东西湖极地海洋公园",
+      "field": "open_time",
+      "value": "周一至周日 09:00-17:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B1BY45",
+      "name": "武汉江滩1期(沿江大道)",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFI08A4G",
+      "name": "武汉花博汇",
+      "field": "ticket",
+      "value": "成人票78元/人（随买随用）、提前一天68元，优待票50元（1.2米以上未成年人/学生/60-69岁），1.2米以下儿童及70岁以上免票；开放9:30-21:30。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFI08A4G",
+      "name": "武汉花博汇",
+      "field": "open_time",
+      "value": "周一至周五09:30-17:00； 周六至周日 09:30-22:00；6月1日至8月31日 09:30-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFHUFAEL",
+      "name": "龙灵山生态公园",
+      "field": "open_time",
+      "value": "周一至周日 08:30-17:30；具体营业状态以当天开放情况为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFFCMLBQ",
+      "name": "武汉九峰森林动物园",
+      "field": "open_time",
+      "value": "7月25日-8月31日工作日开放时间:9:00-21:00(20:30停止售票及入园)；节假日、周末开放时间:8:30-21:00(20:00停止售票及入园）",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFI72E59",
+      "name": "江夏中央大公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0II5Z",
+      "name": "汉口江滩2期",
+      "field": "open_time",
+      "value": "周一至周日 14:30-17:00,18:00-21:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFLPO9LM",
+      "name": "武泰闸",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFH1JAGB",
+      "name": "武汉莲华寺",
+      "field": "open_time",
+      "value": "周一至周日 07:00-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0HA1ND3Y1",
+      "name": "八分山",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0MA4CUUG1",
+      "name": "光谷图书馆",
+      "field": "open_time",
+      "value": "周一,周三至周日 09:00-21:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0I3MZN8LK",
+      "name": "东西湖区图书馆",
+      "field": "open_time",
+      "value": "周二至周日 09:00-17:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFIXJLG0",
+      "name": "华为武汉研究所新基地A区",
+      "field": "open_time",
+      "value": "周一至周日 09:00-18:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JB5U6RT9",
+      "name": "梨园广场",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFF0ER1B",
+      "name": "后官湖国家湿地公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0KAYSLF3N",
+      "name": "武汉空港音乐广场",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFKZ40ME",
+      "name": "长江日报社",
+      "field": "open_time",
+      "value": "周一至周五 09:00-17:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B08VJF",
+      "name": "湖北出版文化城",
+      "field": "open_time",
+      "value": "周一至周日 09:30-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFF0047D",
+      "name": "阅马场",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFGACPNZ",
+      "name": "湖北省科学技术馆",
+      "field": "open_time",
+      "value": "1月至6月,9月至12月 周一至周二 全天关闭；1月至6月,9月至12月 周三至周日 09:30-16:30 最晚进入15:30；寒暑假节假日开馆安排另行通知，具体营业时间以当天开放情况为准。 07-01至07-12 周一至周日 09:30-16:30 最晚进入15:30；07-13至07-13 周一至周二 全天关闭；07-13至07-13 周三至周日 09:30-16:30 最晚进入15:30；07-14至07-26 周一至周日 09:30-16:30 最晚进入15:30；07-27至07-27 周一至周二 全天关闭；07-27至07-27 周三至周日 09:30-16:30 最晚进入15:30；07-28至08-09 周一至周日 09:30-16:30 最晚进入15:30；08-10至08-10 周一至周二 全天关闭；08-10至08-10 周三至周日 09:30-16:30 最晚进入15:30；08-11至08-23 周一至周日 09:30-16:30 最晚进入15:30；08-24至08-24 周一至周二 全天关闭；08-24至08-24 周三至周日 09:30-16:30 最晚进入15:30；08-25至08-31 周一至周日 09:30-16:30 最晚进入15:30；寒暑假节假日开馆安排另行通知，具体营业时间以当天开放情况为准。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZTQ",
+      "name": "青山江滩公园2期",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JGJC37F4",
+      "name": "梧桐·雨",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J00B",
+      "name": "武汉革命博物馆",
+      "field": "ticket",
+      "value": "免费开放，免费不免票需实名预约（官微/美团/武汉文旅码）；周二至周日9:00-17:00（16:30停止入馆），周一闭馆（法定节假日除外）。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J00B",
+      "name": "武汉革命博物馆",
+      "field": "open_time",
+      "value": "周一 全天关闭；周二至周日 09:00-17:00 最晚进入16:30；具体开放时间以官方通知为准",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZK2",
+      "name": "堤角公园",
+      "field": "open_time",
+      "value": "周一至周日 06:00-22:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZYQ",
+      "name": "青山公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0IU6ZDYG1",
+      "name": "梁子湖龙湾半岛景区",
+      "field": "open_time",
+      "value": "9月 周一至周日 08:30-18:00；最晚入园时间17:00，节假日适当延长营业时间。 01-01至06-17 周一至周日 08:30-18:00 最晚进入17:30；06-18至08-31 周一至周日 10:00-22:00；10-01至10-08 周一至周日 08:30-19:00；10-09至12-31 周一至周日 08:30-18:00 最晚进入17:30；最晚入园时间17:00，节假日适当延长营业时间。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K60S",
+      "name": "清凉寨景区",
+      "field": "ticket",
+      "value": "成人票70元/人（黄陂文旅公示价，OTA 56-59元起），优待票35元（儿童/学生/60-65岁老人）；开放8:00-17:30（17:00停止入园）。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0K60S",
+      "name": "清凉寨景区",
+      "field": "open_time",
+      "value": "周一至周日 08:00-17:30 最晚进入17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0JOYC",
+      "name": "首义公园",
+      "field": "ticket",
+      "value": "免费开放，无需门票，全天24小时开放；园内辛亥革命武昌首义纪念碑、抱冰堂、龙华寺等均免费；毗邻黄鹤楼另收70元。",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0JOYC",
+      "name": "首义公园",
+      "field": "open_time",
+      "value": "周一至周日 06:00-20:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFF6YP9E",
+      "name": "月湖风景区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0JDFCWWPQ",
+      "name": "武汉青山江滩",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0ITMV",
+      "name": "四美塘公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFIL70AO",
+      "name": "藏龙岛国家湿地公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IZUY",
+      "name": "道观河风景旅游区",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B0FFK42YUF",
+      "name": "竹叶海公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0IH4B",
+      "name": "常青人才公园",
+      "field": "open_time",
+      "value": "周一至周日 00:00-24:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0J046",
+      "name": "白云洞",
+      "field": "open_time",
+      "value": "周一至周日 08:00-17:00",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    },
+    {
+      "id": "amap-B001B0I2M9",
+      "name": "武汉图书馆",
+      "field": "open_time",
+      "value": "周一至周日 08:30-20:30",
+      "previous_status": "verified",
+      "new_status": "unverified",
+      "reason": "Existing value has no row-level source URL or checked date."
+    }
+  ]
+}
