@@ -14,6 +14,7 @@ import com.travelassistant.server.domain.itinerary.Section;
 import com.travelassistant.server.domain.itinerary.Transport;
 import com.travelassistant.server.interfaces.rest.dto.CreateItineraryRequest;
 import com.travelassistant.server.interfaces.rest.dto.MemberRequest;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class ItineraryController {
 
   @PostMapping
   public ResponseEntity<Itinerary> create(@AuthenticationPrincipal UserDetails user,
-      @RequestBody CreateItineraryRequest req) {
+      @Valid @RequestBody CreateItineraryRequest req) {
     Itinerary it = service.create(me(user), req.title(), req.plan());
     return ResponseEntity.created(URI.create("/api/itineraries/" + it.id())).body(it);
   }
