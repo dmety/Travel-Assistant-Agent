@@ -31,7 +31,18 @@ public record ChangeEntry(
 
   public static ChangeEntry of(String itineraryId, String actor, String section, String summary,
       long version) {
-    return new ChangeEntry(UUID.randomUUID().toString(), itineraryId, actor, Instant.now(),
+    return of(itineraryId, actor, section, summary, version, Instant.now());
+  }
+
+  /**
+   * 指定时间戳的构造方式，供测试把「同一时刻连续写两次」做成确定性场景。
+   *
+   * <p>不引入这个重载时，验证排序规则只能靠「能不能刚好撞上同一毫秒」——
+   * 那既不可复现，也说不清失败到底是排序写错还是时钟走快了。
+   */
+  public static ChangeEntry of(String itineraryId, String actor, String section, String summary,
+      long version, Instant at) {
+    return new ChangeEntry(UUID.randomUUID().toString(), itineraryId, actor, at,
         section, summary, version);
   }
 }

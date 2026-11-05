@@ -2,8 +2,10 @@ package com.travelassistant.server.application.collaboration;
 
 import com.travelassistant.server.domain.collaboration.ChangeEntry;
 import com.travelassistant.server.infrastructure.persistence.CollaborationStore;
+import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,16 +19,32 @@ public class PersistenceChangeLogRecorder implements ChangeLogRecorder {
   private static final Logger log = LoggerFactory.getLogger(PersistenceChangeLogRecorder.class);
 
   private final CollaborationStore store;
+  private final Clock clock;
 
+  /**
+   * 生产用构造器：时钟取系统 UTC。
+   *
+   * <p>时钟做成可注入的，是为了让「同一时刻连续写两条」这种边界变成可以确定性构造的场景。
+   * 排序规则（时间相同时按版本号倒序）不能只靠偶尔撞上同毫秒来验证——那既不可复现，
+   * 失败时也分不清是排序写错还是时钟恰好走快了一格。
+   */
+  @Autowired
   public PersistenceChangeLogRecorder(CollaborationStore store) {
+    this(store, Clock.systemUTC());
+  }
+
+  /** 测试用构造器：可传入 {@link Clock#fixed} 等受控时钟。 */
+  public PersistenceChangeLogRecorder(CollaborationStore store, Clock clock) {
     this.store = store;
+    this.clock = clock;
   }
 
   @Override
   public void record(String itineraryId, String actor, String section, String summary,
       long version) {
     try {
-      store.addChange(ChangeEntry.of(itineraryId, actor, section, summary, version));
+      store.addChange(ChangeEntry.of(itineraryId, actor, section, summary, version,
+          clock.instant()));
     } catch (RuntimeException e) {
       log.warn("写入修改记录失败（行程 {}，板块 {}）：{}", itineraryId, section, e.getMessage());
     }
