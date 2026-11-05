@@ -21,6 +21,7 @@
   python tools/build_attraction_index.py --input data/china_attractions.json \
                                          --output data/attractions_index.json
   python tools/build_attraction_index.py --dry-run     # 只统计不落盘
+  python tools/build_attraction_index.py --check       # 校验已提交索引与源库一致，不落盘
 
 退出码：0 成功；2 输入缺失；3 输入损坏；4 输出路径非法（试图覆盖原库）。
 """
@@ -113,7 +114,7 @@ def normalize(item):
     return out
 
 
-def build(input_path, output_path, dry_run=False):
+def build(input_path, output_path, dry_run=False, check=False):
     if os.path.abspath(input_path) == os.path.abspath(output_path):
         print(f"[拒绝] 输出路径与输入相同，不允许覆盖原库：{input_path}", file=sys.stderr)
         return 4
@@ -181,6 +182,22 @@ def build(input_path, output_path, dry_run=False):
         "输出大小": "-",
     }
 
+    if check:
+        try:
+            with open(output_path, encoding="utf-8") as f:
+                current = json.load(f)
+        except (OSError, ValueError) as e:
+            print(f"[过期] 索引缺失或损坏，请重新构建：{e}", file=sys.stderr)
+            return 5
+        # 构建时间不参与比较，规范化后的内容和来源元数据必须一致。
+        expected = {k: v for k, v in result.items() if k != "generated_at"}
+        actual = {k: v for k, v in current.items() if k != "generated_at"} if isinstance(current, dict) else None
+        if actual != expected:
+            print("[过期] 索引与源库不一致，请运行 python tools/build_attraction_index.py", file=sys.stderr)
+            return 5
+        print(f"[通过] 索引与源库一致：{len(items)} 条")
+        return 0
+
     if dry_run:
         print("[dry-run] 不落盘。统计：")
         for k, v in stats.items():
@@ -212,8 +229,9 @@ def main():
     parser.add_argument("--input", default=DEFAULT_INPUT, help="融合主库路径（只读）")
     parser.add_argument("--output", default=DEFAULT_OUTPUT, help="精简库输出路径")
     parser.add_argument("--dry-run", action="store_true", help="只统计，不写文件")
+    parser.add_argument("--check", action="store_true", help="检查索引是否过期，不写文件；过期返回5")
     args = parser.parse_args()
-    sys.exit(build(args.input, args.output, args.dry_run))
+    sys.exit(build(args.input, args.output, args.dry_run, args.check))
 
 
 if __name__ == "__main__":

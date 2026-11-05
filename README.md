@@ -41,6 +41,11 @@ Java 21 / Maven 多模块项目。当前进度：
 mvn clean verify
 ```
 
+更新景点源库后，先运行 `python tools/build_attraction_index.py` 重建 Java 索引。
+交付前运行 `python tools/build_attraction_index.py --check`，过期时返回非零；
+`tools/gate.sh` 已包含该检查。打包后可运行 `python examples/acceptance_tasks_2_3_4.py`，
+使用临时数据目录和随机端口验证注册登录、杭州行程、景点查询及真实进程重启恢复。
+
 ## 启动
 
 在第一个 PowerShell 窗口运行后端：

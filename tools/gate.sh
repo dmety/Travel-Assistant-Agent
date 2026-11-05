@@ -53,6 +53,12 @@ fi
 
 step() { printf '\n=== %s ===\n' "$*"; }
 
+step "G0 景点索引与源库一致性"
+if ! "$PYTHON" tools/build_attraction_index.py --check; then
+  echo "G0 未通过：请重建景点索引后再交付" >&2
+  exit 1
+fi
+
 if [ "$SKIP_TESTS" -eq 0 ]; then
   step "G1 单元 + 集成测试"
   if ! "$MVN" -B -o -pl travel-server -am test; then
