@@ -7,7 +7,7 @@ from .models import is_missing_value, norm_name
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-OUTPUT_PATH = ROOT / "reports" / "knowledge-base-current-value-audit-2026-11-05.json"
+OUTPUT_PATH = ROOT / "reports" / "archive" / "knowledge-base-current-value-audit-2026-11-05.json"
 
 
 def declared_sources(row):

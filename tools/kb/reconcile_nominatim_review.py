@@ -10,8 +10,8 @@ from .models import gcj02_to_wgs84
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-CACHE_PATH = ROOT / "reports" / "nominatim-review-2026-11-04.json"
-REVERSE_CACHE_PATH = ROOT / "reports" / "nominatim-reverse-review-2026-11-04.json"
+CACHE_PATH = ROOT / "reports" / "evidence" / "nominatim-review-2026-11-04.json"
+REVERSE_CACHE_PATH = ROOT / "reports" / "evidence" / "nominatim-reverse-review-2026-11-04.json"
 
 # Only exact-name results, within 1 km after converting the Amap point from
 # GCJ-02 to WGS-84, with a unique plausible OSM feature are admitted.

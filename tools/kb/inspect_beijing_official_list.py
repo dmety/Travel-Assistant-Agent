@@ -46,7 +46,7 @@ def main():
         if len(matches)==1:
             r=matches[0]
             results.append({"number":vals[0],"source_name":name,"district":vals[3],"level":vals[2],"source_url":href,"kb_id":r["id"],"kb_name":r["name"],"ticket_missing":not r.get("ticket"),"open_time_missing":not r.get("open_time"),"same_name_risk":r.get("same_name_risk")})
-    out=ROOT/"reports"/"beijing-official-list-match-2026-11-04.json"
+    out=ROOT/"reports" / "archive" / "beijing-official-list-match-2026-11-04.json"
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(results,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"unique_exact_or_suffix_matches":len(results),"ticket_missing":sum(x["ticket_missing"] for x in results),"open_time_missing":sum(x["open_time_missing"] for x in results),"risk_flagged":sum(bool(x["same_name_risk"]) for x in results)},ensure_ascii=False))

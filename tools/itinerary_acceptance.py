@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""UC-ITIN-001「杭州西湖三日游」—— 行程管理端到端用例自动执行脚本。
+"""UC-ITIN-001「杭州西湖三日游」—— 行程管理端到端回归用例（由 acceptance.py 在隔离服务上调用）。
 
 只用标准库，无第三方依赖。自动完成：注册 → 登录 → 建行程 → 填满五大板块 →
 邀请成员并授权 → 验证板块级越权 → 验证乐观锁冲突 → 验证三类非法输入 → 清理。
 
 用法（服务需先启动）：
-    python examples/itinerary_usecase_hangzhou.py --base http://localhost:8080
-    python examples/itinerary_usecase_hangzhou.py --base http://localhost:8080 --keep
+    python tools/itinerary_acceptance.py --base http://localhost:8080
+    python tools/itinerary_acceptance.py --base http://localhost:8080 --keep
 
 --keep 表示跑完不删除行程，便于在 /app 页面里查看结果。
 退出码：0 = 全部断言通过；1 = 有用例失败。

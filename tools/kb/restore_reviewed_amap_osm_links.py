@@ -14,8 +14,8 @@ from .models import norm_name
 ROOT = Path(__file__).resolve().parents[2]
 KB_PATH = ROOT / "data" / "china_attractions.json"
 EVIDENCE_PATHS = (
-    ROOT / "reports" / "amap-osm-approved-node-links-2026-11-04.json",
-    ROOT / "reports" / "amap-osm-approved-way-links-2026-11-04.json",
+    ROOT / "reports" / "evidence" / "amap-osm-approved-node-links-2026-11-04.json",
+    ROOT / "reports" / "evidence" / "amap-osm-approved-way-links-2026-11-04.json",
 )
 
 

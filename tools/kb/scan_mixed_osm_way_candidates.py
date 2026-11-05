@@ -1,4 +1,5 @@
 """Inspect exact-name OSM ways around mixed-coordinate rows; evidence only."""
+import tempfile
 import json
 import math
 import os
@@ -9,7 +10,7 @@ from .models import gcj02_to_wgs84
 
 ROOT=Path(__file__).resolve().parents[2]
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-OUTPUT_PATH=ROOT/"reports"/"mixed-osm-way-candidates-2026-11-04.json"
+OUTPUT_PATH=Path(tempfile.gettempdir()) / "travel-assistant-kb-work" / "mixed-osm-way-candidates-2026-11-04.json"
 PBF_PATH=Path(os.environ.get("TEMP","."))/"travel-assistant-china-latest.osm.pbf"
 FEATURE_KEYS=("tourism","leisure","amenity","historic","natural","boundary","addr:city","addr:province","addr:state")
 
@@ -47,6 +48,7 @@ def main():
             center=(sum(x[0] for x in coords)/len(coords),sum(x[1] for x in coords)/len(coords))
             candidates.append({"kb_id":row["id"],"kb_name":row["name"],"osm_type":"way","osm_id":way_id,"nearest_vertex_distance_m":round(nearest),"vertex_mean_distance_m":round(distance_m(point,center)),"node_count":len(coords),"osm_name":way["name"],"tags":way["tags"]})
     output={"source":"Geofabrik China OSM PBF","source_url":"https://download.geofabrik.de/asia/china-latest.osm.pbf","retrieved_at":datetime.now(timezone.utc).isoformat(),"scope":"exact-name ways; nearest referenced-node distance after GCJ-02 to WGS-84 conversion; evidence only","mixed_rows":len(targets),"exact_name_ways":len(ways),"candidate_count":len(candidates),"candidates":sorted(candidates,key=lambda x:(x["kb_id"],x["nearest_vertex_distance_m"]))}
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(f"Scanned exact-name OSM ways for {len(targets)} mixed rows; found {len(candidates)} way candidates.")
     print(OUTPUT_PATH)

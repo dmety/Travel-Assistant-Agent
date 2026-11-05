@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "china_attractions.json"
-REPORT_PATH = Path(__file__).resolve().parents[2] / "reports" / "stale-source-label-repair-2026-11-04.json"
+REPORT_PATH = Path(__file__).resolve().parents[2] / "reports" / "archive" / "stale-source-label-repair-2026-11-04.json"
 
 
 def eligible(row):

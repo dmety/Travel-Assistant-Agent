@@ -1,4 +1,5 @@
 """Offline scan of OSM node names near mixed-coordinate KB rows; evidence only."""
+import tempfile
 import json
 import math
 import os
@@ -10,7 +11,7 @@ from .models import gcj02_to_wgs84
 
 ROOT=Path(__file__).resolve().parents[2]
 DATA_PATH=ROOT/"data"/"china_attractions.json"
-OUTPUT_PATH=ROOT/"reports"/"mixed-osm-name-candidates-2026-11-04.json"
+OUTPUT_PATH=Path(tempfile.gettempdir()) / "travel-assistant-kb-work" / "mixed-osm-name-candidates-2026-11-04.json"
 PBF_PATH=Path(os.environ.get("TEMP","."))/"travel-assistant-china-latest.osm.pbf"
 FEATURE_KEYS=("tourism","leisure","amenity","historic","natural","boundary","railway")
 
@@ -39,6 +40,7 @@ def main():
     if not PBF_PATH.is_file(): raise SystemExit(f"PBF not found: {PBF_PATH}")
     Handler().apply_file(str(PBF_PATH),locations=False)
     output={"source":"Geofabrik China OSM PBF","source_url":"https://download.geofabrik.de/asia/china-latest.osm.pbf","retrieved_at":datetime.now(timezone.utc).isoformat(),"scope":"exact-name OSM nodes within 10 km after GCJ-02 to WGS-84 conversion; evidence only","mixed_rows":len(targets),"candidate_count":len(candidates),"candidates":sorted(candidates,key=lambda x:(x["kb_id"],x["distance_m"]))}
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(f"Scanned node names for {len(targets)} mixed rows; found {len(candidates)} nearby exact-name candidates.")
     print(OUTPUT_PATH)

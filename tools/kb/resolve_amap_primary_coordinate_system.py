@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "china_attractions.json"
-REPORT_PATH = Path(__file__).resolve().parents[2] / "reports" / "amap-primary-crs-resolution-2026-11-04.json"
+REPORT_PATH = Path(__file__).resolve().parents[2] / "reports" / "archive" / "amap-primary-crs-resolution-2026-11-04.json"
 SOURCE_URL = "https://lbs.amap.com/faq/advisory/others/39838"
 
 

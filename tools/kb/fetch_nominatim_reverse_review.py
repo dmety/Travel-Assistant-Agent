@@ -11,7 +11,7 @@ from .models import gcj02_to_wgs84
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "china_attractions.json"
-CACHE_PATH = ROOT / "reports" / "nominatim-reverse-review-2026-11-04.json"
+CACHE_PATH = ROOT / "reports" / "evidence" / "nominatim-reverse-review-2026-11-04.json"
 REVIEW_IDS = {
     "amap-B0FFGXTU5E", "amap-B03670VA8J", "amap-B036702A40",
     "amap-B0378008FA", "amap-B038300GWH", "amap-B037B0OCLA",
