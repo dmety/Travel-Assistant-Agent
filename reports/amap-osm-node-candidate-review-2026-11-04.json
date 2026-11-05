@@ -1,0 +1,1745 @@
+{
+  "source": "candidate evidence only; no KB edits",
+  "retrieved_at": "2026-11-04T09:47:06.689392+00:00",
+  "unique_within_100m_and_under_50m_with_feature_tag": 94,
+  "already_claimed": 0,
+  "admin_tag_conflicts": 0,
+  "remaining_manual_review_candidates": 94,
+  "candidates": [
+    {
+      "kb_id": "amap-B0FFFRBK9R",
+      "kb_name": "泗泾古镇",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 13338055619,
+      "distance_m": 0.6,
+      "osm_name": "泗泾古镇",
+      "tags": {
+        "amenity": "place",
+        "addr:city": "上海市"
+      },
+      "osm_source_id": "osm-node-13338055619",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFLPFSNR",
+      "kb_name": "紫霞宫",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9287306765,
+      "distance_m": 2.7,
+      "osm_name": "紫霞宫",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-9287306765",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFH2JS91",
+      "kb_name": "亚特兰蒂斯失落的空间水族馆",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 13478409485,
+      "distance_m": 3.3,
+      "osm_name": "亚特兰蒂斯失落的空间水族馆",
+      "tags": {
+        "tourism": "aquarium"
+      },
+      "osm_source_id": "osm-node-13478409485",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03DF04Y0R",
+      "kb_name": "一炮成功",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 13455755076,
+      "distance_m": 3.8,
+      "osm_name": "一炮成功",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-13455755076",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B00180J50I",
+      "kb_name": "北塔",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 1629291120,
+      "distance_m": 4.0,
+      "osm_name": "北塔",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Beita"
+      },
+      "osm_source_id": "osm-node-1629291120",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03030UAK3",
+      "kb_name": "南宁博物馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 12135700080,
+      "distance_m": 4.4,
+      "osm_name": "南宁博物馆",
+      "tags": {
+        "tourism": "museum",
+        "name:en": "Nanning Museum"
+      },
+      "osm_source_id": "osm-node-12135700080",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0HB3P63OA",
+      "kb_name": "龙泉山观景台",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 13284683697,
+      "distance_m": 4.6,
+      "osm_name": "龙泉山观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      },
+      "osm_source_id": "osm-node-13284683697",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFWQJQV",
+      "kb_name": "兰州市图书馆",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4135470436,
+      "distance_m": 4.8,
+      "osm_name": "兰州市图书馆",
+      "tags": {
+        "amenity": "library",
+        "name:en": "Lanzhou City Library"
+      },
+      "osm_source_id": "osm-node-4135470436",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFG21UFU",
+      "kb_name": "青山渔村牌坊",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 12388187757,
+      "distance_m": 4.9,
+      "osm_name": "青山渔村牌坊",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-12388187757",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFJPYPHF",
+      "kb_name": "金堂县龚家山观景台",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 13284683700,
+      "distance_m": 5.0,
+      "osm_name": "金堂县龚家山观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      },
+      "osm_source_id": "osm-node-13284683700",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B00180JAGF",
+      "kb_name": "中山广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 814789028,
+      "distance_m": 5.2,
+      "osm_name": "中山广场",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Zhongshan Square"
+      },
+      "osm_source_id": "osm-node-814789028",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03CB0SN5E",
+      "kb_name": "青海省科学技术馆",
+      "city": "西宁市",
+      "province": "青海省",
+      "osm_type": "node",
+      "osm_id": 9177401404,
+      "distance_m": 5.3,
+      "osm_name": "青海省科学技术馆",
+      "tags": {
+        "tourism": "museum"
+      },
+      "osm_source_id": "osm-node-9177401404",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0MASAFR9S",
+      "kb_name": "新疆革命军事馆",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 14246176346,
+      "distance_m": 5.3,
+      "osm_name": "新疆革命军事馆",
+      "tags": {
+        "tourism": "museum"
+      },
+      "osm_source_id": "osm-node-14246176346",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B01D700EBD",
+      "kb_name": "呼和浩特市第七中学",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 8500242380,
+      "distance_m": 5.5,
+      "osm_name": "呼和浩特市第七中学",
+      "tags": {
+        "amenity": "school",
+        "addr:city": "呼和浩特市",
+        "addr:province": "内蒙古自治区"
+      },
+      "osm_source_id": "osm-node-8500242380",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0G2S7LE4X",
+      "kb_name": "梅沙尖",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 6353851591,
+      "distance_m": 5.8,
+      "osm_name": "梅沙尖",
+      "tags": {
+        "natural": "peak"
+      },
+      "osm_source_id": "osm-node-6353851591",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFP3OAB",
+      "kb_name": "火神庙",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 13358713801,
+      "distance_m": 5.9,
+      "osm_name": "火神庙",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-13358713801",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFGLV23",
+      "kb_name": "文昌阁",
+      "city": "贵阳市",
+      "province": "贵州省",
+      "osm_type": "node",
+      "osm_id": 9768725161,
+      "distance_m": 6.0,
+      "osm_name": "文昌阁",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-9768725161",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0378004RW",
+      "kb_name": "普贤寺",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 551133452,
+      "distance_m": 6.1,
+      "osm_name": "普贤寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-551133452",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B01D701BGT",
+      "kb_name": "昭君墓",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 3706224632,
+      "distance_m": 6.2,
+      "osm_name": "昭君墓",
+      "tags": {
+        "tourism": "museum",
+        "historic": "monument",
+        "name:en": "Zhaojun Tomb"
+      },
+      "osm_source_id": "osm-node-3706224632",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02000IFCL",
+      "kb_name": "艺圃",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 1735471843,
+      "distance_m": 6.3,
+      "osm_name": "艺圃",
+      "tags": {
+        "tourism": "information",
+        "name:en": "Yipu Garden - Garden of Cultivation"
+      },
+      "osm_source_id": "osm-node-1735471843",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03030061A",
+      "kb_name": "广西壮族自治区图书馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 11687215232,
+      "distance_m": 7.2,
+      "osm_name": "广西壮族自治区图书馆",
+      "tags": {
+        "amenity": "library",
+        "addr:city": "南宁市",
+        "addr:province": "广西壮族自治区"
+      },
+      "osm_source_id": "osm-node-11687215232",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B01C30I9EP",
+      "kb_name": "哈尔滨市人民防洪胜利纪念塔",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 3455170924,
+      "distance_m": 7.4,
+      "osm_name": "哈尔滨市人民防洪胜利纪念塔",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Harbin People Flood Control Success Memorial Tower"
+      },
+      "osm_source_id": "osm-node-3455170924",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B00180J7WH",
+      "kb_name": "和平广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 1759692546,
+      "distance_m": 8.0,
+      "osm_name": "和平广场",
+      "tags": {
+        "historic": "memorial"
+      },
+      "osm_source_id": "osm-node-1759692546",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFJ9OJRR",
+      "kb_name": "南宁极地海洋世界",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 11981168744,
+      "distance_m": 8.0,
+      "osm_name": "南宁极地海洋世界",
+      "tags": {
+        "tourism": "aquarium"
+      },
+      "osm_source_id": "osm-node-11981168744",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFRKEU7",
+      "kb_name": "清水宫",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 13255980448,
+      "distance_m": 8.1,
+      "osm_name": "清水宫",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Qingshui Temple"
+      },
+      "osm_source_id": "osm-node-13255980448",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFI13PJO",
+      "kb_name": "《驼铃传奇》秀",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 13072627001,
+      "distance_m": 8.1,
+      "osm_name": "《驼铃传奇》秀",
+      "tags": {
+        "amenity": "theatre",
+        "name:en": "\"Tuo Ling Legend\" Show"
+      },
+      "osm_source_id": "osm-node-13072627001",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03670W3YY",
+      "kb_name": "昆明聂耳故居",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 10024249395,
+      "distance_m": 9.1,
+      "osm_name": "昆明聂耳故居",
+      "tags": {
+        "tourism": "museum",
+        "historic": "building"
+      },
+      "osm_source_id": "osm-node-10024249395",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0KROCQO3Q",
+      "kb_name": "阳朔山水列车",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 14244848720,
+      "distance_m": 9.2,
+      "osm_name": "阳朔山水列车",
+      "tags": {
+        "amenity": "cafe"
+      },
+      "osm_source_id": "osm-node-14244848720",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B030507M4G",
+      "kb_name": "李宗仁故居",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9979858594,
+      "distance_m": 9.7,
+      "osm_name": "李宗仁故居",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Li Zongren's Former Resident"
+      },
+      "osm_source_id": "osm-node-9979858594",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0HAN5M775",
+      "kb_name": "米琼日寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 4104536554,
+      "distance_m": 9.9,
+      "osm_name": "米琼日寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-4104536554",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0G3V49N5K",
+      "kb_name": "灯塔图书馆",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 13971699787,
+      "distance_m": 10.2,
+      "osm_name": "灯塔图书馆",
+      "tags": {
+        "amenity": "library"
+      },
+      "osm_source_id": "osm-node-13971699787",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0MA4CUUG1",
+      "kb_name": "光谷图书馆",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 14345068010,
+      "distance_m": 10.4,
+      "osm_name": "光谷图书馆",
+      "tags": {
+        "amenity": "library"
+      },
+      "osm_source_id": "osm-node-14345068010",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03A30A9YB",
+      "kb_name": "甘肃省图书馆",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 10588992661,
+      "distance_m": 10.6,
+      "osm_name": "甘肃省图书馆",
+      "tags": {
+        "amenity": "library",
+        "name:en": "Gansu Provincial Library"
+      },
+      "osm_source_id": "osm-node-10588992661",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFL3X191",
+      "kb_name": "广西非遗美食展示馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 13545043437,
+      "distance_m": 10.8,
+      "osm_name": "广西非遗美食展示馆",
+      "tags": {
+        "amenity": "restaurant"
+      },
+      "osm_source_id": "osm-node-13545043437",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0IK5CTCD8",
+      "kb_name": "天空之山驿站",
+      "city": "海口市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 11900320549,
+      "distance_m": 11.0,
+      "osm_name": "天空之山驿站",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-11900320549",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B015F031BS",
+      "kb_name": "中国清徐关帝城",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 13006130501,
+      "distance_m": 11.4,
+      "osm_name": "中国清徐关帝城",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-13006130501",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001D03C82",
+      "kb_name": "水陆庵",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 5381134232,
+      "distance_m": 11.7,
+      "osm_name": "水陆庵",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shuilu Temple"
+      },
+      "osm_source_id": "osm-node-5381134232",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B015F0ISTE",
+      "kb_name": "太原市第三十九中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4213687393,
+      "distance_m": 12.3,
+      "osm_name": "太原市第三十九中学校",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-4213687393",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFGA04L5",
+      "kb_name": "闽南朝天宫",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 13255980460,
+      "distance_m": 12.6,
+      "osm_name": "闽南朝天宫",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Minnan Chaotian Temple"
+      },
+      "osm_source_id": "osm-node-13255980460",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFEZM9F",
+      "kb_name": "青藏高原野生动物园海洋馆",
+      "city": "西宁市",
+      "province": "青海省",
+      "osm_type": "node",
+      "osm_id": 13963131413,
+      "distance_m": 12.8,
+      "osm_name": "青藏高原野生动物园海洋馆",
+      "tags": {
+        "amenity": "animal_breeding"
+      },
+      "osm_source_id": "osm-node-13963131413",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFHBCIG1",
+      "kb_name": "金刚亥母灵洞",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 5977738985,
+      "distance_m": 14.6,
+      "osm_name": "金刚亥母灵洞",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Vajrayogini cave"
+      },
+      "osm_source_id": "osm-node-5977738985",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFG6HGJN",
+      "kb_name": "南少林寺",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 3905718057,
+      "distance_m": 14.8,
+      "osm_name": "南少林寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-3905718057",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0HAOLKN95",
+      "kb_name": "六罗峡谷",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 5188407424,
+      "distance_m": 14.9,
+      "osm_name": "六罗峡谷",
+      "tags": {
+        "natural": "valley"
+      },
+      "osm_source_id": "osm-node-5188407424",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0250043OC",
+      "kb_name": "西山岩寺",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 10157656508,
+      "distance_m": 15.0,
+      "osm_name": "西山岩寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-10157656508",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B037B0182E",
+      "kb_name": "西藏和平解放纪念碑",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 2653536425,
+      "distance_m": 16.1,
+      "osm_name": "西藏和平解放纪念碑",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Monument to the Peaceful Liberation of Tibet"
+      },
+      "osm_source_id": "osm-node-2653536425",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFF2JV6P",
+      "kb_name": "石湾大士寺",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13889156601,
+      "distance_m": 16.8,
+      "osm_name": "石湾大士寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shiwan Dashi Temple"
+      },
+      "osm_source_id": "osm-node-13889156601",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001B0IY2V",
+      "kb_name": "长江职业学院",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 2418522275,
+      "distance_m": 17.0,
+      "osm_name": "长江职业学院",
+      "tags": {
+        "amenity": "college"
+      },
+      "osm_source_id": "osm-node-2418522275",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0JRZS2UMD",
+      "kb_name": "王勃广场",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 12652175657,
+      "distance_m": 18.5,
+      "osm_name": "王勃广场",
+      "tags": {
+        "leisure": "park"
+      },
+      "osm_source_id": "osm-node-12652175657",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFCXE2F",
+      "kb_name": "文昌桥码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 6320115749,
+      "distance_m": 18.6,
+      "osm_name": "文昌桥码头",
+      "tags": {
+        "amenity": "ferry_terminal",
+        "name:en": "Wenchang Bridge Wharf"
+      },
+      "osm_source_id": "osm-node-6320115749",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0J0371A87",
+      "kb_name": "东华理工大学(青岚校园)",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 13663281392,
+      "distance_m": 19.4,
+      "osm_name": "东华理工大学(青岚校园)",
+      "tags": {
+        "amenity": "college"
+      },
+      "osm_source_id": "osm-node-13663281392",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFF2WJLV",
+      "kb_name": "石公山码头",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 8664026181,
+      "distance_m": 20.0,
+      "osm_name": "石公山码头",
+      "tags": {
+        "amenity": "ferry_terminal"
+      },
+      "osm_source_id": "osm-node-8664026181",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFIQ0ZWU",
+      "kb_name": "美峰体育公园",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 12230117243,
+      "distance_m": 20.6,
+      "osm_name": "美峰体育公园",
+      "tags": {
+        "leisure": "park"
+      },
+      "osm_source_id": "osm-node-12230117243",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B015F005EF",
+      "kb_name": "太原市第二十一中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4226758211,
+      "distance_m": 20.9,
+      "osm_name": "太原市第二十一中学校",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-4226758211",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFF3LHCT",
+      "kb_name": "米拉山口",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 5498053414,
+      "distance_m": 21.2,
+      "osm_name": "米拉山口",
+      "tags": {
+        "natural": "saddle",
+        "name:en": "Mi La"
+      },
+      "osm_source_id": "osm-node-5498053414",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B01370UHPP",
+      "kb_name": "于家石头村",
+      "city": "石家庄市",
+      "province": "河北省",
+      "osm_type": "node",
+      "osm_id": 4271852919,
+      "distance_m": 21.8,
+      "osm_name": "于家石头村",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Yujia Stone Village"
+      },
+      "osm_source_id": "osm-node-4271852919",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFHHD612",
+      "kb_name": "白塔寺",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 13318861354,
+      "distance_m": 22.3,
+      "osm_name": "白塔寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-13318861354",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFG4A512",
+      "kb_name": "大青山国家登山健身步道",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 12094809123,
+      "distance_m": 22.6,
+      "osm_name": "大青山国家登山健身步道",
+      "tags": {
+        "leisure": "pitch"
+      },
+      "osm_source_id": "osm-node-12094809123",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0J1RUQORM",
+      "kb_name": "人鱼洞",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 12891857676,
+      "distance_m": 23.0,
+      "osm_name": "人鱼洞",
+      "tags": {
+        "natural": "cave_entrance",
+        "name:en": "Mermald Cave"
+      },
+      "osm_source_id": "osm-node-12891857676",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFIORWYU",
+      "kb_name": "青岛科技馆",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13450819432,
+      "distance_m": 23.5,
+      "osm_name": "青岛科技馆",
+      "tags": {
+        "tourism": "museum",
+        "addr:city": "青岛市",
+        "addr:province": "山东省"
+      },
+      "osm_source_id": "osm-node-13450819432",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFJHRE40",
+      "kb_name": "热擦寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 13650036682,
+      "distance_m": 23.5,
+      "osm_name": "热擦寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-13650036682",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0214069MY",
+      "kb_name": "小青岛公园",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13185728102,
+      "distance_m": 24.3,
+      "osm_name": "小青岛公园",
+      "tags": {
+        "leisure": "park"
+      },
+      "osm_source_id": "osm-node-13185728102",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02270086D",
+      "kb_name": "包公祠",
+      "city": "合肥市",
+      "province": "安徽省",
+      "osm_type": "node",
+      "osm_id": 4608940112,
+      "distance_m": 25.3,
+      "osm_name": "包公祠",
+      "tags": {
+        "leisure": "park"
+      },
+      "osm_source_id": "osm-node-4608940112",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFF3O46M",
+      "kb_name": "长恨歌演出",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 14134685308,
+      "distance_m": 25.4,
+      "osm_name": "长恨歌演出",
+      "tags": {
+        "amenity": "theatre",
+        "name:en": "Song of Everlasting Sorrow"
+      },
+      "osm_source_id": "osm-node-14134685308",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001B0A0CK",
+      "kb_name": "东湖生态旅游风景区",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 13810427349,
+      "distance_m": 25.5,
+      "osm_name": "东湖生态旅游风景区",
+      "tags": {
+        "tourism": "information"
+      },
+      "osm_source_id": "osm-node-13810427349",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B00155LZNL",
+      "kb_name": "新场古镇",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 4719781191,
+      "distance_m": 25.7,
+      "osm_name": "新场古镇",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Xinchang Ancient Town"
+      },
+      "osm_source_id": "osm-node-4719781191",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B03B703072",
+      "kb_name": "南薰门",
+      "city": "银川市",
+      "province": "宁夏回族自治区",
+      "osm_type": "node",
+      "osm_id": 4895319626,
+      "distance_m": 26.0,
+      "osm_name": "南薰门",
+      "tags": {
+        "tourism": "attraction",
+        "historic": "city_gate"
+      },
+      "osm_source_id": "osm-node-4895319626",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B030305WBL",
+      "kb_name": "南宁孔庙",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9292176827,
+      "distance_m": 26.5,
+      "osm_name": "南宁孔庙",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Nanning Confucius Temple"
+      },
+      "osm_source_id": "osm-node-9292176827",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001B16N8M",
+      "kb_name": "武昌站西广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1215717618,
+      "distance_m": 26.7,
+      "osm_name": "武昌站西广场",
+      "tags": {
+        "amenity": "parking"
+      },
+      "osm_source_id": "osm-node-1215717618",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFIZWUV1",
+      "kb_name": "金佛顶",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 1364092847,
+      "distance_m": 26.8,
+      "osm_name": "金佛顶",
+      "tags": {
+        "tourism": "viewpoint",
+        "name:en": "Golden Buddha Peak"
+      },
+      "osm_source_id": "osm-node-1364092847",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02DB0TONC",
+      "kb_name": "马王堆汉墓",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 7579104893,
+      "distance_m": 27.3,
+      "osm_name": "马王堆汉墓",
+      "tags": {
+        "historic": "archaeological_site",
+        "name:en": "Mawangdui Han Tombs"
+      },
+      "osm_source_id": "osm-node-7579104893",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFSOL2D",
+      "kb_name": "珍珠泉",
+      "city": "济南市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 5530538384,
+      "distance_m": 27.3,
+      "osm_name": "珍珠泉",
+      "tags": {
+        "natural": "spring",
+        "name:en": "Zhenzhu Spring (Pearl Spring)"
+      },
+      "osm_source_id": "osm-node-5530538384",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFIKO6CZ",
+      "kb_name": "龙潭码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9168700518,
+      "distance_m": 27.8,
+      "osm_name": "龙潭码头",
+      "tags": {
+        "leisure": "marina"
+      },
+      "osm_source_id": "osm-node-9168700518",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B000A88EDQ",
+      "kb_name": "北京天文馆",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 4743689135,
+      "distance_m": 28.9,
+      "osm_name": "北京天文馆",
+      "tags": {
+        "amenity": "planetarium",
+        "name:en": "Beijing Planetarium"
+      },
+      "osm_source_id": "osm-node-4743689135",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFKUBYT1",
+      "kb_name": "大哨森林",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 10766387558,
+      "distance_m": 29.0,
+      "osm_name": "大哨森林",
+      "tags": {
+        "natural": "peak"
+      },
+      "osm_source_id": "osm-node-10766387558",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFI9R3NK",
+      "kb_name": "七涧谷",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13303051931,
+      "distance_m": 31.4,
+      "osm_name": "七涧谷",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-13303051931",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001C05E7V",
+      "kb_name": "昭觉寺",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 11961119358,
+      "distance_m": 31.5,
+      "osm_name": "昭觉寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Zhaojue Temple"
+      },
+      "osm_source_id": "osm-node-11961119358",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFFLIYG",
+      "kb_name": "黎里古镇",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 9061541617,
+      "distance_m": 32.5,
+      "osm_name": "黎里古镇",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Lili Ancient Town"
+      },
+      "osm_source_id": "osm-node-9061541617",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B017318ZKB",
+      "kb_name": "黄河中下游分界碑",
+      "city": "郑州市",
+      "province": "河南省",
+      "osm_type": "node",
+      "osm_id": 12728434513,
+      "distance_m": 33.2,
+      "osm_name": "黄河中下游分界碑",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Boundary monument of the middle and lower reaches of the Yellow River"
+      },
+      "osm_source_id": "osm-node-12728434513",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFG6QDBM",
+      "kb_name": "即墨古城",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 5390654755,
+      "distance_m": 33.2,
+      "osm_name": "即墨古城",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-5390654755",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02DB06901",
+      "kb_name": "千佛洞",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 3789072488,
+      "distance_m": 33.5,
+      "osm_name": "千佛洞",
+      "tags": {
+        "tourism": "attraction"
+      },
+      "osm_source_id": "osm-node-3789072488",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B01370000B",
+      "kb_name": "龙泉古寺",
+      "city": "石家庄市",
+      "province": "河北省",
+      "osm_type": "node",
+      "osm_id": 13733176040,
+      "distance_m": 34.7,
+      "osm_name": "龙泉古寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-13733176040",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B00180B2QV",
+      "kb_name": "沈阳市第四中学",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 2881286256,
+      "distance_m": 35.7,
+      "osm_name": "沈阳市第四中学",
+      "tags": {
+        "amenity": "university",
+        "addr:city": "沈阳"
+      },
+      "osm_source_id": "osm-node-2881286256",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B037B023IV",
+      "kb_name": "扎叶巴寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 2710556658,
+      "distance_m": 36.5,
+      "osm_name": "扎叶巴寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Yerpa Monastery"
+      },
+      "osm_source_id": "osm-node-2710556658",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFINNR4Q",
+      "kb_name": "毛氏宗祠",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9857635528,
+      "distance_m": 38.9,
+      "osm_name": "毛氏宗祠",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-9857635528",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001B1HBR0",
+      "kb_name": "武汉警官职业学院东西湖校区",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 12538691401,
+      "distance_m": 39.6,
+      "osm_name": "武汉警官职业学院东西湖校区",
+      "tags": {
+        "amenity": "police"
+      },
+      "osm_source_id": "osm-node-12538691401",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02270085C",
+      "kb_name": "杏花公园",
+      "city": "合肥市",
+      "province": "安徽省",
+      "osm_type": "node",
+      "osm_id": 10828197207,
+      "distance_m": 40.9,
+      "osm_name": "杏花公园",
+      "tags": {
+        "leisure": "park"
+      },
+      "osm_source_id": "osm-node-10828197207",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B000A7ZXMH",
+      "kb_name": "宛平城",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 700356064,
+      "distance_m": 41.6,
+      "osm_name": "宛平城",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Wanping City"
+      },
+      "osm_source_id": "osm-node-700356064",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFFE5K60",
+      "kb_name": "五通庙",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9292176834,
+      "distance_m": 41.6,
+      "osm_name": "五通庙",
+      "tags": {
+        "amenity": "place_of_worship"
+      },
+      "osm_source_id": "osm-node-9292176834",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B02001F58U",
+      "kb_name": "长圻码头",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 3509485998,
+      "distance_m": 44.7,
+      "osm_name": "长圻码头",
+      "tags": {
+        "amenity": "ferry_terminal"
+      },
+      "osm_source_id": "osm-node-3509485998",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B001B0IVG6",
+      "kb_name": "武汉市第二中学",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1882173159,
+      "distance_m": 44.8,
+      "osm_name": "武汉市第二中学",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-1882173159",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B037B01BE1",
+      "kb_name": "拉萨市第四中学",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 3103252433,
+      "distance_m": 46.2,
+      "osm_name": "拉萨市第四中学",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-3103252433",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B037B00BCE",
+      "kb_name": "拉萨市第六中学",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 3103275941,
+      "distance_m": 47.0,
+      "osm_name": "拉萨市第六中学",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-3103275941",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B015F0IF0O",
+      "kb_name": "太原市第三十七中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4213951229,
+      "distance_m": 50.0,
+      "osm_name": "太原市第三十七中学校",
+      "tags": {
+        "amenity": "school"
+      },
+      "osm_source_id": "osm-node-4213951229",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    },
+    {
+      "kb_id": "amap-B0FFG8EUPC",
+      "kb_name": "高路入云端观景台",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 13063533101,
+      "distance_m": 50.0,
+      "osm_name": "高路入云端观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      },
+      "osm_source_id": "osm-node-13063533101",
+      "already_claimed_by": [],
+      "admin_tag_conflicts": [],
+      "review_status": "candidate_review_required",
+      "reasons": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "source_title": "湖南省政府管价景区目录（2025年）",
+  "source_url": "https://fgw.hunan.gov.cn/fgw/jgzc11/202507/t20250724_33748635.html",
+  "source_snapshot_date": "2025-04-03",
+  "published_at": "2025-07-24",
+  "retrieved_at": "2026-11-04",
+  "notes": "湖南省发改委公开目录；仅填补知识库空值，历史目录数据统一标记未核验。目录中同名但已存在票价的记录不覆盖。",
+  "rows": [
+    {
+      "source_name": "岳麓书院",
+      "prefecture": "长沙市",
+      "location": "长沙市岳麓区",
+      "price": "40元/人次",
+      "kb_id": "osm-way-272516791",
+      "kb_name": "岳麓书院",
+      "kb_city": "长沙"
+    },
+    {
+      "source_name": "靖港古镇景区",
+      "prefecture": "长沙市",
+      "location": "长沙市望城区",
+      "price": "80元/人次（试行2年）",
+      "kb_id": "amap-B02DB0UK2S",
+      "kb_name": "靖港古镇",
+      "kb_city": "长沙市"
+    },
+    {
+      "source_name": "大围山国家森林公园",
+      "prefecture": "长沙市",
+      "location": "长沙市浏阳市",
+      "price": "淡季68元/人次；旺季90元/人次",
+      "kb_id": "amap-B02DB0698W",
+      "kb_name": "大围山国家森林公园",
+      "kb_city": "长沙市"
+    },
+    {
+      "source_name": "杜甫江阁",
+      "prefecture": "长沙市",
+      "location": "长沙市天心区",
+      "price": "18元/人次（试行2年）",
+      "kb_id": "osm-way-1304229071",
+      "kb_name": "杜甫江阁",
+      "kb_city": "长沙"
+    },
+    {
+      "source_name": "陶公庙",
+      "prefecture": "长沙市",
+      "location": "长沙市长沙县",
+      "price": "5元/人次",
+      "kb_id": "amap-B02DB0694T",
+      "kb_name": "陶公庙",
+      "kb_city": "长沙市"
+    }
+  ],
+  "non_overwrite_conflicts": [
+    {"source_name": "长沙生态动物园", "kb_id": "amap-B02DB0TUSP", "note": "目录价格40/75，与知识库现有票种及价格描述不一致"},
+    {"source_name": "天心阁", "kb_id": "osm-way-481120086", "note": "目录价格30，与知识库现有日游/夜游及优惠票描述不完全一致"},
+    {"source_name": "长沙铜官窑国家考古遗址公园", "kb_id": "amap-B0FFFE8JKP", "note": "目录景区价40且备注博物馆收费、其他景点免费；知识库描述博物馆40，需核对目录的价格适用对象"},
+    {"source_name": "苍坊旅游区胡耀邦故里", "kb_id": "amap-B02DB05TEA", "note": "目录只列文物馆/艺术馆32及其他馆免费，知识库现有描述涉及文博园及观光车，口径不同"}
+  ]
+}

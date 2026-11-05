@@ -1,0 +1,22 @@
+{
+  "source": "Geofabrik China OSM PBF",
+  "source_url": "https://download.geofabrik.de/asia/china-latest.osm.pbf",
+  "retrieved_at": "2026-11-04T09:12:31.137357+00:00",
+  "scope": "exact-name OSM nodes within 10 km after GCJ-02 to WGS-84 conversion; evidence only",
+  "mixed_rows": 9,
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "kb_id": "amap-B0FFGA0LN4",
+      "kb_name": "庐州公园",
+      "osm_type": "node",
+      "osm_id": 8010626477,
+      "distance_m": 829,
+      "osm_name": "庐州公园",
+      "tags": {
+        "railway": "stop"
+      },
+      "tag_evidence": "Nominatim cached response: reports/nominatim-review-2026-11-04.json"
+    }
+  ]
+}

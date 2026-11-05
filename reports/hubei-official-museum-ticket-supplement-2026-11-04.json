@@ -1,0 +1,42 @@
+{
+  "scope": "Hubei only; supplemental official museum ticket evidence",
+  "retrieved_at": "2026-11-04",
+  "records": [
+    {
+      "kb_id": "osm-way-369445342",
+      "kb_name": "武汉博物馆",
+      "kb_city": "武汉",
+      "source_name": "武汉博物馆",
+      "ticket": "免费（武汉市文旅局参观指南：门票免费领取；入馆以馆方当前规则为准）",
+      "ticket_source": "https://wlj.wuhan.gov.cn/zfxxgk/fdzdgknr/jgjj/zsdw/202008/t20200827_1437246.shtml",
+      "ticket_match_reason": "知识库名称与武汉市文旅局页面同名，地址均为江汉区青年路373号；页面更新时间为2026-04-03，明确写明门票免费领取。保留需按馆方当前规则办理的限定。"
+    },
+    {
+      "kb_id": "osm-node-6799539485",
+      "kb_name": "江汉关博物馆",
+      "kb_city": "武汉",
+      "source_name": "江汉关博物馆",
+      "ticket": "免费（武汉市2026年单位预算载明免费对外开放；临展或活动另行规则待核）",
+      "ticket_source": "https://www.wuhan.gov.cn/ztzl/yjs/2026/drz/whswhhlyj_36982/bndys_36983/202602/P020260227356033789913.pdf",
+      "ticket_match_reason": "知识库名称与2026年预算文件的单位名称完全一致；江汉区政府博物馆名录对应江汉关博物馆地址为沿江大道129号，与知识库地址吻合。预算说明写明免费对外开放。"
+    },
+    {
+      "kb_id": "osm-way-1225822189",
+      "kb_name": "武汉科学技术馆",
+      "kb_city": "武汉",
+      "source_name": "武汉科学技术馆",
+      "ticket": "免费（需分时段预约；仅使用武汉科学技术馆公众号或武汉文旅码）",
+      "ticket_source": "https://www.whstm.org.cn/shownews/detail/142",
+      "ticket_match_reason": "知识库名称完全匹配；知识库地址沿江大道91号与科技馆官网地址一致。官网明确免费开放并实行分时段免费预约。"
+    },
+    {
+      "kb_id": "osm-way-1136234331",
+      "kb_name": "辛亥革命博物院(北区)",
+      "kb_city": "武汉",
+      "source_name": "辛亥革命博物院北区",
+      "ticket": "基本陈列收费情况未在参观须知中说明；“鄂军都督府旧址复原陈列”为收费展，金额按院内公告，票价待核",
+      "ticket_source": "https://www.1911museum.cn/list_37.html",
+      "ticket_match_reason": "馆方参观须知明确区分南区、北区，并说明本院服务性项目收费，且“鄂军都督府旧址复原陈列”为收费展。知识库记录明确为该馆北区，因此保留收费项目和金额未知限定，不推断基本陈列免费。"
+    }
+  ]
+}

@@ -1,0 +1,5036 @@
+{
+  "source": "Geofabrik OpenStreetMap China extract",
+  "source_url": "https://download.geofabrik.de/asia/china-latest.osm.pbf",
+  "source_last_modified": "2026-11-04T05:59:57Z",
+  "retrieved_at": "2026-11-04T10:35:02.165728+00:00",
+  "pbf_path": "C:\\Users\\20391\\AppData\\Local\\Temp\\travel-assistant-china-latest.osm.pbf",
+  "linked_osm_ids_checked": 5996,
+  "objects_with_fee_or_opening_hours": 370,
+  "records": [
+    {
+      "osm_id": "osm-node-10024249395",
+      "version": 7,
+      "object_timestamp": "2026-04-28 05:59:31+00:00",
+      "tags": {
+        "name": "昆明聂耳故居",
+        "tourism": "museum",
+        "opening_hours": "Mo-Fr 09:00-17:00; Sa,Su 09:00-18:00; PH 09:00-20:30"
+      },
+      "kb_record_ids": [
+        "amap-B03670W3YY"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11137631185",
+      "version": 4,
+      "object_timestamp": "2025-05-03 11:40:15+00:00",
+      "tags": {
+        "name": "七十二家房客拍摄基地",
+        "name:zh": "七十二家房客拍摄基地",
+        "tourism": "gallery",
+        "opening_hours": "We-Su 08:30-17:00; Apr-Jul closed",
+        "fee": "yes",
+        "charge": "30.00 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-11137631185"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11510347253",
+      "version": 2,
+      "object_timestamp": "2025-09-28 02:53:03+00:00",
+      "tags": {
+        "name": "深圳改革开放展览馆",
+        "name:zh": "深圳改革开放展览馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-11510347253"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11521261704",
+      "version": 3,
+      "object_timestamp": "2025-05-08 09:24:31+00:00",
+      "tags": {
+        "name": "现代汽车文化中心",
+        "tourism": "gallery",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-11521261704"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11918991269",
+      "version": 3,
+      "object_timestamp": "2024-12-26 00:12:02+00:00",
+      "tags": {
+        "name": "红专街早市",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 05:30-09:30"
+      },
+      "kb_record_ids": [
+        "osm-node-11918991269"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11949220669",
+      "version": 3,
+      "object_timestamp": "2026-03-18 09:35:07+00:00",
+      "tags": {
+        "name": "师大夜市",
+        "tourism": "attraction",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-node-11949220669"
+      ]
+    },
+    {
+      "osm_id": "osm-node-11981168744",
+      "version": 1,
+      "object_timestamp": "2024-06-14 15:58:39+00:00",
+      "tags": {
+        "name": "南宁极地海洋世界",
+        "tourism": "aquarium",
+        "opening_hours": "Mo-Su 09:30-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFJ9OJRR"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12035768069",
+      "version": 1,
+      "object_timestamp": "2024-07-05 11:16:05+00:00",
+      "tags": {
+        "name": "南京海底世界",
+        "tourism": "aquarium",
+        "opening_hours": "Mo-Su 08:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12035768069"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12098368994",
+      "version": 4,
+      "object_timestamp": "2026-05-06 03:38:52+00:00",
+      "tags": {
+        "name": "广东美术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12098368994"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12098368995",
+      "version": 2,
+      "object_timestamp": "2026-05-06 03:38:05+00:00",
+      "tags": {
+        "name": "广东非遗馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12098368995"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12098368996",
+      "version": 2,
+      "object_timestamp": "2026-05-06 03:39:47+00:00",
+      "tags": {
+        "name": "广东文学馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12098368996"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12106306193",
+      "version": 3,
+      "object_timestamp": "2026-05-05 14:34:00+00:00",
+      "tags": {
+        "name": "鲁迅纪念馆",
+        "name:zh": "鲁迅纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12106306193"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12106306194",
+      "version": 2,
+      "object_timestamp": "2024-08-13 04:43:40+00:00",
+      "tags": {
+        "name": "中国国民党一大旧址",
+        "name:zh": "中国国民党一大旧址",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12106306194"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12314150101",
+      "version": 1,
+      "object_timestamp": "2024-11-05 11:47:47+00:00",
+      "tags": {
+        "name": "广东时代美术馆",
+        "tourism": "museum",
+        "opening_hours": "We-Su 10:30-18:30"
+      },
+      "kb_record_ids": [
+        "osm-node-12314150101"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1248471844",
+      "version": 7,
+      "object_timestamp": "2023-12-17 08:04:06+00:00",
+      "tags": {
+        "name": "北京警察博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-1248471844"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1259826992",
+      "version": 8,
+      "object_timestamp": "2024-04-19 11:46:01+00:00",
+      "tags": {
+        "name": "杭州动物园",
+        "name:zh": "杭州动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su \"please add opening times\""
+      },
+      "kb_record_ids": [
+        "osm-node-1259826992"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12603752201",
+      "version": 2,
+      "object_timestamp": "2026-09-10 07:32:15+00:00",
+      "tags": {
+        "name": "Island6",
+        "tourism": "gallery",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-12603752201"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12737804201",
+      "version": 1,
+      "object_timestamp": "2025-04-07 23:47:09+00:00",
+      "tags": {
+        "name": "禹舜美术馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:00-19:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12737804201"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12737812601",
+      "version": 1,
+      "object_timestamp": "2025-04-07 23:51:51+00:00",
+      "tags": {
+        "name": "哈尔滨世界欢乐城",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 10:00-21:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12737812601"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12748924056",
+      "version": 1,
+      "object_timestamp": "2025-04-11 21:46:11+00:00",
+      "tags": {
+        "name": "大观美术馆",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-12748924056"
+      ]
+    },
+    {
+      "osm_id": "osm-node-12748924078",
+      "version": 1,
+      "object_timestamp": "2025-04-11 21:46:11+00:00",
+      "tags": {
+        "name": "仓山区文化馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Sa 08:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-12748924078"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13072627001",
+      "version": 1,
+      "object_timestamp": "2025-08-15 14:21:21+00:00",
+      "tags": {
+        "name": "《驼铃传奇》秀",
+        "opening_hours": "Mo-Su 13:00-19:30"
+      },
+      "kb_record_ids": [
+        "amap-B0FFI13PJO"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13130609601",
+      "version": 2,
+      "object_timestamp": "2026-09-14 08:07:39+00:00",
+      "tags": {
+        "name": "Hefei Historical and Cultural Museum of the Three Kingdoms",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-node-13130609601"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13149292356",
+      "version": 4,
+      "object_timestamp": "2025-09-17 14:53:21+00:00",
+      "tags": {
+        "name": "重庆云端之眼观景台",
+        "tourism": "viewpoint",
+        "opening_hours": "Mo-Su 09:00-23:00",
+        "fee": "yes",
+        "charge": "68 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-13149292356"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13149763095",
+      "version": 2,
+      "object_timestamp": "2025-09-17 15:02:33+00:00",
+      "tags": {
+        "name": "重庆城上天幕乐游观光塔",
+        "tourism": "viewpoint",
+        "opening_hours": "10:00-22:00",
+        "fee": "yes",
+        "charge": "88 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-13149763095"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13169431713",
+      "version": 1,
+      "object_timestamp": "2025-09-25 12:36:40+00:00",
+      "tags": {
+        "name": "宇新奇机器人体验馆",
+        "tourism": "museum",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-13169431713"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13253367281",
+      "version": 1,
+      "object_timestamp": "2025-10-24 03:12:33+00:00",
+      "tags": {
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-23:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-13253367281"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13253369877",
+      "version": 1,
+      "object_timestamp": "2025-10-24 03:12:32+00:00",
+      "tags": {
+        "name": "水榭戏台",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:30-22:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-13253369877"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13260329001",
+      "version": 2,
+      "object_timestamp": "2025-12-27 04:46:36+00:00",
+      "tags": {
+        "name": "牛啤酒世界精酿啤酒博物馆（建邺吾悦分馆）",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 16:00-02:00"
+      },
+      "kb_record_ids": [
+        "osm-node-13260329001"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13294484665",
+      "version": 2,
+      "object_timestamp": "2026-02-16 16:47:07+00:00",
+      "tags": {
+        "name": "水下生态观光长廊",
+        "tourism": "attraction",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-13294484665"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13307608323",
+      "version": 1,
+      "object_timestamp": "2025-11-16 04:39:48+00:00",
+      "tags": {
+        "name": "黑龙江省博物馆",
+        "name:zh": "黑龙江省博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-13307608323"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13384240603",
+      "version": 1,
+      "object_timestamp": "2025-12-17 20:54:48+00:00",
+      "tags": {
+        "name": "三亚山海贝文化博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-13384240603"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13434285101",
+      "version": 3,
+      "object_timestamp": "2026-05-07 02:38:07+00:00",
+      "tags": {
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 10:00-19:30"
+      },
+      "kb_record_ids": [
+        "osm-node-13434285101"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13449220312",
+      "version": 2,
+      "object_timestamp": "2026-10-21 07:58:51+00:00",
+      "tags": {
+        "name": "华生园金色蛋糕梦幻王国",
+        "name:zh": "华生园金色蛋糕梦幻王国",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-13449220312"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13450819432",
+      "version": 2,
+      "object_timestamp": "2026-07-27 00:30:56+00:00",
+      "tags": {
+        "name": "青岛科技馆",
+        "tourism": "museum",
+        "opening_hours": "We-Su 09:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B0FFIORWYU"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13546588621",
+      "version": 1,
+      "object_timestamp": "2026-02-12 16:02:49+00:00",
+      "tags": {
+        "name": "青岛地铁展示馆",
+        "name:zh": "青岛地铁展示馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-13546588621"
+      ]
+    },
+    {
+      "osm_id": "osm-node-13745109131",
+      "version": 1,
+      "object_timestamp": "2026-04-20 12:14:52+00:00",
+      "tags": {
+        "name": "南京市民俗博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-13745109131"
+      ]
+    },
+    {
+      "osm_id": "osm-node-14180072776",
+      "version": 1,
+      "object_timestamp": "2026-09-14 07:51:12+00:00",
+      "tags": {
+        "name": "青岛大新金币博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-14180072776"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1419797805",
+      "version": 3,
+      "object_timestamp": "2025-11-11 02:11:03+00:00",
+      "tags": {
+        "name": "武汉国民政府旧址纪念馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-1419797805"
+      ]
+    },
+    {
+      "osm_id": "osm-node-14244800901",
+      "version": 2,
+      "object_timestamp": "2026-10-03 04:13:04+00:00",
+      "tags": {
+        "name": "隆平水稻博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-14244800901"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1608062767",
+      "version": 12,
+      "object_timestamp": "2025-11-23 09:55:27+00:00",
+      "tags": {
+        "name": "江南贡院",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:30-22:00"
+      },
+      "kb_record_ids": [
+        "osm-node-1608062767"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1743112515",
+      "version": 4,
+      "object_timestamp": "2024-12-25 06:23:36+00:00",
+      "tags": {
+        "name": "神玉艺术馆",
+        "tourism": "museum",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-1743112515"
+      ]
+    },
+    {
+      "osm_id": "osm-node-1956552974",
+      "version": 5,
+      "object_timestamp": "2023-10-31 19:40:08+00:00",
+      "tags": {
+        "name": "錦田二帝書院 Yi Tai Study Hall",
+        "name:zh": "錦田二帝書院",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-1956552974"
+      ]
+    },
+    {
+      "osm_id": "osm-node-2001023056",
+      "version": 9,
+      "object_timestamp": "2023-06-03 07:43:03+00:00",
+      "tags": {
+        "name": "长沙摩天轮",
+        "name:zh": "长沙摩天轮",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-2001023056"
+      ]
+    },
+    {
+      "osm_id": "osm-node-2645716635",
+      "version": 5,
+      "object_timestamp": "2025-09-17 16:14:59+00:00",
+      "tags": {
+        "name": "李宗仁官邸",
+        "tourism": "attraction",
+        "opening_hours": "Tu-Su 08:30-11:30, 14:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-2645716635"
+      ]
+    },
+    {
+      "osm_id": "osm-node-269693885",
+      "version": 9,
+      "object_timestamp": "2019-10-18 19:20:47+00:00",
+      "tags": {
+        "name": "北京古观象台",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-269693885"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3037083451",
+      "version": 11,
+      "object_timestamp": "2024-06-22 21:20:26+00:00",
+      "tags": {
+        "name": "万木草堂",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-3037083451"
+      ]
+    },
+    {
+      "osm_id": "osm-node-350322950",
+      "version": 7,
+      "object_timestamp": "2026-05-07 04:11:45+00:00",
+      "tags": {
+        "name": "地王观光·深港之窗",
+        "name:zh": "地王观光·深港之窗",
+        "tourism": "viewpoint",
+        "opening_hours": "Mo-Su 08:00-22:30",
+        "fee": "yes",
+        "charge": "80 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-350322950"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3706224632",
+      "version": 2,
+      "object_timestamp": "2018-10-31 17:52:32+00:00",
+      "tags": {
+        "name": "昭君墓",
+        "tourism": "museum",
+        "opening_hours": "Jan-Dec: Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B01D701BGT"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3750123105",
+      "version": 9,
+      "object_timestamp": "2024-08-21 16:02:40+00:00",
+      "tags": {
+        "name": "上海外滩美术馆",
+        "name:zh": "上海外滩美术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-3750123105"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3829834370",
+      "version": 11,
+      "object_timestamp": "2024-01-12 07:43:44+00:00",
+      "tags": {
+        "name": "深圳博物馆历史民俗馆",
+        "name:zh": "深圳博物馆历史民俗馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00; Mo off; PH 10:00-18:00; PH +1 day off",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-3829834370"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3884441391",
+      "version": 15,
+      "object_timestamp": "2026-05-07 03:40:59+00:00",
+      "tags": {
+        "name": "故宫博物院",
+        "tourism": "museum",
+        "fee": "￥60"
+      },
+      "kb_record_ids": [
+        "osm-node-3884441391"
+      ]
+    },
+    {
+      "osm_id": "osm-node-3951269871",
+      "version": 1,
+      "object_timestamp": "2016-01-17 08:04:39+00:00",
+      "tags": {
+        "name": "史家胡同博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-3951269871"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4130339065",
+      "version": 5,
+      "object_timestamp": "2023-07-21 18:25:37+00:00",
+      "tags": {
+        "name": "蜀锦织绣博物馆",
+        "name:zh": "蜀锦织绣博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Fr 09:00-18:00; Sa, Su 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-4130339065"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4166717989",
+      "version": 5,
+      "object_timestamp": "2025-03-29 15:57:21+00:00",
+      "tags": {
+        "name": "刘海粟美术馆",
+        "tourism": "museum",
+        "opening_hours": "9:00-17:00（16:00停止入馆）"
+      },
+      "kb_record_ids": [
+        "osm-node-4166717989"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4202838212",
+      "version": 2,
+      "object_timestamp": "2016-09-21 10:47:18+00:00",
+      "tags": {
+        "name": "兰州市博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-4202838212"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4246892594",
+      "version": 2,
+      "object_timestamp": "2018-07-10 10:02:36+00:00",
+      "tags": {
+        "name": "狮子林",
+        "name:zh": "狮子林",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-4246892594"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4246918495",
+      "version": 4,
+      "object_timestamp": "2026-01-06 11:10:21+00:00",
+      "tags": {
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4246918495"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4284096489",
+      "version": 4,
+      "object_timestamp": "2024-09-28 02:54:47+00:00",
+      "tags": {
+        "name": "天福茗茶",
+        "name:zh": "天福茗茶",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4284096489"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4339617605",
+      "version": 9,
+      "object_timestamp": "2026-05-15 03:30:40+00:00",
+      "tags": {
+        "name": "上海之巅观光厅",
+        "name:zh": "上海之巅观光厅",
+        "tourism": "viewpoint",
+        "opening_hours": "08:30-23:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4339617605"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4443278690",
+      "version": 8,
+      "object_timestamp": "2026-05-03 06:04:48+00:00",
+      "tags": {
+        "name": "上海邮政博物馆",
+        "name:zh": "Post museum",
+        "tourism": "museum",
+        "opening_hours": "We-Th, Sa-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4443278690"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4445332616",
+      "version": 11,
+      "object_timestamp": "2026-04-10 14:25:16+00:00",
+      "tags": {
+        "name": "广州大学校史展览厅",
+        "name:zh": "广州大学校史展览厅",
+        "tourism": "museum",
+        "opening_hours": "\"凭预约\"",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-4445332616"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4454306990",
+      "version": 1,
+      "object_timestamp": "2016-10-19 01:38:25+00:00",
+      "tags": {
+        "name": "荣宝斋",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-4454306990"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4470004596",
+      "version": 7,
+      "object_timestamp": "2024-08-26 22:38:14+00:00",
+      "tags": {
+        "name": "上海宣传画艺术中心",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4470004596"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4573241888",
+      "version": 2,
+      "object_timestamp": "2016-12-26 14:34:39+00:00",
+      "tags": {
+        "name": "Jump 360",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 10:00-19:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-4573241888"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4619022539",
+      "version": 2,
+      "object_timestamp": "2026-07-16 16:30:17+00:00",
+      "tags": {
+        "name": "长郡中学校史馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-4619022539"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4690596590",
+      "version": 4,
+      "object_timestamp": "2021-03-19 19:17:13+00:00",
+      "tags": {
+        "name": "中國美術學院美術館",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4690596590"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4694654989",
+      "version": 2,
+      "object_timestamp": "2026-01-06 11:10:21+00:00",
+      "tags": {
+        "name:zh": "Suzhou fan museum",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4694654989"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4698277395",
+      "version": 3,
+      "object_timestamp": "2019-08-11 19:14:12+00:00",
+      "tags": {
+        "name": "义风园(五人幕)",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4698277395"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4701308090",
+      "version": 3,
+      "object_timestamp": "2023-06-26 04:06:38+00:00",
+      "tags": {
+        "name": "王小慧艺术馆",
+        "name:zh": "王小慧艺术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4701308090"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4709930192",
+      "version": 3,
+      "object_timestamp": "2019-11-10 13:37:40+00:00",
+      "tags": {
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4709930192"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4756644335",
+      "version": 4,
+      "object_timestamp": "2023-07-21 18:01:53+00:00",
+      "tags": {
+        "name": "兰州极地海洋世界",
+        "tourism": "aquarium",
+        "fee": "160"
+      },
+      "kb_record_ids": [
+        "osm-node-4756644335"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4776963622",
+      "version": 3,
+      "object_timestamp": "2025-10-11 13:10:48+00:00",
+      "tags": {
+        "name": "过云楼陈列馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4776963622"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4786592337",
+      "version": 4,
+      "object_timestamp": "2023-12-11 19:19:06+00:00",
+      "tags": {
+        "name": "成都永陵博物馆",
+        "name:zh": "成都永陵博物馆",
+        "tourism": "museum",
+        "opening_hours": "08:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-4786592337"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4794443122",
+      "version": 4,
+      "object_timestamp": "2026-07-04 16:05:10+00:00",
+      "tags": {
+        "name": "长沙市规划展示馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su,PH 09:00-17:00; Mo off",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-4794443122"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4811280624",
+      "version": 6,
+      "object_timestamp": "2026-10-14 06:32:09+00:00",
+      "tags": {
+        "name": "深圳市工业展览馆",
+        "name:zh": "深圳市工业展览馆",
+        "tourism": "museum",
+        "opening_hours": "\"reservation\""
+      },
+      "kb_record_ids": [
+        "osm-node-4811280624"
+      ]
+    },
+    {
+      "osm_id": "osm-node-4813654423",
+      "version": 3,
+      "object_timestamp": "2017-10-04 05:25:54+00:00",
+      "tags": {
+        "name": "The First Sound Gallery",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-4813654423"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5053277922",
+      "version": 6,
+      "object_timestamp": "2024-04-19 11:46:01+00:00",
+      "tags": {
+        "name": "上海琉璃艺术博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-5053277922"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5150889521",
+      "version": 3,
+      "object_timestamp": "2026-09-29 15:46:25+00:00",
+      "tags": {
+        "name": "前门历史大街",
+        "tourism": "attraction",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-node-5150889521"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5162418823",
+      "version": 1,
+      "object_timestamp": "2017-10-12 05:47:43+00:00",
+      "tags": {
+        "name": "中国南社纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:30-09:30, 22:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-node-5162418823"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5311554022",
+      "version": 1,
+      "object_timestamp": "2017-12-30 05:50:35+00:00",
+      "tags": {
+        "name": "集贤亭",
+        "name:zh": "集贤亭",
+        "tourism": "attraction",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-node-5311554022"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5311564121",
+      "version": 1,
+      "object_timestamp": "2017-12-30 05:53:16+00:00",
+      "tags": {
+        "name": "涌金桥",
+        "name:zh": "涌金桥",
+        "tourism": "attraction",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-node-5311564121"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5699277953",
+      "version": 2,
+      "object_timestamp": "2021-04-12 00:42:10+00:00",
+      "tags": {
+        "name": "东方乐器博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Sa 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-5699277953"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5875468833",
+      "version": 5,
+      "object_timestamp": "2019-08-05 08:04:02+00:00",
+      "tags": {
+        "tourism": "museum",
+        "opening_hours": "10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-5875468833"
+      ]
+    },
+    {
+      "osm_id": "osm-node-5894004587",
+      "version": 5,
+      "object_timestamp": "2024-12-25 05:57:14+00:00",
+      "tags": {
+        "name": "今日美术馆",
+        "tourism": "gallery",
+        "opening_hours": "Mo-Su 10:00-10:00, 18:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-node-5894004587"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6205292385",
+      "version": 4,
+      "object_timestamp": "2024-07-10 18:12:14+00:00",
+      "tags": {
+        "name": "杭州宋城旅游区",
+        "tourism": "attraction",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-node-6205292385"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6316326097",
+      "version": 4,
+      "object_timestamp": "2022-02-01 11:30:48+00:00",
+      "tags": {
+        "name": "桂海碑林博物馆",
+        "tourism": "museum",
+        "opening_hours": "09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-6316326097"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6358640818",
+      "version": 4,
+      "object_timestamp": "2026-09-13 05:02:35+00:00",
+      "tags": {
+        "name": "Musée de l'ancienne résidence de Sun Yat-Sen",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-6358640818"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6612472485",
+      "version": 2,
+      "object_timestamp": "2023-06-12 13:02:57+00:00",
+      "tags": {
+        "name": "苏州城墙博物馆",
+        "name:zh": "苏州城墙博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-6612472485"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6750759877",
+      "version": 3,
+      "object_timestamp": "2022-07-22 05:03:13+00:00",
+      "tags": {
+        "name": "正佳极地海洋世界",
+        "tourism": "aquarium",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-6750759877"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6760961186",
+      "version": 1,
+      "object_timestamp": "2019-08-31 04:32:17+00:00",
+      "tags": {
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-6760961186"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6799539485",
+      "version": 7,
+      "object_timestamp": "2026-06-02 03:20:06+00:00",
+      "tags": {
+        "name": "江汉关博物馆",
+        "name:zh": "江汉关博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Sa 09:00-17:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-6799539485"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6855746380",
+      "version": 3,
+      "object_timestamp": "2026-06-15 17:50:36+00:00",
+      "tags": {
+        "name": "俾斯麦炮台遗址",
+        "tourism": "museum",
+        "fee": "yes",
+        "charge": "25~60 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-6855746380"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6900437885",
+      "version": 3,
+      "object_timestamp": "2023-07-21 18:28:36+00:00",
+      "tags": {
+        "name": "广州市城市规划展览中心",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-6900437885"
+      ]
+    },
+    {
+      "osm_id": "osm-node-6917485861",
+      "version": 1,
+      "object_timestamp": "2019-10-26 07:27:53+00:00",
+      "tags": {
+        "name": "童涵春堂中药博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Th, Sa, Su 09:00-11:00, 13:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-node-6917485861"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7005505230",
+      "version": 2,
+      "object_timestamp": "2021-01-19 16:38:01+00:00",
+      "tags": {
+        "name": "全融博物馆 银行博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu, Th, Sa 09:30-16:00"
+      },
+      "kb_record_ids": [
+        "osm-node-7005505230"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7201439446",
+      "version": 4,
+      "object_timestamp": "2020-02-22 15:57:53+00:00",
+      "tags": {
+        "name": "水知園 H2OPE Centre",
+        "name:zh": "水知園",
+        "tourism": "museum",
+        "opening_hours": "Mo,Tu,Th-Su,PH 10:00-17:30 open \"entry\", Mo,Tu,Th-Su,PH 17:30-18:00 open \"no entry\""
+      },
+      "kb_record_ids": [
+        "osm-node-7201439446"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7221968068",
+      "version": 4,
+      "object_timestamp": "2026-01-29 19:20:17+00:00",
+      "tags": {
+        "name": "Free Sky云际观光",
+        "name:zh": "云际观光",
+        "tourism": "viewpoint",
+        "opening_hours": "Mo-Su 09:00-22:00",
+        "fee": "yes",
+        "charge": "200 CNY"
+      },
+      "kb_record_ids": [
+        "osm-node-7221968068"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7593843082",
+      "version": 1,
+      "object_timestamp": "2020-06-05 02:07:13+00:00",
+      "tags": {
+        "name": "上海动画博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-7593843082"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7912665830",
+      "version": 1,
+      "object_timestamp": "2020-09-16 10:22:21+00:00",
+      "tags": {
+        "name": "西班牙风情馆",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-7912665830"
+      ]
+    },
+    {
+      "osm_id": "osm-node-7994171678",
+      "version": 2,
+      "object_timestamp": "2024-08-21 15:53:09+00:00",
+      "tags": {
+        "name": "上海久事美术馆",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 10:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-node-7994171678"
+      ]
+    },
+    {
+      "osm_id": "osm-node-8019792962",
+      "version": 2,
+      "object_timestamp": "2022-10-01 08:10:45+00:00",
+      "tags": {
+        "name": "华南农业博物馆",
+        "tourism": "museum",
+        "opening_hours": "We,Fr,Sa 09:00-12:00,15:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-node-8019792962"
+      ]
+    },
+    {
+      "osm_id": "osm-node-8223606517",
+      "version": 2,
+      "object_timestamp": "2023-07-21 18:39:23+00:00",
+      "tags": {
+        "name": "噶琼祖拉康",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:00-20:00"
+      },
+      "kb_record_ids": [
+        "osm-node-8223606517"
+      ]
+    },
+    {
+      "osm_id": "osm-node-8578699618",
+      "version": 2,
+      "object_timestamp": "2025-09-15 12:26:15+00:00",
+      "tags": {
+        "name": "御驾文儒古董车博物馆",
+        "name:zh": "御驾文儒",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-21:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-node-8578699618"
+      ]
+    },
+    {
+      "osm_id": "osm-node-9017392632",
+      "version": 1,
+      "object_timestamp": "2021-08-18 14:26:16+00:00",
+      "tags": {
+        "name": "中共三大会议办公楼",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-node-9017392632"
+      ]
+    },
+    {
+      "osm_id": "osm-node-9979858594",
+      "version": 3,
+      "object_timestamp": "2026-01-07 09:30:56+00:00",
+      "tags": {
+        "name": "李宗仁故居",
+        "name:zh": "李宗仁故居",
+        "tourism": "attraction",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B030507M4G"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1013416291",
+      "version": 2,
+      "object_timestamp": "2024-01-29 15:19:48+00:00",
+      "tags": {
+        "name": "上方山森林动物世界",
+        "name:zh": "上方山森林动物世界",
+        "tourism": "zoo",
+        "opening_hours": "08:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1013416291"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1019686717",
+      "version": 6,
+      "object_timestamp": "2023-07-25 01:48:29+00:00",
+      "tags": {
+        "name": "郊野公园",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B036707O7R"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1021574470",
+      "version": 1,
+      "object_timestamp": "2022-01-16 07:02:38+00:00",
+      "tags": {
+        "name": "鸟语林",
+        "tourism": "zoo",
+        "fee": "yes",
+        "charge": "30 RMB"
+      },
+      "kb_record_ids": [
+        "osm-way-1021574470"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1026675605",
+      "version": 6,
+      "object_timestamp": "2026-03-13 05:38:39+00:00",
+      "tags": {
+        "name": "桂林动物园",
+        "name:zh": "桂林动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su 09:00-18:00",
+        "fee": "yes",
+        "charge": "58 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-1026675605"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1030855838",
+      "version": 5,
+      "object_timestamp": "2026-04-11 20:24:48+00:00",
+      "tags": {
+        "name": "宝通禅寺",
+        "opening_hours": "Mo-Su 07:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B001B0K786"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1034667864",
+      "version": 10,
+      "object_timestamp": "2025-09-09 13:44:50+00:00",
+      "tags": {
+        "name": "上海博物馆东馆",
+        "name:zh": "上海博物馆东馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1034667864"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1055574267",
+      "version": 5,
+      "object_timestamp": "2026-10-18 12:07:54+00:00",
+      "tags": {
+        "name": "重庆市规划展览馆",
+        "name:zh": "重庆市规划展览馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1055574267"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1056134621",
+      "version": 6,
+      "object_timestamp": "2026-08-10 18:46:30+00:00",
+      "tags": {
+        "name": "云南昆明规划馆",
+        "name:zh": "云南昆明规划馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1056134621"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1061577687",
+      "version": 6,
+      "object_timestamp": "2026-01-04 19:52:49+00:00",
+      "tags": {
+        "name": "六朝博物馆",
+        "name:zh": "六朝博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 9:00-17:30",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-1061577687"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1062036461",
+      "version": 3,
+      "object_timestamp": "2026-05-05 14:31:53+00:00",
+      "tags": {
+        "name": "团一大纪念馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1062036461"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1076164051",
+      "version": 1,
+      "object_timestamp": "2022-07-05 19:34:48+00:00",
+      "tags": {
+        "name": "美心红酒小镇",
+        "tourism": "theme_park",
+        "opening_hours": "9:00-22:00"
+      },
+      "kb_record_ids": [
+        "amap-B001790MQN"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1076849410",
+      "version": 6,
+      "object_timestamp": "2026-05-12 13:24:52+00:00",
+      "tags": {
+        "name": "湖南省植物园",
+        "charge": "0"
+      },
+      "kb_record_ids": [
+        "amap-B02DB027D2"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1086068151",
+      "version": 1,
+      "object_timestamp": "2022-08-13 20:11:53+00:00",
+      "tags": {
+        "name": "千渡·长江美术馆",
+        "tourism": "gallery",
+        "opening_hours": "Mo-Fr 09:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-1086068151"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1100812820",
+      "version": 1,
+      "object_timestamp": "2022-10-04 09:58:26+00:00",
+      "tags": {
+        "name": "东方娃娃城（沈氏大厦）",
+        "tourism": "theme_park",
+        "opening_hours": "关停"
+      },
+      "kb_record_ids": [
+        "osm-way-1100812820"
+      ]
+    },
+    {
+      "osm_id": "osm-way-111509060",
+      "version": 19,
+      "object_timestamp": "2025-12-07 07:03:29+00:00",
+      "tags": {
+        "name": "香港鐵路博物館 Hong Kong Railway Museum",
+        "name:zh": "香港鐵路博物館",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-111509060"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1121693725",
+      "version": 1,
+      "object_timestamp": "2022-12-13 12:46:02+00:00",
+      "tags": {
+        "name": "龙头山森林公园",
+        "opening_hours": "Mo-Fr 06:00-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B00140W7I5"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1122857533",
+      "version": 1,
+      "object_timestamp": "2022-12-17 11:02:23+00:00",
+      "tags": {
+        "name": "南昌华侨城玛雅乐园",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 09:00-19:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1122857533"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1146802553",
+      "version": 3,
+      "object_timestamp": "2026-06-15 17:50:36+00:00",
+      "tags": {
+        "name": "青岛一战遗址博物馆",
+        "name:zh": "青岛一战遗址博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1146802553"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1148505930",
+      "version": 5,
+      "object_timestamp": "2026-01-26 14:57:49+00:00",
+      "tags": {
+        "name": "中国船政文化博物馆",
+        "name:zh": "中国船政文化博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B024F05AOB"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1151193750",
+      "version": 6,
+      "object_timestamp": "2025-01-01 03:57:42+00:00",
+      "tags": {
+        "name": "北京城市图书馆",
+        "name:zh": "北京城市图书馆",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0IG5HKTID"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1161228936",
+      "version": 4,
+      "object_timestamp": "2026-09-27 15:11:07+00:00",
+      "tags": {
+        "name": "南京明故宫遗址公园",
+        "name:zh": "南京明故宫遗址公园",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1161228936"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1178327404",
+      "version": 8,
+      "object_timestamp": "2025-08-21 22:33:26+00:00",
+      "tags": {
+        "name": "深圳图书馆北馆",
+        "name:zh": "深圳图书馆北馆",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFMCOHYV"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1178327405",
+      "version": 11,
+      "object_timestamp": "2024-07-05 11:06:38+00:00",
+      "tags": {
+        "name": "深圳美术馆（新馆）",
+        "name:zh": "深圳美术馆（新馆）",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1178327405"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1209450920",
+      "version": 5,
+      "object_timestamp": "2026-05-12 12:58:37+00:00",
+      "tags": {
+        "name": "Fotografiska影像艺术中心",
+        "name:zh": "Fotografiska影像艺术中心",
+        "tourism": "gallery",
+        "opening_hours": "10:30-23:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1209450920"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1218789914",
+      "version": 1,
+      "object_timestamp": "2023-10-27 14:14:58+00:00",
+      "tags": {
+        "name": "金牛湖野生动物王国",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFKC02ON"
+      ]
+    },
+    {
+      "osm_id": "osm-way-122617098",
+      "version": 8,
+      "object_timestamp": "2022-12-17 08:32:28+00:00",
+      "tags": {
+        "name": "南京中国绿化博览园",
+        "opening_hours": "Mo-Su 08:30-17:30"
+      },
+      "kb_record_ids": [
+        "amap-B001908WFY"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1227505880",
+      "version": 2,
+      "object_timestamp": "2024-08-10 08:02:25+00:00",
+      "tags": {
+        "name": "陕西考古博物馆",
+        "name:zh": "陕西考古博物馆",
+        "tourism": "museum",
+        "opening_hours": "Th-Tu 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B0FFIPVQRV"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1228981599",
+      "version": 9,
+      "object_timestamp": "2026-01-04 19:52:49+00:00",
+      "tags": {
+        "name": "平津战役纪念馆",
+        "name:zh": "平津战役纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Fr 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "amap-B0016050AE"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1238701606",
+      "version": 5,
+      "object_timestamp": "2024-04-28 13:29:46+00:00",
+      "tags": {
+        "name": "雨花台烈士纪念馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1238701606"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1247994092",
+      "version": 2,
+      "object_timestamp": "2026-07-01 16:01:52+00:00",
+      "tags": {
+        "name": "江宁区反邪教文化主题公园",
+        "tourism": "theme_park",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-way-1247994092"
+      ]
+    },
+    {
+      "osm_id": "osm-way-125023453",
+      "version": 10,
+      "object_timestamp": "2025-05-17 12:31:01+00:00",
+      "tags": {
+        "name": "森林公园",
+        "name:zh": "森林公园",
+        "tourism": "attraction",
+        "opening_hours": "全天"
+      },
+      "kb_record_ids": [
+        "osm-way-125023453"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1261383379",
+      "version": 8,
+      "object_timestamp": "2026-10-04 07:19:12+00:00",
+      "tags": {
+        "name": "成都世界园艺博览园",
+        "name:zh": "成都世界园艺博览园",
+        "opening_hours": "09:00-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B0J24YQ12Q"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1266690687",
+      "version": 3,
+      "object_timestamp": "2024-12-25 08:02:40+00:00",
+      "tags": {
+        "name": "民治村史馆",
+        "name:zh": "民治村史馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1266690687"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1266829911",
+      "version": 3,
+      "object_timestamp": "2025-12-22 21:56:47+00:00",
+      "tags": {
+        "name": "苏州乐园森林世界",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Fr 09:15-17:15; Sa,Su 09:15-20:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1266829911"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1272447369",
+      "version": 6,
+      "object_timestamp": "2026-09-25 22:55:09+00:00",
+      "tags": {
+        "name": "李自健美术馆",
+        "tourism": "museum",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-1272447369"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1272447370",
+      "version": 6,
+      "object_timestamp": "2026-09-25 22:56:46+00:00",
+      "tags": {
+        "name": "谢子龙影像艺术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 12:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1272447370"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1279619929",
+      "version": 2,
+      "object_timestamp": "2026-02-09 21:02:01+00:00",
+      "tags": {
+        "name": "江苏省地质资料馆",
+        "tourism": "museum",
+        "opening_hours": "09:00-12:00,13:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-1279619929"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1284311674",
+      "version": 3,
+      "object_timestamp": "2026-10-16 14:34:07+00:00",
+      "tags": {
+        "name": "小雁塔",
+        "name:zh": "小雁塔",
+        "tourism": "attraction",
+        "opening_hours": "We-Mo 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B001D026D8"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1288909515",
+      "version": 4,
+      "object_timestamp": "2025-04-19 09:57:45+00:00",
+      "tags": {
+        "name": "河南自然博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-1288909515"
+      ]
+    },
+    {
+      "osm_id": "osm-way-128898272",
+      "version": 16,
+      "object_timestamp": "2020-10-22 04:15:43+00:00",
+      "tags": {
+        "name": "盘门景区",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-128898272"
+      ]
+    },
+    {
+      "osm_id": "osm-way-132055173",
+      "version": 21,
+      "object_timestamp": "2026-10-28 13:21:15+00:00",
+      "tags": {
+        "name": "汇泉广场",
+        "name:zh": "汇泉广场",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0214019EC"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1330709889",
+      "version": 7,
+      "object_timestamp": "2026-10-29 13:06:18+00:00",
+      "tags": {
+        "name": "北京大学",
+        "name:zh": "北京大学",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B000A816R6"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1333507426",
+      "version": 3,
+      "object_timestamp": "2025-02-27 02:54:40+00:00",
+      "tags": {
+        "name": "广东科学中心",
+        "name:zh": "广东科学中心",
+        "tourism": "museum",
+        "opening_hours": "Mo off; Tu-Fr 09:30-16:30; Sa-Su,PH 09:30-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1333507426"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1342361122",
+      "version": 5,
+      "object_timestamp": "2025-07-15 12:30:15+00:00",
+      "tags": {
+        "name": "大青山野生动物园",
+        "name:zh": "大青山野生动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su 09:00-16:00",
+        "fee": "yes",
+        "charge": "30元"
+      },
+      "kb_record_ids": [
+        "amap-B01D703BHS"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1342683602",
+      "version": 2,
+      "object_timestamp": "2024-12-15 02:15:01+00:00",
+      "tags": {
+        "name": "昭君博物院",
+        "tourism": "museum",
+        "opening_hours": "Mo-Fr 09:00-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B01D701IUD"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1359212858",
+      "version": 2,
+      "object_timestamp": "2025-10-25 15:34:09+00:00",
+      "tags": {
+        "name": "红旗铁路公园",
+        "name:zh": "红旗铁路公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0KDXZZEHJ"
+      ]
+    },
+    {
+      "osm_id": "osm-way-136998797",
+      "version": 10,
+      "object_timestamp": "2023-12-17 08:04:06+00:00",
+      "tags": {
+        "name": "首都博物馆",
+        "name:zh": "首都博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A76B0A"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1370759237",
+      "version": 2,
+      "object_timestamp": "2025-05-30 03:36:41+00:00",
+      "tags": {
+        "name": "内蒙古博物院",
+        "name:zh": "内蒙古博物院",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFJVJ58F"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1379231105",
+      "version": 2,
+      "object_timestamp": "2026-05-20 07:44:31+00:00",
+      "tags": {
+        "name": "云南民族大观园",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-1379231105"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1387288543",
+      "version": 3,
+      "object_timestamp": "2026-04-21 11:02:56+00:00",
+      "tags": {
+        "name": "南宋德寿宫遗址博物馆",
+        "tourism": "museum",
+        "opening_hours": "周二到周日，9:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1387288543"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1387458584",
+      "version": 5,
+      "object_timestamp": "2026-09-04 02:52:03+00:00",
+      "tags": {
+        "name": "苏州考古博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Tu,Th-Su 09:00-17:00; We off"
+      },
+      "kb_record_ids": [
+        "osm-way-1387458584"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1387776743",
+      "version": 1,
+      "object_timestamp": "2025-05-18 11:23:17+00:00",
+      "tags": {
+        "name": "石家庄城市馆（B馆）",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-1387776743"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1387776744",
+      "version": 1,
+      "object_timestamp": "2025-05-18 11:23:17+00:00",
+      "tags": {
+        "name": "石家庄城市馆（A馆）",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-1387776744"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1419575277",
+      "version": 1,
+      "object_timestamp": "2025-08-03 06:58:16+00:00",
+      "tags": {
+        "name": "陕西历史博物馆",
+        "name:zh": "陕西历史博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:30",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B001D03PEX"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1422983169",
+      "version": 3,
+      "object_timestamp": "2026-08-10 07:26:00+00:00",
+      "tags": {
+        "name": "新疆维吾尔自治区博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:30-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B03DF016C6"
+      ]
+    },
+    {
+      "osm_id": "osm-way-142701523",
+      "version": 4,
+      "object_timestamp": "2020-10-16 10:16:04+00:00",
+      "tags": {
+        "name": "明孝陵博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-142701523"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1448550277",
+      "version": 5,
+      "object_timestamp": "2026-07-28 09:17:06+00:00",
+      "tags": {
+        "name": "深圳自然博物馆",
+        "name:zh": "深圳自然博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B0ID79WKDQ"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1455699525",
+      "version": 2,
+      "object_timestamp": "2026-06-07 07:55:37+00:00",
+      "tags": {
+        "name": "深圳科学技术馆",
+        "name:zh": "深圳科学技术馆",
+        "tourism": "museum",
+        "opening_hours": "We-Fr 10:00-17:00; Sa-Su,PH 09:30-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0HGKOJD8U"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1464549072",
+      "version": 1,
+      "object_timestamp": "2026-01-06 08:58:34+00:00",
+      "tags": {
+        "name": "云南省图书馆",
+        "opening_hours": "Tu-Su 09:00-21:00"
+      },
+      "kb_record_ids": [
+        "amap-B0367010DF"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1465592996",
+      "version": 1,
+      "object_timestamp": "2026-01-09 11:07:15+00:00",
+      "tags": {
+        "name": "Ceramics",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1465592996"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1465995440",
+      "version": 4,
+      "object_timestamp": "2026-06-08 08:18:39+00:00",
+      "tags": {
+        "name": "胶济铁路青岛博物馆",
+        "name:zh": "胶济铁路青岛博物馆",
+        "tourism": "museum",
+        "opening_hours": "Sa-Su 9:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1465995440"
+      ]
+    },
+    {
+      "osm_id": "osm-way-146867406",
+      "version": 14,
+      "object_timestamp": "2023-10-31 19:40:10+00:00",
+      "tags": {
+        "name": "深圳图书馆",
+        "name:zh": "深圳图书馆",
+        "opening_hours": "Tu-Sa 9:00-21:00; Mo off"
+      },
+      "kb_record_ids": [
+        "amap-B02F37VHAS"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1470783384",
+      "version": 2,
+      "object_timestamp": "2026-02-10 13:09:35+00:00",
+      "tags": {
+        "name": "东湖醋园",
+        "opening_hours": "08:00-17:30"
+      },
+      "kb_record_ids": [
+        "amap-B015F0IFI8"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1476722527",
+      "version": 2,
+      "object_timestamp": "2026-02-26 07:26:41+00:00",
+      "tags": {
+        "name": "呈贡卧龙古渔村",
+        "tourism": "attraction",
+        "opening_hours": "10:00-19:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1476722527"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1480680788",
+      "version": 1,
+      "object_timestamp": "2026-02-19 14:04:06+00:00",
+      "tags": {
+        "name": "U·Sea奇幻海世界",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 09:30-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1480680788"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1483296702",
+      "version": 1,
+      "object_timestamp": "2026-02-26 07:26:41+00:00",
+      "tags": {
+        "name": "卧龍鄉村博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-1483296702"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1483720350",
+      "version": 1,
+      "object_timestamp": "2026-02-27 07:19:47+00:00",
+      "tags": {
+        "name": "平行世界公园",
+        "name:zh": "平行世界公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0L0750TUH"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1490016117",
+      "version": 3,
+      "object_timestamp": "2026-03-18 04:00:48+00:00",
+      "tags": {
+        "name": "芦笛岩",
+        "name:zh": "芦笛岩",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1490016117"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1518562426",
+      "version": 2,
+      "object_timestamp": "2026-05-23 10:46:57+00:00",
+      "tags": {
+        "name": "大华大戏院",
+        "name:zh": "大华大戏院",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:30-01:00; 2026 Feb 17 - 2026 Feb 23: 09:00-24:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1518562426"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1523898842",
+      "version": 4,
+      "object_timestamp": "2026-10-04 03:10:32+00:00",
+      "tags": {
+        "name": "余荫山房",
+        "name:zh": "余荫山房",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:00-17:00, 17:00-18:00 open \"entrance closed\"",
+        "fee": "yes",
+        "charge": "18 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B00140UOK2"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1537377823",
+      "version": 1,
+      "object_timestamp": "2026-07-11 04:02:14+00:00",
+      "tags": {
+        "name": "萤火虫港湾猫猫主题公园",
+        "name:zh": "萤火虫港湾猫猫主题公园",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 10:00-24:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1537377823"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1556663922",
+      "version": 1,
+      "object_timestamp": "2026-09-06 22:23:32+00:00",
+      "tags": {
+        "name": "南郊反斗田星球乐园",
+        "tourism": "theme_park",
+        "opening_hours": "09:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-1556663922"
+      ]
+    },
+    {
+      "osm_id": "osm-way-155883007",
+      "version": 12,
+      "object_timestamp": "2026-05-29 06:41:23+00:00",
+      "tags": {
+        "name": "南京新百",
+        "name:zh": "南京新百",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Th 10:00-22:00; Fr-Sa 10:30-22:30; Su 10:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-way-155883007"
+      ]
+    },
+    {
+      "osm_id": "osm-way-156229064",
+      "version": 3,
+      "object_timestamp": "2023-10-18 09:02:14+00:00",
+      "tags": {
+        "name": "拉贝故居",
+        "tourism": "museum",
+        "opening_hours": "08:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-156229064"
+      ]
+    },
+    {
+      "osm_id": "osm-way-156311798",
+      "version": 17,
+      "object_timestamp": "2025-03-14 07:46:40+00:00",
+      "tags": {
+        "name": "上海国际赛车场",
+        "name:zh": "上海国际赛车场",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B0FFIXYMDQ"
+      ]
+    },
+    {
+      "osm_id": "osm-way-1569549362",
+      "version": 1,
+      "object_timestamp": "2026-10-18 20:53:59+00:00",
+      "tags": {
+        "name": "武汉麓客岛",
+        "opening_hours": "10:00",
+        "fee": "conditional"
+      },
+      "kb_record_ids": [
+        "amap-B0LUTL5H3Y"
+      ]
+    },
+    {
+      "osm_id": "osm-way-161090899",
+      "version": 21,
+      "object_timestamp": "2026-01-15 17:26:59+00:00",
+      "tags": {
+        "name": "上海博物馆",
+        "name:zh": "上海博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-161090899"
+      ]
+    },
+    {
+      "osm_id": "osm-way-161298694",
+      "version": 10,
+      "object_timestamp": "2025-12-22 18:16:58+00:00",
+      "tags": {
+        "name": "中国科学技术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-17:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B000A83GVH"
+      ]
+    },
+    {
+      "osm_id": "osm-way-161455677",
+      "version": 9,
+      "object_timestamp": "2024-10-07 21:57:20+00:00",
+      "tags": {
+        "name": "中国茶叶博物馆（双峰馆区）",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:00; Mo off; PH 09:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-161455677"
+      ]
+    },
+    {
+      "osm_id": "osm-way-170144292",
+      "version": 8,
+      "object_timestamp": "2025-09-20 13:29:34+00:00",
+      "tags": {
+        "name": "关山月美术馆",
+        "name:zh": "关山月美术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00; Mo off"
+      },
+      "kb_record_ids": [
+        "osm-way-170144292"
+      ]
+    },
+    {
+      "osm_id": "osm-way-182722922",
+      "version": 6,
+      "object_timestamp": "2026-04-02 08:32:21+00:00",
+      "tags": {
+        "name": "郑州工程技术学院（龙子湖校区）",
+        "name:zh": "郑州工程技术学院（龙子湖校区）",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0FFH1FZVT"
+      ]
+    },
+    {
+      "osm_id": "osm-way-183106483",
+      "version": 5,
+      "object_timestamp": "2024-01-12 07:43:44+00:00",
+      "tags": {
+        "name": "深圳博物馆古代艺术馆",
+        "name:zh": "深圳博物馆古代艺术馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-183106483"
+      ]
+    },
+    {
+      "osm_id": "osm-way-206076447",
+      "version": 11,
+      "object_timestamp": "2026-10-07 06:52:19+00:00",
+      "tags": {
+        "name": "北寺塔",
+        "name:zh": "北寺塔",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:45-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-206076447"
+      ]
+    },
+    {
+      "osm_id": "osm-way-206076966",
+      "version": 9,
+      "object_timestamp": "2023-06-01 04:24:54+00:00",
+      "tags": {
+        "name": "艺圃",
+        "name:zh": "艺圃",
+        "opening_hours": "Mo-Su 07:30-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B02000IFCL"
+      ]
+    },
+    {
+      "osm_id": "osm-way-206382288",
+      "version": 15,
+      "object_timestamp": "2024-08-22 10:18:55+00:00",
+      "tags": {
+        "name": "中华艺术宫",
+        "name:zh": "中华艺术宫",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00",
+        "fee": "yes",
+        "charge": "20元"
+      },
+      "kb_record_ids": [
+        "osm-way-206382288"
+      ]
+    },
+    {
+      "osm_id": "osm-way-206608461",
+      "version": 6,
+      "object_timestamp": "2023-11-05 22:06:03+00:00",
+      "tags": {
+        "name": "上海犹太难民纪念馆",
+        "name:zh": "上海犹太难民纪念馆",
+        "tourism": "museum",
+        "opening_hours": "09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-206608461"
+      ]
+    },
+    {
+      "osm_id": "osm-way-218703252",
+      "version": 10,
+      "object_timestamp": "2026-10-29 05:35:24+00:00",
+      "tags": {
+        "name": "天津仁爱学院",
+        "opening_hours": "\"by appointment\""
+      },
+      "kb_record_ids": [
+        "amap-B00160E3GI"
+      ]
+    },
+    {
+      "osm_id": "osm-way-222849522",
+      "version": 4,
+      "object_timestamp": "2026-03-29 10:55:13+00:00",
+      "tags": {
+        "name": "环球公园",
+        "tourism": "theme_park",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "osm-way-222849522"
+      ]
+    },
+    {
+      "osm_id": "osm-way-229726934",
+      "version": 7,
+      "object_timestamp": "2026-09-30 13:21:46+00:00",
+      "tags": {
+        "name": "雷峰塔",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:00-17:30",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-229726934"
+      ]
+    },
+    {
+      "osm_id": "osm-way-230584222",
+      "version": 10,
+      "object_timestamp": "2026-10-18 15:21:57+00:00",
+      "tags": {
+        "name": "三峡博物馆",
+        "name:zh": "三峡博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Sa 10:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-230584222"
+      ]
+    },
+    {
+      "osm_id": "osm-way-236231355",
+      "version": 18,
+      "object_timestamp": "2026-05-17 13:39:45+00:00",
+      "tags": {
+        "name": "东湖磨山景区",
+        "name:zh": "东湖磨山景区",
+        "opening_hours": "Mo-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B001B0J0B5"
+      ]
+    },
+    {
+      "osm_id": "osm-way-239078166",
+      "version": 14,
+      "object_timestamp": "2026-02-12 16:48:45+00:00",
+      "tags": {
+        "name": "广州市儿童公园",
+        "name:zh": "广州市儿童公园",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 08:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-239078166"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24044964",
+      "version": 22,
+      "object_timestamp": "2026-01-06 08:58:34+00:00",
+      "tags": {
+        "name": "翠湖公园",
+        "name:zh": "翠湖公园",
+        "tourism": "attraction",
+        "opening_hours": "06:00-24:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B0367065BF"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24046825",
+      "version": 14,
+      "object_timestamp": "2026-08-10 18:46:30+00:00",
+      "tags": {
+        "name": "云南陆军讲武堂历史博物馆",
+        "name:zh": "云南陆军讲武堂历史博物馆",
+        "tourism": "museum",
+        "opening_hours": "PH,Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0367018F9"
+      ]
+    },
+    {
+      "osm_id": "osm-way-240896442",
+      "version": 11,
+      "object_timestamp": "2023-11-07 19:13:29+00:00",
+      "tags": {
+        "name": "广东省博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-240896442"
+      ]
+    },
+    {
+      "osm_id": "osm-way-243319596",
+      "version": 26,
+      "object_timestamp": "2025-09-15 07:35:34+00:00",
+      "tags": {
+        "name": "花城广场",
+        "name:zh": "花城广场",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B00140WGV9"
+      ]
+    },
+    {
+      "osm_id": "osm-way-243874128",
+      "version": 25,
+      "object_timestamp": "2026-03-26 09:27:56+00:00",
+      "tags": {
+        "name": "七星景区",
+        "name:zh": "七星景区",
+        "tourism": "attraction",
+        "opening_hours": "Mar-Nov 06:00-19:30; Dec-Feb 06:30-19:00"
+      },
+      "kb_record_ids": [
+        "osm-way-243874128"
+      ]
+    },
+    {
+      "osm_id": "osm-way-244113634",
+      "version": 23,
+      "object_timestamp": "2024-06-20 14:33:24+00:00",
+      "tags": {
+        "name": "蓬瀛仙館 Fung Ying Sin Koon",
+        "name:zh": "蓬瀛仙館",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-244113634"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24476204",
+      "version": 18,
+      "object_timestamp": "2026-07-17 02:13:06+00:00",
+      "tags": {
+        "name": "日坛公园",
+        "name:zh": "日坛公园",
+        "opening_hours": "Mo-Su 06:00-22:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A7C9EW"
+      ]
+    },
+    {
+      "osm_id": "osm-way-245154326",
+      "version": 5,
+      "object_timestamp": "2023-12-01 16:38:15+00:00",
+      "tags": {
+        "name": "西安城市运动公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0FFF5UE68"
+      ]
+    },
+    {
+      "osm_id": "osm-way-245283775",
+      "version": 9,
+      "object_timestamp": "2026-10-01 11:41:32+00:00",
+      "tags": {
+        "name": "革命公园",
+        "name:zh": "革命公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B001D092F6"
+      ]
+    },
+    {
+      "osm_id": "osm-way-246285619",
+      "version": 12,
+      "object_timestamp": "2023-08-21 21:09:27+00:00",
+      "tags": {
+        "name": "樱花广场",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B001D07CNW"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24824550",
+      "version": 68,
+      "object_timestamp": "2026-05-25 16:17:53+00:00",
+      "tags": {
+        "name": "天坛公园",
+        "name:zh": "天坛公园",
+        "tourism": "attraction",
+        "opening_hours": "opening_hours=Apr 1-Oct 31 06:00-21:00; Nov 1-Mar 31 06:30-21:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A81CB2"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24825312",
+      "version": 46,
+      "object_timestamp": "2026-09-06 01:24:13+00:00",
+      "tags": {
+        "name": "雍和宫",
+        "name:zh": "雍和宫",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 09:00-16:00",
+        "fee": "￥25"
+      },
+      "kb_record_ids": [
+        "amap-B000A7BGMG"
+      ]
+    },
+    {
+      "osm_id": "osm-way-24827108",
+      "version": 45,
+      "object_timestamp": "2026-05-29 04:22:01+00:00",
+      "tags": {
+        "name": "圆明园遗址公园",
+        "name:zh": "圆明园遗址公园",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:00-19:30"
+      },
+      "kb_record_ids": [
+        "amap-B000A16E89"
+      ]
+    },
+    {
+      "osm_id": "osm-way-249696516",
+      "version": 23,
+      "object_timestamp": "2026-05-20 15:32:25+00:00",
+      "tags": {
+        "name": "深圳野生动物园",
+        "name:zh": "深圳野生动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su 09:30-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-249696516"
+      ]
+    },
+    {
+      "osm_id": "osm-way-255622888",
+      "version": 30,
+      "object_timestamp": "2026-09-24 19:59:49+00:00",
+      "tags": {
+        "name": "越秀公园",
+        "name:zh": "越秀公园",
+        "opening_hours": "Mo-Su 06:00-22:00"
+      },
+      "kb_record_ids": [
+        "amap-B00140BNNF"
+      ]
+    },
+    {
+      "osm_id": "osm-way-256711574",
+      "version": 11,
+      "object_timestamp": "2024-03-20 00:44:11+00:00",
+      "tags": {
+        "name": "西安碑林博物馆",
+        "name:zh": "西安碑林博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B001D06484"
+      ]
+    },
+    {
+      "osm_id": "osm-way-256930203",
+      "version": 3,
+      "object_timestamp": "2023-11-26 14:54:45+00:00",
+      "tags": {
+        "name": "西安秦岭野生动物园",
+        "name:zh": "西安秦岭野生动物园",
+        "tourism": "zoo",
+        "opening_hours": "08:30-18:00",
+        "fee": "yes",
+        "charge": "100 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B001D092I6"
+      ]
+    },
+    {
+      "osm_id": "osm-way-264955019",
+      "version": 9,
+      "object_timestamp": "2026-05-17 05:47:53+00:00",
+      "tags": {
+        "name": "宝安区图书馆",
+        "name:zh": "宝安区图书馆",
+        "opening_hours": "Tu-Su 09:00-21:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFGDYBJ8"
+      ]
+    },
+    {
+      "osm_id": "osm-way-269856520",
+      "version": 12,
+      "object_timestamp": "2026-07-31 17:15:35+00:00",
+      "tags": {
+        "name": "湖南省博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-269856520"
+      ]
+    },
+    {
+      "osm_id": "osm-way-272516791",
+      "version": 18,
+      "object_timestamp": "2026-09-10 19:09:39+00:00",
+      "tags": {
+        "name": "岳麓书院",
+        "name:zh": "岳麓书院",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-272516791"
+      ]
+    },
+    {
+      "osm_id": "osm-way-288489004",
+      "version": 18,
+      "object_timestamp": "2024-08-19 22:56:24+00:00",
+      "tags": {
+        "name": "农民运动讲习所纪念馆",
+        "name:zh": "农民运动讲习所纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 9:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-288489004"
+      ]
+    },
+    {
+      "osm_id": "osm-way-288494693",
+      "version": 17,
+      "object_timestamp": "2026-08-11 11:00:07+00:00",
+      "tags": {
+        "name": "南越王宫博物馆",
+        "name:zh": "南越王宫博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:30",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-288494693"
+      ]
+    },
+    {
+      "osm_id": "osm-way-29228773",
+      "version": 38,
+      "object_timestamp": "2026-10-15 19:51:25+00:00",
+      "tags": {
+        "name": "颐和园",
+        "name:zh": "颐和园",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 06:30-18:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A7O1CU"
+      ]
+    },
+    {
+      "osm_id": "osm-way-294832093",
+      "version": 10,
+      "object_timestamp": "2025-07-24 12:34:48+00:00",
+      "tags": {
+        "name": "广东革命历史博物馆",
+        "name:zh": "广东革命历史博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-294832093"
+      ]
+    },
+    {
+      "osm_id": "osm-way-296199625",
+      "version": 9,
+      "object_timestamp": "2026-09-23 06:00:29+00:00",
+      "tags": {
+        "name": "深圳市儿童乐园",
+        "name:zh": "深圳市儿童乐园",
+        "tourism": "theme_park",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-296199625"
+      ]
+    },
+    {
+      "osm_id": "osm-way-298132744",
+      "version": 9,
+      "object_timestamp": "2024-08-14 09:01:36+00:00",
+      "tags": {
+        "name": "上海当代艺术博物馆",
+        "name:zh": "上海当代艺术博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 11:00-19:00"
+      },
+      "kb_record_ids": [
+        "osm-way-298132744"
+      ]
+    },
+    {
+      "osm_id": "osm-way-298795705",
+      "version": 13,
+      "object_timestamp": "2025-08-16 16:41:12+00:00",
+      "tags": {
+        "name": "南越王博物院王墓展区",
+        "name:zh": "南越王博物院王墓展区",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:30",
+        "fee": "yes",
+        "charge": "10 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-298795705"
+      ]
+    },
+    {
+      "osm_id": "osm-way-299409723",
+      "version": 18,
+      "object_timestamp": "2025-11-22 11:16:34+00:00",
+      "tags": {
+        "name": "杜甫草堂",
+        "name:zh": "杜甫草堂",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-299409723"
+      ]
+    },
+    {
+      "osm_id": "osm-way-300743506",
+      "version": 5,
+      "object_timestamp": "2018-08-03 00:37:56+00:00",
+      "tags": {
+        "name": "东平大押",
+        "name:zh": "东平大押",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-300743506"
+      ]
+    },
+    {
+      "osm_id": "osm-way-300799969",
+      "version": 13,
+      "object_timestamp": "2024-10-10 15:41:39+00:00",
+      "tags": {
+        "name": "上海欢乐谷",
+        "name:zh": "上海欢乐谷",
+        "tourism": "theme_park",
+        "opening_hours": "09:00-22:00"
+      },
+      "kb_record_ids": [
+        "amap-B00155Q41F"
+      ]
+    },
+    {
+      "osm_id": "osm-way-301743511",
+      "version": 7,
+      "object_timestamp": "2026-07-19 02:51:29+00:00",
+      "tags": {
+        "name": "上海世博展览馆",
+        "name:zh": "上海世博展览馆",
+        "tourism": "museum",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-301743511"
+      ]
+    },
+    {
+      "osm_id": "osm-way-303018152",
+      "version": 7,
+      "object_timestamp": "2026-07-28 06:54:57+00:00",
+      "tags": {
+        "name": "昆明植物园",
+        "tourism": "attraction",
+        "fee": "yes",
+        "charge": "10 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B03670000E"
+      ]
+    },
+    {
+      "osm_id": "osm-way-306982169",
+      "version": 2,
+      "object_timestamp": "2018-12-02 05:37:12+00:00",
+      "tags": {
+        "name": "广东中医药博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Sa 09:00-16:45"
+      },
+      "kb_record_ids": [
+        "osm-way-306982169"
+      ]
+    },
+    {
+      "osm_id": "osm-way-30834367",
+      "version": 13,
+      "object_timestamp": "2024-05-09 14:43:53+00:00",
+      "tags": {
+        "name": "法源寺",
+        "opening_hours": "Mo-Su 08:50-15:50",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B000A45927"
+      ]
+    },
+    {
+      "osm_id": "osm-way-311521711",
+      "version": 3,
+      "object_timestamp": "2025-10-24 03:12:36+00:00",
+      "tags": {
+        "name": "福建省博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-311521711"
+      ]
+    },
+    {
+      "osm_id": "osm-way-319201085",
+      "version": 11,
+      "object_timestamp": "2026-05-27 16:55:58+00:00",
+      "tags": {
+        "name": "中央商场",
+        "name:zh": "中央商场",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 10:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-way-319201085"
+      ]
+    },
+    {
+      "osm_id": "osm-way-319998727",
+      "version": 13,
+      "object_timestamp": "2026-05-25 11:12:38+00:00",
+      "tags": {
+        "name": "南京博物院",
+        "name:zh": "南京博物院",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-319998727"
+      ]
+    },
+    {
+      "osm_id": "osm-way-322018300",
+      "version": 5,
+      "object_timestamp": "2026-05-07 08:08:04+00:00",
+      "tags": {
+        "name": "广州青少年科技馆",
+        "name:zh": "广州青少年科技馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-12:30,14:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-322018300"
+      ]
+    },
+    {
+      "osm_id": "osm-way-330499627",
+      "version": 11,
+      "object_timestamp": "2026-06-07 00:54:03+00:00",
+      "tags": {
+        "name": "南山博物馆",
+        "name:zh": "南山博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-330499627"
+      ]
+    },
+    {
+      "osm_id": "osm-way-331715161",
+      "version": 12,
+      "object_timestamp": "2026-05-06 03:16:16+00:00",
+      "tags": {
+        "name": "粤海关旧址（中国海关博物馆广州分馆）",
+        "name:zh": "粤海关旧址（中国海关博物馆广州分馆）",
+        "tourism": "museum",
+        "opening_hours": "Mo-Fr 09:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-331715161"
+      ]
+    },
+    {
+      "osm_id": "osm-way-333793961",
+      "version": 7,
+      "object_timestamp": "2025-11-07 14:45:37+00:00",
+      "tags": {
+        "name": "国立美术陈列馆旧址",
+        "name:zh": "国立美术陈列馆旧址",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-333793961"
+      ]
+    },
+    {
+      "osm_id": "osm-way-33607958",
+      "version": 16,
+      "object_timestamp": "2026-06-15 09:12:18+00:00",
+      "tags": {
+        "name": "龙潭中湖公园",
+        "opening_hours": "Mo-Su 06:00-22:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A7AB8D"
+      ]
+    },
+    {
+      "osm_id": "osm-way-341360115",
+      "version": 12,
+      "object_timestamp": "2026-05-20 15:07:11+00:00",
+      "tags": {
+        "name": "湖北省图书馆",
+        "opening_hours": "Mo 12:30-20:30; Tu-Su 08:30-20:30"
+      },
+      "kb_record_ids": [
+        "amap-B001B0K93G"
+      ]
+    },
+    {
+      "osm_id": "osm-way-34374887",
+      "version": 13,
+      "object_timestamp": "2024-08-19 18:40:59+00:00",
+      "tags": {
+        "name": "广州动物园",
+        "name:zh": "广州动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su 08:00-18:00",
+        "fee": "yes",
+        "charge": "20CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-34374887"
+      ]
+    },
+    {
+      "osm_id": "osm-way-347798980",
+      "version": 11,
+      "object_timestamp": "2026-01-21 08:56:35+00:00",
+      "tags": {
+        "name": "广东华侨博物馆",
+        "name:zh": "广东华侨博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-347798980"
+      ]
+    },
+    {
+      "osm_id": "osm-way-356904143",
+      "version": 6,
+      "object_timestamp": "2026-10-13 01:59:51+00:00",
+      "tags": {
+        "name": "中国杭州低碳科技馆",
+        "tourism": "museum",
+        "opening_hours": "We-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-356904143"
+      ]
+    },
+    {
+      "osm_id": "osm-way-35842505",
+      "version": 20,
+      "object_timestamp": "2026-10-16 05:06:24+00:00",
+      "tags": {
+        "name": "昆明动物园",
+        "tourism": "zoo",
+        "opening_hours": "07:00-19:00",
+        "fee": "yes",
+        "charge": "20 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B0367031Y7"
+      ]
+    },
+    {
+      "osm_id": "osm-way-363656371",
+      "version": 15,
+      "object_timestamp": "2026-03-08 06:32:21+00:00",
+      "tags": {
+        "name": "湖北省博物馆",
+        "name:zh": "湖北省博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 9:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-363656371"
+      ]
+    },
+    {
+      "osm_id": "osm-way-366464114",
+      "version": 10,
+      "object_timestamp": "2026-02-03 13:57:55+00:00",
+      "tags": {
+        "name": "北海公园",
+        "name:zh": "北海公园",
+        "tourism": "attraction",
+        "opening_hours": "Apr-Oct 06:30-21:00; Nov-Mar 06:30-20:00",
+        "fee": "￥10"
+      },
+      "kb_record_ids": [
+        "amap-B000A80UL1"
+      ]
+    },
+    {
+      "osm_id": "osm-way-372033107",
+      "version": 8,
+      "object_timestamp": "2025-08-01 06:52:59+00:00",
+      "tags": {
+        "name": "兰山森林公园",
+        "tourism": "attraction",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-372033107"
+      ]
+    },
+    {
+      "osm_id": "osm-way-372180467",
+      "version": 10,
+      "object_timestamp": "2026-05-01 05:23:20+00:00",
+      "tags": {
+        "name": "中共一大会址",
+        "name:zh": "中共一大会址",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-372180467"
+      ]
+    },
+    {
+      "osm_id": "osm-way-39517928",
+      "version": 14,
+      "object_timestamp": "2023-01-28 09:55:50+00:00",
+      "tags": {
+        "name": "千佛山景区",
+        "name:zh": "千佛山景区",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-39517928"
+      ]
+    },
+    {
+      "osm_id": "osm-way-39585364",
+      "version": 11,
+      "object_timestamp": "2024-04-08 08:53:27+00:00",
+      "tags": {
+        "name": "云南民族村",
+        "tourism": "theme_park",
+        "fee": "yes",
+        "charge": "90 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B036706Y83"
+      ]
+    },
+    {
+      "osm_id": "osm-way-39763847",
+      "version": 19,
+      "object_timestamp": "2026-09-08 12:29:49+00:00",
+      "tags": {
+        "name": "上海城市规划展示馆",
+        "name:zh": "上海城市规划展示馆",
+        "tourism": "museum",
+        "opening_hours": "Th-Tu 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-39763847"
+      ]
+    },
+    {
+      "osm_id": "osm-way-40036584",
+      "version": 46,
+      "object_timestamp": "2026-03-08 10:00:30+00:00",
+      "tags": {
+        "name": "豫园",
+        "name:zh": "豫园",
+        "tourism": "attraction",
+        "opening_hours": "08:00-17:15",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-40036584"
+      ]
+    },
+    {
+      "osm_id": "osm-way-40190302",
+      "version": 16,
+      "object_timestamp": "2021-08-10 09:21:27+00:00",
+      "tags": {
+        "name": "五龙潭公园",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B021301972"
+      ]
+    },
+    {
+      "osm_id": "osm-way-402061867",
+      "version": 6,
+      "object_timestamp": "2025-03-22 20:26:03+00:00",
+      "tags": {
+        "name": "曲江池遗址公园",
+        "name:zh": "曲江池遗址公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B001D0VQ3N"
+      ]
+    },
+    {
+      "osm_id": "osm-way-404559734",
+      "version": 4,
+      "object_timestamp": "2026-04-29 01:23:34+00:00",
+      "tags": {
+        "name": "仁敦岡書室 Yan Tun Kong Study Hall",
+        "name:zh": "仁敦岡書室",
+        "tourism": "attraction",
+        "opening_hours": "We-Mo 09:00-13:00, 14:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-404559734"
+      ]
+    },
+    {
+      "osm_id": "osm-way-404676268",
+      "version": 15,
+      "object_timestamp": "2026-06-28 08:56:10+00:00",
+      "tags": {
+        "name": "上海海洋水族馆",
+        "name:zh": "上海海洋水族馆",
+        "tourism": "aquarium",
+        "opening_hours": "09:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-404676268"
+      ]
+    },
+    {
+      "osm_id": "osm-way-405303467",
+      "version": 4,
+      "object_timestamp": "2020-08-25 05:13:47+00:00",
+      "tags": {
+        "name": "兰州植物园",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B03A30AYNJ"
+      ]
+    },
+    {
+      "osm_id": "osm-way-405352719",
+      "version": 9,
+      "object_timestamp": "2026-05-02 16:37:54+00:00",
+      "tags": {
+        "name": "甘肃省博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 9:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-405352719"
+      ]
+    },
+    {
+      "osm_id": "osm-way-406422717",
+      "version": 11,
+      "object_timestamp": "2025-12-14 11:50:22+00:00",
+      "tags": {
+        "name": "西涌沙滩",
+        "fee": "￥28"
+      },
+      "kb_record_ids": [
+        "amap-B0H0A6QG8V"
+      ]
+    },
+    {
+      "osm_id": "osm-way-409830486",
+      "version": 4,
+      "object_timestamp": "2017-12-26 10:05:57+00:00",
+      "tags": {
+        "name": "甘肃科技馆",
+        "tourism": "museum",
+        "opening_hours": "We-Su 09:30-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-409830486"
+      ]
+    },
+    {
+      "osm_id": "osm-way-410145301",
+      "version": 7,
+      "object_timestamp": "2026-06-02 16:16:49+00:00",
+      "tags": {
+        "name": "武汉科学技术馆（新馆）",
+        "tourism": "museum",
+        "opening_hours": "Th-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-410145301"
+      ]
+    },
+    {
+      "osm_id": "osm-way-410613814",
+      "version": 5,
+      "object_timestamp": "2020-12-15 10:28:49+00:00",
+      "tags": {
+        "name": "兰州水车园",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:00-19:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-410613814"
+      ]
+    },
+    {
+      "osm_id": "osm-way-412705835",
+      "version": 19,
+      "object_timestamp": "2026-10-07 04:28:18+00:00",
+      "tags": {
+        "name": "都江堰景区",
+        "name:zh": "都江堰景区",
+        "tourism": "attraction",
+        "fee": "yes",
+        "charge": "80"
+      },
+      "kb_record_ids": [
+        "amap-B001C06PA9"
+      ]
+    },
+    {
+      "osm_id": "osm-way-41281446",
+      "version": 18,
+      "object_timestamp": "2026-05-04 06:30:57+00:00",
+      "tags": {
+        "name": "莲花山公园",
+        "name:zh": "莲花山公园",
+        "opening_hours": "Mo-Su 06:00-23:00"
+      },
+      "kb_record_ids": [
+        "amap-B02F306L5G"
+      ]
+    },
+    {
+      "osm_id": "osm-way-415271012",
+      "version": 16,
+      "object_timestamp": "2026-04-28 14:21:27+00:00",
+      "tags": {
+        "name": "太原植物园",
+        "name:zh": "太原植物园",
+        "fee": "yes",
+        "charge": "50 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B0FFH1CFIB"
+      ]
+    },
+    {
+      "osm_id": "osm-way-425762388",
+      "version": 15,
+      "object_timestamp": "2023-11-05 22:06:04+00:00",
+      "tags": {
+        "name": "上海自然博物馆",
+        "name:zh": "上海自然博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:15"
+      },
+      "kb_record_ids": [
+        "osm-way-425762388"
+      ]
+    },
+    {
+      "osm_id": "osm-way-430059676",
+      "version": 8,
+      "object_timestamp": "2026-09-25 04:06:48+00:00",
+      "tags": {
+        "name": "四川美术馆",
+        "name:zh": "四川美术馆",
+        "tourism": "gallery",
+        "opening_hours": "09:00-17:00(16：00停止入场，16:30观众退场，17:00闭馆，每周一闭馆)",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-430059676"
+      ]
+    },
+    {
+      "osm_id": "osm-way-435452367",
+      "version": 6,
+      "object_timestamp": "2026-09-18 04:19:51+00:00",
+      "tags": {
+        "name": "中共一大纪念馆",
+        "name:zh": "中共一大纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-435452367"
+      ]
+    },
+    {
+      "osm_id": "osm-way-435790532",
+      "version": 3,
+      "object_timestamp": "2020-07-15 09:30:53+00:00",
+      "tags": {
+        "name": "兰州城市规划展览馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 9:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-435790532"
+      ]
+    },
+    {
+      "osm_id": "osm-way-435906176",
+      "version": 7,
+      "object_timestamp": "2026-09-30 13:21:46+00:00",
+      "tags": {
+        "name": "岳王庙",
+        "tourism": "attraction",
+        "opening_hours": "07:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-435906176"
+      ]
+    },
+    {
+      "osm_id": "osm-way-437732061",
+      "version": 11,
+      "object_timestamp": "2023-10-29 13:34:42+00:00",
+      "tags": {
+        "name": "杭州野生动物世界",
+        "tourism": "zoo",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B023B02366"
+      ]
+    },
+    {
+      "osm_id": "osm-way-438869009",
+      "version": 4,
+      "object_timestamp": "2021-03-03 04:59:58+00:00",
+      "tags": {
+        "name": "中共三大会址纪念馆",
+        "name:zh": "中共三大会址纪念馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-438869009"
+      ]
+    },
+    {
+      "osm_id": "osm-way-43927496",
+      "version": 18,
+      "object_timestamp": "2023-11-05 22:06:03+00:00",
+      "tags": {
+        "name": "上海科技馆",
+        "name:zh": "上海科技馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:15",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-43927496"
+      ]
+    },
+    {
+      "osm_id": "osm-way-441943428",
+      "version": 6,
+      "object_timestamp": "2024-04-19 11:46:20+00:00",
+      "tags": {
+        "name": "苏州民俗博物馆",
+        "name:zh": "苏州民俗博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su,PH 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-way-441943428"
+      ]
+    },
+    {
+      "osm_id": "osm-way-443223606",
+      "version": 6,
+      "object_timestamp": "2026-01-18 17:33:56+00:00",
+      "tags": {
+        "name": "杭州乐园",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Fr 10:00-17:00; Sa-Su 09:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-443223606"
+      ]
+    },
+    {
+      "osm_id": "osm-way-44679451",
+      "version": 11,
+      "object_timestamp": "2020-08-24 15:38:17+00:00",
+      "tags": {
+        "name": "狮子林",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-44679451"
+      ]
+    },
+    {
+      "osm_id": "osm-way-44679452",
+      "version": 13,
+      "object_timestamp": "2024-04-19 11:46:06+00:00",
+      "tags": {
+        "name": "网师园",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:30-17:00",
+        "fee": "yes",
+        "charge": "30 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-44679452"
+      ]
+    },
+    {
+      "osm_id": "osm-way-447781370",
+      "version": 5,
+      "object_timestamp": "2026-09-29 08:03:27+00:00",
+      "tags": {
+        "name": "长沙非物质文化遗产馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-447781370"
+      ]
+    },
+    {
+      "osm_id": "osm-way-447781371",
+      "version": 3,
+      "object_timestamp": "2026-09-29 08:01:39+00:00",
+      "tags": {
+        "name": "长株潭都市圈展示馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:30-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-447781371"
+      ]
+    },
+    {
+      "osm_id": "osm-way-456331569",
+      "version": 11,
+      "object_timestamp": "2024-01-12 07:43:44+00:00",
+      "tags": {
+        "name": "深圳市当代艺术与城市规划馆",
+        "name:zh": "深圳市当代艺术与城市规划馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-456331569"
+      ]
+    },
+    {
+      "osm_id": "osm-way-462007561",
+      "version": 12,
+      "object_timestamp": "2026-08-09 14:28:54+00:00",
+      "tags": {
+        "name": "上海动物园",
+        "name:zh": "上海动物园",
+        "tourism": "zoo",
+        "opening_hours": "06:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-462007561"
+      ]
+    },
+    {
+      "osm_id": "osm-way-463406152",
+      "version": 2,
+      "object_timestamp": "2018-04-06 06:44:47+00:00",
+      "tags": {
+        "name": "白鹤梁水下博物馆",
+        "name:zh": "白鹤梁水下博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "amap-B001786LW8"
+      ]
+    },
+    {
+      "osm_id": "osm-way-466202947",
+      "version": 12,
+      "object_timestamp": "2026-09-23 07:35:16+00:00",
+      "tags": {
+        "name": "长沙博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su,PH 09:00-17:00; Mo off",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-466202947"
+      ]
+    },
+    {
+      "osm_id": "osm-way-468359738",
+      "version": 20,
+      "object_timestamp": "2026-10-06 09:34:18+00:00",
+      "tags": {
+        "name": "拙政园",
+        "name:zh": "拙政园",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 07:30-17:30",
+        "fee": "90"
+      },
+      "kb_record_ids": [
+        "osm-way-468359738"
+      ]
+    },
+    {
+      "osm_id": "osm-way-472084991",
+      "version": 7,
+      "object_timestamp": "2024-12-29 04:37:21+00:00",
+      "tags": {
+        "name": "海沧湾公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B025004OAI"
+      ]
+    },
+    {
+      "osm_id": "osm-way-474337112",
+      "version": 11,
+      "object_timestamp": "2026-02-21 02:26:09+00:00",
+      "tags": {
+        "name": "国家自然博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30"
+      },
+      "kb_record_ids": [
+        "amap-B000A7CRPA"
+      ]
+    },
+    {
+      "osm_id": "osm-way-477237906",
+      "version": 4,
+      "object_timestamp": "2026-09-10 05:31:29+00:00",
+      "tags": {
+        "name": "M50",
+        "tourism": "gallery",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-477237906"
+      ]
+    },
+    {
+      "osm_id": "osm-way-481892723",
+      "version": 5,
+      "object_timestamp": "2025-04-01 19:54:12+00:00",
+      "tags": {
+        "name": "沈阳铁路陈列馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:00; Mo off; PH 09:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-way-481892723"
+      ]
+    },
+    {
+      "osm_id": "osm-way-483068129",
+      "version": 9,
+      "object_timestamp": "2026-07-21 03:16:53+00:00",
+      "tags": {
+        "name": "成都极地海洋公园",
+        "name:zh": "成都极地海洋公园",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 08:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-way-483068129"
+      ]
+    },
+    {
+      "osm_id": "osm-way-485470086",
+      "version": 3,
+      "object_timestamp": "2025-11-07 14:39:24+00:00",
+      "tags": {
+        "name": "正宁路小吃夜市",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Sa 18:00-04:00; Su 18:00-0:00"
+      },
+      "kb_record_ids": [
+        "osm-way-485470086"
+      ]
+    },
+    {
+      "osm_id": "osm-way-488984509",
+      "version": 3,
+      "object_timestamp": "2020-06-27 08:22:25+00:00",
+      "tags": {
+        "name": "Shanghai Center of Photography",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-488984509"
+      ]
+    },
+    {
+      "osm_id": "osm-way-490345952",
+      "version": 7,
+      "object_timestamp": "2024-08-21 16:10:03+00:00",
+      "tags": {
+        "name": "上海工艺美术博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-11:30, 13:00-16:30"
+      },
+      "kb_record_ids": [
+        "osm-way-490345952"
+      ]
+    },
+    {
+      "osm_id": "osm-way-490656166",
+      "version": 6,
+      "object_timestamp": "2025-10-31 08:30:31+00:00",
+      "tags": {
+        "name": "世博会博物馆",
+        "name:zh": "世博会博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-490656166"
+      ]
+    },
+    {
+      "osm_id": "osm-way-492151336",
+      "version": 5,
+      "object_timestamp": "2020-08-24 15:37:55+00:00",
+      "tags": {
+        "name": "耦园",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-492151336"
+      ]
+    },
+    {
+      "osm_id": "osm-way-492154541",
+      "version": 11,
+      "object_timestamp": "2023-11-06 19:00:17+00:00",
+      "tags": {
+        "name": "沧浪亭",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-492154541"
+      ]
+    },
+    {
+      "osm_id": "osm-way-492256966",
+      "version": 2,
+      "object_timestamp": "2026-09-14 04:11:38+00:00",
+      "tags": {
+        "name": "湖南省地质博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-492256966"
+      ]
+    },
+    {
+      "osm_id": "osm-way-504174138",
+      "version": 5,
+      "object_timestamp": "2022-05-12 06:09:54+00:00",
+      "tags": {
+        "name": "杭州动物园",
+        "tourism": "zoo",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-504174138"
+      ]
+    },
+    {
+      "osm_id": "osm-way-506740637",
+      "version": 5,
+      "object_timestamp": "2023-11-05 22:06:04+00:00",
+      "tags": {
+        "name": "龙美术馆（浦东馆）",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 10:00-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-506740637"
+      ]
+    },
+    {
+      "osm_id": "osm-way-515802940",
+      "version": 8,
+      "object_timestamp": "2025-05-01 18:36:35+00:00",
+      "tags": {
+        "name": "广州华侨博物馆",
+        "name:zh": "广州华侨博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:30",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-515802940"
+      ]
+    },
+    {
+      "osm_id": "osm-way-520431534",
+      "version": 7,
+      "object_timestamp": "2024-03-19 05:06:29+00:00",
+      "tags": {
+        "name": "洛龙公园",
+        "name:zh": "洛龙公园",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B036707VK2"
+      ]
+    },
+    {
+      "osm_id": "osm-way-520933836",
+      "version": 3,
+      "object_timestamp": "2021-03-03 08:10:46+00:00",
+      "tags": {
+        "name": "培道校史馆",
+        "name:zh": "培道校史馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-520933836"
+      ]
+    },
+    {
+      "osm_id": "osm-way-520935699",
+      "version": 7,
+      "object_timestamp": "2023-11-07 19:13:31+00:00",
+      "tags": {
+        "name": "陈家祠",
+        "name:zh": "陈家祠",
+        "tourism": "museum",
+        "fee": "yes",
+        "charge": "10 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-520935699"
+      ]
+    },
+    {
+      "osm_id": "osm-way-521501270",
+      "version": 8,
+      "object_timestamp": "2021-03-27 12:00:38+00:00",
+      "tags": {
+        "name": "培正校史博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-521501270"
+      ]
+    },
+    {
+      "osm_id": "osm-way-526782681",
+      "version": 3,
+      "object_timestamp": "2020-08-21 07:07:04+00:00",
+      "tags": {
+        "name": "双塔",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-526782681"
+      ]
+    },
+    {
+      "osm_id": "osm-way-531264078",
+      "version": 9,
+      "object_timestamp": "2026-03-01 14:46:33+00:00",
+      "tags": {
+        "name": "亚龙湾国际玫瑰谷",
+        "name:zh": "亚龙湾国际玫瑰谷",
+        "tourism": "theme_park",
+        "opening_hours": "8:30-18:00"
+      },
+      "kb_record_ids": [
+        "osm-way-531264078"
+      ]
+    },
+    {
+      "osm_id": "osm-way-540340500",
+      "version": 19,
+      "object_timestamp": "2025-10-03 16:34:43+00:00",
+      "tags": {
+        "name": "香蜜公园",
+        "name:zh": "香蜜公园",
+        "opening_hours": "06:00-23:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFG1V706"
+      ]
+    },
+    {
+      "osm_id": "osm-way-541249963",
+      "version": 3,
+      "object_timestamp": "2023-06-22 03:46:15+00:00",
+      "tags": {
+        "name": "苏州丝绸博物馆",
+        "name:zh": "苏州丝绸博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-541249963"
+      ]
+    },
+    {
+      "osm_id": "osm-way-542534202",
+      "version": 7,
+      "object_timestamp": "2026-10-06 09:34:18+00:00",
+      "tags": {
+        "name": "苏州博物馆",
+        "name:zh": "苏州博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-542534202"
+      ]
+    },
+    {
+      "osm_id": "osm-way-545246937",
+      "version": 11,
+      "object_timestamp": "2025-04-16 11:45:22+00:00",
+      "tags": {
+        "name": "福田红树林生态公园",
+        "name:zh": "福田红树林生态公园",
+        "opening_hours": "Mo-Su 06:00-23:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFGJP58W"
+      ]
+    },
+    {
+      "osm_id": "osm-way-554250276",
+      "version": 5,
+      "object_timestamp": "2026-10-18 07:40:58+00:00",
+      "tags": {
+        "name": "青岛啤酒博物馆",
+        "name:zh": "青岛啤酒博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:30-16:30",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-554250276"
+      ]
+    },
+    {
+      "osm_id": "osm-way-554910677",
+      "version": 3,
+      "object_timestamp": "2026-06-14 11:55:40+00:00",
+      "tags": {
+        "name": "道路交通博物馆",
+        "name:zh": "道路交通博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:30",
+        "fee": "yes",
+        "charge": "30 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-554910677"
+      ]
+    },
+    {
+      "osm_id": "osm-way-558728790",
+      "version": 2,
+      "object_timestamp": "2024-11-28 14:22:55+00:00",
+      "tags": {
+        "name": "山东省图书馆",
+        "opening_hours": "Mo-Su 08:00-20:00"
+      },
+      "kb_record_ids": [
+        "amap-B021306MEN"
+      ]
+    },
+    {
+      "osm_id": "osm-way-562487214",
+      "version": 5,
+      "object_timestamp": "2022-06-30 22:55:41+00:00",
+      "tags": {
+        "name": "金山城市沙滩",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B00155D6FY"
+      ]
+    },
+    {
+      "osm_id": "osm-way-575543750",
+      "version": 3,
+      "object_timestamp": "2021-06-04 12:03:15+00:00",
+      "tags": {
+        "name": "李味青艺术馆",
+        "tourism": "gallery",
+        "opening_hours": "不定时"
+      },
+      "kb_record_ids": [
+        "osm-way-575543750"
+      ]
+    },
+    {
+      "osm_id": "osm-way-584839711",
+      "version": 6,
+      "object_timestamp": "2025-11-08 20:59:24+00:00",
+      "tags": {
+        "name": "公主楼",
+        "tourism": "museum",
+        "fee": "yes",
+        "charge": "20 CNY"
+      },
+      "kb_record_ids": [
+        "osm-way-584839711"
+      ]
+    },
+    {
+      "osm_id": "osm-way-586003509",
+      "version": 3,
+      "object_timestamp": "2026-06-06 14:59:45+00:00",
+      "tags": {
+        "name": "蝴蝶楼",
+        "name:zh": "蝴蝶楼",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-586003509"
+      ]
+    },
+    {
+      "osm_id": "osm-way-613715001",
+      "version": 7,
+      "object_timestamp": "2026-05-25 18:55:10+00:00",
+      "tags": {
+        "name": "主体建筑",
+        "tourism": "attraction",
+        "opening_hours": "09:00-17:30",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-613715001"
+      ]
+    },
+    {
+      "osm_id": "osm-way-615404527",
+      "version": 3,
+      "object_timestamp": "2023-10-19 07:56:03+00:00",
+      "tags": {
+        "name": "SNH48星梦剧院",
+        "tourism": "viewpoint",
+        "opening_hours": "We-Fr 16:00-22:00; Sa-Su 10:00-22:00"
+      },
+      "kb_record_ids": [
+        "osm-way-615404527"
+      ]
+    },
+    {
+      "osm_id": "osm-way-617243312",
+      "version": 3,
+      "object_timestamp": "2026-02-23 09:26:16+00:00",
+      "tags": {
+        "name": "增城广场",
+        "name:zh": "增城广场",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B00140UF02"
+      ]
+    },
+    {
+      "osm_id": "osm-way-62344632",
+      "version": 9,
+      "object_timestamp": "2026-03-15 10:17:37+00:00",
+      "tags": {
+        "name": "红山森林动物园",
+        "tourism": "zoo",
+        "fee": "yes",
+        "charge": "40 CNY, 80 CNY/YEAR"
+      },
+      "kb_record_ids": [
+        "osm-way-62344632"
+      ]
+    },
+    {
+      "osm_id": "osm-way-62353471",
+      "version": 4,
+      "object_timestamp": "2024-09-27 09:23:23+00:00",
+      "tags": {
+        "name": "弥勒寺公园",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B036709CVM"
+      ]
+    },
+    {
+      "osm_id": "osm-way-631619836",
+      "version": 9,
+      "object_timestamp": "2026-07-29 02:57:16+00:00",
+      "tags": {
+        "name": "云南省博物馆新馆",
+        "name:zh": "云南省博物馆新馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-631619836"
+      ]
+    },
+    {
+      "osm_id": "osm-way-633390851",
+      "version": 6,
+      "object_timestamp": "2025-11-10 08:22:15+00:00",
+      "tags": {
+        "name": "冰心默庐",
+        "name:zh": "冰心默庐",
+        "tourism": "attraction",
+        "opening_hours": "Tu 13:00-18:00; We-Fr 10:00-12:00,13:00-18:00; Sa,Su 09:00-12:00,13:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-633390851"
+      ]
+    },
+    {
+      "osm_id": "osm-way-640908719",
+      "version": 6,
+      "object_timestamp": "2025-07-09 19:25:42+00:00",
+      "tags": {
+        "name": "广州地铁博物馆",
+        "name:zh": "广州地铁博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-16:00"
+      },
+      "kb_record_ids": [
+        "osm-way-640908719"
+      ]
+    },
+    {
+      "osm_id": "osm-way-652174557",
+      "version": 3,
+      "object_timestamp": "2026-01-02 08:13:27+00:00",
+      "tags": {
+        "name": "新秀公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0303005E3"
+      ]
+    },
+    {
+      "osm_id": "osm-way-654142748",
+      "version": 14,
+      "object_timestamp": "2025-09-17 16:10:52+00:00",
+      "tags": {
+        "name": "象山公园",
+        "name:zh": "象山公园",
+        "tourism": "attraction",
+        "fee": "unknown"
+      },
+      "kb_record_ids": [
+        "osm-way-654142748"
+      ]
+    },
+    {
+      "osm_id": "osm-way-660894418",
+      "version": 8,
+      "object_timestamp": "2026-10-03 12:39:24+00:00",
+      "tags": {
+        "name": "文殊院",
+        "tourism": "attraction",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-660894418"
+      ]
+    },
+    {
+      "osm_id": "osm-way-667838864",
+      "version": 3,
+      "object_timestamp": "2026-07-29 13:44:46+00:00",
+      "tags": {
+        "name": "八路军驻新疆办事处纪念馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B03DF0300D"
+      ]
+    },
+    {
+      "osm_id": "osm-way-682108182",
+      "version": 5,
+      "object_timestamp": "2026-08-11 11:00:07+00:00",
+      "tags": {
+        "name": "广州博物馆",
+        "name:zh": "广州博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-18:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-682108182"
+      ]
+    },
+    {
+      "osm_id": "osm-way-687704018",
+      "version": 6,
+      "object_timestamp": "2024-04-27 12:15:51+00:00",
+      "tags": {
+        "name": "天津方特欢乐世界",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Su 08:00-21:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B0FFF3523J"
+      ]
+    },
+    {
+      "osm_id": "osm-way-688965134",
+      "version": 5,
+      "object_timestamp": "2026-01-29 17:04:38+00:00",
+      "tags": {
+        "name": "小洲岛公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0I0AA5W68"
+      ]
+    },
+    {
+      "osm_id": "osm-way-693802019",
+      "version": 5,
+      "object_timestamp": "2025-01-17 17:34:46+00:00",
+      "tags": {
+        "name": "龙华公园",
+        "name:zh": "龙华公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B02F302799"
+      ]
+    },
+    {
+      "osm_id": "osm-way-701096491",
+      "version": 11,
+      "object_timestamp": "2026-09-17 12:52:57+00:00",
+      "tags": {
+        "name": "白石龙音乐主题公园",
+        "name:zh": "白石龙音乐主题公园",
+        "opening_hours": "Mo-Su 06:30-23:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFH0ZH1A"
+      ]
+    },
+    {
+      "osm_id": "osm-way-712184710",
+      "version": 3,
+      "object_timestamp": "2025-07-24 12:18:43+00:00",
+      "tags": {
+        "name": "岭南金融博物馆",
+        "name:zh": "岭南金融博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-712184710"
+      ]
+    },
+    {
+      "osm_id": "osm-way-71235670",
+      "version": 16,
+      "object_timestamp": "2026-09-03 10:54:54+00:00",
+      "tags": {
+        "name": "秦始皇兵马俑博物馆",
+        "name:zh": "秦始皇兵马俑博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:00-17:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFGXMLTU"
+      ]
+    },
+    {
+      "osm_id": "osm-way-735432189",
+      "version": 9,
+      "object_timestamp": "2025-05-23 04:43:31+00:00",
+      "tags": {
+        "name": "黑龙潭公园",
+        "tourism": "attraction",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B036702DCF"
+      ]
+    },
+    {
+      "osm_id": "osm-way-736382204",
+      "version": 5,
+      "object_timestamp": "2026-09-09 01:46:35+00:00",
+      "tags": {
+        "name": "西园戒幢律寺",
+        "name:zh": "西园寺",
+        "opening_hours": "Mo-Su 08:00-17:30"
+      },
+      "kb_record_ids": [
+        "amap-B02000IFB4"
+      ]
+    },
+    {
+      "osm_id": "osm-way-743284966",
+      "version": 7,
+      "object_timestamp": "2026-02-23 15:15:58+00:00",
+      "tags": {
+        "name": "昙华寺公园",
+        "opening_hours": "07:30-19:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B036702C4F"
+      ]
+    },
+    {
+      "osm_id": "osm-way-745277168",
+      "version": 6,
+      "object_timestamp": "2026-09-21 01:42:45+00:00",
+      "tags": {
+        "name": "西岸美术馆x蓬皮杜中心",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 10:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-745277168"
+      ]
+    },
+    {
+      "osm_id": "osm-way-756859586",
+      "version": 6,
+      "object_timestamp": "2024-07-19 14:31:39+00:00",
+      "tags": {
+        "name": "红螺寺",
+        "opening_hours": "Mo-Su 08:00-16:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A01CD7"
+      ]
+    },
+    {
+      "osm_id": "osm-way-760963004",
+      "version": 7,
+      "object_timestamp": "2024-09-24 15:58:37+00:00",
+      "tags": {
+        "name": "侵华日军第七三一部队罪证陈列馆",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:30-16:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFG2DWSV"
+      ]
+    },
+    {
+      "osm_id": "osm-way-763914806",
+      "version": 10,
+      "object_timestamp": "2025-05-25 12:58:17+00:00",
+      "tags": {
+        "name": "云南野生动物园",
+        "tourism": "zoo",
+        "fee": "yes",
+        "charge": "100 CNY"
+      },
+      "kb_record_ids": [
+        "amap-B03670000D"
+      ]
+    },
+    {
+      "osm_id": "osm-way-779532223",
+      "version": 17,
+      "object_timestamp": "2025-04-23 13:53:19+00:00",
+      "tags": {
+        "name": "城市绿心森林公园",
+        "name:zh": "城市绿心森林公园",
+        "opening_hours": "24h"
+      },
+      "kb_record_ids": [
+        "amap-B0GUJBN4ID"
+      ]
+    },
+    {
+      "osm_id": "osm-way-781583887",
+      "version": 13,
+      "object_timestamp": "2024-08-04 04:23:00+00:00",
+      "tags": {
+        "name": "雁南公园",
+        "name:zh": "雁南公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B0G3SZVFSN"
+      ]
+    },
+    {
+      "osm_id": "osm-way-797908220",
+      "version": 4,
+      "object_timestamp": "2024-02-19 05:30:16+00:00",
+      "tags": {
+        "name": "昆明瀑布公园",
+        "opening_hours": "Mo-Su 06:00-21:00"
+      },
+      "kb_record_ids": [
+        "amap-B0FFGE1KG8"
+      ]
+    },
+    {
+      "osm_id": "osm-way-806654229",
+      "version": 4,
+      "object_timestamp": "2026-08-21 15:00:59+00:00",
+      "tags": {
+        "name": "太原北齐壁画博物馆",
+        "name:zh": "太原北齐壁画博物馆",
+        "tourism": "museum",
+        "opening_hours": "Mo off; Tu-Su 09:00-17:00; May 18 09:00-17:00; PH 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-806654229"
+      ]
+    },
+    {
+      "osm_id": "osm-way-809969460",
+      "version": 1,
+      "object_timestamp": "2020-05-30 15:01:32+00:00",
+      "tags": {
+        "name": "刘武美术馆",
+        "tourism": "gallery",
+        "opening_hours": "不定"
+      },
+      "kb_record_ids": [
+        "osm-way-809969460"
+      ]
+    },
+    {
+      "osm_id": "osm-way-838823146",
+      "version": 24,
+      "object_timestamp": "2022-05-12 02:08:42+00:00",
+      "tags": {
+        "name": "南宁园博园",
+        "name:zh": "南宁园博园",
+        "opening_hours": "Mo-Su 09:00-18:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B0FFIHK23Q"
+      ]
+    },
+    {
+      "osm_id": "osm-way-847909993",
+      "version": 9,
+      "object_timestamp": "2026-05-07 17:41:13+00:00",
+      "tags": {
+        "name": "广州艺术博物院",
+        "name:zh": "广州艺术博物院",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su,PH 09:00-17:30",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-847909993"
+      ]
+    },
+    {
+      "osm_id": "osm-way-857434712",
+      "version": 3,
+      "object_timestamp": "2023-11-06 19:00:17+00:00",
+      "tags": {
+        "name": "柴园·苏州教育博物馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-857434712"
+      ]
+    },
+    {
+      "osm_id": "osm-way-875709408",
+      "version": 7,
+      "object_timestamp": "2026-04-14 14:43:16+00:00",
+      "tags": {
+        "name": "五象岭森林公园",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B030305TJC"
+      ]
+    },
+    {
+      "osm_id": "osm-way-895874694",
+      "version": 5,
+      "object_timestamp": "2025-03-21 10:06:57+00:00",
+      "tags": {
+        "name": "广州兰圃",
+        "name:zh": "广州兰圃",
+        "opening_hours": "Mo-Su 08:00-18:00",
+        "fee": "yes",
+        "charge": "8 RMB"
+      },
+      "kb_record_ids": [
+        "amap-B00140UFEW"
+      ]
+    },
+    {
+      "osm_id": "osm-way-89705199",
+      "version": 6,
+      "object_timestamp": "2026-06-04 09:45:07+00:00",
+      "tags": {
+        "name": "张学良旧居陈列馆",
+        "name:zh": "张学良旧居陈列馆",
+        "tourism": "museum",
+        "opening_hours": "Apr-Oct 08:30-18:00; Nov-Mar 08:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-89705199"
+      ]
+    },
+    {
+      "osm_id": "osm-way-908333670",
+      "version": 1,
+      "object_timestamp": "2021-02-18 09:13:35+00:00",
+      "tags": {
+        "name": "兔园",
+        "tourism": "zoo",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-908333670"
+      ]
+    },
+    {
+      "osm_id": "osm-way-921948038",
+      "version": 4,
+      "object_timestamp": "2025-02-01 14:40:53+00:00",
+      "tags": {
+        "name": "中国人民革命军事博物馆",
+        "opening_hours": "Tu-Su 09:00-20:00"
+      },
+      "kb_record_ids": [
+        "amap-B000A7S1GC"
+      ]
+    },
+    {
+      "osm_id": "osm-way-921998134",
+      "version": 3,
+      "object_timestamp": "2026-01-04 19:52:49+00:00",
+      "tags": {
+        "name": "南昌八一起义纪念馆",
+        "name:zh": "南昌八一起义纪念馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-921998134"
+      ]
+    },
+    {
+      "osm_id": "osm-way-939578294",
+      "version": 12,
+      "object_timestamp": "2026-09-29 15:47:22+00:00",
+      "tags": {
+        "name": "洪崖洞",
+        "tourism": "attraction",
+        "opening_hours": "Su-Sa 11:00-23:00"
+      },
+      "kb_record_ids": [
+        "osm-way-939578294"
+      ]
+    },
+    {
+      "osm_id": "osm-way-941885688",
+      "version": 23,
+      "object_timestamp": "2026-09-29 16:17:35+00:00",
+      "tags": {
+        "name": "成都大熊猫繁育研究基地",
+        "name:zh": "成都大熊猫繁育研究基地",
+        "tourism": "zoo",
+        "opening_hours": "07:30-18:00; Dec-Feb 08:00-17:30",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "amap-B001C7WE5S"
+      ]
+    },
+    {
+      "osm_id": "osm-way-955695642",
+      "version": 10,
+      "object_timestamp": "2025-12-19 09:00:00+00:00",
+      "tags": {
+        "name": "中国共产党历史展览馆",
+        "name:zh": "中国共产党历史展览馆",
+        "tourism": "museum",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "amap-B0HDPSITA5"
+      ]
+    },
+    {
+      "osm_id": "osm-way-96293662",
+      "version": 4,
+      "object_timestamp": "2024-01-23 06:23:00+00:00",
+      "tags": {
+        "name": "华·美术馆",
+        "name:zh": "华·美术馆",
+        "tourism": "gallery",
+        "opening_hours": "Tu-Su 9:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-96293662"
+      ]
+    },
+    {
+      "osm_id": "osm-way-965382977",
+      "version": 11,
+      "object_timestamp": "2026-06-01 16:37:39+00:00",
+      "tags": {
+        "name": "粤剧艺术博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 09:00-16:00",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-965382977"
+      ]
+    },
+    {
+      "osm_id": "osm-way-966656434",
+      "version": 5,
+      "object_timestamp": "2021-08-02 14:13:54+00:00",
+      "tags": {
+        "name": "太原方特东方神画",
+        "tourism": "theme_park",
+        "opening_hours": "Mo-Fr 09:30-17:30"
+      },
+      "kb_record_ids": [
+        "amap-B0HGACZR0M"
+      ]
+    },
+    {
+      "osm_id": "osm-way-971091000",
+      "version": 6,
+      "object_timestamp": "2026-04-20 10:10:52+00:00",
+      "tags": {
+        "name": "江西省科技馆",
+        "tourism": "museum",
+        "opening_hours": "Mo,Tu,We,Th,Sa,Su 00:00-24:00; Fr off; PH off"
+      },
+      "kb_record_ids": [
+        "osm-way-971091000"
+      ]
+    },
+    {
+      "osm_id": "osm-way-972871577",
+      "version": 4,
+      "object_timestamp": "2025-12-21 05:45:53+00:00",
+      "tags": {
+        "name": "清凉山森林公园",
+        "name:zh": "清凉山森林公园",
+        "opening_hours": "24/7"
+      },
+      "kb_record_ids": [
+        "amap-B001D10YEK"
+      ]
+    },
+    {
+      "osm_id": "osm-way-979207121",
+      "version": 3,
+      "object_timestamp": "2025-10-19 08:12:39+00:00",
+      "tags": {
+        "name": "西湖博物馆",
+        "name:zh": "西湖博物馆",
+        "tourism": "museum",
+        "opening_hours": "Tu-Su 08:00-17:00",
+        "fee": "yes"
+      },
+      "kb_record_ids": [
+        "osm-way-979207121"
+      ]
+    },
+    {
+      "osm_id": "osm-way-99465606",
+      "version": 16,
+      "object_timestamp": "2026-10-16 13:32:57+00:00",
+      "tags": {
+        "name": "武汉动物园",
+        "name:zh": "武汉动物园",
+        "tourism": "zoo",
+        "opening_hours": "Mo-Su 09:00-17:00"
+      },
+      "kb_record_ids": [
+        "osm-way-99465606"
+      ]
+    },
+    {
+      "osm_id": "osm-way-995072106",
+      "version": 5,
+      "object_timestamp": "2025-12-31 11:11:22+00:00",
+      "tags": {
+        "name": "丽江古城",
+        "name:zh": "丽江古城",
+        "tourism": "attraction",
+        "fee": "no"
+      },
+      "kb_record_ids": [
+        "osm-way-995072106"
+      ]
+    },
+    {
+      "osm_id": "osm-way-995076077",
+      "version": 1,
+      "object_timestamp": "2021-10-21 01:59:26+00:00",
+      "tags": {
+        "name": "方国瑜故居",
+        "name:zh": "方国瑜故居",
+        "tourism": "museum",
+        "opening_hours": "Mo-Su 08:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-995076077"
+      ]
+    },
+    {
+      "osm_id": "osm-way-995086004",
+      "version": 2,
+      "object_timestamp": "2025-04-03 06:14:08+00:00",
+      "tags": {
+        "name": "木府",
+        "name:zh": "木府",
+        "tourism": "attraction",
+        "opening_hours": "Mo-Su 08:30-17:30"
+      },
+      "kb_record_ids": [
+        "osm-way-995086004"
+      ]
+    }
+  ]
+}

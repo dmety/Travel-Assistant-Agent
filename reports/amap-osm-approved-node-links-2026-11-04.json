@@ -1,0 +1,593 @@
+{
+  "source": "Geofabrik China OSM PBF",
+  "source_url": "https://download.geofabrik.de/asia/china-latest.osm.pbf",
+  "retrieved_at": "2026-11-04T09:47:06.689392+00:00",
+  "criteria": {
+    "exact_normalized_name": true,
+    "max_distance_m": 25,
+    "unique_candidate_within_100m": true,
+    "unique_source_id_across_kb": true,
+    "no_existing_risk_flags": true,
+    "feature_tag_allowlist": {
+      "tourism": [
+        "aquarium",
+        "archaeological_site",
+        "artwork",
+        "attraction",
+        "gallery",
+        "museum",
+        "theme_park",
+        "viewpoint",
+        "zoo"
+      ],
+      "leisure": [
+        "garden",
+        "marina",
+        "nature_reserve",
+        "park"
+      ],
+      "historic": [
+        "archaeological_site",
+        "building",
+        "city_gate",
+        "memorial",
+        "monument"
+      ],
+      "natural": [
+        "beach",
+        "cave_entrance",
+        "peak",
+        "saddle",
+        "spring",
+        "valley"
+      ],
+      "amenity": [
+        "animal_breeding",
+        "college",
+        "ferry_terminal",
+        "library",
+        "museum",
+        "place_of_worship",
+        "planetarium",
+        "school",
+        "theatre",
+        "university"
+      ]
+    },
+    "no_conflicting_admin_tags": true
+  },
+  "linked_count": 56,
+  "records": [
+    {
+      "kb_id": "amap-B0FFLPFSNR",
+      "kb_name": "紫霞宫",
+      "osm_source_id": "osm-node-9287306765",
+      "distance_m": 2.7,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFH2JS91",
+      "kb_name": "亚特兰蒂斯失落的空间水族馆",
+      "osm_source_id": "osm-node-13478409485",
+      "distance_m": 3.3,
+      "tags": {
+        "tourism": "aquarium"
+      }
+    },
+    {
+      "kb_id": "amap-B03DF04Y0R",
+      "kb_name": "一炮成功",
+      "osm_source_id": "osm-node-13455755076",
+      "distance_m": 3.8,
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B00180J50I",
+      "kb_name": "北塔",
+      "osm_source_id": "osm-node-1629291120",
+      "distance_m": 4.0,
+      "tags": {
+        "historic": "monument",
+        "name:en": "Beita"
+      }
+    },
+    {
+      "kb_id": "amap-B03030UAK3",
+      "kb_name": "南宁博物馆",
+      "osm_source_id": "osm-node-12135700080",
+      "distance_m": 4.4,
+      "tags": {
+        "tourism": "museum",
+        "name:en": "Nanning Museum"
+      }
+    },
+    {
+      "kb_id": "amap-B0HB3P63OA",
+      "kb_name": "龙泉山观景台",
+      "osm_source_id": "osm-node-13284683697",
+      "distance_m": 4.6,
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFWQJQV",
+      "kb_name": "兰州市图书馆",
+      "osm_source_id": "osm-node-4135470436",
+      "distance_m": 4.8,
+      "tags": {
+        "amenity": "library",
+        "name:en": "Lanzhou City Library"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG21UFU",
+      "kb_name": "青山渔村牌坊",
+      "osm_source_id": "osm-node-12388187757",
+      "distance_m": 4.9,
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJPYPHF",
+      "kb_name": "金堂县龚家山观景台",
+      "osm_source_id": "osm-node-13284683700",
+      "distance_m": 5.0,
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B00180JAGF",
+      "kb_name": "中山广场",
+      "osm_source_id": "osm-node-814789028",
+      "distance_m": 5.2,
+      "tags": {
+        "historic": "monument",
+        "name:en": "Zhongshan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03CB0SN5E",
+      "kb_name": "青海省科学技术馆",
+      "osm_source_id": "osm-node-9177401404",
+      "distance_m": 5.3,
+      "tags": {
+        "tourism": "museum"
+      }
+    },
+    {
+      "kb_id": "amap-B0MASAFR9S",
+      "kb_name": "新疆革命军事馆",
+      "osm_source_id": "osm-node-14246176346",
+      "distance_m": 5.3,
+      "tags": {
+        "tourism": "museum"
+      }
+    },
+    {
+      "kb_id": "amap-B01D700EBD",
+      "kb_name": "呼和浩特市第七中学",
+      "osm_source_id": "osm-node-8500242380",
+      "distance_m": 5.5,
+      "tags": {
+        "amenity": "school",
+        "addr:city": "呼和浩特市",
+        "addr:province": "内蒙古自治区"
+      }
+    },
+    {
+      "kb_id": "amap-B0G2S7LE4X",
+      "kb_name": "梅沙尖",
+      "osm_source_id": "osm-node-6353851591",
+      "distance_m": 5.8,
+      "tags": {
+        "natural": "peak"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFP3OAB",
+      "kb_name": "火神庙",
+      "osm_source_id": "osm-node-13358713801",
+      "distance_m": 5.9,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFGLV23",
+      "kb_name": "文昌阁",
+      "osm_source_id": "osm-node-9768725161",
+      "distance_m": 6.0,
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0378004RW",
+      "kb_name": "普贤寺",
+      "osm_source_id": "osm-node-551133452",
+      "distance_m": 6.1,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B01D701BGT",
+      "kb_name": "昭君墓",
+      "osm_source_id": "osm-node-3706224632",
+      "distance_m": 6.2,
+      "tags": {
+        "tourism": "museum",
+        "historic": "monument",
+        "name:en": "Zhaojun Tomb"
+      }
+    },
+    {
+      "kb_id": "amap-B03030061A",
+      "kb_name": "广西壮族自治区图书馆",
+      "osm_source_id": "osm-node-11687215232",
+      "distance_m": 7.2,
+      "tags": {
+        "amenity": "library",
+        "addr:city": "南宁市",
+        "addr:province": "广西壮族自治区"
+      }
+    },
+    {
+      "kb_id": "amap-B01C30I9EP",
+      "kb_name": "哈尔滨市人民防洪胜利纪念塔",
+      "osm_source_id": "osm-node-3455170924",
+      "distance_m": 7.4,
+      "tags": {
+        "historic": "monument",
+        "name:en": "Harbin People Flood Control Success Memorial Tower"
+      }
+    },
+    {
+      "kb_id": "amap-B00180J7WH",
+      "kb_name": "和平广场",
+      "osm_source_id": "osm-node-1759692546",
+      "distance_m": 8.0,
+      "tags": {
+        "historic": "memorial"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJ9OJRR",
+      "kb_name": "南宁极地海洋世界",
+      "osm_source_id": "osm-node-11981168744",
+      "distance_m": 8.0,
+      "tags": {
+        "tourism": "aquarium"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRKEU7",
+      "kb_name": "清水宫",
+      "osm_source_id": "osm-node-13255980448",
+      "distance_m": 8.1,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Qingshui Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFI13PJO",
+      "kb_name": "《驼铃传奇》秀",
+      "osm_source_id": "osm-node-13072627001",
+      "distance_m": 8.1,
+      "tags": {
+        "amenity": "theatre",
+        "name:en": "\"Tuo Ling Legend\" Show"
+      }
+    },
+    {
+      "kb_id": "amap-B03670W3YY",
+      "kb_name": "昆明聂耳故居",
+      "osm_source_id": "osm-node-10024249395",
+      "distance_m": 9.1,
+      "tags": {
+        "tourism": "museum",
+        "historic": "building"
+      }
+    },
+    {
+      "kb_id": "amap-B030507M4G",
+      "kb_name": "李宗仁故居",
+      "osm_source_id": "osm-node-9979858594",
+      "distance_m": 9.7,
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Li Zongren's Former Resident"
+      }
+    },
+    {
+      "kb_id": "amap-B0HAN5M775",
+      "kb_name": "米琼日寺",
+      "osm_source_id": "osm-node-4104536554",
+      "distance_m": 9.9,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0G3V49N5K",
+      "kb_name": "灯塔图书馆",
+      "osm_source_id": "osm-node-13971699787",
+      "distance_m": 10.2,
+      "tags": {
+        "amenity": "library"
+      }
+    },
+    {
+      "kb_id": "amap-B0MA4CUUG1",
+      "kb_name": "光谷图书馆",
+      "osm_source_id": "osm-node-14345068010",
+      "distance_m": 10.4,
+      "tags": {
+        "amenity": "library"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30A9YB",
+      "kb_name": "甘肃省图书馆",
+      "osm_source_id": "osm-node-10588992661",
+      "distance_m": 10.6,
+      "tags": {
+        "amenity": "library",
+        "name:en": "Gansu Provincial Library"
+      }
+    },
+    {
+      "kb_id": "amap-B0IK5CTCD8",
+      "kb_name": "天空之山驿站",
+      "osm_source_id": "osm-node-11900320549",
+      "distance_m": 11.0,
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B015F031BS",
+      "kb_name": "中国清徐关帝城",
+      "osm_source_id": "osm-node-13006130501",
+      "distance_m": 11.4,
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B001D03C82",
+      "kb_name": "水陆庵",
+      "osm_source_id": "osm-node-5381134232",
+      "distance_m": 11.7,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shuilu Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B015F0ISTE",
+      "kb_name": "太原市第三十九中学校",
+      "osm_source_id": "osm-node-4213687393",
+      "distance_m": 12.3,
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGA04L5",
+      "kb_name": "闽南朝天宫",
+      "osm_source_id": "osm-node-13255980460",
+      "distance_m": 12.6,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Minnan Chaotian Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFEZM9F",
+      "kb_name": "青藏高原野生动物园海洋馆",
+      "osm_source_id": "osm-node-13963131413",
+      "distance_m": 12.8,
+      "tags": {
+        "amenity": "animal_breeding"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFHBCIG1",
+      "kb_name": "金刚亥母灵洞",
+      "osm_source_id": "osm-node-5977738985",
+      "distance_m": 14.6,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Vajrayogini cave"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG6HGJN",
+      "kb_name": "南少林寺",
+      "osm_source_id": "osm-node-3905718057",
+      "distance_m": 14.8,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0HAOLKN95",
+      "kb_name": "六罗峡谷",
+      "osm_source_id": "osm-node-5188407424",
+      "distance_m": 14.9,
+      "tags": {
+        "natural": "valley"
+      }
+    },
+    {
+      "kb_id": "amap-B0250043OC",
+      "kb_name": "西山岩寺",
+      "osm_source_id": "osm-node-10157656508",
+      "distance_m": 15.0,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B037B0182E",
+      "kb_name": "西藏和平解放纪念碑",
+      "osm_source_id": "osm-node-2653536425",
+      "distance_m": 16.1,
+      "tags": {
+        "historic": "monument",
+        "name:en": "Monument to the Peaceful Liberation of Tibet"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF2JV6P",
+      "kb_name": "石湾大士寺",
+      "osm_source_id": "osm-node-13889156601",
+      "distance_m": 16.8,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shiwan Dashi Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B001B0IY2V",
+      "kb_name": "长江职业学院",
+      "osm_source_id": "osm-node-2418522275",
+      "distance_m": 17.0,
+      "tags": {
+        "amenity": "college"
+      }
+    },
+    {
+      "kb_id": "amap-B0JRZS2UMD",
+      "kb_name": "王勃广场",
+      "osm_source_id": "osm-node-12652175657",
+      "distance_m": 18.5,
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFCXE2F",
+      "kb_name": "文昌桥码头",
+      "osm_source_id": "osm-node-6320115749",
+      "distance_m": 18.6,
+      "tags": {
+        "amenity": "ferry_terminal",
+        "name:en": "Wenchang Bridge Wharf"
+      }
+    },
+    {
+      "kb_id": "amap-B0J0371A87",
+      "kb_name": "东华理工大学(青岚校园)",
+      "osm_source_id": "osm-node-13663281392",
+      "distance_m": 19.4,
+      "tags": {
+        "amenity": "college"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF2WJLV",
+      "kb_name": "石公山码头",
+      "osm_source_id": "osm-node-8664026181",
+      "distance_m": 20.0,
+      "tags": {
+        "amenity": "ferry_terminal"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIQ0ZWU",
+      "kb_name": "美峰体育公园",
+      "osm_source_id": "osm-node-12230117243",
+      "distance_m": 20.6,
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B015F005EF",
+      "kb_name": "太原市第二十一中学校",
+      "osm_source_id": "osm-node-4226758211",
+      "distance_m": 20.9,
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF3LHCT",
+      "kb_name": "米拉山口",
+      "osm_source_id": "osm-node-5498053414",
+      "distance_m": 21.2,
+      "tags": {
+        "natural": "saddle",
+        "name:en": "Mi La"
+      }
+    },
+    {
+      "kb_id": "amap-B01370UHPP",
+      "kb_name": "于家石头村",
+      "osm_source_id": "osm-node-4271852919",
+      "distance_m": 21.8,
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Yujia Stone Village"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFHHD612",
+      "kb_name": "白塔寺",
+      "osm_source_id": "osm-node-13318861354",
+      "distance_m": 22.3,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0J1RUQORM",
+      "kb_name": "人鱼洞",
+      "osm_source_id": "osm-node-12891857676",
+      "distance_m": 23.0,
+      "tags": {
+        "natural": "cave_entrance",
+        "name:en": "Mermald Cave"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIORWYU",
+      "kb_name": "青岛科技馆",
+      "osm_source_id": "osm-node-13450819432",
+      "distance_m": 23.5,
+      "tags": {
+        "tourism": "museum",
+        "addr:city": "青岛市",
+        "addr:province": "山东省"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJHRE40",
+      "kb_name": "热擦寺",
+      "osm_source_id": "osm-node-13650036682",
+      "distance_m": 23.5,
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0214069MY",
+      "kb_name": "小青岛公园",
+      "osm_source_id": "osm-node-13185728102",
+      "distance_m": 24.3,
+      "tags": {
+        "leisure": "park"
+      }
+    }
+  ]
+}

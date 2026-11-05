@@ -1,0 +1,3685 @@
+{
+  "source": "Geofabrik China OSM PBF",
+  "source_url": "https://download.geofabrik.de/asia/china-latest.osm.pbf",
+  "retrieved_at": "2026-11-04T09:47:06.689392+00:00",
+  "scope": "Amap-primary GCJ-02 rows only; exact normalized name, <=100m converted distance, no existing OSM ID/risk flags; evidence only",
+  "eligible_amap_rows": 7773,
+  "raw_candidates_within_100m": 284,
+  "eligible_rows_with_candidate": 204,
+  "unique_one_to_one_at_50m_with_feature_tag": 94,
+  "candidates": [
+    {
+      "kb_id": "amap-B000A5648B",
+      "kb_name": "中国人民抗日战争纪念馆",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 296346725,
+      "distance_m": 80.8,
+      "osm_name": "中国人民抗日战争纪念馆",
+      "tags": {
+        "tourism": "museum",
+        "name:en": "Chinese People's War of Resistance Against Japan"
+      }
+    },
+    {
+      "kb_id": "amap-B000A7ZXMH",
+      "kb_name": "宛平城",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 700356064,
+      "distance_m": 41.6,
+      "osm_name": "宛平城",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Wanping City"
+      }
+    },
+    {
+      "kb_id": "amap-B000A88EDQ",
+      "kb_name": "北京天文馆",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 4743689135,
+      "distance_m": 28.9,
+      "osm_name": "北京天文馆",
+      "tags": {
+        "amenity": "planetarium",
+        "name:en": "Beijing Planetarium"
+      }
+    },
+    {
+      "kb_id": "amap-B00140M7QP",
+      "kb_name": "番禺广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 7750328334,
+      "distance_m": 65.2,
+      "osm_name": "番禺广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Panyu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140M7QP",
+      "kb_name": "番禺广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 7750328333,
+      "distance_m": 65.5,
+      "osm_name": "番禺广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Panyu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140M7QP",
+      "kb_name": "番禺广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 9139582307,
+      "distance_m": 66.1,
+      "osm_name": "番禺广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Panyu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140M7QP",
+      "kb_name": "番禺广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 7750330241,
+      "distance_m": 66.6,
+      "osm_name": "番禺广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Panyu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140M7QP",
+      "kb_name": "番禺广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 7750328335,
+      "distance_m": 72.8,
+      "osm_name": "番禺广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Panyu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140SCPI",
+      "kb_name": "海珠广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4998979356,
+      "distance_m": 45.4,
+      "osm_name": "海珠广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Haizhu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140SCPI",
+      "kb_name": "海珠广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4998979355,
+      "distance_m": 59.0,
+      "osm_name": "海珠广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Haizhu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140SCPI",
+      "kb_name": "海珠广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 9396724897,
+      "distance_m": 65.8,
+      "osm_name": "海珠广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Haizhu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140SCPI",
+      "kb_name": "海珠广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4889741719,
+      "distance_m": 67.5,
+      "osm_name": "海珠广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Haizhu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140SCPI",
+      "kb_name": "海珠广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4889741718,
+      "distance_m": 89.6,
+      "osm_name": "海珠广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Haizhu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140UFSG",
+      "kb_name": "石碁文化广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 8295524684,
+      "distance_m": 90.2,
+      "osm_name": "石碁文化广场",
+      "tags": {
+        "name:en": "Shiqi Cultural Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00140W3SH",
+      "kb_name": "太和文化广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 13240173582,
+      "distance_m": 70.3,
+      "osm_name": "太和文化广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00140W3SH",
+      "kb_name": "太和文化广场",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4513843634,
+      "distance_m": 78.1,
+      "osm_name": "太和文化广场",
+      "tags": {
+        "name:en": "Taihe Cultural Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00141IEY5",
+      "kb_name": "三元宫",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 13946531849,
+      "distance_m": 84.5,
+      "osm_name": "三元宫",
+      "tags": {
+        "name:en": "Sanyuan Taoist Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B00141IEY5",
+      "kb_name": "三元宫",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4488287876,
+      "distance_m": 86.8,
+      "osm_name": "三元宫",
+      "tags": {
+        "name:en": "Sanyuan Taoist Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B00141IEY5",
+      "kb_name": "三元宫",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 4488287877,
+      "distance_m": 88.4,
+      "osm_name": "三元宫",
+      "tags": {
+        "name:en": "Sanyuan Taoist Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B00141IEY5",
+      "kb_name": "三元宫",
+      "city": "广州市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 13946531848,
+      "distance_m": 91.3,
+      "osm_name": "三元宫",
+      "tags": {
+        "name:en": "Sanyuan Taoist Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B00152289C",
+      "kb_name": "上海大观园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 11166081782,
+      "distance_m": 41.5,
+      "osm_name": "上海大观园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00152289C",
+      "kb_name": "上海大观园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 11166081783,
+      "distance_m": 44.3,
+      "osm_name": "上海大观园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00154DQQ7",
+      "kb_name": "复兴岛公园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 12312439052,
+      "distance_m": 73.8,
+      "osm_name": "复兴岛公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00154DQQ7",
+      "kb_name": "复兴岛公园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 12312439050,
+      "distance_m": 75.5,
+      "osm_name": "复兴岛公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00154DQQ7",
+      "kb_name": "复兴岛公园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 12312439049,
+      "distance_m": 77.3,
+      "osm_name": "复兴岛公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00154DQQ7",
+      "kb_name": "复兴岛公园",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 12312439051,
+      "distance_m": 82.6,
+      "osm_name": "复兴岛公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00155LZNL",
+      "kb_name": "新场古镇",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 4719781191,
+      "distance_m": 25.7,
+      "osm_name": "新场古镇",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Xinchang Ancient Town"
+      }
+    },
+    {
+      "kb_id": "amap-B00160D0P3",
+      "kb_name": "石家大院",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 12561185768,
+      "distance_m": 52.2,
+      "osm_name": "石家大院",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B00160DRHL",
+      "kb_name": "小白楼",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 13461971392,
+      "distance_m": 86.7,
+      "osm_name": "小白楼",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Xiaobailou"
+      }
+    },
+    {
+      "kb_id": "amap-B00160DRHL",
+      "kb_name": "小白楼",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 13462469746,
+      "distance_m": 87.8,
+      "osm_name": "小白楼",
+      "tags": {
+        "railway": "station",
+        "name:en": "Xiaobailou"
+      }
+    },
+    {
+      "kb_id": "amap-B00160DRHL",
+      "kb_name": "小白楼",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 274812260,
+      "distance_m": 88.9,
+      "osm_name": "小白楼",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Xiaobailou"
+      }
+    },
+    {
+      "kb_id": "amap-B001616SR4",
+      "kb_name": "天津站北广场",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 13058324251,
+      "distance_m": 68.2,
+      "osm_name": "天津站北广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B00170A8EY",
+      "kb_name": "绿梦广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 13950344481,
+      "distance_m": 93.6,
+      "osm_name": "绿梦广场",
+      "tags": {
+        "name:en": "Lyumeng Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00178TY38",
+      "kb_name": "重庆图书馆",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 6168960122,
+      "distance_m": 72.6,
+      "osm_name": "重庆图书馆",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing Library"
+      }
+    },
+    {
+      "kb_id": "amap-B00178TY38",
+      "kb_name": "重庆图书馆",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 10180144485,
+      "distance_m": 80.7,
+      "osm_name": "重庆图书馆",
+      "tags": {
+        "railway": "station",
+        "name:en": "Chongqing Library"
+      }
+    },
+    {
+      "kb_id": "amap-B00178TY38",
+      "kb_name": "重庆图书馆",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 10180144489,
+      "distance_m": 86.1,
+      "osm_name": "重庆图书馆",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing Library"
+      }
+    },
+    {
+      "kb_id": "amap-B00180B2QV",
+      "kb_name": "沈阳市第四中学",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 2881286256,
+      "distance_m": 35.7,
+      "osm_name": "沈阳市第四中学",
+      "tags": {
+        "amenity": "university",
+        "addr:city": "沈阳"
+      }
+    },
+    {
+      "kb_id": "amap-B00180J50I",
+      "kb_name": "北塔",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 1629291120,
+      "distance_m": 4.0,
+      "osm_name": "北塔",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Beita"
+      }
+    },
+    {
+      "kb_id": "amap-B00180J7WH",
+      "kb_name": "和平广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 1759692546,
+      "distance_m": 8.0,
+      "osm_name": "和平广场",
+      "tags": {
+        "historic": "memorial"
+      }
+    },
+    {
+      "kb_id": "amap-B00180JAGF",
+      "kb_name": "中山广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 814789028,
+      "distance_m": 5.2,
+      "osm_name": "中山广场",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Zhongshan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B00180JAL9",
+      "kb_name": "万泉公园",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 12949349001,
+      "distance_m": 81.7,
+      "osm_name": "万泉公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B00180KD54",
+      "kb_name": "方型广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 14084954233,
+      "distance_m": 4.9,
+      "osm_name": "方型广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Fangxingguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B00180KD54",
+      "kb_name": "方型广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 14084954231,
+      "distance_m": 7.5,
+      "osm_name": "方型广场",
+      "tags": {
+        "name:en": "Fangxingguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B00180KD54",
+      "kb_name": "方型广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 14084954232,
+      "distance_m": 9.5,
+      "osm_name": "方型广场",
+      "tags": {
+        "name:en": "Fangxingguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B001817MO6",
+      "kb_name": "沈阳北站北广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 11880001069,
+      "distance_m": 38.8,
+      "osm_name": "沈阳北站北广场",
+      "tags": {
+        "name:en": "Shenyang North Railway Station North Square Bus Station"
+      }
+    },
+    {
+      "kb_id": "amap-B00190AMPR",
+      "kb_name": "中华门",
+      "city": "南京市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 1532713438,
+      "distance_m": 98.7,
+      "osm_name": "中华门",
+      "tags": {
+        "name:en": "Zhonghuamen"
+      }
+    },
+    {
+      "kb_id": "amap-B001B0A0CK",
+      "kb_name": "东湖生态旅游风景区",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 13810427349,
+      "distance_m": 25.5,
+      "osm_name": "东湖生态旅游风景区",
+      "tags": {
+        "tourism": "information"
+      }
+    },
+    {
+      "kb_id": "amap-B001B0I73C",
+      "kb_name": "武汉商贸职业学院",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 2419570699,
+      "distance_m": 76.0,
+      "osm_name": "武汉商贸职业学院",
+      "tags": {
+        "amenity": "college"
+      }
+    },
+    {
+      "kb_id": "amap-B001B0IVG6",
+      "kb_name": "武汉市第二中学",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1882173159,
+      "distance_m": 44.8,
+      "osm_name": "武汉市第二中学",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B001B0IY2V",
+      "kb_name": "长江职业学院",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 2418522275,
+      "distance_m": 17.0,
+      "osm_name": "长江职业学院",
+      "tags": {
+        "amenity": "college"
+      }
+    },
+    {
+      "kb_id": "amap-B001B16N8M",
+      "kb_name": "武昌站西广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1215717618,
+      "distance_m": 26.7,
+      "osm_name": "武昌站西广场",
+      "tags": {
+        "amenity": "parking"
+      }
+    },
+    {
+      "kb_id": "amap-B001B19J3D",
+      "kb_name": "洪山广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 8919522115,
+      "distance_m": 39.7,
+      "osm_name": "洪山广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Hongshan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001B19J3D",
+      "kb_name": "洪山广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 5227950236,
+      "distance_m": 40.1,
+      "osm_name": "洪山广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Hongshan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001B19J3D",
+      "kb_name": "洪山广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 5227950235,
+      "distance_m": 49.6,
+      "osm_name": "洪山广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Hongshan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001B1HBR0",
+      "kb_name": "武汉警官职业学院东西湖校区",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 12538691401,
+      "distance_m": 39.6,
+      "osm_name": "武汉警官职业学院东西湖校区",
+      "tags": {
+        "amenity": "police"
+      }
+    },
+    {
+      "kb_id": "amap-B001B1IEOK",
+      "kb_name": "湖北生物科技职业学院",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 7638241896,
+      "distance_m": 17.6,
+      "osm_name": "湖北生物科技职业学院",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B001B1IEOK",
+      "kb_name": "湖北生物科技职业学院",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 8733507238,
+      "distance_m": 28.8,
+      "osm_name": "湖北生物科技职业学院",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B001C05E7V",
+      "kb_name": "昭觉寺",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 11961119358,
+      "distance_m": 31.5,
+      "osm_name": "昭觉寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Zhaojue Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B001C7WEYU",
+      "kb_name": "天府广场",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 7619640166,
+      "distance_m": 34.5,
+      "osm_name": "天府广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tianfu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001C7WEYU",
+      "kb_name": "天府广场",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 7203319209,
+      "distance_m": 41.9,
+      "osm_name": "天府广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tianfu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001C7WEYU",
+      "kb_name": "天府广场",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 7203319210,
+      "distance_m": 45.2,
+      "osm_name": "天府广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tianfu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001C7WEYU",
+      "kb_name": "天府广场",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 7417454927,
+      "distance_m": 48.5,
+      "osm_name": "天府广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Tianfu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001C7WEYU",
+      "kb_name": "天府广场",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 8067592154,
+      "distance_m": 49.4,
+      "osm_name": "天府广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tianfu Square"
+      }
+    },
+    {
+      "kb_id": "amap-B001D00CCF",
+      "kb_name": "莲湖公园",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 4829598322,
+      "distance_m": 90.0,
+      "osm_name": "莲湖公园",
+      "tags": {
+        "name:en": "Lianhu Park"
+      }
+    },
+    {
+      "kb_id": "amap-B001D00CCF",
+      "kb_name": "莲湖公园",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 11773333069,
+      "distance_m": 98.5,
+      "osm_name": "莲湖公园",
+      "tags": {
+        "name:en": "Lianhu Park"
+      }
+    },
+    {
+      "kb_id": "amap-B001D03C82",
+      "kb_name": "水陆庵",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 5381134232,
+      "distance_m": 11.7,
+      "osm_name": "水陆庵",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shuilu Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B01370000B",
+      "kb_name": "龙泉古寺",
+      "city": "石家庄市",
+      "province": "河北省",
+      "osm_type": "node",
+      "osm_id": 13733176040,
+      "distance_m": 34.7,
+      "osm_name": "龙泉古寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B01370UHPP",
+      "kb_name": "于家石头村",
+      "city": "石家庄市",
+      "province": "河北省",
+      "osm_type": "node",
+      "osm_id": 4271852919,
+      "distance_m": 21.8,
+      "osm_name": "于家石头村",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Yujia Stone Village"
+      }
+    },
+    {
+      "kb_id": "amap-B015F005EF",
+      "kb_name": "太原市第二十一中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4226758211,
+      "distance_m": 20.9,
+      "osm_name": "太原市第二十一中学校",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B015F031BS",
+      "kb_name": "中国清徐关帝城",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 13006130501,
+      "distance_m": 11.4,
+      "osm_name": "中国清徐关帝城",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B015F0IF0O",
+      "kb_name": "太原市第三十七中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4213951229,
+      "distance_m": 50.0,
+      "osm_name": "太原市第三十七中学校",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B015F0ISTE",
+      "kb_name": "太原市第三十九中学校",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4213687393,
+      "distance_m": 12.3,
+      "osm_name": "太原市第三十九中学校",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B01730IES4",
+      "kb_name": "二七广场",
+      "city": "郑州市",
+      "province": "河南省",
+      "osm_type": "node",
+      "osm_id": 2751209999,
+      "distance_m": 86.9,
+      "osm_name": "二七广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Erqi Square"
+      }
+    },
+    {
+      "kb_id": "amap-B017318ZKB",
+      "kb_name": "黄河中下游分界碑",
+      "city": "郑州市",
+      "province": "河南省",
+      "osm_type": "node",
+      "osm_id": 12728434513,
+      "distance_m": 33.2,
+      "osm_name": "黄河中下游分界碑",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Boundary monument of the middle and lower reaches of the Yellow River"
+      }
+    },
+    {
+      "kb_id": "amap-B01731B4VC",
+      "kb_name": "郑州东站东广场",
+      "city": "郑州市",
+      "province": "河南省",
+      "osm_type": "node",
+      "osm_id": 12695449085,
+      "distance_m": 1.6,
+      "osm_name": "郑州东站东广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01C3040KS",
+      "kb_name": "建国公园",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 13236757137,
+      "distance_m": 73.5,
+      "osm_name": "建国公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01C3040KS",
+      "kb_name": "建国公园",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 13236757136,
+      "distance_m": 81.1,
+      "osm_name": "建国公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01C3040KS",
+      "kb_name": "建国公园",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 13236757142,
+      "distance_m": 96.0,
+      "osm_name": "建国公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01C30I9EP",
+      "kb_name": "哈尔滨市人民防洪胜利纪念塔",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 3455170924,
+      "distance_m": 7.4,
+      "osm_name": "哈尔滨市人民防洪胜利纪念塔",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Harbin People Flood Control Success Memorial Tower"
+      }
+    },
+    {
+      "kb_id": "amap-B01C317V8R",
+      "kb_name": "人民广场",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 12756598307,
+      "distance_m": 85.7,
+      "osm_name": "人民广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "People's Square"
+      }
+    },
+    {
+      "kb_id": "amap-B01C317V8R",
+      "kb_name": "人民广场",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 8416679114,
+      "distance_m": 90.5,
+      "osm_name": "人民广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "People's Square"
+      }
+    },
+    {
+      "kb_id": "amap-B01C317V8R",
+      "kb_name": "人民广场",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 12756598386,
+      "distance_m": 94.6,
+      "osm_name": "人民广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "People's Square"
+      }
+    },
+    {
+      "kb_id": "amap-B01D700DE7",
+      "kb_name": "内蒙古图书馆",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 13108764372,
+      "distance_m": 69.9,
+      "osm_name": "内蒙古图书馆",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01D700DE7",
+      "kb_name": "内蒙古图书馆",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 13108764371,
+      "distance_m": 94.0,
+      "osm_name": "内蒙古图书馆",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B01D700EBD",
+      "kb_name": "呼和浩特市第七中学",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 8500242380,
+      "distance_m": 5.5,
+      "osm_name": "呼和浩特市第七中学",
+      "tags": {
+        "amenity": "school",
+        "addr:city": "呼和浩特市",
+        "addr:province": "内蒙古自治区"
+      }
+    },
+    {
+      "kb_id": "amap-B01D701BGT",
+      "kb_name": "昭君墓",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 3706224632,
+      "distance_m": 6.2,
+      "osm_name": "昭君墓",
+      "tags": {
+        "tourism": "museum",
+        "historic": "monument",
+        "name:en": "Zhaojun Tomb"
+      }
+    },
+    {
+      "kb_id": "amap-B01D70254J",
+      "kb_name": "成吉思汗公园",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 13136423787,
+      "distance_m": 59.8,
+      "osm_name": "成吉思汗公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B020005O7S",
+      "kb_name": "苏州工业园区工业技术学校",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 11992229827,
+      "distance_m": 70.0,
+      "osm_name": "苏州工业园区工业技术学校",
+      "tags": {
+        "amenity": "university"
+      }
+    },
+    {
+      "kb_id": "amap-B020005VTR",
+      "kb_name": "静思园",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 4330625373,
+      "distance_m": 68.0,
+      "osm_name": "静思园",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Jingsi Gardens"
+      }
+    },
+    {
+      "kb_id": "amap-B020006YIE",
+      "kb_name": "皇罗禅寺",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 11257007233,
+      "distance_m": 57.6,
+      "osm_name": "皇罗禅寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Huangluo Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B02000IFCL",
+      "kb_name": "艺圃",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 1735471843,
+      "distance_m": 6.3,
+      "osm_name": "艺圃",
+      "tags": {
+        "tourism": "information",
+        "name:en": "Yipu Garden - Garden of Cultivation"
+      }
+    },
+    {
+      "kb_id": "amap-B02001835A",
+      "kb_name": "苏州站南广场",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 5871082318,
+      "distance_m": 31.6,
+      "osm_name": "苏州站南广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B02001835A",
+      "kb_name": "苏州站南广场",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 5871082319,
+      "distance_m": 35.1,
+      "osm_name": "苏州站南广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B02001F58U",
+      "kb_name": "长圻码头",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 3509485998,
+      "distance_m": 44.7,
+      "osm_name": "长圻码头",
+      "tags": {
+        "amenity": "ferry_terminal"
+      }
+    },
+    {
+      "kb_id": "amap-B021301100",
+      "kb_name": "中山公园",
+      "city": "济南市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 12413198373,
+      "distance_m": 88.3,
+      "osm_name": "中山公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B021301100",
+      "kb_name": "中山公园",
+      "city": "济南市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 12413198371,
+      "distance_m": 92.9,
+      "osm_name": "中山公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B021301100",
+      "kb_name": "中山公园",
+      "city": "济南市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 12413198372,
+      "distance_m": 98.1,
+      "osm_name": "中山公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0214069MY",
+      "kb_name": "小青岛公园",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13185728102,
+      "distance_m": 24.3,
+      "osm_name": "小青岛公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B021406VEX",
+      "kb_name": "鲁迅公园",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13184091001,
+      "distance_m": 7.1,
+      "osm_name": "鲁迅公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B021406VEX",
+      "kb_name": "鲁迅公园",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 11032971384,
+      "distance_m": 99.7,
+      "osm_name": "鲁迅公园",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B02140851R",
+      "kb_name": "青岛市图书馆",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 10680682213,
+      "distance_m": 95.8,
+      "osm_name": "青岛市图书馆",
+      "tags": {
+        "name:en": "Qingdao Library"
+      }
+    },
+    {
+      "kb_id": "amap-B02140Y1UC",
+      "kb_name": "八仙墩",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13469605586,
+      "distance_m": 52.2,
+      "osm_name": "八仙墩",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B02270085C",
+      "kb_name": "杏花公园",
+      "city": "合肥市",
+      "province": "安徽省",
+      "osm_type": "node",
+      "osm_id": 10828197207,
+      "distance_m": 40.9,
+      "osm_name": "杏花公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B02270086D",
+      "kb_name": "包公祠",
+      "city": "合肥市",
+      "province": "安徽省",
+      "osm_type": "node",
+      "osm_id": 4608940112,
+      "distance_m": 25.3,
+      "osm_name": "包公祠",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B023B09YPP",
+      "kb_name": "香积寺",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 13479491540,
+      "distance_m": 49.1,
+      "osm_name": "香积寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B023B09YPP",
+      "kb_name": "香积寺",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 13513603033,
+      "distance_m": 53.9,
+      "osm_name": "香积寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B023B09YPP",
+      "kb_name": "香积寺",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 13513603032,
+      "distance_m": 55.5,
+      "osm_name": "香积寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B023B09YPP",
+      "kb_name": "香积寺",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 13472571719,
+      "distance_m": 59.9,
+      "osm_name": "香积寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B023B0A5KT",
+      "kb_name": "吴山广场",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 5021644862,
+      "distance_m": 86.6,
+      "osm_name": "吴山广场",
+      "tags": {
+        "railway": "stop"
+      }
+    },
+    {
+      "kb_id": "amap-B023B0A5KT",
+      "kb_name": "吴山广场",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 9630689508,
+      "distance_m": 90.6,
+      "osm_name": "吴山广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Wushan Square"
+      }
+    },
+    {
+      "kb_id": "amap-B023B0A5KT",
+      "kb_name": "吴山广场",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 9083466322,
+      "distance_m": 97.3,
+      "osm_name": "吴山广场",
+      "tags": {
+        "railway": "stop"
+      }
+    },
+    {
+      "kb_id": "amap-B023B1H638",
+      "kb_name": "永福寺",
+      "city": "杭州市",
+      "province": "浙江省",
+      "osm_type": "node",
+      "osm_id": 6333532917,
+      "distance_m": 83.2,
+      "osm_name": "永福寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Yongfu Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B025000BC5",
+      "kb_name": "胡里山炮台",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 3126479317,
+      "distance_m": 65.7,
+      "osm_name": "胡里山炮台",
+      "tags": {
+        "historic": "fort",
+        "name:en": "Hulishan Cannon Fort"
+      }
+    },
+    {
+      "kb_id": "amap-B0250043IT",
+      "kb_name": "石室禅院",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 9834407258,
+      "distance_m": 64.4,
+      "osm_name": "石室禅院",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0250043OC",
+      "kb_name": "西山岩寺",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 10157656508,
+      "distance_m": 15.0,
+      "osm_name": "西山岩寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B025004DVL",
+      "kb_name": "中国科学院城市环境研究所",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 6804505239,
+      "distance_m": 43.3,
+      "osm_name": "中国科学院城市环境研究所",
+      "tags": {
+        "addr:city": "厦门市",
+        "addr:province": "福建省"
+      }
+    },
+    {
+      "kb_id": "amap-B02DB00A65",
+      "kb_name": "湖南机电职业技术学院",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 14247024201,
+      "distance_m": 76.3,
+      "osm_name": "湖南机电职业技术学院",
+      "tags": {
+        "amenity": "school",
+        "name:en": "Hunan Mechanical & Electrical Polytechnic (HMEP)",
+        "addr:city": "长沙市",
+        "addr:province": "湖南省"
+      }
+    },
+    {
+      "kb_id": "amap-B02DB06901",
+      "kb_name": "千佛洞",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 3789072488,
+      "distance_m": 33.5,
+      "osm_name": "千佛洞",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B02DB0694T",
+      "kb_name": "陶公庙",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 6098767940,
+      "distance_m": 65.4,
+      "osm_name": "陶公庙",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B02DB0TONC",
+      "kb_name": "马王堆汉墓",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 7579104893,
+      "distance_m": 27.3,
+      "osm_name": "马王堆汉墓",
+      "tags": {
+        "historic": "archaeological_site",
+        "name:en": "Mawangdui Han Tombs"
+      }
+    },
+    {
+      "kb_id": "amap-B02F30ABLI",
+      "kb_name": "下村公园",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 9024149403,
+      "distance_m": 92.6,
+      "osm_name": "下村公园",
+      "tags": {
+        "name:en": "Xiacun Park"
+      }
+    },
+    {
+      "kb_id": "amap-B02F38PHL1",
+      "kb_name": "平湖广场",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 9082298062,
+      "distance_m": 99.9,
+      "osm_name": "平湖广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0303004A3",
+      "kb_name": "广西展览馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 3250446061,
+      "distance_m": 61.7,
+      "osm_name": "广西展览馆",
+      "tags": {
+        "amenity": "marketplace"
+      }
+    },
+    {
+      "kb_id": "amap-B03030061A",
+      "kb_name": "广西壮族自治区图书馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 11687215232,
+      "distance_m": 7.2,
+      "osm_name": "广西壮族自治区图书馆",
+      "tags": {
+        "amenity": "library",
+        "addr:city": "南宁市",
+        "addr:province": "广西壮族自治区"
+      }
+    },
+    {
+      "kb_id": "amap-B030305WBL",
+      "kb_name": "南宁孔庙",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9292176827,
+      "distance_m": 26.5,
+      "osm_name": "南宁孔庙",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Nanning Confucius Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B03030SYX5",
+      "kb_name": "金湖广场",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9556204934,
+      "distance_m": 43.9,
+      "osm_name": "金湖广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B03030SYX5",
+      "kb_name": "金湖广场",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9556204935,
+      "distance_m": 73.5,
+      "osm_name": "金湖广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B03030SYX5",
+      "kb_name": "金湖广场",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 7923577133,
+      "distance_m": 86.3,
+      "osm_name": "金湖广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "JINHU Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03030SYX5",
+      "kb_name": "金湖广场",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 6518594313,
+      "distance_m": 98.9,
+      "osm_name": "金湖广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "JINHU Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03030UAK3",
+      "kb_name": "南宁博物馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 12135700080,
+      "distance_m": 4.4,
+      "osm_name": "南宁博物馆",
+      "tags": {
+        "tourism": "museum",
+        "name:en": "Nanning Museum"
+      }
+    },
+    {
+      "kb_id": "amap-B03050096C",
+      "kb_name": "漓江古东景区",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 6734226785,
+      "distance_m": 90.1,
+      "osm_name": "漓江古东景区",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Lijiang Gudong Scenic Area"
+      }
+    },
+    {
+      "kb_id": "amap-B030507M4G",
+      "kb_name": "李宗仁故居",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9979858594,
+      "distance_m": 9.7,
+      "osm_name": "李宗仁故居",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Li Zongren's Former Resident"
+      }
+    },
+    {
+      "kb_id": "amap-B030507UC8",
+      "kb_name": "猫儿山国家级自然保护区",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 14074061591,
+      "distance_m": 14.5,
+      "osm_name": "猫儿山国家级自然保护区",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B030507V1B",
+      "kb_name": "金龙桥码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 4781025264,
+      "distance_m": 69.7,
+      "osm_name": "金龙桥码头",
+      "tags": {
+        "amenity": "ferry_terminal",
+        "name:en": "Jinlong Bridge Bamboo Boat Terminal"
+      }
+    },
+    {
+      "kb_id": "amap-B031702869",
+      "kb_name": "佑民寺",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 4455993628,
+      "distance_m": 92.5,
+      "osm_name": "佑民寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B031704QZZ",
+      "kb_name": "南昌市图书馆",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 2374761019,
+      "distance_m": 70.9,
+      "osm_name": "南昌市图书馆",
+      "tags": {
+        "amenity": "library"
+      }
+    },
+    {
+      "kb_id": "amap-B031704RAC",
+      "kb_name": "八一广场",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 9433238437,
+      "distance_m": 96.3,
+      "osm_name": "八一广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Bayi Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03530OT4B",
+      "kb_name": "筑城广场",
+      "city": "贵阳市",
+      "province": "贵州省",
+      "osm_type": "node",
+      "osm_id": 9771927483,
+      "distance_m": 96.7,
+      "osm_name": "筑城广场",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B03670W3YY",
+      "kb_name": "昆明聂耳故居",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 10024249395,
+      "distance_m": 9.1,
+      "osm_name": "昆明聂耳故居",
+      "tags": {
+        "tourism": "museum",
+        "historic": "building"
+      }
+    },
+    {
+      "kb_id": "amap-B03670ZCDQ",
+      "kb_name": "虚宁寺",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 7350939067,
+      "distance_m": 80.3,
+      "osm_name": "虚宁寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0378004RW",
+      "kb_name": "普贤寺",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 551133452,
+      "distance_m": 6.1,
+      "osm_name": "普贤寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0378008J4",
+      "kb_name": "玉峰寺",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9192132967,
+      "distance_m": 66.0,
+      "osm_name": "玉峰寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0378008J4",
+      "kb_name": "玉峰寺",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9192132969,
+      "distance_m": 75.2,
+      "osm_name": "玉峰寺",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B037B00A96",
+      "kb_name": "甘丹寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 298132470,
+      "distance_m": 63.9,
+      "osm_name": "甘丹寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Ganden Monastery"
+      }
+    },
+    {
+      "kb_id": "amap-B037B00BCE",
+      "kb_name": "拉萨市第六中学",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 3103275941,
+      "distance_m": 47.0,
+      "osm_name": "拉萨市第六中学",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B037B0182E",
+      "kb_name": "西藏和平解放纪念碑",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 2653536425,
+      "distance_m": 16.1,
+      "osm_name": "西藏和平解放纪念碑",
+      "tags": {
+        "historic": "monument",
+        "name:en": "Monument to the Peaceful Liberation of Tibet"
+      }
+    },
+    {
+      "kb_id": "amap-B037B01996",
+      "kb_name": "药王山",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 4104536555,
+      "distance_m": 57.7,
+      "osm_name": "药王山",
+      "tags": {
+        "natural": "peak",
+        "name:en": "Chagpori"
+      }
+    },
+    {
+      "kb_id": "amap-B037B01BE1",
+      "kb_name": "拉萨市第四中学",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 3103252433,
+      "distance_m": 46.2,
+      "osm_name": "拉萨市第四中学",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B037B023IV",
+      "kb_name": "扎叶巴寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 2710556658,
+      "distance_m": 36.5,
+      "osm_name": "扎叶巴寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Yerpa Monastery"
+      }
+    },
+    {
+      "kb_id": "amap-B0383004FL",
+      "kb_name": "亚龙湾海底世界",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 6285933485,
+      "distance_m": 42.2,
+      "osm_name": "亚龙湾海底世界",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B03A30A9YB",
+      "kb_name": "甘肃省图书馆",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 10588992661,
+      "distance_m": 10.6,
+      "osm_name": "甘肃省图书馆",
+      "tags": {
+        "amenity": "library",
+        "name:en": "Gansu Provincial Library"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30WYCJ",
+      "kb_name": "培黎广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4332471473,
+      "distance_m": 62.8,
+      "osm_name": "培黎广场",
+      "tags": {
+        "name:en": "Bailie Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30WYCJ",
+      "kb_name": "培黎广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4332471472,
+      "distance_m": 74.2,
+      "osm_name": "培黎广场",
+      "tags": {
+        "name:en": "Bailie Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30WYCJ",
+      "kb_name": "培黎广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4199320392,
+      "distance_m": 75.9,
+      "osm_name": "培黎广场",
+      "tags": {
+        "name:en": "Bailie Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30WYCJ",
+      "kb_name": "培黎广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4087862393,
+      "distance_m": 88.6,
+      "osm_name": "培黎广场",
+      "tags": {
+        "name:en": "Peili Square"
+      }
+    },
+    {
+      "kb_id": "amap-B03A30WYCJ",
+      "kb_name": "培黎广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4466536280,
+      "distance_m": 94.1,
+      "osm_name": "培黎广场",
+      "tags": {
+        "amenity": "bicycle_rental"
+      }
+    },
+    {
+      "kb_id": "amap-B03B703072",
+      "kb_name": "南薰门",
+      "city": "银川市",
+      "province": "宁夏回族自治区",
+      "osm_type": "node",
+      "osm_id": 4895319626,
+      "distance_m": 26.0,
+      "osm_name": "南薰门",
+      "tags": {
+        "tourism": "attraction",
+        "historic": "city_gate"
+      }
+    },
+    {
+      "kb_id": "amap-B03CB0SN5E",
+      "kb_name": "青海省科学技术馆",
+      "city": "西宁市",
+      "province": "青海省",
+      "osm_type": "node",
+      "osm_id": 9177401404,
+      "distance_m": 5.3,
+      "osm_name": "青海省科学技术馆",
+      "tags": {
+        "tourism": "museum"
+      }
+    },
+    {
+      "kb_id": "amap-B03DF02EA3",
+      "kb_name": "人民广场",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 4325171439,
+      "distance_m": 2.2,
+      "osm_name": "人民广场",
+      "tags": {
+        "historic": "memorial",
+        "name:en": "People's Square (人民广场)"
+      }
+    },
+    {
+      "kb_id": "amap-B03DF02EA3",
+      "kb_name": "人民广场",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 13041114449,
+      "distance_m": 92.9,
+      "osm_name": "人民广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B03DF0371B",
+      "kb_name": "新疆实验中学",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 13040467894,
+      "distance_m": 85.8,
+      "osm_name": "新疆实验中学",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B03DF04Y0R",
+      "kb_name": "一炮成功",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 13455755076,
+      "distance_m": 3.8,
+      "osm_name": "一炮成功",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF2JV6P",
+      "kb_name": "石湾大士寺",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13889156601,
+      "distance_m": 16.8,
+      "osm_name": "石湾大士寺",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Shiwan Dashi Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF2WJLV",
+      "kb_name": "石公山码头",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 8664026181,
+      "distance_m": 20.0,
+      "osm_name": "石公山码头",
+      "tags": {
+        "amenity": "ferry_terminal"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF3LHCT",
+      "kb_name": "米拉山口",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 5498053414,
+      "distance_m": 21.2,
+      "osm_name": "米拉山口",
+      "tags": {
+        "natural": "saddle",
+        "name:en": "Mi La"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFF3O46M",
+      "kb_name": "长恨歌演出",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 14134685308,
+      "distance_m": 25.4,
+      "osm_name": "长恨歌演出",
+      "tags": {
+        "amenity": "theatre",
+        "name:en": "Song of Everlasting Sorrow"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFAN3JX",
+      "kb_name": "牛王岭",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 5313520049,
+      "distance_m": 55.0,
+      "osm_name": "牛王岭",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFCXE2F",
+      "kb_name": "文昌桥码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 6320115749,
+      "distance_m": 18.6,
+      "osm_name": "文昌桥码头",
+      "tags": {
+        "amenity": "ferry_terminal",
+        "name:en": "Wenchang Bridge Wharf"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFE5K60",
+      "kb_name": "五通庙",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9292176834,
+      "distance_m": 41.6,
+      "osm_name": "五通庙",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFEZM9F",
+      "kb_name": "青藏高原野生动物园海洋馆",
+      "city": "西宁市",
+      "province": "青海省",
+      "osm_type": "node",
+      "osm_id": 13963131413,
+      "distance_m": 12.8,
+      "osm_name": "青藏高原野生动物园海洋馆",
+      "tags": {
+        "amenity": "animal_breeding"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFFLIYG",
+      "kb_name": "黎里古镇",
+      "city": "苏州市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 9061541617,
+      "distance_m": 32.5,
+      "osm_name": "黎里古镇",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Lili Ancient Town"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFG0BK8",
+      "kb_name": "深圳城市职业学院",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 6393246030,
+      "distance_m": 79.3,
+      "osm_name": "深圳城市职业学院",
+      "tags": {
+        "amenity": "school"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFGLV23",
+      "kb_name": "文昌阁",
+      "city": "贵阳市",
+      "province": "贵州省",
+      "osm_type": "node",
+      "osm_id": 9768725161,
+      "distance_m": 6.0,
+      "osm_name": "文昌阁",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFP3OAB",
+      "kb_name": "火神庙",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 13358713801,
+      "distance_m": 5.9,
+      "osm_name": "火神庙",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ37RK",
+      "kb_name": "重庆北站北广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 6168592370,
+      "distance_m": 6.1,
+      "osm_name": "重庆北站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station North Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ37RK",
+      "kb_name": "重庆北站北广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 7221052172,
+      "distance_m": 14.9,
+      "osm_name": "重庆北站北广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Chongqing North Station North Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ37RK",
+      "kb_name": "重庆北站北广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 9473429819,
+      "distance_m": 16.9,
+      "osm_name": "重庆北站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station North Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ37RK",
+      "kb_name": "重庆北站北广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 5186460894,
+      "distance_m": 18.0,
+      "osm_name": "重庆北站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station North Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ37RK",
+      "kb_name": "重庆北站北广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 9863177351,
+      "distance_m": 24.5,
+      "osm_name": "重庆北站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station North Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ6BM0",
+      "kb_name": "兰州西站北广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 6563941801,
+      "distance_m": 8.1,
+      "osm_name": "兰州西站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "North Square of Lanzhou West Railway Station"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ6BM0",
+      "kb_name": "兰州西站北广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 6563941677,
+      "distance_m": 10.9,
+      "osm_name": "兰州西站北广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "North Square of Lanzhou West Railway Station"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFQ6BM0",
+      "kb_name": "兰州西站北广场",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 3945259331,
+      "distance_m": 12.8,
+      "osm_name": "兰州西站北广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "North Square of Lanzhou West Railway Station"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRBK9R",
+      "kb_name": "泗泾古镇",
+      "city": "上海市",
+      "province": "上海市",
+      "osm_type": "node",
+      "osm_id": 13338055619,
+      "distance_m": 0.6,
+      "osm_name": "泗泾古镇",
+      "tags": {
+        "amenity": "place",
+        "addr:city": "上海市"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRCZ8O",
+      "kb_name": "杨梅坑",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 5214053378,
+      "distance_m": 63.3,
+      "osm_name": "杨梅坑",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFFRKEU7",
+      "kb_name": "清水宫",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 13255980448,
+      "distance_m": 8.1,
+      "osm_name": "清水宫",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Qingshui Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRKW39",
+      "kb_name": "铁西广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 6690632888,
+      "distance_m": 93.8,
+      "osm_name": "铁西广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Tiexiguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRKW39",
+      "kb_name": "铁西广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 13028356641,
+      "distance_m": 93.8,
+      "osm_name": "铁西广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tiexiguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRKW39",
+      "kb_name": "铁西广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 13470769106,
+      "distance_m": 95.0,
+      "osm_name": "铁西广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tiexiguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFRKW39",
+      "kb_name": "铁西广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 4068169174,
+      "distance_m": 99.6,
+      "osm_name": "铁西广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Tiexiguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFS33G2",
+      "kb_name": "鼓楼",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 9378344194,
+      "distance_m": 52.3,
+      "osm_name": "鼓楼",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFFS33G2",
+      "kb_name": "鼓楼",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 9378344195,
+      "distance_m": 59.0,
+      "osm_name": "鼓楼",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFFSFH4Z",
+      "kb_name": "重庆北站南广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 9473420616,
+      "distance_m": 17.7,
+      "osm_name": "重庆北站南广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station South Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFSFH4Z",
+      "kb_name": "重庆北站南广场",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 5186460900,
+      "distance_m": 31.6,
+      "osm_name": "重庆北站南广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Chongqing North Station South Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFSOL2D",
+      "kb_name": "珍珠泉",
+      "city": "济南市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 5530538384,
+      "distance_m": 27.3,
+      "osm_name": "珍珠泉",
+      "tags": {
+        "natural": "spring",
+        "name:en": "Zhenzhu Spring (Pearl Spring)"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFFWQJQV",
+      "kb_name": "兰州市图书馆",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4135470436,
+      "distance_m": 4.8,
+      "osm_name": "兰州市图书馆",
+      "tags": {
+        "amenity": "library",
+        "name:en": "Lanzhou City Library"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG21UFU",
+      "kb_name": "青山渔村牌坊",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 12388187757,
+      "distance_m": 4.9,
+      "osm_name": "青山渔村牌坊",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG28ZUA",
+      "kb_name": "独秀峰",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 5981119758,
+      "distance_m": 82.7,
+      "osm_name": "独秀峰",
+      "tags": {
+        "natural": "peak",
+        "name:en": "Solitary Beauty Peak"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG4A512",
+      "kb_name": "大青山国家登山健身步道",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 12094809123,
+      "distance_m": 22.6,
+      "osm_name": "大青山国家登山健身步道",
+      "tags": {
+        "leisure": "pitch"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG6HGJN",
+      "kb_name": "南少林寺",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 3905718057,
+      "distance_m": 14.8,
+      "osm_name": "南少林寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG6QDBM",
+      "kb_name": "即墨古城",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 5390654755,
+      "distance_m": 33.2,
+      "osm_name": "即墨古城",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG7IU6R",
+      "kb_name": "黑龙江省农业科学院",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 9903490988,
+      "distance_m": 75.2,
+      "osm_name": "黑龙江省农业科学院",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFG7LRXG",
+      "kb_name": "不老村",
+      "city": "南京市",
+      "province": "江苏省",
+      "osm_type": "node",
+      "osm_id": 11928209177,
+      "distance_m": 43.5,
+      "osm_name": "不老村",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFG8EUPC",
+      "kb_name": "高路入云端观景台",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 13063533101,
+      "distance_m": 50.0,
+      "osm_name": "高路入云端观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFG8WAG4",
+      "kb_name": "环山秀坪",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 12896426153,
+      "distance_m": 42.7,
+      "osm_name": "环山秀坪",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFGA04L5",
+      "kb_name": "闽南朝天宫",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 13255980460,
+      "distance_m": 12.6,
+      "osm_name": "闽南朝天宫",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Minnan Chaotian Temple"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGAHLMB",
+      "kb_name": "千层天梯",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 1872107158,
+      "distance_m": 82.1,
+      "osm_name": "千层天梯",
+      "tags": {
+        "tourism": "viewpoint",
+        "name:en": "Thousand layers to the heaven"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGAN25W",
+      "kb_name": "胜利广场",
+      "city": "合肥市",
+      "province": "安徽省",
+      "osm_type": "node",
+      "osm_id": 4895306802,
+      "distance_m": 75.0,
+      "osm_name": "胜利广场",
+      "tags": {
+        "name:en": "Shengli Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGF6AU2",
+      "kb_name": "甘蔗广场",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 11512506924,
+      "distance_m": 45.6,
+      "osm_name": "甘蔗广场",
+      "tags": {
+        "name:en": "Ganzhe Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGF6AU2",
+      "kb_name": "甘蔗广场",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 11512506930,
+      "distance_m": 79.0,
+      "osm_name": "甘蔗广场",
+      "tags": {
+        "name:en": "Ganzhe Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFGXTV88",
+      "kb_name": "中国地质大学(武汉)未来城校区",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 13042797543,
+      "distance_m": 91.2,
+      "osm_name": "中国地质大学（武汉）未来城校区",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFGZX5EJ",
+      "kb_name": "首都儿科研究所",
+      "city": "北京市",
+      "province": "北京市",
+      "osm_type": "node",
+      "osm_id": 14019429711,
+      "distance_m": 62.5,
+      "osm_name": "首都儿科研究所",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFH2A2CG",
+      "kb_name": "黎明广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 1012666236,
+      "distance_m": 72.0,
+      "osm_name": "黎明广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Liming Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFH2A2CG",
+      "kb_name": "黎明广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 12948968716,
+      "distance_m": 74.0,
+      "osm_name": "黎明广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Liming Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFH2A2CG",
+      "kb_name": "黎明广场",
+      "city": "沈阳市",
+      "province": "辽宁省",
+      "osm_type": "node",
+      "osm_id": 12948925426,
+      "distance_m": 74.7,
+      "osm_name": "黎明广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Liming Square"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFH2JS91",
+      "kb_name": "亚特兰蒂斯失落的空间水族馆",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 13478409485,
+      "distance_m": 3.3,
+      "osm_name": "亚特兰蒂斯失落的空间水族馆",
+      "tags": {
+        "tourism": "aquarium"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFH5IMFV",
+      "kb_name": "湖南省广播电视局",
+      "city": "长沙市",
+      "province": "湖南省",
+      "osm_type": "node",
+      "osm_id": 9951050756,
+      "distance_m": 39.2,
+      "osm_name": "湖南省广播电视局",
+      "tags": {
+        "name:en": "Hunan Provincial Radio and Television Bureau"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFHBCIG1",
+      "kb_name": "金刚亥母灵洞",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 5977738985,
+      "distance_m": 14.6,
+      "osm_name": "金刚亥母灵洞",
+      "tags": {
+        "amenity": "place_of_worship",
+        "name:en": "Vajrayogini cave"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFHEFVN2",
+      "kb_name": "江西日报社(红谷中大道)",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 12974196357,
+      "distance_m": 28.0,
+      "osm_name": "江西日报社(红谷中大道)",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFHHD612",
+      "kb_name": "白塔寺",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 13318861354,
+      "distance_m": 22.3,
+      "osm_name": "白塔寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFHHSBJH",
+      "kb_name": "瑞德摩尔",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4326995253,
+      "distance_m": 19.5,
+      "osm_name": "瑞德摩尔",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFHHSBJH",
+      "kb_name": "瑞德摩尔",
+      "city": "兰州市",
+      "province": "甘肃省",
+      "osm_type": "node",
+      "osm_id": 4326995254,
+      "distance_m": 47.9,
+      "osm_name": "瑞德摩尔",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFHP11F2",
+      "kb_name": "兰花广场",
+      "city": "贵阳市",
+      "province": "贵州省",
+      "osm_type": "node",
+      "osm_id": 13093716017,
+      "distance_m": 93.4,
+      "osm_name": "兰花广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFHP11F2",
+      "kb_name": "兰花广场",
+      "city": "贵阳市",
+      "province": "贵州省",
+      "osm_type": "node",
+      "osm_id": 13093716016,
+      "distance_m": 94.3,
+      "osm_name": "兰花广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFI13PJO",
+      "kb_name": "《驼铃传奇》秀",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 13072627001,
+      "distance_m": 8.1,
+      "osm_name": "《驼铃传奇》秀",
+      "tags": {
+        "amenity": "theatre",
+        "name:en": "\"Tuo Ling Legend\" Show"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFI9R3NK",
+      "kb_name": "七涧谷",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13303051931,
+      "distance_m": 31.4,
+      "osm_name": "七涧谷",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIAXBX3",
+      "kb_name": "清真寺",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 12756598611,
+      "distance_m": 80.6,
+      "osm_name": "清真寺",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Harbin Mosque"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIAXBX3",
+      "kb_name": "清真寺",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 12757424170,
+      "distance_m": 85.3,
+      "osm_name": "清真寺",
+      "tags": {
+        "railway": "station",
+        "name:en": "Harbin Mosque"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIAXBX3",
+      "kb_name": "清真寺",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 12756598254,
+      "distance_m": 90.1,
+      "osm_name": "清真寺",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Harbin Mosque"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIKO6CZ",
+      "kb_name": "龙潭码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 9168700518,
+      "distance_m": 27.8,
+      "osm_name": "龙潭码头",
+      "tags": {
+        "leisure": "marina"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFINNR4Q",
+      "kb_name": "毛氏宗祠",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9857635528,
+      "distance_m": 38.9,
+      "osm_name": "毛氏宗祠",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIORWYU",
+      "kb_name": "青岛科技馆",
+      "city": "青岛市",
+      "province": "山东省",
+      "osm_type": "node",
+      "osm_id": 13450819432,
+      "distance_m": 23.5,
+      "osm_name": "青岛科技馆",
+      "tags": {
+        "tourism": "museum",
+        "addr:city": "青岛市",
+        "addr:province": "山东省"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIQ0ZWU",
+      "kb_name": "美峰体育公园",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 12230117243,
+      "distance_m": 20.6,
+      "osm_name": "美峰体育公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIXONOV",
+      "kb_name": "大研花巷",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9192132958,
+      "distance_m": 53.8,
+      "osm_name": "大研花巷",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFIXONOV",
+      "kb_name": "大研花巷",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9192132957,
+      "distance_m": 72.3,
+      "osm_name": "大研花巷",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFIYTXTT",
+      "kb_name": "骥马码头",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 4967147821,
+      "distance_m": 61.2,
+      "osm_name": "骥马码头",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Jima Wharf"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFIZWUV1",
+      "kb_name": "金佛顶",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 1364092847,
+      "distance_m": 26.8,
+      "osm_name": "金佛顶",
+      "tags": {
+        "tourism": "viewpoint",
+        "name:en": "Golden Buddha Peak"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJ1ST7C",
+      "kb_name": "炉峰山观景台",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 5502303241,
+      "distance_m": 77.8,
+      "osm_name": "炉峰山观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJ35DZ0",
+      "kb_name": "三峡之巅",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 9531506338,
+      "distance_m": 26.4,
+      "osm_name": "三峡之巅",
+      "tags": {
+        "natural": "peak",
+        "name:en": "The Summit of The Three Gorges"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJ35DZ0",
+      "kb_name": "三峡之巅",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 8701437343,
+      "distance_m": 31.1,
+      "osm_name": "三峡之巅",
+      "tags": {
+        "tourism": "viewpoint",
+        "name:en": "The Summit of The Three Gorges"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJ9OJRR",
+      "kb_name": "南宁极地海洋世界",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 11981168744,
+      "distance_m": 8.0,
+      "osm_name": "南宁极地海洋世界",
+      "tags": {
+        "tourism": "aquarium"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJHRE40",
+      "kb_name": "热擦寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 13650036682,
+      "distance_m": 23.5,
+      "osm_name": "热擦寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJPYPHF",
+      "kb_name": "金堂县龚家山观景台",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 13284683700,
+      "distance_m": 5.0,
+      "osm_name": "金堂县龚家山观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFJXRDHO",
+      "kb_name": "后海村",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 10862260080,
+      "distance_m": 85.1,
+      "osm_name": "后海村",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFK0POWB",
+      "kb_name": "小南河村",
+      "city": "天津市",
+      "province": "天津市",
+      "osm_type": "node",
+      "osm_id": 13468192425,
+      "distance_m": 65.7,
+      "osm_name": "小南河村",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFKUBYT1",
+      "kb_name": "大哨森林",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 10766387558,
+      "distance_m": 29.0,
+      "osm_name": "大哨森林",
+      "tags": {
+        "natural": "peak"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFL3X191",
+      "kb_name": "广西非遗美食展示馆",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 13545043437,
+      "distance_m": 10.8,
+      "osm_name": "广西非遗美食展示馆",
+      "tags": {
+        "amenity": "restaurant"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFLEIZ56",
+      "kb_name": "太原站东广场",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 4213687394,
+      "distance_m": 14.7,
+      "osm_name": "太原站东广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Taiyuanzhan Dongguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFLEIZ56",
+      "kb_name": "太原站东广场",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 12603762934,
+      "distance_m": 18.3,
+      "osm_name": "太原站东广场",
+      "tags": {
+        "railway": "station",
+        "name:en": "Taiyuanzhan Dongguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFLEIZ56",
+      "kb_name": "太原站东广场",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 12180389741,
+      "distance_m": 26.5,
+      "osm_name": "太原站东广场",
+      "tags": {
+        "railway": "stop",
+        "name:en": "Taiyuanzhan Dongguangchang"
+      }
+    },
+    {
+      "kb_id": "amap-B0FFLFTLSY",
+      "kb_name": "白塔",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 8285588447,
+      "distance_m": 2.1,
+      "osm_name": "白塔",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0FFLPFSNR",
+      "kb_name": "紫霞宫",
+      "city": "昆明市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9287306765,
+      "distance_m": 2.7,
+      "osm_name": "紫霞宫",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0G2BY71AD",
+      "kb_name": "玉湖村广场",
+      "city": "丽江市",
+      "province": "云南省",
+      "osm_type": "node",
+      "osm_id": 9194954179,
+      "distance_m": 33.5,
+      "osm_name": "玉湖村广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0G2S7LE4X",
+      "kb_name": "梅沙尖",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 6353851591,
+      "distance_m": 5.8,
+      "osm_name": "梅沙尖",
+      "tags": {
+        "natural": "peak"
+      }
+    },
+    {
+      "kb_id": "amap-B0G3V49N5K",
+      "kb_name": "灯塔图书馆",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 13971699787,
+      "distance_m": 10.2,
+      "osm_name": "灯塔图书馆",
+      "tags": {
+        "amenity": "library"
+      }
+    },
+    {
+      "kb_id": "amap-B0HAN5M775",
+      "kb_name": "米琼日寺",
+      "city": "拉萨市",
+      "province": "西藏自治区",
+      "osm_type": "node",
+      "osm_id": 4104536554,
+      "distance_m": 9.9,
+      "osm_name": "米琼日寺",
+      "tags": {
+        "amenity": "place_of_worship"
+      }
+    },
+    {
+      "kb_id": "amap-B0HAOLKN95",
+      "kb_name": "六罗峡谷",
+      "city": "三亚市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 5188407424,
+      "distance_m": 14.9,
+      "osm_name": "六罗峡谷",
+      "tags": {
+        "natural": "valley"
+      }
+    },
+    {
+      "kb_id": "amap-B0HB3P63OA",
+      "kb_name": "龙泉山观景台",
+      "city": "成都市",
+      "province": "四川省",
+      "osm_type": "node",
+      "osm_id": 13284683697,
+      "distance_m": 4.6,
+      "osm_name": "龙泉山观景台",
+      "tags": {
+        "tourism": "viewpoint"
+      }
+    },
+    {
+      "kb_id": "amap-B0HBYXIRBB",
+      "kb_name": "南滨路钟楼",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 14020631227,
+      "distance_m": 36.1,
+      "osm_name": "南滨路钟楼",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0HBYXIRBB",
+      "kb_name": "南滨路钟楼",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 14020631226,
+      "distance_m": 41.7,
+      "osm_name": "南滨路钟楼",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0HDZC2DS3",
+      "kb_name": "乌素图杏花谷",
+      "city": "呼和浩特市",
+      "province": "内蒙古自治区",
+      "osm_type": "node",
+      "osm_id": 13390957123,
+      "distance_m": 52.9,
+      "osm_name": "乌素图杏花谷",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B0HKO9KWYI",
+      "kb_name": "出版中心",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 11058076885,
+      "distance_m": 46.4,
+      "osm_name": "出版中心",
+      "tags": {
+        "addr:city": "南昌市",
+        "addr:province": "江西省"
+      }
+    },
+    {
+      "kb_id": "amap-B0I1NUA3WY",
+      "kb_name": "拾贝公园",
+      "city": "海口市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 11820248937,
+      "distance_m": 62.4,
+      "osm_name": "拾贝公园",
+      "tags": {
+        "tourism": "attraction",
+        "name:en": "Shebei Park"
+      }
+    },
+    {
+      "kb_id": "amap-B0I2A7L79A",
+      "kb_name": "荫生植物园",
+      "city": "南宁市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 12896426366,
+      "distance_m": 52.2,
+      "osm_name": "荫生植物园",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0IK5CTCD8",
+      "kb_name": "天空之山驿站",
+      "city": "海口市",
+      "province": "海南省",
+      "osm_type": "node",
+      "osm_id": 11900320549,
+      "distance_m": 11.0,
+      "osm_name": "天空之山驿站",
+      "tags": {
+        "tourism": "attraction"
+      }
+    },
+    {
+      "kb_id": "amap-B0J0371A87",
+      "kb_name": "东华理工大学(青岚校园)",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 13663281392,
+      "distance_m": 19.4,
+      "osm_name": "东华理工大学(青岚校园)",
+      "tags": {
+        "amenity": "college"
+      }
+    },
+    {
+      "kb_id": "amap-B0J1RUQORM",
+      "kb_name": "人鱼洞",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 12891857676,
+      "distance_m": 23.0,
+      "osm_name": "人鱼洞",
+      "tags": {
+        "natural": "cave_entrance",
+        "name:en": "Mermald Cave"
+      }
+    },
+    {
+      "kb_id": "amap-B0J65MJBFB",
+      "kb_name": "盼归塔",
+      "city": "厦门市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 12229874411,
+      "distance_m": 4.7,
+      "osm_name": "盼归塔",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0JB5U6RT9",
+      "kb_name": "梨园广场",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1405272480,
+      "distance_m": 85.5,
+      "osm_name": "梨园广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0JGHZOF9N",
+      "kb_name": "海螺塔",
+      "city": "福州市",
+      "province": "福建省",
+      "osm_type": "node",
+      "osm_id": 12084952219,
+      "distance_m": 11.8,
+      "osm_name": "海螺塔",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0JRZS2UMD",
+      "kb_name": "王勃广场",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 12652175657,
+      "distance_m": 18.5,
+      "osm_name": "王勃广场",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B0K06A4DIA",
+      "kb_name": "西安科技馆",
+      "city": "西安市",
+      "province": "陕西省",
+      "osm_type": "node",
+      "osm_id": 13174755901,
+      "distance_m": 75.9,
+      "osm_name": "西安科技馆",
+      "tags": {
+        "tourism": "museum",
+        "name:en": "Xi'an Science and Technology Museum"
+      }
+    },
+    {
+      "kb_id": "amap-B0K117QOQ1",
+      "kb_name": "太原小三亚",
+      "city": "太原市",
+      "province": "山西省",
+      "osm_type": "node",
+      "osm_id": 13188786120,
+      "distance_m": 48.3,
+      "osm_name": "太原小三亚",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0KROCQO3Q",
+      "kb_name": "阳朔山水列车",
+      "city": "桂林市",
+      "province": "广西壮族自治区",
+      "osm_type": "node",
+      "osm_id": 14244848720,
+      "distance_m": 9.2,
+      "osm_name": "阳朔山水列车",
+      "tags": {
+        "amenity": "cafe"
+      }
+    },
+    {
+      "kb_id": "amap-B0L1LCEWWC",
+      "kb_name": "太阳岛大熊猫馆",
+      "city": "哈尔滨市",
+      "province": "黑龙江省",
+      "osm_type": "node",
+      "osm_id": 13381227901,
+      "distance_m": 29.7,
+      "osm_name": "太阳岛大熊猫馆",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0L3DS5SIE",
+      "kb_name": "绿心公园",
+      "city": "重庆市",
+      "province": "重庆市",
+      "osm_type": "node",
+      "osm_id": 13451893172,
+      "distance_m": 72.6,
+      "osm_name": "绿心公园",
+      "tags": {
+        "leisure": "park"
+      }
+    },
+    {
+      "kb_id": "amap-B0LAGRAG9F",
+      "kb_name": "凌波门",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 1199819110,
+      "distance_m": 19.3,
+      "osm_name": "凌波门",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LAGRAG9F",
+      "kb_name": "凌波门",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 13613667177,
+      "distance_m": 19.9,
+      "osm_name": "凌波门",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LAGRAG9F",
+      "kb_name": "凌波门",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 13613667184,
+      "distance_m": 24.6,
+      "osm_name": "凌波门",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LG154LWI",
+      "kb_name": "秋水广场",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 4453524103,
+      "distance_m": 23.5,
+      "osm_name": "秋水广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LG154LWI",
+      "kb_name": "秋水广场",
+      "city": "南昌市",
+      "province": "江西省",
+      "osm_type": "node",
+      "osm_id": 4453524104,
+      "distance_m": 37.9,
+      "osm_name": "秋水广场",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LGV1YF5T",
+      "kb_name": "梅沙尖登山口",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 6572441732,
+      "distance_m": 14.6,
+      "osm_name": "梅沙尖登山口",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0LGV1YF5T",
+      "kb_name": "梅沙尖登山口",
+      "city": "深圳市",
+      "province": "广东省",
+      "osm_type": "node",
+      "osm_id": 10984173584,
+      "distance_m": 33.9,
+      "osm_name": "梅沙尖登山口",
+      "tags": {}
+    },
+    {
+      "kb_id": "amap-B0MA4CUUG1",
+      "kb_name": "光谷图书馆",
+      "city": "武汉市",
+      "province": "湖北省",
+      "osm_type": "node",
+      "osm_id": 14345068010,
+      "distance_m": 10.4,
+      "osm_name": "光谷图书馆",
+      "tags": {
+        "amenity": "library"
+      }
+    },
+    {
+      "kb_id": "amap-B0MASAFR9S",
+      "kb_name": "新疆革命军事馆",
+      "city": "乌鲁木齐市",
+      "province": "新疆维吾尔自治区",
+      "osm_type": "node",
+      "osm_id": 14246176346,
+      "distance_m": 5.3,
+      "osm_name": "新疆革命军事馆",
+      "tags": {
+        "tourism": "museum"
+      }
+    }
+  ]
+}

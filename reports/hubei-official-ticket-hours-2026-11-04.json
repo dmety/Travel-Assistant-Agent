@@ -1,0 +1,318 @@
+{
+  "scope": "湖北省（当前知识库中记录均为武汉市）",
+  "retrieved_at": "2026-11-04",
+  "sources": [
+    {
+      "name": "武汉市2026年度政府定价景区门票及景区内配套交通运输价格清单",
+      "url": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "publisher": "武汉市发展和改革委员会",
+      "source_updated_at": "2026-04-27",
+      "local_copy": "wuhan-2026-government-ticket-list.pdf"
+    },
+    {
+      "name": "东湖风景区A级景区开放时间",
+      "url": "https://www.whdonghu.gov.cn/zwgk_6255/xxgkml/gysyjs/lyly/202312/t20231229_2332162.shtml",
+      "publisher": "武汉东湖生态旅游风景区管理委员会",
+      "source_updated_at": "2025-12-18"
+    },
+    {
+      "name": "武昌区旅游景区一览表",
+      "url": "https://www.wuchang.gov.cn/zwgk_37/fdzdgknr/shgysy/ly/202209/t20220930_2050896.html",
+      "publisher": "武汉市武昌区文化和旅游局",
+      "source_updated_at": "2026-03-20"
+    },
+    {
+      "name": "东湖最新漫游地图",
+      "url": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "publisher": "武汉东湖生态旅游风景区管理委员会",
+      "source_updated_at": "2026-01-22"
+    },
+    {
+      "name": "民生价格手册",
+      "url": "https://www.hongshan.gov.cn/zfbm/qfgw/zcfg/bmwj/202511/t20251128_2684264.shtml",
+      "publisher": "武汉市洪山区发展和改革局",
+      "source_updated_at": "2025-11-28"
+    },
+    {
+      "name": "武汉新增4家国家4A级旅游景区，打卡攻略来了",
+      "url": "https://news.hubeidaily.net/pc/c_4945477.html",
+      "publisher": "湖北日报·武汉文旅发布",
+      "source_updated_at": "2025-12-24"
+    },
+    {
+      "name": "晴川阁恢复开放首日，全国游客沉浸体验武汉诗意春天",
+      "url": "https://www.wuhan.gov.cn/zjwh/whly/202603/t20260310_2737818.shtml",
+      "publisher": "武汉市人民政府门户网站",
+      "source_updated_at": "2026-03-10"
+    },
+    {
+      "name": "武汉海昌极地海洋公园官网",
+      "url": "https://www.haichangoceanpark.com/wuhan/",
+      "publisher": "海昌海洋公园",
+      "source_updated_at": null
+    },
+    {
+      "name": "清明假期预约爆满 武汉麓客岛化身春日露营“顶流”",
+      "url": "https://news.hubeidaily.net/mobile/c_5356643.html",
+      "publisher": "湖北日报",
+      "source_updated_at": "2026-04"
+    },
+    {
+      "name": "武汉市2026年度政府定价景区门票清单（知音·九真景区条目）",
+      "url": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "publisher": "武汉市发展和改革委员会",
+      "source_updated_at": "2026-04-27"
+    },
+    {
+      "name": "蔡甸区A级景区简介（九真山风景区）",
+      "url": "https://www.caidian.gov.cn/zwgk/xxgkml/zdly/ly/202412/t20241225_2507961.shtml",
+      "publisher": "武汉市蔡甸区文化和旅游局",
+      "source_updated_at": "2026-01-23"
+    },
+    {
+      "name": "东西湖梧桐雨成“遛娃首选”",
+      "url": "https://wlt.hubei.gov.cn/bmdt/szyw/wh/202508/t20250820_5751081.shtml",
+      "publisher": "湖北省文化和旅游厅",
+      "source_updated_at": "2025-08-20"
+    }
+  ],
+  "matching_policy": "只保留湖北省记录中唯一且名称或地点对应明确的景区。来源列出的免费只适用于该景区首道门票，不代表园内交通或自选项目免费。只补知识库空值；写入状态为unverified并记录来源与取数日期。",
+  "records": [
+    {
+      "kb_id": "osm-way-99465606",
+      "kb_name": "武汉动物园",
+      "kb_city": "武汉",
+      "source_name": "武汉市动物园",
+      "source_district": "汉阳区",
+      "ticket": "40元/人次（武汉市2026年度政府定价；园内观光车另收费10元/人次）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库唯一记录名称为武汉动物园，官方清单名称增加‘市’字，均位于汉阳区。"
+    },
+    {
+      "kb_id": "amap-B001B0J0AJ",
+      "kb_name": "龙泉山风景区",
+      "kb_city": "武汉市",
+      "source_name": "龙泉风景区",
+      "source_district": "东湖高新区",
+      "ticket": "36元/人次（武汉市2026年度政府定价）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库中‘龙泉’景区候选唯一，地址为东湖新技术开发区龙泉街道，与官方清单东湖高新区龙泉风景区对应。"
+    },
+    {
+      "kb_id": "amap-B001B0J0B5",
+      "kb_name": "东湖磨山景区",
+      "kb_city": "武汉市",
+      "source_name": "东湖风景区磨山景区",
+      "source_district": "东湖风景区",
+      "ticket": "免费（武汉市2026年度政府定价清单；仅指景区首道门票）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库唯一记录与官方清单名称的景区核心名完全一致。"
+    },
+    {
+      "kb_id": "amap-B001B1ASJQ",
+      "kb_name": "东湖听涛景区",
+      "kb_city": "武汉市",
+      "source_name": "东湖风景区听涛景区",
+      "source_district": "东湖风景区",
+      "ticket": "免费（武汉市2026年度政府定价清单；仅指景区首道门票）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库唯一记录与官方清单名称的景区核心名完全一致。"
+    },
+    {
+      "kb_id": "osm-way-1316372136",
+      "kb_name": "盘龙城国家考古遗址公园",
+      "kb_city": "武汉",
+      "source_name": "盘龙城遗址公园",
+      "source_district": "黄陂区",
+      "ticket": "70元/人次（武汉市2026年度政府定价；全程观光车另收费15元/人次）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库唯一记录名称是官方景区名称的完整名称，来源地址及同城信息一致。"
+    },
+    {
+      "kb_id": "osm-way-983925430",
+      "kb_name": "武汉欢乐谷",
+      "kb_city": "武汉",
+      "source_name": "武汉市华侨城欢乐谷",
+      "open_time": "9:30-18:00，具体以当天公告为准",
+      "open_time_source": "https://www.whdonghu.gov.cn/zwgk_6255/xxgkml/gysyjs/lyly/202312/t20231229_2332162.shtml",
+      "open_time_match_reason": "官方清单中的武汉市华侨城欢乐谷与知识库武汉欢乐谷为同一景区，名称和城市唯一匹配。"
+    },
+    {
+      "kb_id": "amap-B001B0I9FF",
+      "kb_name": "辛亥革命博物院",
+      "kb_city": "武汉市",
+      "source_name": "辛亥革命武昌起义纪念馆",
+      "open_time": "周二至周日 09:00-17:00（16:00后停止入场）；周一闭馆",
+      "open_time_source": "https://www.wuchang.gov.cn/zwgk_37/fdzdgknr/shgysy/ly/202209/t20220930_2050896.html",
+      "open_time_match_reason": "该知识库记录地址为武珞路1号（首义广场），与武昌区文旅局列出的辛亥革命武昌起义纪念馆及地址相同。"
+    },
+    {
+      "kb_id": "osm-node-13706920743",
+      "kb_name": "杜莎夫人蜡像馆",
+      "kb_city": "武汉",
+      "source_name": "武汉杜莎夫人蜡像馆",
+      "open_time": "10:00-20:30",
+      "open_time_source": "https://www.wuchang.gov.cn/zwgk_37/fdzdgknr/shgysy/ly/202209/t20220930_2050896.html",
+      "open_time_match_reason": "知识库唯一记录名称去掉城市前缀后与官方名称一致，均位于武汉市武昌区楚河汉街。"
+    },
+    {
+      "kb_id": "amap-B001B05205",
+      "kb_name": "龟山风景区",
+      "kb_city": "武汉市",
+      "source_name": "武汉市龟山公园",
+      "ticket": "免费（武汉市2026年度政府定价清单列武汉市龟山公园；不含电视塔等单独经营项目）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "知识库记录位于汉阳区龟山北路5号，武汉市清单明确列出汉阳区武汉市龟山公园免费；电视塔等单独项目不包含在首道门票判断中。"
+    },
+    {
+      "kb_id": "amap-B0FFHONIK0",
+      "kb_name": "东湖绿道",
+      "kb_city": "武汉市",
+      "source_name": "东湖绿道",
+      "ticket": "免费（东湖绿道通行；沿线园中园、游船和游乐项目另收费）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "景区管理委员会2026年漫游地图以同名条目列出东湖绿道并标明全天免费，知识库为唯一同名记录。"
+    },
+    {
+      "kb_id": "osm-way-675321040",
+      "kb_name": "晴川阁",
+      "kb_city": "武汉",
+      "source_name": "晴川阁",
+      "ticket": "日间免费预约开放（周二至周日9:00-17:00，16:30停止入馆）；夜间夜游收费，当前来源未公布夜游票价",
+      "ticket_source": "https://www.wuhan.gov.cn/zjwh/whly/202603/t20260310_2737818.shtml",
+      "ticket_match_reason": "武汉市政府2026年3月公开信息明确说明晴川阁日间免费预约、夜游收费；该来源与知识库名称完全一致。"
+    },
+    {
+      "kb_id": "amap-B001B0J0B9",
+      "kb_name": "长春观",
+      "kb_city": "武汉市",
+      "source_name": "长春观",
+      "ticket": "5元/人（武汉市政府定价，洪山区2025民生价格手册）",
+      "ticket_source": "https://www.hongshan.gov.cn/zfbm/qfgw/zcfg/bmwj/202511/t20251128_2684264.shtml",
+      "ticket_match_reason": "手册明确列出长春观5元，知识库存在唯一同名武汉记录。"
+    },
+    {
+      "kb_id": "amap-B001B0001B",
+      "kb_name": "古琴台",
+      "kb_city": "武汉市",
+      "source_name": "知音文化旅游区（包含古琴台）",
+      "ticket": "免费预约入园（知音文化旅游区公开信息；需以景区预约及当日公告为准）",
+      "ticket_source": "https://news.hubeidaily.net/pc/c_4945477.html",
+      "ticket_match_reason": "2025-12发布的信息明确知音文化旅游区包含古琴台并列门票免费、古琴台需线上免费预约；知识库古琴台位于琴台大道10号。"
+    },
+    {
+      "kb_id": "osm-way-983925430",
+      "kb_name": "武汉欢乐谷",
+      "kb_city": "武汉",
+      "source_name": "武汉欢乐谷",
+      "ticket": "全日票200元/人（东湖漫游地图2026公示）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "景区管理委员会2026年漫游地图以同名条目列出欢乐谷全日票价，知识库为唯一同名武汉记录。"
+    },
+    {
+      "kb_id": "amap-B001B0J0BX",
+      "kb_name": "东湖海洋乐园",
+      "kb_city": "武汉市",
+      "source_name": "东湖海洋乐园",
+      "ticket": "东湖海洋世界全价票130元/人；东湖飞鸟世界100元/人；动物主题公园100元/人；东湖欢乐水世界60元/人（分项票价，按实际入园项目购买）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "景区管理委员会2026年漫游地图以同名东湖海洋乐园条目和沿湖大道20号地址列出各分园全价票，知识库记录地址同为沿湖大道20号。"
+    },
+    {
+      "kb_id": "osm-way-363656371",
+      "kb_name": "湖北省博物馆",
+      "kb_city": "武汉",
+      "source_name": "湖北省博物馆",
+      "ticket": "免费（官方文旅地图列示；预约要求以馆方当日规则为准）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "东湖风景区管理委员会2026漫游地图以“湖北省博物馆”同名列出免费，知识库该城市内记录为唯一同名记录。"
+    },
+    {
+      "kb_id": "osm-way-1289090253",
+      "kb_name": "湖心岛动物博物馆",
+      "kb_city": "武汉",
+      "source_name": "湖心岛动物博物馆",
+      "ticket": "39.9元（东湖风景区管理委员会2026漫游地图公示）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "官方地图以“湖心岛动物博物馆”同名列出39.9元，知识库武汉范围内唯一同名记录。"
+    },
+    {
+      "kb_id": "osm-way-1333690979",
+      "kb_name": "观光氦气球",
+      "kb_city": "武汉",
+      "source_name": "观光氦气球",
+      "ticket": "平日120元/人，周末150元/人（东湖风景区管理委员会2026漫游地图公示）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "官方地图列出东湖氦气球分平日与周末票价；知识库仅有一条武汉“观光氦气球”记录，名称指向一致但地址字段较粗，标为未核验。"
+    },
+    {
+      "kb_id": "osm-way-1476197518",
+      "kb_name": "水生生物博物馆",
+      "kb_city": "武汉",
+      "source_name": "水生生物博物馆",
+      "ticket": "免费（东湖风景区管理委员会2026漫游地图列示）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "官方地图以“武汉水生生物博物馆”列示免费并给出东湖南路7号；知识库武汉范围内唯一同类博物馆记录，名称和所在区域对应。"
+    },
+    {
+      "kb_id": "amap-B0LAGRAG9F",
+      "kb_name": "凌波门",
+      "kb_city": "武汉市",
+      "source_name": "凌波门",
+      "ticket": "免费（东湖风景区管理委员会2026漫游地图列示）",
+      "ticket_source": "https://www.whdonghu.gov.cn/ztzl_6323/wlzl/202601/t20260122_2716447.shtml",
+      "ticket_match_reason": "官方地图列出“凌波门/半侧山”免费；知识库中该行名称与凌波门完全一致，另一条记录名称为观景点，故只写入精确同名记录。"
+    },
+    {
+      "kb_id": "osm-way-1053516206",
+      "kb_name": "黄鹤楼公园",
+      "kb_city": "武汉",
+      "source_name": "黄鹤楼公园",
+      "ticket": "70元/人次（武汉市2026年度政府定价）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf",
+      "ticket_match_reason": "武汉市发改委2026定价清单列黄鹤楼70元/人次；知识库此行名为黄鹤楼公园，与知识库已存在的同城黄鹤楼记录相符，但该行地址字段不完整，仍标为未核验。",
+      "open_time": "4月1日-10月31日 08:00-18:00；11月1日-3月31日 08:00-17:00",
+      "open_time_source": "https://www.wuchang.gov.cn/zwgk_37/fdzdgknr/shgysy/ly/202209/t20220930_2050896.html",
+      "open_time_match_reason": "武昌区文旅局2026景区表列黄鹤楼季节开放时间；知识库黄鹤楼公园行与同城黄鹤楼条目对应，但地址缺失具体路段，仍标为未核验。"
+    },
+    {
+      "kb_id": "osm-way-457956873",
+      "kb_name": "海昌·极地海洋世界",
+      "kb_city": "武汉",
+      "source_name": "武汉海昌极地海洋公园",
+      "ticket": "成人票240元/人；儿童票150元/人；老人票150元/人（官网列示，优惠条件与当日可售票种以购票页为准）",
+      "ticket_source": "https://www.haichangoceanpark.com/wuhan/",
+      "ticket_match_reason": "官网标题和知识库名称均指向武汉海昌极地海洋公园；知识库武汉范围内只有该条主题公园记录，官网地址为东西湖区金银潭大道96号。官网页面价格未标明最近更新日期，因此保持未核验。",
+      "open_time": "日场 09:00-17:00",
+      "open_time_source": "https://www.haichangoceanpark.com/wuhan/",
+      "open_time_match_reason": "武汉海昌极地海洋公园官网列出日场运营时间9:00-17:00，与知识库唯一同名武汉主题公园记录匹配；官网页面未标明最近更新时间，保持未核验。"
+    },
+    {
+      "kb_id": "amap-B0LUTL5H3Y",
+      "kb_name": "武汉麓客岛",
+      "kb_city": "武汉市",
+      "source_name": "武汉麓客岛",
+      "ticket": "普通入园门票免费预约；剧人岛专项活动另售票，具体以景区当前预约/购票页面为准",
+      "ticket_source": "https://news.hubeidaily.net/mobile/c_5356643.html",
+      "ticket_match_reason": "湖北日报2026年报道说明麓客岛实行免费预约与限流；知识库该行名称、武汉市长江新区谌家矶大道29号与报道所述武汉麓客岛一致。普通票与专项活动票分开表述，避免把专项票当作入园门票。"
+    },
+    {
+      "kb_id": "amap-B0FFFQLIK2",
+      "kb_name": "九真山风景区",
+      "kb_city": "武汉市",
+      "source_name": "大好河山·知音·九真景区",
+      "ticket": "60元/人次（武汉市2026年度政府定价）",
+      "ticket_source": "https://fgw.wuhan.gov.cn/zfxxgk/zfxxgk_4/sysf/202604/P020260518549310243435.pdf ; https://www.caidian.gov.cn/zwgk/xxgkml/zdly/ly/202412/t20241225_2507961.shtml",
+      "ticket_match_reason": "市发改委2026清单列“大好河山·知音·九真景区”60元；蔡甸区文旅局2026 A级景区简介确认九真山风景区为蔡甸区炉房村4A景区，知识库唯一九真山记录地址为104省道炉房村旁，名称和地点对应。名称仍有差异，保持未核验。"
+    },
+    {
+      "kb_id": "amap-B0JGJC37F4",
+      "kb_name": "梧桐·雨",
+      "kb_city": "武汉市",
+      "source_name": "梧桐雨公园",
+      "ticket": "公共区域免费开放；官方报道（2025年8月）称16:00后进入“杜鹃溪谷及月季花海”特定演艺区需购票，来源未列具体金额；按当季公告核实。",
+      "ticket_source": "https://wlt.hubei.gov.cn/bmdt/szyw/wh/202508/t20250820_5751081.shtml",
+      "ticket_match_reason": "湖北省文旅厅报道以“东西湖梧桐雨公园”同名描述公共区域免费开放和特定演艺区收费规则；知识库唯一武汉记录为梧桐·雨。来源介绍的是2025年限定活动规则，票价金额和当前适用日期均需复核，因此标为未核验。"
+    }
+  ]
+}
