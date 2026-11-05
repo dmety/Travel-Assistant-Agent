@@ -170,6 +170,14 @@ def _parse(raw):
 
 RESULTS = []
 
+# --fail-fast：首个断言失败立即中止。跑门禁时用它，避免一个前置步骤失败后
+# 后续几十条断言连锁报错，把真正的原因埋在一片 FAIL 里。
+FAIL_FAST = False
+
+
+class AssertionFailed(Exception):
+    """--fail-fast 下首个失败的断言。"""
+
 
 def check(no, name, expect, actual, body=None, note=""):
     expects = expect if isinstance(expect, (tuple, list, set)) else (expect,)
@@ -180,18 +188,23 @@ def check(no, name, expect, actual, body=None, note=""):
     print(f"[{flag}] {no} {name}  期望 {shown} / 实际 {actual}" + (f"  {note}" if note else ""))
     if not ok:
         print(f"       响应: {json.dumps(body, ensure_ascii=False) if isinstance(body, (dict, list)) else body}")
+        if FAIL_FAST:
+            raise AssertionFailed(f"{no} {name}：期望 {shown}，实际 {actual}")
     return ok
 
 
 def expect(no, name, cond, detail=""):
     RESULTS.append((no, name, "断言", "成立" if cond else "不成立", cond, None, detail))
     print(f"[{'OK  ' if cond else 'FAIL'}] {no} {name}  {detail}" + ("" if cond else "  ← 断言不成立"))
+    if not cond and FAIL_FAST:
+        raise AssertionFailed(f"{no} {name}：{detail}")
     return cond
 
 
 # ---------------------------------------------------------------- 用例主体
 
 def main():
+    global FAIL_FAST
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
@@ -199,7 +212,10 @@ def main():
     parser.add_argument("--base", default="http://localhost:8080", help="服务基址")
     parser.add_argument("--keep", action="store_true", help="跑完不删除行程")
     parser.add_argument("--quiet-json", action="store_true", help="不打印最终行程 JSON")
+    parser.add_argument("--fail-fast", action="store_true",
+                        help="首个断言失败即中止（门禁用；默认跑完全部断言）")
     args = parser.parse_args()
+    FAIL_FAST = args.fail_fast
 
     base = args.base.rstrip("/")
     print(f"=== UC-ITIN-001 杭州西湖三日游 @ {base} ===\n")
@@ -380,4 +396,11 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except AssertionFailed as failure:
+        print(f"\n=== --fail-fast：首个失败断言即中止 → {failure} ===")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\n已中断")
+        sys.exit(130)

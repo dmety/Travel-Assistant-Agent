@@ -37,7 +37,11 @@ public class SecurityConfiguration {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/health", "/api/login", "/api/account/register",
                 "/api/attractions", "/api/attractions/**", "/api/tickets", "/api/tickets/**",
-                "/", "/login", "/login.html", "/register.html", "/app", "/app.html").permitAll()
+                // 测试前端单页：/、/login、/app 都由 PageController 转发到 index.html，
+                // /login.html、/app.html 是旧链接，302 到 /。页面本身必须在未登录时可达
+                // （登录卡就在这一页里），数据仍由 /api/** 拦截。
+                "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico")
+            .permitAll()
             .anyRequest().authenticated())
 
         // 服务端会话：认证成功后创建 HttpSession，并通过 JSESSIONID Cookie 维持。

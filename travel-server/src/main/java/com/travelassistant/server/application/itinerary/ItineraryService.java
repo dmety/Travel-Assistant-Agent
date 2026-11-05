@@ -166,8 +166,8 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireEdit(it, user, Section.DAILY);
       checkVersion(it, version);
-      List<DailySchedule> filled = fillIds(daily, DailySchedule::id, (d, nid) -> {
-        List<DailyActivity> acts = fillIds(d.activities(), DailyActivity::id,
+      List<DailySchedule> filled = fillIds(daily, "每日安排", DailySchedule::id, (d, nid) -> {
+        List<DailyActivity> acts = fillIds(d.activities(), "每日安排中的安排项", DailyActivity::id,
             (a, aid) -> new DailyActivity(aid, a.time(), a.title(), a.location(), a.note(),
                 a.startTime(), a.endTime()));
         return new DailySchedule(nid, d.date(), d.note(), acts);
@@ -191,7 +191,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireEdit(it, user, Section.TRANSPORT);
       checkVersion(it, version);
-      List<Transport> filled = fillIds(transports, Transport::id, (t, nid) -> new Transport(
+      List<Transport> filled = fillIds(transports, "交通", Transport::id, (t, nid) -> new Transport(
           nid, t.mode(), t.from(), t.to(), t.date(), t.departTime(), t.arriveTime(),
           t.flightNo(), t.seat(), t.note()));
       Itinerary updated = it.withTransports(filled);
@@ -211,7 +211,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireEdit(it, user, Section.LODGING);
       checkVersion(it, version);
-      List<Lodging> filled = fillIds(lodgings, Lodging::id, (l, nid) -> new Lodging(
+      List<Lodging> filled = fillIds(lodgings, "住宿", Lodging::id, (l, nid) -> new Lodging(
           nid, l.name(), l.address(), l.checkIn(), l.checkOut(), l.roomType(), l.note()));
       validateLodgingPeriods(filled);
       Itinerary updated = it.withLodgings(filled);
@@ -231,7 +231,7 @@ public class ItineraryService {
       Itinerary it = requireExists(id);
       requireEdit(it, user, Section.EXPENSE);
       checkVersion(it, version);
-      List<Expense> filled = fillIds(expenses, Expense::id, (e, nid) -> new Expense(
+      List<Expense> filled = fillIds(expenses, "费用", Expense::id, (e, nid) -> new Expense(
           nid, e.category(), e.amount(), e.currency(), e.date(), e.note(), e.actual()));
       validateNonNegativeAmounts(filled);
       Itinerary updated = it.withExpenses(filled);
@@ -360,15 +360,18 @@ public class ItineraryService {
   public void leave(String id, String user) {
     inWriteLock(id, () -> {
       Itinerary it = requireExists(id);
+      // 非成员先按「成员不存在」拒绝，再谈归档：否则非成员退出一个已归档行程会拿到
+      // 409 + archived，等于替对方确认了「这份行程存在且已定稿」
+      boolean ownerLeaving = it.owner().equals(user);
+      if (!ownerLeaving && indexOfMember(it.members(), user) < 0) {
+        throw new MemberNotFoundException(id, user);
+      }
       requireNotArchived(it);
-      if (it.owner().equals(user)) {
+      if (ownerLeaving) {
         throw new InvalidItineraryException("行程创建者不能退出，如需终止请删除行程");
       }
       List<Member> members = new ArrayList<>(it.members());
       int index = indexOfMember(members, user);
-      if (index < 0) {
-        throw new MemberNotFoundException(id, user);
-      }
       members.remove(index);
       Itinerary updated = it.withMembers(members);
       store.save(updated);
@@ -449,7 +452,8 @@ public class ItineraryService {
   }
 
   /** 住宿离店日期不能早于入住日期（缺陷 D-5：此前会落出负时长）。 */
-  private void validateLodgingPeriods(List<Lodging> lodgings) {    for (Lodging l : lodgings) {
+  private void validateLodgingPeriods(List<Lodging> lodgings) {
+    for (Lodging l : lodgings) {
       if (l.checkIn() != null && l.checkOut() != null && l.checkOut().isBefore(l.checkIn())) {
         throw new InvalidItineraryException("离店日期不能早于入住日期：" + l.checkIn() + " → "
             + l.checkOut() + "（" + describe(l.name()) + "）");
@@ -565,18 +569,28 @@ public class ItineraryService {
     }
   }
 
+  /**
+   * 板块编辑权限校验。
+   *
+   * <p>**先判权限，再判归档**。反过来的话，一个与这份行程毫无关系的人提交修改，
+   * 会先撞上「已归档」拿到 409 + {@code archived=true}，等于告诉对方「这个 id 存在、
+   * 而且已经定稿了」——即使只有 403 之外的这一点点差别，也足够用来探测别人的行程状态。
+   * 权限先命中时，非成员无论行程处于什么状态都只看到同一个 403，没有可对比的信息。
+   *
+   * <p>代价是「有权限但没给这个板块」的人拿到 403 而不是 409：他有查看权，
+   * 本来就知道这份行程的状态，不构成额外泄露。
+   */
   private void requireEdit(Itinerary it, String user, Section section) {
+    if (!it.owner().equals(user)) {
+      Member m = it.members().stream()
+          .filter(x -> x.username().equals(user))
+          .findFirst()
+          .orElse(null);
+      if (m == null || !m.editSections().contains(section)) {
+        throw new ItineraryForbiddenException();
+      }
+    }
     requireNotArchived(it);
-    if (it.owner().equals(user)) {
-      return;
-    }
-    Member m = it.members().stream()
-        .filter(x -> x.username().equals(user))
-        .findFirst()
-        .orElse(null);
-    if (m == null || !m.editSections().contains(section)) {
-      throw new ItineraryForbiddenException();
-    }
   }
 
   private void requireOwner(Itinerary it, String user) {
@@ -619,14 +633,27 @@ public class ItineraryService {
     }
   }
 
-  /** 为列表中缺失 id 的元素补一个服务端生成的 id（保证稳定引用）。 */
-  private <T> List<T> fillIds(List<T> list, Function<T, String> idGetter,
+  /**
+   * 为列表中缺失 id 的元素补一个服务端生成的 id（保证稳定引用）。
+   *
+   * <p>数组里出现 {@code null} 元素时按请求体不合法拒绝。客户端表格里留一个空行、
+   * 或者前端把 {@code [undefined]} 直接序列化，都会发出 {@code [null]}；这类请求在
+   * 补 id 时会被解引用成空指针，最终以 500 返回，而它本质是 400 —— 用户看到的是
+   * 「服务器内部错误」，日志里也只剩一条无上下文的 NPE。{@code label} 用来把出错位置
+   * 说清楚，前端可以直接定位到第几项。
+   */
+  private <T> List<T> fillIds(List<T> list, String label, Function<T, String> idGetter,
       BiFunction<T, String, T> replacer) {
     if (list == null) {
       return List.of();
     }
     List<T> result = new ArrayList<>(list.size());
-    for (T item : list) {
+    for (int i = 0; i < list.size(); i++) {
+      T item = list.get(i);
+      if (item == null) {
+        throw new InvalidItineraryException(
+            label + "第 " + (i + 1) + " 项为空，请删除该空行后重试");
+      }
       String id = idGetter.apply(item);
       result.add(id == null ? replacer.apply(item, UUID.randomUUID().toString()) : item);
     }

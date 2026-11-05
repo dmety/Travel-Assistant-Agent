@@ -17,10 +17,13 @@ import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.ticket.InvalidTicketQueryException;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** 统一异常映射：行程领域异常 → 对应 HTTP 状态码。 */
 @RestControllerAdvice
@@ -141,5 +144,46 @@ public class ApiExceptionHandler {
         .map(FieldError::getDefaultMessage)
         .orElse("请求参数无效");
     return ResponseEntity.badRequest().body(Map.of("error", message));
+  }
+
+  /**
+   * 请求体无法解析（JSON 语法错误、把数组写成对象、字段类型不匹配等）。
+   *
+   * <p>不接管时由 Spring 的默认错误页返回，结构是 {@code timestamp/status/error/path}，
+   * 与其它接口的 {@code {"error": "..."}} 不一致 —— 前端得写两套解析。这里统一成同一种形状，
+   * 状态码仍是 400。
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Map<String, Object>> unreadableBody(HttpMessageNotReadableException e) {
+    return ResponseEntity.badRequest().body(Map.of(
+        "error", "请求体格式不正确，请检查 JSON 是否合法、字段类型是否匹配"));
+  }
+
+  /**
+   * 缺少必填的查询参数（如写操作漏了 {@code version}）。
+   *
+   * <p>不接管时 Spring 会返回默认错误页（{@code timestamp/status/error/path}），
+   * 与其它接口的 {@code {"error": "..."}} 不是同一种形状。状态码本来就该是 400，
+   * 这里只是把文案统一成能直接展示给用户的一句话。
+   */
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<Map<String, Object>> missingParameter(
+      MissingServletRequestParameterException e) {
+    return ResponseEntity.badRequest().body(Map.of(
+        "error", "缺少必需参数：" + e.getParameterName(),
+        "parameter", e.getParameterName()));
+  }
+
+  /**
+   * 参数类型不符（如 {@code version=abc}）。
+   *
+   * <p>与缺参分开处理：一个是「没给」，一个是「给错了」，前端提示的补救动作不一样。
+   */
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<Map<String, Object>> parameterTypeMismatch(
+      MethodArgumentTypeMismatchException e) {
+    return ResponseEntity.badRequest().body(Map.of(
+        "error", "参数「" + e.getName() + "」的值 " + e.getValue() + " 格式不正确，请检查后重试",
+        "parameter", e.getName()));
   }
 }

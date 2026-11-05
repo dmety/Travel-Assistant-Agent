@@ -3,9 +3,6 @@ package com.travelassistant.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -23,15 +20,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 接口测试基类：拉起一次 Spring 上下文供所有子类共用，数据目录指向独立临时目录，
+ * 接口测试基类：拉起一次 Spring 上下文供所有子类共用，数据目录指向本次运行专属目录，
  * 避免污染仓库里的 {@code data/} 或因上一轮残留数据导致断言飘忽。
+ *
+ * <p>目录落在 {@code target/test-data} 下并在 JVM 退出时回收，见 {@link TestDataDirs}。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 public abstract class ApiTestBase {
 
-  /** 本测试运行专属的数据目录，{@code accounts.json} 与 {@code itineraries.json} 都写在这里。 */
-  protected static final Path DATA_DIR = createTempDir();
+  /**
+   * 本测试运行专属的数据目录，{@code accounts.json} 与 {@code itineraries.json} 都写在这里。
+   *
+   * <p>落在模块的 {@code target/test-data} 下并由 {@link TestDataDirs} 统一回收，
+   * 不再写系统临时目录（Windows 上即 C 盘 {@code %TEMP%}）。
+   */
+  protected static final Path DATA_DIR = TestDataDirs.sub("api");
 
   protected static final String DEFAULT_PASSWORD = "Passw0rd!2026";
 
@@ -46,14 +50,6 @@ public abstract class ApiTestBase {
   @DynamicPropertySource
   static void dataDirectory(DynamicPropertyRegistry registry) {
     registry.add("travel.data-directory", () -> DATA_DIR.toString());
-  }
-
-  private static Path createTempDir() {
-    try {
-      return Files.createTempDirectory("travel-api-test-");
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 
   // ---- 账号 ----

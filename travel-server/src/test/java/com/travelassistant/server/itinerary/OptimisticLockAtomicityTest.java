@@ -49,7 +49,7 @@ class OptimisticLockAtomicityTest {
   @Test
   @DisplayName("两个线程基于同一版本更新，必须恰好一个成功、另一个冲突")
   void exactlyOneOfTwoConcurrentUpdatesSucceeds() throws Exception {
-    Path dataDir = Files.createTempDirectory("travel-atomicity-");
+    Path dataDir = com.travelassistant.server.TestDataDirs.sub("atomicity");
     ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     ReadBarrierStore store = new ReadBarrierStore(mapper, dataDir.toString());
     store.init();

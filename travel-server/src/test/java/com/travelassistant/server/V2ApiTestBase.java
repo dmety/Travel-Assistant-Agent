@@ -34,7 +34,8 @@ public abstract class V2ApiTestBase {
 
   protected static final String DEFAULT_PASSWORD = "Passw0rd!2026";
 
-  protected static final Path DATA_DIR = tempDir();
+  /** 本次运行专属目录（{@code target/test-data} 下，退出时回收），见 {@link TestDataDirs}。 */
+  protected static final Path DATA_DIR = TestDataDirs.sub("v2");
   protected static final Path KB = DATA_DIR.resolve("attractions_index.json");
   protected static final Path TICKETS = DATA_DIR.resolve("ticket_channels.json");
 
@@ -51,14 +52,6 @@ public abstract class V2ApiTestBase {
         throw new IllegalStateException("测试资源未找到：" + resource);
       }
       Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
-  protected static Path tempDir() {
-    try {
-      return Files.createTempDirectory("travel-v2-test-");
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
