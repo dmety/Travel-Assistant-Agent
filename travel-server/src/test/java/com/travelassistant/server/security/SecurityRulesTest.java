@@ -5,11 +5,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -46,10 +50,28 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("静态页面无需登录：登录页与测试台")
+  @DisplayName("测试前端单页无需登录：/、/login、/app、/index.html 都指向同一页")
   void staticPagesArePublic() throws Exception {
-    mvc.perform(get("/login.html")).andExpect(status().isOk());
-    mvc.perform(get("/app.html")).andExpect(status().isOk());
+    // 页面本身的响应体用结构标记断言（不用中文文案：MockMvc 按 ISO-8859-1 解码静态资源，
+    // 中文断言会因解码方式误报，与页面是否正确无关）。
+    mvc.perform(get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"authView\"")))
+        .andExpect(content().string(containsString("id=\"secTabs\"")));
+
+    // 三个入口都转发到同一页：MockMvc 不执行第二次 dispatch，因此断言转发目标而非响应体。
+    for (String path : new String[] {"/", "/login", "/app"}) {
+      mvc.perform(get(path))
+          .andExpect(status().isOk())
+          .andExpect(forwardedUrl("/index.html"));
+    }
+
+    // 旧的两个独立页面地址：302 回首页，避免旧书签 404 或落到 401。
+    for (String path : new String[] {"/login.html", "/app.html"}) {
+      mvc.perform(get(path))
+          .andExpect(status().is3xxRedirection())
+          .andExpect(redirectedUrl("/"));
+    }
   }
 
   @Test
