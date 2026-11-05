@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 #
-# G2 门禁：单元/集成测试 + 端到端用例。
+# G2 门禁：单元/集成测试 + 覆盖率 + 端到端用例。
 #
 # 之所以要脚本而不是「先起服务再手动跑一遍」：端到端用例需要一个**干净的**数据目录
 # 和一个**空闲的**端口。手工做这两件事最容易出错——忘了换目录，上一轮的行程混进来，
 # 断言时有时无；忘了换端口，打到了 IDE 里正在跑的那个实例，把真实数据写脏。
 # 这里把三件事固定下来：随机空闲端口、target 下的临时数据目录、退出时清理。
 #
+# 覆盖率比对只读 G1 写出的 target/jacoco.exec，不重跑测试；阈值在 travel-server/pom.xml。
+#
 # 用法：
 #   tools/gate.sh                # G1 + G2
 #   tools/gate.sh --skip-tests   # 只跑端到端（改完前端想快速确认时用）
 #   MVN=/path/to/mvn tools/gate.sh
 #
-# 退出码：0 通过；1 测试或端到端失败；2 环境缺失。
+# 退出码：0 通过；1 测试/覆盖率/端到端任一项失败；2 环境缺失。
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -55,6 +57,14 @@ if [ "$SKIP_TESTS" -eq 0 ]; then
   step "G1 单元 + 集成测试"
   if ! "$MVN" -B -o -pl travel-server -am test; then
     echo "G1 未通过：单元/集成测试有失败，不用再跑端到端" >&2
+    exit 1
+  fi
+
+  # 覆盖率用的是 G1 刚写出的 target/jacoco.exec，不再重跑测试，只做比对
+  step "G1.5 覆盖率门禁"
+  if ! "$MVN" -B -o -pl travel-server jacoco:check; then
+    echo "覆盖率低于 pom 中的阈值。要么补测试，要么按「只升不降」的原则说明为什么该降——" >&2
+    echo "阈值口径见 travel-server/pom.xml 里 jacoco 插件的注释，明细在 travel-server/target/site/jacoco/index.html" >&2
     exit 1
   fi
 fi
