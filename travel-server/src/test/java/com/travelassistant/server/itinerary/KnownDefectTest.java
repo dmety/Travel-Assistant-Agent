@@ -13,11 +13,12 @@ import org.springframework.mock.web.MockHttpSession;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 已确认缺陷的回归测试集。
  *
- * <p>每条用例对应开发日志里的一条缺陷编号（D-x）。当前全部 {@code @Disabled}，
+ * <p>每条用例对应开发日志里的一条缺陷编号（D-x）。未修复缺陷的用例标记 {@code @Disabled}，
  * 因为缺陷尚未修复；修复后删掉对应 {@code @Disabled} 即可验证，
  * 断言写的是「需求要求的正确行为」，不是「当前实际行为」。
  *
@@ -81,6 +82,32 @@ class KnownDefectTest extends ApiTestBase {
             .contentType("application/json")
             .content(json.writeValueAsString(Map.of("editSections", List.of("PLAN")))))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("D-4 未填写费用金额应保留为待填写")
+  void missingExpenseAmountIsAccepted() throws Exception {
+    MockHttpSession owner = registerAndLogin();
+    String id = createItinerary(owner, "杭州三日游");
+    ObjectNode pending = json.createObjectNode();
+    pending.put("category", "交通");
+    pending.putNull("amount");
+    pending.put("currency", "CNY");
+
+    mvc.perform(put("/api/itineraries/" + id + "/expenses")
+            .session(owner).param("version", "1")
+            .contentType("application/json")
+            .content(json.writeValueAsString(arrayOf(pending))))
+        .andExpect(status().isOk());
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+            .get("/api/itineraries/" + id + "/expenses").session(owner))
+        .andExpect(status().isOk())
+        .andExpect(result -> {
+          var expenses = json.readTree(result.getResponse().getContentAsString());
+          assertThat(expenses.size()).isEqualTo(1);
+          assertThat(expenses.get(0).has("amount")).isTrue();
+          assertThat(expenses.get(0).get("amount").isNull()).isTrue();
+        });
   }
 
   @Test

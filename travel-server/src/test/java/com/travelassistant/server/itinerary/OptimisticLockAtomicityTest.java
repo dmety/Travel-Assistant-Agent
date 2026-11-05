@@ -10,10 +10,12 @@ import com.travelassistant.server.domain.itinerary.Plan;
 import com.travelassistant.server.infrastructure.persistence.ItineraryStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -27,9 +29,9 @@ import org.junit.jupiter.api.Test;
  * 用它判定修复，会出现「缺陷还在但测试偶然变绿」的假象。
  *
  * <p>这里的做法是<b>把竞态变成必然</b>：包一层 {@link ItineraryStore}，在
- * {@code findById} 返回前用 {@link CyclicBarrier} 卡住，强制两个线程都读到
- * 版本号 1 的快照之后才继续，再让它们各自执行
- * {@code checkVersion(1) → save}。
+ * {@code findById} 返回前等待两个写线程读完快照；如果另一个线程被当前线程
+ * 持有的 Service 锁挡住，则允许当前读取继续，兼容锁内读取的正确实现。
+ * 等待超时直接使测试失败，不会冒充线程中断，也不会继续使用失效的同步条件。
  *
  * <ul>
  *   <li>当前实现：版本校验在锁外，两个线程都能通过 → 两个都返回成功 → 用例失败。</li>
@@ -50,8 +52,7 @@ class OptimisticLockAtomicityTest {
   void exactlyOneOfTwoConcurrentUpdatesSucceeds() throws Exception {
     Path dataDir = Files.createTempDirectory("travel-atomicity-");
     ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
-    CyclicBarrier readBarrier = new CyclicBarrier(2);
-    ItineraryStore store = new ReadBarrierStore(mapper, dataDir.toString(), readBarrier);
+    ReadBarrierStore store = new ReadBarrierStore(mapper, dataDir.toString());
     store.init();
 
     ItineraryService service = new ItineraryService(store);
@@ -64,7 +65,9 @@ class OptimisticLockAtomicityTest {
 
     Runnable update = () -> {
       try {
-        startGate.await(5, TimeUnit.SECONDS);
+        if (!startGate.await(5, TimeUnit.SECONDS)) {
+          throw new IllegalStateException("写线程启动超时");
+        }
         service.updatePlan(id, OWNER, new Plan("杭州", "改了", ""), 1L);
         success.incrementAndGet();
       } catch (VersionConflictException e) {
@@ -76,12 +79,15 @@ class OptimisticLockAtomicityTest {
 
     Thread first = new Thread(update, "writer-1");
     Thread second = new Thread(update, "writer-2");
+    store.writers = new Thread[] {first, second};
     first.start();
     second.start();
     startGate.countDown();
     first.join(15_000);
     second.join(15_000);
 
+    assertThat(first.isAlive()).as("第一个写线程应已结束").isFalse();
+    assertThat(second.isAlive()).as("第二个写线程应已结束").isFalse();
     assertThat(unexpected.get()).as("不应出现版本冲突以外的异常").isZero();
     assertThat(success.get())
         .as("同一版本被并发更新时只能有一个成功，否则就是静默覆盖（丢失更新）")
@@ -95,27 +101,39 @@ class OptimisticLockAtomicityTest {
   }
 
   /**
-   * 在 {@code findById} 上加一道栅栏：两个线程都必须先读到旧快照，
-   * 才能继续走后面的版本校验。这样无论调度多快，两个线程都会拿着同一个版本号去写。
+   * 只协调两个指定写线程的首次读取；主线程最终校验不参与。
+   * 通过 JVM 报告的锁拥有者识别串行读取，而不是把等待超时当作修复证据。
    */
   private static final class ReadBarrierStore extends ItineraryStore {
 
-    private final CyclicBarrier barrier;
+    private final CountDownLatch reads = new CountDownLatch(2);
+    private final java.util.Set<Thread> seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private Thread[] writers = new Thread[0];
 
-    private ReadBarrierStore(ObjectMapper mapper, String dataDirectory, CyclicBarrier barrier) {
+    private ReadBarrierStore(ObjectMapper mapper, String dataDirectory) {
       super(mapper, dataDirectory);
-      this.barrier = barrier;
     }
 
     @Override
     public Optional<Itinerary> findById(String id) {
       Optional<Itinerary> snapshot = super.findById(id);
-      try {
-        barrier.await(5, TimeUnit.SECONDS);
-      } catch (Exception e) {
-        // 只有一个线程走到这里时（例如另一个先抛错），栅栏会超时；
-        // 不吞掉这个信息，但也无法再用它控制顺序，交给断言判定。
-        Thread.currentThread().interrupt();
+      Thread current = Thread.currentThread();
+      if (writers.length != 2 || (current != writers[0] && current != writers[1])
+          || !seen.add(current)) {
+        return snapshot;
+      }
+      reads.countDown();
+      Thread other = current == writers[0] ? writers[1] : writers[0];
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+      while (reads.getCount() != 0) {
+        ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(other.threadId());
+        if (info != null && info.getLockOwnerId() == current.threadId()) {
+          return snapshot;
+        }
+        if (current.isInterrupted() || System.nanoTime() >= deadline) {
+          throw new IllegalStateException("未观察到第二次读取或 Service 锁竞争");
+        }
+        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
       }
       return snapshot;
     }
