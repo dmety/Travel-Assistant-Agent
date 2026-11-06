@@ -64,13 +64,10 @@ class TicketAssistantTest {
     assertThat(advise(needs(site,date,product,age,170,citizen,student)).estimatedTotal()).isNull();
   }
   /**
-   * 缺陷 T-1：填了日期但游客列表为空时，{@code estimatedTotal} 返回 0，前端渲染「门票估算：0 元」，
-   * 同一响应里却又追问「请添加每位游客」。0 元会被读成免票，违反「未知不等于免费」。
-   *
-   * <p>修复后本用例应转绿：游客为空时不进入合计计算，{@code estimatedTotal} 保持 null。
+   * 回归用例（缺陷 T-1）：填了日期但游客列表为空时，不得把合计算成 0 元。
+   * 0 元会被读成免票，违反「未知不等于免费」；此时应保持 {@code null} 并由追问提示补齐游客。
    */
   @Test
-  @Disabled("缺陷 T-1：游客为空时合计返回 0，应为 null；修复后删除本注解")
   @DisplayName("有日期但未添加游客时，合计应为未知而不是 0 元")
   void emptyVisitorsMeansUnknownTotalNotZero() {
     Needs n = new Needs("八达岭长城", LocalDate.parse("2026-11-21"), "STANDARD", List.of(), null, null);

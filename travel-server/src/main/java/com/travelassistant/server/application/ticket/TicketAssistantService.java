@@ -136,7 +136,7 @@ public class TicketAssistantService {
       }
       LocalDate selectedDate = n.date();
       boolean inRange = site.fields().values().stream().allMatch(f -> dateInRange(selectedDate,f));
-      if (inRange && visitors != null && date != null) {
+      if (inRange && visitors != null && !visitors.isEmpty() && date != null) {
         total = BigDecimal.ZERO;
         for (int i=0;i<visitors.size();i++) {
           Match match = price(site,n,visitors.get(i),i+1,questions,notices);
