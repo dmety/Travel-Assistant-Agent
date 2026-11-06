@@ -21,6 +21,7 @@ travel:
   attraction-kb-path: ${ATTRACTION_KB_PATH:${travel.data-directory}/attractions_index.json}
   # 官方购票入口白名单（人工维护，只读）. 文件不存在即视为「没有经核验的入口」，
   # 系统不会因此生成任何猜测链接。
+  ticket-rule-file: ${TICKET_RULE_FILE:${travel.data-directory}/ticket_rules.json}
   ticket-channel-file: ${TICKET_CHANNEL_FILE:${travel.data-directory}/ticket_channels.json}
   # 高德 Web 服务密钥。留空则地点/天气/路线查询整体停用，接口返回 503 并说明原因；
   # 行程、景点、预算、协作等本地能力不受影响。

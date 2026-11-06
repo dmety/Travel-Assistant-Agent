@@ -208,6 +208,13 @@ public class ItineraryController {
    * <p>与 {@code PUT /daily} 的区别：整份 PUT 适合表单编辑，这个方法只加一条，
    * 客户端不需要先把整份日程读出来再整体回写——那是最容易覆盖别人改动的方式。
    */
+  @PutMapping("/{id}/activities/{activityId}/ticket-record")
+  public Itinerary recordTicket(@AuthenticationPrincipal UserDetails user,
+      @PathVariable String id, @PathVariable String activityId, @RequestParam long version,
+      @RequestBody com.travelassistant.server.domain.itinerary.TicketRecord record) {
+    return service.recordTicket(id, me(user), activityId, record, version);
+  }
+
   @PostMapping("/{id}/activities")
   public ResponseEntity<Itinerary> appendActivity(@AuthenticationPrincipal UserDetails user,
       @PathVariable String id, @RequestParam long version, @RequestBody ActivityRequest req) {
