@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>景区购票助手 · 旅行助手</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18322e;
+        --green: #246d58;
+        --muted: #586c66;
+        --line: #d7e3dc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f3f6f0;
+        color: var(--ink);
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      header,
+      main {
+        max-width: 1120px;
+        margin: auto;
+        padding: 24px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+      }
+      a {
+        color: var(--green);
+      }
+      h1 {
+        font-size: 30px;
+        margin: 8px 0;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 0 0 14px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .muted,
+      small {
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .card {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      .wide {
+        grid-column: 1/-1;
+      }
+      label {
+        display: block;
+        margin: 12px 0 5px;
+      }
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+        border: 1px solid #b6c8be;
+        border-radius: 7px;
+        padding: 9px;
+        max-width: 100%;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        background: white;
+      }
+      textarea {
+        min-height: 84px;
+      }
+      button {
+        cursor: pointer;
+        background: var(--green);
+        color: white;
+        margin: 12px 6px 0 0;
+      }
+      button.secondary {
+        background: white;
+        color: var(--green);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+      .row > * {
+        flex: 1;
+        min-width: 0;
+      }
+      .visitor {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 12px;
+      }
+      .badge {
+        background: #e4f0e8;
+        padding: 5px 10px;
+        border-radius: 6px;
+        display: inline-block;
+        font-size: 14px;
+      }
+      .warning {
+        color: #854417;
+        background: #fff4e6;
+        padding: 12px;
+        border-radius: 8px;
+      }
+      #status {
+        white-space: pre-wrap;
+      }
+      #conversation {
+        max-height: 230px;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+      .bubble {
+        border-left: 3px solid var(--line);
+        padding: 8px 12px;
+        margin: 8px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      td,
+      th {
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        padding: 10px;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      details {
+        margin: 15px 0;
+      }
+      dialog {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        max-width: 560px;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #e3b65d;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          display: block;
+        }
+        header,
+        main {
+          padding: 16px;
+        }
+        .card {
+          padding: 18px;
+        }
+        .row {
+          flex-wrap: wrap;
+        }
+        .row > * {
+          flex-basis: 40%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="muted">旅行助手 / 北京试点</span>
+        <h1>景区购票助手</h1>
+      </div>
+      <a href="/">返回行程与登录</a>
+    </header>
+    <main>
+      <p class="muted">
+        八达岭长城 · 首都博物馆 · 中山公园。规则为人工核验快照，来源日期可查。
+      </p>
+      <p class="badge">余票未核验 · 在官方渠道完成购买</p>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="grid">
+        <section class="card">
+          <h2>告诉我你的计划</h2>
+          <div id="conversation" aria-live="polite"></div>
+          <form id="adviceForm">
+            <label for="message">购票问题</label
+            ><textarea
+              id="message"
+              maxlength="1500"
+              placeholder="例如：2026-11-21 去八达岭，带一位12岁的孩子，怎么买票？请勿输入姓名或证件号。"
+            ></textarea>
+            <label for="attraction">景点</label
+            ><select id="attraction">
+              <option value="">请选择，或在消息中说明</option>
+            </select>
+            <div class="row">
+              <div>
+                <label for="date">游览日期</label
+                ><input id="date" type="date" />
+              </div>
+              <div>
+                <label for="product">参观产品</label
+                ><select id="product">
+                  <option value="STANDARD">普通入园／北京通史基本陈列</option>
+                  <option value="COMBINED">联票</option>
+                  <option value="SPECIAL">特展／活动</option>
+                  <option value="TRANSPORT">索道／交通附加项目</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="startTime">计划到达时间（可选）</label
+                ><input id="startTime" type="time" />
+              </div>
+              <div>
+                <label for="endTime">计划结束时间（可选）</label
+                ><input id="endTime" type="time" />
+              </div>
+            </div>
+            <label
+              >游客条件
+              <small>仅收集优惠判断所需信息，年龄按游览日周岁填写</small></label
+            >
+            <div id="visitors"></div>
+            <button type="button" class="secondary" id="addVisitor">
+              添加游客</button
+            ><button id="ask" type="submit">查看购票建议</button>
+          </form>
+        </section>
+        <section class="card">
+          <h2>购票建议</h2>
+          <div id="result">
+            <p class="muted">
+              填写需求后，查看匹配票种、费用与行程提醒。未核实的项目不会按免费处理。
+            </p>
+          </div>
+        </section>
+        <section class="card wide">
+          <h2>关联行程与手动登记</h2>
+          <p class="muted">
+            选择已有活动可带入日期与时间。没有活动，请先返回行程创建。登记金额不会自动加入费用。
+          </p>
+          <button id="loadTrips" class="secondary">加载我的行程</button>
+          <div class="row">
+            <div>
+              <label for="trip">行程</label
+              ><select id="trip">
+                <option value="">不关联行程</option>
+              </select>
+            </div>
+            <div>
+              <label for="activity">目标活动</label
+              ><select id="activity">
+                <option value="">请选择已有活动</option>
+              </select>
+            </div>
+          </div>
+          <div id="savedRecord" class="muted"></div>
+          <div id="registration">
+            <div class="row">
+              <div>
+                <label for="recordProduct">实际购买产品</label
+                ><input
+                  id="recordProduct"
+                  maxlength="100"
+                  placeholder="按购票结果填写"
+                />
+              </div>
+              <div>
+                <label for="session">场次（可选）</label
+                ><input
+                  id="session"
+                  maxlength="100"
+                  placeholder="如上午场；不填写订单号"
+                />
+              </div>
+              <div>
+                <label for="paid">实付总额（元，可留空）</label
+                ><input id="paid" type="number" min="0" step="0.01" />
+              </div>
+            </div>
+            <button id="preview">预览自报登记</button>
+          </div>
+          <p class="warning">
+            用户自报已购票／已预约，未经平台核验。这里只记录结果，不下单、不支付、不验证出票。
+          </p>
+        </section>
+      </div>
+      <dialog id="confirm">
+        <h2>确认写入目标活动</h2>
+        <pre id="previewText"></pre>
+        <p>用户自报，未经平台核验。</p>
+        <button id="save">确认登记</button
+        ><button class="secondary" id="cancel">返回修改</button>
+      </dialog>
+    </main>
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      let currentTrip = null,
+        lastResult = null,
+        pending = null,
+        catalog = [];
+      const params = new URLSearchParams(location.search);
+      let initialTrip = params.get("itineraryId"),
+        initialActivity = params.get("activityId");
+      function status(text) {
+        $("status").textContent = text;
+      }
+      async function api(path, body, method) {
+        const r = await fetch(path, {
+          credentials: "same-origin",
+          method: method || (body ? "POST" : "GET"),
+          headers: body ? { "Content-Type": "application/json" } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (!r.ok) {
+          let msg = "";
+          try {
+            msg = (await r.json()).error || "";
+          } catch {}
+          throw Error(
+            r.status === 401
+              ? "请先返回主页登录，再加载行程。"
+              : r.status === 409
+                ? "行程已变化或归档，请重新加载并核对，未保存登记。"
+                : msg || "请求失败（" + r.status + "）",
+          );
+        }
+        return r.json();
+      }
+      function el(tag, text, parent) {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = text;
+        if (parent) parent.append(n);
+        return n;
+      }
+      function option(select, value, text) {
+        const n = el("option", text, select);
+        n.value = value;
+      }
+      function addVisitor(v = {}) {
+        if ($("visitors").children.length >= 30) return;
+        const box = el("div", undefined, $("visitors"));
+        box.className = "visitor";
+        const row = el("div", undefined, box);
+        row.className = "row";
+        for (const [key, title, type] of [
+          ["age", "年龄", "number"],
+          ["heightCm", "身高厘米（中山公园）", "number"],
+          ["student", "符合全日制本科及以下学生条件", "select"],
+          ["chineseEligible", "符合八达岭年龄免票身份条件", "select"],
+        ]) {
+          const label = el("label", title, row);
+          const n = el(
+            type === "select" ? "select" : "input",
+            undefined,
+            label,
+          );
+          n.dataset.key = key;
+          if (type === "select") {
+            option(n, "", "待确认");
+            option(n, "true", "是");
+            option(n, "false", "否");
+            n.value = v[key] == null ? "" : String(v[key]);
+          } else {
+            n.type = "number";
+            n.min = key === "age" ? "0" : "30";
+            n.max = key === "age" ? "120" : "250";
+            n.value = v[key] ?? "";
+          }
+        }
+        const remove = el("button", "移除此游客", box);
+        remove.type = "button";
+        remove.className = "secondary";
+        remove.onclick = () => box.remove();
+      }
+      function needs() {
+        return {
+          attraction: $("attraction").value || null,
+          date: $("date").value || null,
+          product: $("product").value,
+          startTime: $("startTime").value || null,
+          endTime: $("endTime").value || null,
+          visitors: [...$("visitors").children].map((box) =>
+            Object.fromEntries(
+              [...box.querySelectorAll("[data-key]")].map((n) => [
+                n.dataset.key,
+                n.value === ""
+                  ? null
+                  : n.tagName === "SELECT"
+                    ? n.value === "true"
+                    : Number(n.value),
+              ]),
+            ),
+          ),
+        };
+      }
+      function signature(n) {
+        return JSON.stringify([
+          n.attraction,
+          n.date,
+          n.product,
+          (n.visitors || []).map((v) => [
+            v.age,
+            v.heightCm,
+            v.student,
+            v.chineseEligible,
+          ]),
+          n.startTime,
+          n.endTime,
+        ]);
+      }
+      function applyNeeds(n) {
+        const site = catalog.find(
+          (s) => s.name === n.attraction || s.id === n.attraction,
+        );
+        if (site) $("attraction").value = site.name;
+        $("date").value = n.date || "";
+        $("product").value = n.product;
+        $("startTime").value = n.startTime || "";
+        $("endTime").value = n.endTime || "";
+        if (n.visitors) {
+          $("visitors").replaceChildren();
+          n.visitors.forEach(addVisitor);
+        }
+      }
+      function render(r) {
+        const out = $("result");
+        out.replaceChildren();
+        if (r.questions.length) {
+          el("h3", "还需要确认", out);
+          const ul = el("ul", undefined, out);
+          r.questions.forEach((q) => el("li", q, ul));
+        }
+        el(
+          "h3",
+          "门票估算：" +
+            (r.estimatedTotal == null
+              ? "未知／资料不全"
+              : r.estimatedTotal + " 元"),
+          out,
+        );
+        r.matches.forEach((m) =>
+          el(
+            "p",
+            "游客 " +
+              m.visitor +
+              " · " +
+              m.ticket +
+              " · " +
+              (m.price == null ? "未知" : m.price + " 元"),
+            out,
+          ),
+        );
+        if (r.channels) {
+          for (const c of r.channels.channels) {
+            if (/^https?:\/\//.test(c.officialUrl)) {
+              const a = el("a", c.channelName, out);
+              a.href = c.officialUrl;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              el("br", "", out);
+            }
+          }
+          if (!r.channels.channels.length) el("p", r.channels.notice, out);
+        }
+        const ul = el("ul", undefined, out);
+        r.notices.forEach((n) => el("li", n, ul));
+        const details = el("details", undefined, out);
+        el("summary", "字段来源与核验日期", details);
+        for (const [key, f] of Object.entries(r.evidence)) {
+          const p = el(
+            "p",
+            ({
+              price: "票价",
+              eligibility: "优惠资格",
+              hours: "开放与入园时间",
+              reservation: "预约要求",
+              extras: "附加项目",
+              refund: "退改规则",
+              notice: "规则说明",
+            }[key] || key) +
+              "：" +
+              (f.value == null ? "未知" : JSON.stringify(f.value)) +
+              "；核验 " +
+              (f.verifiedAt || "未核验") +
+              "；适用 " +
+              (f.validFrom || "起始未知") +
+              " 至 " +
+              (f.validTo || "未注明结束") +
+              (f.note ? "；" + f.note : ""),
+            details,
+          );
+          if (f.sourceUrl && /^https:\/\//.test(f.sourceUrl)) {
+            const a = el("a", " 查看来源", p);
+            a.href = f.sourceUrl;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+          }
+        }
+        $("registration").hidden = !r.registrationSuggested;
+      }
+      $("addVisitor").onclick = () => addVisitor();
+      $("adviceForm").onsubmit = async (e) => {
+        e.preventDefault();
+        $("ask").disabled = true;
+        try {
+          const message = $("message").value;
+          const r = await api("/api/agent/tickets/advice", {
+            message,
+            needs: needs(),
+            itineraryId: currentTrip?.id || null,
+            activityId: $("activity").value || null,
+          });
+          lastResult = r;
+          applyNeeds(r.needs);
+          render(r);
+          if (message)
+            el("div", "你：" + message, $("conversation")).className = "bubble";
+          el(
+            "div",
+            "助手：" +
+              (r.questions.join("；") ||
+                "已按核验规则整理建议，请查看右侧依据。"),
+            $("conversation"),
+          ).className = "bubble";
+          $("message").value = "";
+          status("建议已更新，请核对模型提取及表单内容。");
+        } catch (e) {
+          status(e.message);
+        } finally {
+          $("ask").disabled = false;
+        }
+      };
+      async function loadTrip(id, activityId) {
+        $("savedRecord").textContent = "";
+        currentTrip = null;
+        lastResult = null;
+        $("activity").replaceChildren();
+        option($("activity"), "", "请选择已有活动");
+        if (!id) return;
+        const t = await api("/api/itineraries/" + encodeURIComponent(id));
+        currentTrip = t;
+        for (const d of t.dailySchedules)
+          for (const a of d.activities)
+            option($("activity"), a.id, d.date + " · " + a.title);
+        if (activityId) $("activity").value = activityId;
+        if ($("activity").value) selectActivity();
+      }
+      function selectActivity() {
+        lastResult = null;
+        $("registration").hidden = false;
+        $("savedRecord").textContent = "";
+        const id = $("activity").value;
+        for (const d of currentTrip?.dailySchedules || [])
+          for (const a of d.activities)
+            if (a.id === id) {
+              $("date").value = d.date || "";
+              $("startTime").value = a.startTime || "";
+              $("endTime").value = a.endTime || "";
+              const site = catalog.find(
+                (s) =>
+                  s.name === a.title || s.id === a.ticketRecord?.attractionId,
+              );
+              $("attraction").value = site?.name || "";
+              if (a.ticketRecord) {
+                const r = a.ticketRecord;
+                $("savedRecord").textContent =
+                  "已有登记：用户自报已购票／已预约，未经平台核验 · " +
+                  r.product +
+                  " · " +
+                  r.travelers +
+                  "人";
+                $("recordProduct").value = r.product;
+                $("session").value = r.session || "";
+                $("paid").value = r.paidTotal ?? "";
+              }
+            }
+      }
+      async function loadTrips() {
+        const selectedTrip = initialTrip || currentTrip?.id;
+        const selectedActivity = initialActivity || $("activity").value;
+        const trips = await api("/api/itineraries");
+        $("trip").replaceChildren();
+        option($("trip"), "", "不关联行程");
+        trips
+          .filter((t) => !t.archived)
+          .forEach((t) => option($("trip"), t.id, t.title));
+        if (selectedTrip) {
+          $("trip").value = selectedTrip;
+          await loadTrip(selectedTrip, selectedActivity);
+          initialTrip = null;
+          initialActivity = null;
+        }
+      }
+      $("loadTrips").onclick = () =>
+        loadTrips().catch((e) => status(e.message));
+      $("trip").onchange = () =>
+        loadTrip($("trip").value).catch((e) => status(e.message));
+      $("activity").onchange = selectActivity;
+      $("preview").onclick = () => {
+        try {
+          if (!currentTrip || !$("activity").value)
+            throw Error("请先选择行程与已有活动");
+          if (!lastResult) throw Error("请先获取建议，并核对需求表单");
+          const n = needs();
+          if (signature(n) !== signature(lastResult.needs))
+            throw Error("表单已修改，请重新获取建议");
+          if (
+            !n.date ||
+            !n.visitors?.length ||
+            !$("recordProduct").value.trim()
+          )
+            throw Error("请补齐日期、人数和实际产品");
+          if (!$("paid").checkValidity())
+            throw Error("实付金额须为非负数，最多两位小数");
+          const site = catalog.find((s) => s.name === n.attraction);
+          if (!site) throw Error("请选择支持登记的景点");
+          pending = {
+            attractionId: site.id,
+            product: $("recordProduct").value.trim(),
+            visitDate: n.date,
+            session: $("session").value || null,
+            travelers: n.visitors.length,
+            paidTotal: $("paid").value === "" ? null : Number($("paid").value),
+          };
+          $("previewText").textContent =
+            currentTrip.title +
+            " / " +
+            $("activity").selectedOptions[0].textContent +
+            "\n" +
+            pending.product +
+            " / " +
+            pending.visitDate +
+            " / " +
+            (pending.session || "场次未填") +
+            " / " +
+            pending.travelers +
+            "人 / 实付 " +
+            (pending.paidTotal ?? "未知");
+          $("confirm").showModal();
+        } catch (e) {
+          status(e.message);
+        }
+      };
+      $("cancel").onclick = () => $("confirm").close();
+      $("save").onclick = async () => {
+        $("save").disabled = true;
+        try {
+          currentTrip = await api(
+            "/api/itineraries/" +
+              encodeURIComponent(currentTrip.id) +
+              "/activities/" +
+              encodeURIComponent($("activity").value) +
+              "/ticket-record?version=" +
+              currentTrip.version,
+            pending,
+            "PUT",
+          );
+          $("confirm").close();
+          selectActivity();
+          status("已记录用户自报结果，未经平台核验；费用板块未自动变更。");
+        } catch (e) {
+          $("confirm").close();
+          status(e.message);
+        } finally {
+          $("save").disabled = false;
+        }
+      };
+      (async () => {
+        try {
+          catalog = await api("/api/tickets/catalog");
+          catalog.forEach((s) => option($("attraction"), s.name, s.name));
+          if (initialTrip) await loadTrips();
+        } catch (e) {
+          status(e.message);
+        }
+      })();
+    </script>
+  </body>
+</html>

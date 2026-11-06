@@ -108,6 +108,17 @@ def main():
                 check(code == 201, 'create restart fixture')
                 path = '/api/itineraries/' + trip['id']
                 check(request(stranger, base, path)[0] == 401, 'anonymous cannot read itinerary')
+                code, trip = request(owner, base, path + '/activities?version=1',
+                    {'date': '2026-11-21', 'title': '八达岭长城'})
+                check(code == 200, 'create activity for ticket registration')
+                activity_id = trip['dailySchedules'][0]['activities'][0]['id']
+                ticket_path = path + '/activities/' + activity_id + '/ticket-record'
+                code, trip = request(owner, base, ticket_path + '?version=2',
+                    {'attractionId': 'amap-B000A45467', 'product': '成人门票',
+                     'visitDate': '2026-11-21', 'travelers': 2, 'paidTotal': 70}, method='PUT')
+                check(code == 200 and trip['dailySchedules'][0]['activities'][0]['ticketRecord']['source']
+                    == 'USER_REPORTED', 'ticket registration is explicitly user reported')
+
                 source = json.loads((ROOT / 'data/attractions_index.json').read_text(encoding='utf-8'))
                 code, result = request(stranger, base, '/api/attractions?city=' + urllib.parse.quote('杭州'))
                 check(code == 200 and result['items'], 'real Hangzhou query')
@@ -123,6 +134,12 @@ def main():
                 owner = client()
                 check(request(owner, base, '/api/login', credentials, form=True)[0] == 200, 'account survives actual process restart')
                 check(request(owner, base, path)[1]['title'] == 'restart-check', 'itinerary survives actual process restart')
+                restored = request(owner, base, path)[1]
+                record = restored['dailySchedules'][0]['activities'][0]['ticketRecord']
+                check(record['source'] == 'USER_REPORTED' and record['paidTotal'] == 70,
+                    'ticket registration survives actual process restart without creating expenses')
+                check(not restored['expenses'], 'registration does not duplicate expenses')
+
                 check(request(owner, base, path, method='DELETE')[0] == 200, 'delete persisted itinerary')
                 stop()
                 base = start()

@@ -1208,3 +1208,54 @@ GET /api/attractions/status
 - 票价、开放时间、等级、评分均为**离线快照**，不保证实时性；票价覆盖极低（11,858 条中仅 752 条有值）。
 - 坐标存在 WGS-84（OSM）与 GCJ-02（高德）混用，偏差约 50–500 米，未做统一转换。
 - 只做 `limit` 截断，没有分页游标；超过 50 条需收窄查询条件。
+
+
+## 9. 北京景区购票助手（首版）
+
+页面 `/ticket-assistant.html` 无需登录即可查看规则；带行程查询和登记要求登录及相应权限。
+现有 `GET /api/tickets` 与 `/channels` 保留；新增 `GET /api/tickets/catalog` 返回人工维护的三景点规则及字段来源。
+`TICKET_RULE_FILE` 指定规则文件，默认 `data/ticket_rules.json`，文件缺失或损坏时停止深度建议，原入口查询不受影响。
+每个字段保存 value、sourceUrl、verifiedAt、validFrom、validTo、note；未知值不视为免费。启动时读取快照，修改后重启生效。
+
+### 9.1 单轮建议
+
+`POST /api/agent/tickets/advice`，请求示例：
+
+```json
+{
+  "message": "帮我检查购票安排",
+  "needs": {
+    "attraction": "八达岭长城", "date": "2026-11-21", "product": "STANDARD",
+    "visitors": [{"age": 30, "heightCm": 170, "student": false, "chineseEligible": true}],
+    "startTime": "09:00", "endTime": "12:00"
+  },
+  "itineraryId": null, "activityId": null
+}
+```
+
+`product` 为 STANDARD（普通入园／北京通史基本陈列）、COMBINED（联票）、SPECIAL（特展活动）、TRANSPORT（交通附加项目）。
+`student` 表示符合全日制本科及以下学生条件；`chineseEligible` 表示符合八达岭公布的年龄免票国籍／居留条件，不采集证件号码。
+游客最多30人；模型每轮最多一次调用，仅提取明确需求，结构化表单优先，服务端不采信模型价格或网址。
+未配置模型、调用失败或输出不合约时，使用表单与确定性规则。相对日期不自动推断，要求确认具体日期。
+
+响应：`needs` 为规范化需求，`questions` 为待补问项，`matches` 为逐人票种与价格，`estimatedTotal` 为估算总额（存在未知则 null），
+`stockVerified` 恒 false，`registrationSuggested` 表示是否建议登记，`channels` 为现有入口结果，`evidence` 为字段来源，`notices` 为限制和行程提醒。
+费用仅为快照估算，不是订单报价。花期准确起止、联票开售、特殊身份、特展及未核实退改规则保留未知。
+首都博物馆采用馆方免预约及周二闭馆新公告，不沿用旅游网旧快照；规则适用日期以字段记录为准。
+带 `itineraryId` 时校验查看权限；带 `activityId` 时带入对应活动日期、景点与起止时间，未找到活动返回400，越权403。
+消息超过1500字符或疑似长证件号码返回400；不得在消息中输入真实身份资料。
+
+### 9.2 用户自报登记
+
+`PUT /api/itineraries/{id}/activities/{activityId}/ticket-record?version={当前行程版本}`
+
+```json
+{"attractionId":"amap-B000A45467","product":"成人门票","visitDate":"2026-11-21",
+ "session":"上午","travelers":2,"paidTotal":70.00}
+```
+
+要求 DAILY 编辑权限；归档或版本冲突409，越权403，无活动、日期不一致、人数或金额非法400。
+`paidTotal` 可 null，非负且最多两位小数；`session` 可 null。服务端写入 recordedAt 和 source=USER_REPORTED，忽略客户端伪造来源与时间。
+覆盖指定活动的单条登记，不增加活动或费用；响应为更新后的完整行程与版本号。
+DailyActivity 新增可空 ticketRecord；旧 JSON 兼容。整表 daily 更新不能伪造登记，调整已登记活动日期前需清除或修改登记。
+页面和文本导出必须保留“用户自报已购票／已预约，未经平台核验”，不能改成已出票。

@@ -126,6 +126,15 @@ public class ExportService {
         for (DailyActivity a : day.activities()) {
           sb.append("  - ").append(timeRange(a)).append(text(a.title(), "未命名"))
               .append(place(a.location())).append(noteSuffix(a.note())).append('\n');
+          if (a.ticketRecord() != null) {
+            var r = a.ticketRecord();
+            sb.append("    用户自报已购票／已预约，未经平台核验：")
+                .append(r.product()).append(" / ").append(r.visitDate())
+                .append(" / ").append(r.session() == null ? "场次未填" : r.session())
+                .append(" / ").append(r.travelers()).append("人 / 实付：")
+                .append(r.paidTotal() == null ? "未知" : r.paidTotal().toPlainString() + "元")
+                .append('\n');
+          }
         }
       }
     }
