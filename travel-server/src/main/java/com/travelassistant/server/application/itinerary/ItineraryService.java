@@ -169,9 +169,21 @@ public class ItineraryService {
       List<DailySchedule> filled = fillIds(daily, "每日安排", DailySchedule::id, (d, nid) -> {
         List<DailyActivity> acts = fillIds(d.activities(), "每日安排中的安排项", DailyActivity::id,
             (a, aid) -> new DailyActivity(aid, a.time(), a.title(), a.location(), a.note(),
-                a.startTime(), a.endTime()));
+                a.startTime(), a.endTime(), a.ticketRecord()));
         return new DailySchedule(nid, d.date(), d.note(), acts);
       });
+      for (DailySchedule day : filled) {
+        for (DailyActivity a : day.activities()) {
+          if (a.ticketRecord() != null) {
+            var previous = it.dailySchedules().stream().flatMap(d -> d.activities().stream())
+                .filter(old -> Objects.equals(old.id(), a.id())).findFirst().orElse(null);
+            if (previous == null || !Objects.equals(previous.ticketRecord(), a.ticketRecord())
+                || !Objects.equals(day.date(), a.ticketRecord().visitDate())) {
+              throw new InvalidItineraryException("购票登记须通过专用接口更新，日期调整前请先处理登记");
+            }
+          }
+        }
+      }
       validateActivityTimes(filled);
       Itinerary updated = it.withDaily(filled);
       store.save(updated);
@@ -288,6 +300,49 @@ public class ItineraryService {
       store.save(updated);
       changeLog.record(id, user, "DAILY",
           "新增安排「" + title.strip() + "」（" + date + "）", updated.version());
+      return updated;
+    });
+  }
+
+  /** 更新同一活动的自报登记，始终由服务端写来源与时间。 */
+  public Itinerary recordTicket(String id, String user, String activityId,
+      com.travelassistant.server.domain.itinerary.TicketRecord input, long version) {
+    return inWriteLock(id, () -> {
+      Itinerary it = requireExists(id);
+      requireEdit(it, user, Section.DAILY);
+      checkVersion(it, version);
+      if (input == null || input.attractionId() == null || input.attractionId().isBlank() || input.attractionId().length() > 100
+          || input.product() == null || input.product().isBlank() || input.product().length() > 100
+          || input.visitDate() == null || input.travelers() == null || input.travelers() < 1
+          || input.travelers() > 100 || (input.paidTotal() != null
+          && (input.paidTotal().signum() < 0 || input.paidTotal().scale() > 2))
+          || (input.session() != null && input.session().length() > 100)) {
+        throw new InvalidItineraryException("请检查景点、产品、日期、人数及非负实付金额（最多两位小数）");
+      }
+      var record = new com.travelassistant.server.domain.itinerary.TicketRecord(
+          input.attractionId(), input.product().strip(), input.visitDate(), input.session(),
+          input.travelers(), input.paidTotal(), java.time.Instant.now(),
+          com.travelassistant.server.domain.itinerary.TicketRecord.SOURCE);
+      boolean found = false;
+      List<DailySchedule> days = new ArrayList<>();
+      for (DailySchedule day : it.dailySchedules()) {
+        List<DailyActivity> activities = new ArrayList<>();
+        for (DailyActivity a : day.activities()) {
+          if (Objects.equals(a.id(), activityId)) {
+            if (!Objects.equals(day.date(), input.visitDate())) {
+              throw new InvalidItineraryException("登记日期与活动日期不一致，请先调整");
+            }
+            found = true;
+            activities.add(new DailyActivity(a.id(), a.time(), a.title(), a.location(), a.note(),
+                a.startTime(), a.endTime(), record));
+          } else { activities.add(a); }
+        }
+        days.add(new DailySchedule(day.id(), day.date(), day.note(), activities));
+      }
+      if (!found) { throw new InvalidItineraryException("未找到目标活动，请先在行程中创建活动"); }
+      Itinerary updated = it.withDaily(days);
+      store.save(updated);
+      changeLog.record(id, user, "DAILY", "更新用户自报购票登记（未经平台核验）", updated.version());
       return updated;
     });
   }

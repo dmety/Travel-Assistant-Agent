@@ -24,10 +24,16 @@ public record DailyActivity(
     @JsonProperty("location") String location,
     @JsonProperty("note") String note,
     @JsonProperty("startTime") LocalTime startTime,
-    @JsonProperty("endTime") LocalTime endTime) {
+    @JsonProperty("endTime") LocalTime endTime,
+    @JsonProperty("ticketRecord") TicketRecord ticketRecord) {
 
   @JsonCreator
   public DailyActivity {
+  }
+
+  public DailyActivity(String id, String time, String title, String location, String note,
+      LocalTime startTime, LocalTime endTime) {
+    this(id, time, title, location, note, startTime, endTime, null);
   }
 
   /** 兼容只有自由文本时间（{@code time}）的五参数调用（旧代码与旧测试）。 */

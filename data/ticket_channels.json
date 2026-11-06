@@ -1,0 +1,44 @@
+[
+  {
+    "attractionId": "amap-B000A45467",
+    "attractionName": "八达岭长城",
+    "city": "北京",
+    "channelName": "八达岭长城官方参观／购票指引",
+    "officialUrl": "https://www.badaling.cn/website/pc/index.html",
+    "ticketTypes": [],
+    "rules": [
+      "人工维护快照，余票未核验；请查看购票助手中的字段来源"
+    ],
+    "source": "https://www.badaling.cn/website/pc/index.html",
+    "verifiedAt": "2026-11-06",
+    "note": "官网指引入口，不保证为直接下单页面"
+  },
+  {
+    "attractionId": "amap-B000A76B0A",
+    "attractionName": "首都博物馆",
+    "city": "北京",
+    "channelName": "首都博物馆官方参观／购票指引",
+    "officialUrl": "https://capitalmuseum.org.cn/visit",
+    "ticketTypes": [],
+    "rules": [
+      "人工维护快照，余票未核验；请查看购票助手中的字段来源"
+    ],
+    "source": "https://capitalmuseum.org.cn/visit",
+    "verifiedAt": "2026-11-06",
+    "note": "官网指引入口，不保证为直接下单页面"
+  },
+  {
+    "attractionId": "amap-B000A840SB",
+    "attractionName": "中山公园",
+    "city": "北京",
+    "channelName": "中山公园官方参观／购票指引",
+    "officialUrl": "https://www.zhongshan-park.cn/index.html",
+    "ticketTypes": [],
+    "rules": [
+      "人工维护快照，余票未核验；请查看购票助手中的字段来源"
+    ],
+    "source": "https://www.zhongshan-park.cn/index.html",
+    "verifiedAt": "2026-11-06",
+    "note": "官网指引入口，不保证为直接下单页面"
+  }
+]

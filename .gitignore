@@ -54,3 +54,7 @@ Desktop.ini
 # 不整体忽略 reports/，保留必要来源证据和用户要求的清单。
 # 不全局忽略 JSON、CSV、PDF、图片或压缩包，以免隐藏必要交付物。
 # 忽略规则不会取消已跟踪文件，也不会自动清理文件。
+
+# 购票辅助运行配置与字段级来源（不含用户数据）
+!/data/ticket_channels.json
+!/data/ticket_rules.json
