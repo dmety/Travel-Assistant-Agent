@@ -1,0 +1,226 @@
+[
+  {
+    "id": "amap-B000A45467",
+    "name": "八达岭长城",
+    "kind": "BADALING",
+    "officialUrl": "https://www.badaling.cn/website/pc/index.html",
+    "fields": {
+      "price": {
+        "value": {
+          "peak": 40,
+          "offPeak": 35,
+          "studentPeak": 20,
+          "studentOffPeak": 17.5
+        },
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "4—10月旺季；全日制本科及以下学生优惠；18岁资格边界需官方确认"
+      },
+      "eligibility": {
+        "value": "符合官方国籍／居留条件的未满18岁及60岁起游客免门票；其他优惠凭证另核",
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "hours": {
+        "value": {
+          "peak": [
+            "06:30",
+            "16:30",
+            "17:30"
+          ],
+          "offPeak": [
+            "07:30",
+            "16:00",
+            "16:30"
+          ]
+        },
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "reservation": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": "官网有预约入口；提前天数、放票时间及免票预约方式未核实"
+      },
+      "extras": {
+        "value": "仅长城门票；索道、滑车及活动费用另计",
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "refund": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "notice": {
+        "value": "特殊优惠及外籍资格未自动覆盖，请向官方确认",
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      }
+    }
+  },
+  {
+    "id": "amap-B000A76B0A",
+    "name": "首都博物馆",
+    "kind": "CAPITAL",
+    "officialUrl": "https://capitalmuseum.org.cn/visit",
+    "fields": {
+      "price": {
+        "value": {
+          "regular": 0
+        },
+        "sourceUrl": "https://www.capitalmuseum.org.cn/exhibition/ef6317dda86f4501a29889ae63da663e",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "仅北京通史基本陈列；不代表收费特展"
+      },
+      "reservation": {
+        "value": false,
+        "sourceUrl": "https://capitalmuseum.org.cn/news/6f5b571224214a1fa2c5019cea051080",
+        "verifiedAt": "2026-11-06",
+        "validFrom": "2025-12-20",
+        "validTo": null,
+        "note": null
+      },
+      "hours": {
+        "value": {
+          "regular": [
+            "09:00",
+            "16:00",
+            "17:00"
+          ],
+          "closedWeekday": 2
+        },
+        "sourceUrl": "https://capitalmuseum.org.cn/visit",
+        "verifiedAt": "2026-11-06",
+        "validFrom": "2026-10-24",
+        "validTo": null,
+        "note": null
+      },
+      "eligibility": {
+        "value": "持有效证件从北门登记安检；儿童陪护按官方指南办理",
+        "sourceUrl": "https://capitalmuseum.org.cn/visit",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "extras": {
+        "value": "特展和讲解等服务不包含在基本陈列免费范围",
+        "sourceUrl": "https://capitalmuseum.org.cn/visit",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "refund": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "notice": {
+        "value": "旅游网旧快照仍写需预约及周一闭馆；本条采用馆方较新公告",
+        "sourceUrl": "https://capitalmuseum.org.cn/visit",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      }
+    }
+  },
+  {
+    "id": "amap-B000A840SB",
+    "name": "中山公园",
+    "kind": "ZHONGSHAN",
+    "officialUrl": "https://www.zhongshan-park.cn/index.html",
+    "fields": {
+      "price": {
+        "value": {
+          "regular": 3,
+          "half": 1.5,
+          "combined": 5,
+          "combinedHalf": 2.5,
+          "flower": 10,
+          "flowerHalf": 5
+        },
+        "sourceUrl": "https://www.zhongshan-park.cn/parkorg/list/menpiaojiage.html",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "花期约3月上旬至5月中旬，具体起止依公告；本次依据官网检索摘要，正文直连超时，出行前需复核"
+      },
+      "eligibility": {
+        "value": "6岁及以下或不高于120厘米免票；7至18岁及合资格学生半价；老人等其他优惠需证件核验",
+        "sourceUrl": "https://www.zhongshan-park.cn/parkorg/list/menpiaojiage.html",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "hours": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": "现有旅游网时间仅作线索；需核对公园当期公告"
+      },
+      "reservation": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "extras": {
+        "value": "普通入园、唐花坞蕙芳园联票与花期产品分开；闭展时不可承诺联票可用",
+        "sourceUrl": "https://www.zhongshan-park.cn/parkorg/list/menpiaojiage.html",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "refund": {
+        "value": null,
+        "sourceUrl": null,
+        "verifiedAt": null,
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      },
+      "notice": {
+        "value": "六一及特殊身份政策需另行确认；联票开售和临时闭展未知",
+        "sourceUrl": "https://www.zhongshan-park.cn/parkorg/list/menpiaojiage.html",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": null
+      }
+    }
+  }
+]
