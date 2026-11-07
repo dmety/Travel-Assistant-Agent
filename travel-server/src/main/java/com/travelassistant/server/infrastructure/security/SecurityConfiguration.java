@@ -37,6 +37,9 @@ public class SecurityConfiguration {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/health", "/api/login", "/api/account/register",
                 "/api/attractions", "/api/attractions/**", "/api/tickets", "/api/tickets/**",
+                // 三个能力状态接口只返回布尔、统计与能力描述，不含用户数据；
+                // 对外开放才能让健康检查与前端登录卡在建立会话前看到降级原因。
+                "/api/location/status", "/api/agent/status",
                 // 测试前端单页：/、/login、/app 都由 PageController 转发到 index.html，
                 // /login.html、/app.html 是旧链接，302 到 /。页面本身必须在未登录时可达
                 // （登录卡就在这一页里），数据仍由 /api/** 拦截。

@@ -53,17 +53,23 @@ public class AgentController {
     return decisions.review(id, user.getUsername(), request);
   }
 
-  /** 能力状态：模型是否可用。 */
+  /**
+   * 能力状态：模型是否可用。
+   *
+   * <p>规划接口目前是确定性检索流水线，模型只做可选的文字润色。未配置密钥时
+   * 不得宣称具备「文字建议」能力，否则会把降级路径说成已实现的 Agent 能力。
+   */
   @GetMapping("/status")
   public Map<String, Object> status() {
     Map<String, Object> body = new LinkedHashMap<>();
     boolean configured = service.modelConfigured();
     body.put("modelConfigured", configured);
-    body.put("capabilities", java.util.List.of("景点检索", "天气", "购票辅助", "文字建议",
-        "综合决策分析"));
+    body.put("capabilities", configured
+        ? java.util.List.of("景点检索", "天气", "购票辅助", "文字建议", "综合决策分析")
+        : java.util.List.of("景点检索", "天气", "购票辅助", "综合决策分析"));
     body.put("note", configured
-        ? "模型已配置；建议仍需用户确认后才写入正式方案"
-        : "未配置 DEEPSEEK_API_KEY，仅返回检索结果与规则判断，不生成文字建议");
+        ? "模型已配置；文字建议仅为措辞润色，建议仍需用户确认后才写入正式方案"
+        : "未配置 DEEPSEEK_API_KEY：规划接口只返回确定性检索结果与规则判断，不生成文字建议");
     return body;
   }
 }

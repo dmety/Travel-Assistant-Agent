@@ -27,7 +27,9 @@ Agent 由 Java 编排景点、天气和票务工具，模型负责组织文字�
 ### 1. 准备环境
 
 - JDK 21。
-- Maven 3.9，作为建议使用的构建版本。
+- Maven 3.9，作为建议使用的构建版本。**若 `mvn` 不在 PATH**，不必改系统环境变量：
+  - 门禁脚本支持 `MVN=/path/to/mvn bash tools/gate.sh`，或设置 `MAVEN_HOME` 后直接 `bash tools/gate.sh`（脚本会自动探测 `$MAVEN_HOME/bin/mvn`）；
+  - 直接执行 `mvn` 命令时，先确保 `<maven>/bin` 在当前 shell 的 PATH 中。
 - Python 3.10+：用于知识库维护和真实服务回归，基础服务启动无需 Python。
 - Windows 命令使用 PowerShell 7（`pwsh`）。以下命令均在项目根目录执行。
 

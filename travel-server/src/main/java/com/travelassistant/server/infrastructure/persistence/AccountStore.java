@@ -3,11 +3,9 @@ package com.travelassistant.server.infrastructure.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -70,17 +68,6 @@ public class AccountStore {
   }
 
   private void write(List<Account> snapshot) {
-    try {
-      Path dir = file.getParent();
-      Path tmp = Files.createTempFile(dir, "accounts", ".tmp");
-      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), snapshot);
-      try {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-      } catch (AtomicMoveNotSupportedException e) {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("无法写入账号文件: " + file, e);
-    }
+    PersistenceSupport.writeAtomically(file, mapper, snapshot, "账号");
   }
 }

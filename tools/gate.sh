@@ -15,7 +15,16 @@ for arg in "$@"; do
 done
 MVN="${MVN:-mvn}"
 PYTHON="${PYTHON:-python}"
-command -v "$MVN" >/dev/null 2>&1 || { echo 'Maven unavailable: set MVN' >&2; exit 2; }
+# 本机 Maven 常装在 PATH 之外（例如 IDEA 内置或独立解压目录）。
+# 优先用显式 MVN；其次自动探测 MAVEN_HOME；都没有才报错并给出可操作的提示。
+if ! command -v "$MVN" >/dev/null 2>&1; then
+  if [ -n "${MAVEN_HOME:-}" ] && [ -x "$MAVEN_HOME/bin/mvn" ]; then
+    MVN="$MAVEN_HOME/bin/mvn"
+  else
+    echo 'Maven unavailable: set MVN=/path/to/mvn or MAVEN_HOME=/path/to/maven' >&2
+    exit 2
+  fi
+fi
 command -v "$PYTHON" >/dev/null 2>&1 || { echo 'Python unavailable: set PYTHON' >&2; exit 2; }
 "$PYTHON" -B tools/build_attraction_index.py --check
 if [ "$SKIP_TESTS" -eq 0 ]; then

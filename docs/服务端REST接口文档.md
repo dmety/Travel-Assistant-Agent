@@ -1082,7 +1082,7 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 加载时机 | 服务端启动，`AttractionStore#load()` |
 | 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
 | 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |
-| 当前规模 | 11,858 条，66 个城市，13MB → 5.7MB |
+| 当前规模 | 11,858 条，66 个城市，10.1MB → 6.0MB |
 
 ### 8.2 按城市查询
 
@@ -1125,7 +1125,9 @@ GET /api/attractions?city=杭州&limit=20
       "source": "Amap",
       "sources": ["Amap"],
       "ticketText": "旺季（1-6月、10月）100元/人，……",
-      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……"
+      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……",
+      "ticketStatus": "unverified",
+      "openTimeStatus": "unverified"
     }
   ]
 }
@@ -1141,8 +1143,22 @@ GET /api/attractions?city=杭州&limit=20
 | `message` | 无结果或缺参时的提示；有结果时为 `null` |
 | `ticket` / `openTime` | 原始值，库中缺失时为 `null` |
 | `ticketText` / `openTimeText` | 展示值，缺失时固定为「未知」 |
+| `ticketStatus` / `openTimeStatus` | 核验状态：`verified` / `unverified` / `pending`（详见下表） |
 
 > 调用方**不得**把 `ticket = null` 解释为「免费」，也不得把 `openTime = null` 解释为「全天开放」。
+
+#### 核验状态契约
+
+| 取值 | 含义 | 展示要求 |
+|---|---|---|
+| `verified` | 有逐行来源与核验日期，可按官方信息展示 | 可正常展示 |
+| `unverified` | 有值但缺逐行证据 | **必须标注「未核验／仅供参考」，不得当作官方定价或官方开放时间** |
+| `pending` | 无值或尚未核验 | 按「未知」处理 |
+
+字段有值不等于已核验。`AttractionView` 会把历史词表 `confirmed` 归一为 `verified`，
+空值归一为 `pending`，其它未知取值保守按 `unverified` 处理。知识库重建时
+`tools/build_unified_kb.py` 只在同时存在 `*_source` 与 `*_checked_at` 逐行证据时
+继承 `verified`，否则一律 `unverified`——**没有证据不得凭历史标签复活核验结论**。
 
 ### 8.3 按名称查询
 

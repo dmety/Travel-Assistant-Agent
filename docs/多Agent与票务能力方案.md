@@ -4,7 +4,7 @@
 
 ## 1. 决策与当前状态
 
-保留 Java 21、Spring Boot 单体及 travel-client / travel-common / travel-server 三模块。使用现有 Spring AI 接入模型，由 Java 显式编排流程；当前不增加多 Agent 框架、微服务、消息队列或向量数据库。
+保留 Java 21、Spring Boot 单体及 travel-client / travel-common / travel-server 三模块。模型接入当前为 OpenAI 兼容 HTTP 直连（未引入 Spring AI 依赖），由 Java 显式编排流程；当前不增加多 Agent 框架、微服务、消息队列或向量数据库。本文记录目标方案，Spring AI ChatClient 属后续评估项。
 
 Java 侧已落地账号与会话、行程 CRUD 与板块级权限、版本控制、邀请与成员协作、景点只读检索、
 预算与时间检查、留言与修改记录、购票辅助、高德查询、规划草案，以及 V3 的候选与投票、预算分析、
