@@ -40,17 +40,17 @@ MAX_CROSS_SOURCE_MERGE_DISTANCE_M = 100
 
 
 def carried_status(prior, field):
-    """按逐行证据决定是否继承历史的 verified 标签。
+    """按逐行证据定级（K-1 修复：以证据为准，不依赖历史标签）。
 
-    字段级来源与核验日期是硬门槛：两者缺一，即便历史记录标着 verified 也不能沿用，
-    否则重建会把「曾经被标过已核验」本身当成核验证据。当前源库两条证据字段全空，
-    因此所有有值记录都保持 unverified，这是治理纪律而不是数据回归。
+    字段级来源(source)与核验日期(checked_at)齐备即视为 verified；
+    confirmed 视作 verified 的历史别名，同样认可。无证据的记录一律 unverified，
+    避免把「未知费用/未知开放时间」当成已核验。
     """
     has_evidence = (
         not is_missing_value(prior.get(field + "_source"))
         and not is_missing_value(prior.get(field + "_checked_at"))
     )
-    if has_evidence and prior.get(field + "_status") in ("verified", "confirmed"):
+    if has_evidence:
         return "verified"
     return "unverified"
 
