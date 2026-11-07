@@ -1240,6 +1240,8 @@ GET /api/attractions/status
 
 响应：`needs` 为规范化需求，`questions` 为待补问项，`matches` 为逐人票种与价格，`estimatedTotal` 为估算总额（存在未知则 null），
 `stockVerified` 恒 false，`registrationSuggested` 表示是否建议登记，`channels` 为现有入口结果，`evidence` 为字段来源，`notices` 为限制和行程提醒。
+`registrationSuggested` 由场馆属性判定：STANDARD 产品且预约字段明确为「无需预约」、定价档位全部为 0 时返回 false，并给出「普通参观无需购票／预约」提示；
+该判定不依赖 `estimatedTotal`——游客未填、合计未知时免费场馆仍返回 false，收费场馆仍返回 true。
 费用仅为快照估算，不是订单报价。花期准确起止、联票开售、特殊身份、特展及未核实退改规则保留未知。
 首都博物馆采用馆方免预约及周二闭馆新公告，不沿用旅游网旧快照；规则适用日期以字段记录为准。
 带 `itineraryId` 时校验查看权限；带 `activityId` 时带入对应活动日期、景点与起止时间，未找到活动返回400，越权403。

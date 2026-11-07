@@ -150,9 +150,12 @@ public class TicketAssistantService {
         if (text != null && text.isTextual()) { notices.add(text.asText()); }
       }
       JsonNode reservation = site.value("reservation");
-      register = !("STANDARD".equals(n.product()) && reservation != null && reservation.isBoolean()
-          && !reservation.asBoolean() && total != null && total.signum() == 0);
-      if (!register) { notices.add("普通参观无需购票／预约，按官方指南登记入馆；不要求购票登记"); }
+      // 「无需购票／预约」是场馆属性，不能挂在本次合计上：游客未填时合计未知，
+      // 但免费场馆依然不需要购票。免费以定价档位全为 0 判定，且预约与定价都须有来源。
+      boolean freeEntry = "STANDARD".equals(n.product()) && reservation != null
+          && reservation.isBoolean() && !reservation.asBoolean() && freeEntrySite(site);
+      register = !freeEntry;
+      if (freeEntry) { notices.add("普通参观无需购票／预约，按官方指南登记入馆；不要求购票登记"); }
       checkHours(site,n,notices);
       if (trip != null && date != null) {
         if (activityDate != null && !date.equals(activityDate)) { notices.add("日期与目标活动不一致，不能直接登记"); }
@@ -177,6 +180,20 @@ public class TicketAssistantService {
   private boolean dateInRange(LocalDate date, TicketCatalog.Fact f) {
     return date == null || ((f.validFrom() == null || !date.isBefore(f.validFrom()))
         && (f.validTo() == null || !date.isAfter(f.validTo())));
+  }
+  /**
+   * 场馆自身定价档位全部为 0 视为免费入场，与游客构成无关。
+   * 任一档位非 0 或不可解析都不作免费推定——未知不等于免费。
+   */
+  private boolean freeEntrySite(TicketCatalog.Site site) {
+    JsonNode prices = site.value("price");
+    if (prices == null || !prices.isObject() || prices.isEmpty()) { return false; }
+    var it = prices.elements();
+    while (it.hasNext()) {
+      JsonNode v = it.next();
+      if (!v.isNumber() || v.decimalValue().signum() != 0) { return false; }
+    }
+    return true;
   }
   private void validate(Needs n) {
     if (n.attraction() != null && n.attraction().length() > 100

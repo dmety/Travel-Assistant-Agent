@@ -75,6 +75,27 @@ class TicketAssistantTest {
     assertThat(r.questions()).anyMatch(q -> q.contains("游客"));
     assertThat(r.estimatedTotal()).isNull();
   }
+  /**
+   * 「无需购票／预约」是场馆属性，与本次合计无关：免费场馆在游客未填、合计未知时
+   * 仍应给出免票提示；收费场馆不得因合计未知而被误判为免费。
+   */
+  @Test
+  @DisplayName("免费场馆未填游客时仍提示无需购票，收费场馆不误判")
+  void freeVenueNeedsNoTicketEvenWithoutVisitors() {
+    Result free = advise(new Needs("首都博物馆", LocalDate.parse("2026-11-21"), "STANDARD", List.of(), null, null));
+    assertThat(free.estimatedTotal()).isNull();
+    assertThat(free.registrationSuggested()).isFalse();
+    assertThat(free.notices()).anyMatch(x -> x.contains("无需购票"));
+
+    Result paid = advise(new Needs("八达岭长城", LocalDate.parse("2026-11-21"), "STANDARD", List.of(), null, null));
+    assertThat(paid.estimatedTotal()).isNull();
+    assertThat(paid.registrationSuggested()).isTrue();
+    assertThat(paid.notices()).noneMatch(x -> x.contains("无需购票"));
+
+    Result special = advise(new Needs("首都博物馆", LocalDate.parse("2026-11-21"), "COMBINED", List.of(), null, null));
+    assertThat(special.registrationSuggested()).isTrue();
+    assertThat(special.notices()).noneMatch(x -> x.contains("无需购票"));
+  }
 
   @Test void incompleteAndFallback() {
     assertThat(advise(null).questions()).hasSizeGreaterThan(1);
