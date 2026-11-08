@@ -1140,13 +1140,15 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 项 | 说明 |
 |---|---|
 | 离线构建 | `python tools/build_attraction_index.py` → `data/attractions_index.json`（只读 `china_attractions.json`，输出路径与输入相同时拒绝执行） |
-| 内容分层源 | `data/kb_modules/*.json`（按职责拆分的编辑源）；`python -B tools/kb_modules.py --check` 要求模块合成结果与 `china_attractions.json` 逐字节一致 |
-| 模块写回 | `python -B tools/kb_modules.py --assemble` 原子替换主库，随后需重建索引；`tools/gate.sh` 第一步做一致性校验 |
+| 分片编辑源 | `data/attractions/*.json`（按省切成 30 个小文件，一条记录一行）；`python -B tools/kb_shards.py --check` 要求分片合成结果与 `china_attractions.json` 逐字节一致 |
+| 一键同步 | `python -B tools/kb_shards.py --sync` 贯通「分片 → 主库 → `kb_modules/` → 运行索引」；`tools/gate.sh` 第一步做分片一致性校验 |
+| 内容分层视图 | `data/kb_modules/*.json` 由 `--sync` 自动重建，不手工编辑；`kb_modules.py --check` 做交叉校验 |
+| 模块写回 | `python -B tools/kb_modules.py --assemble` 仍可单独原子替换主库，随后需重建索引；日常改动应走分片与 `--sync` |
 | 加载时机 | 服务端启动，`AttractionStore#load()` |
 | 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
 | 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |
 | 当前规模 | 2026-11-08 实测：源库 7,745 条、6.30 MiB；索引 7,745 条、3.94 MiB；索引文件 `city_count` 81 个键。数字随知识库变化 |
-| 拆分边界 | 2026-11-08 的内容分层只改编辑源；主库字节、索引、Java 加载链与返回体不变 |
+| 拆分边界 | 2026-11-08 两次拆分只改编辑源：先按字段分层，再按省分片；主库字节、索引、Java 加载链与返回体不变 |
 
 ### 8.2 按城市查询
 
