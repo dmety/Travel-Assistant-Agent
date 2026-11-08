@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
-"""知识库内容分层：模块源文件与单体主库之间的双向同步。
+"""知识库字段视图：按需从单体主库生成按职责分层的本地视图。
 
-主库 ``data/china_attractions.json`` 仍是对外产物，Java 只读索引由
-``tools/build_attraction_index.py`` 从它构建。本脚本把主库按职责拆成
-``data/kb_modules/`` 下的模块文件，让人改票价时只需要打开 facts.json，
-不必在 6 MiB 单行 JSON 里找记录。
+2026-11-08 的 data 目录优化后，``data/attractions/`` 是唯一编辑源，
+``data/kb_modules/`` 不再入库，也不再由 ``kb_shards.py --sync`` 自动生成，
+``tools/gate.sh`` 也不再校验它。本脚本保留为可选工具：需要按字段浏览主库时，
+跑一次 ``--split`` 生成本地视图，用完可删；生成的目录受 ``/data/*`` 黑名单
+约束，不会被提交。日常改动请走分片与 ``kb_shards.py --sync``。
 
 用法::
 
-    python -B tools/kb_modules.py --check      # 门禁默认：模块合成结果是否与主库逐字节一致
-    python -B tools/kb_modules.py --split     # 主库被外部脚本合法改动后，重新对齐模块
-    python -B tools/kb_modules.py --assemble  # 改完模块后写回主库（随后需重建索引）
+    python -B tools/kb_modules.py --split     # 从当前主库生成本地字段视图
+    python -B tools/kb_modules.py --check     # 仅当视图已生成时，校验与主库逐字节一致
+    python -B tools/kb_modules.py --assemble  # 从视图写回主库（随后需重建索引）
 
-三种模式都先做一次内存往返校验：模块合成出的文档必须能逐字节复现当前主库，
-或能自洽地生成新文档。任何字段漏分组、记录 id 不对齐都会直接报错，不静默丢数据。
+``--split`` 和 ``--assemble`` 都先做一次内存往返校验：合成出的文档必须能
+逐字节复现当前主库。任何字段漏分组、记录 id 不对齐都会直接报错，不静默丢数据。
 """
 from __future__ import annotations
 

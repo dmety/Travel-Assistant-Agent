@@ -7,7 +7,9 @@
 放在 ``data/attractions/`` 下，每个文件一条记录一行，既能直接打开看，
 也让 git diff 只落在改动的那一行。
 
-数据来源：分片是唯一编辑源；单体主库、``kb_modules/`` 和运行索引都是派生产物。
+数据来源：分片是唯一编辑源；单体主库和运行索引都是派生产物。按字段分层的
+``data/kb_modules/`` 曾作为派生视图保留，2026-11-08 的 data 目录优化已移除；
+``tools/kb_modules.py`` 仅留作可选的本地视图生成工具，不参与门禁与同步。
 主库记录原本不按省聚簇，因此每个分片用 ``positions`` 记录各条记录在
 原数组中的下标，合成时按下标归位，保证逐字节复现历史主库。
 
@@ -16,7 +18,7 @@
     python -B tools/kb_shards.py --check     # 门禁：分片合成结果是否与主库逐字节一致
     python -B tools/kb_shards.py --split     # 主库被旧脚本改动后，反向重建分片
     python -B tools/kb_shards.py --assemble  # 改完分片后写回主库
-    python -B tools/kb_shards.py --sync      # 一键：分片 -> 主库 -> 模块 -> 运行索引
+    python -B tools/kb_shards.py --sync      # 一键：分片 -> 主库 -> 运行索引
 
 分片目录里除 ``manifest.json`` 外的每个 .json 都必须在清单里登记；
 多文件、缺文件、位置重复或漏号、记录省份与分片不符，一律拒绝合成。
@@ -310,10 +312,6 @@ def cmd_sync(kb: Path, shards_dir: Path) -> int:
     else:
         write_atomic(kb, text)
         print(f"[同步] 分片 -> 主库：{len(doc['attractions'])} 条")
-    code = run_step(["tools/kb_modules.py", "--split"])
-    if code != 0:
-        print(f"[失败] kb_modules.py --split 返回 {code}，流水线中止。", file=sys.stderr)
-        return code
     # 索引带构建时间戳 generated_at，无脑重写会让该文件每次都产生字节变化。
     # --check 明确忽略该字段，因此只在内容确实过期时才重建。
     index_check = subprocess.call(
@@ -325,7 +323,7 @@ def cmd_sync(kb: Path, shards_dir: Path) -> int:
         if code != 0:
             print(f"[失败] build_attraction_index.py 返回 {code}，流水线中止。", file=sys.stderr)
             return code
-    print("[完成] 分片 -> 主库 -> kb_modules -> attractions_index 全链路已同步")
+    print("[完成] 分片 -> 主库 -> attractions_index 全链路已同步")
     return 0
 
 
