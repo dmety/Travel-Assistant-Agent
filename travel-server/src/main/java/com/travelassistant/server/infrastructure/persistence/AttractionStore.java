@@ -71,7 +71,7 @@ public class AttractionStore {
 
   /**
    * 模糊查询结果缓存（有界 LRU）。{@code /api/attractions?name=} 是匿名公开接口，
-   * 未命中精确索引时会全表扫描 11858 条；缓存避免同一关键词反复扫描。
+   * 未命中精确索引时会全表扫描全量记录；缓存避免同一关键词反复扫描。
    * accessOrder=true 的 get 会改结构，因此所有访问都在 {@code synchronized} 内进行。
    */
   private static final int FUZZY_CACHE_MAX = 256;

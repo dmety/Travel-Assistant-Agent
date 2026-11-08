@@ -43,7 +43,9 @@ public class SecurityConfiguration {
                 // 测试前端单页：/、/login、/app 都由 PageController 转发到 index.html，
                 // /login.html、/app.html 是旧链接，302 到 /。页面本身必须在未登录时可达
                 // （登录卡就在这一页里），数据仍由 /api/** 拦截。
-                "/ticket-assistant.html", "/api/agent/tickets/advice",
+                // 页面本身公开，但 /api/agent/tickets/advice 会触发模型调用，必须登录后才能访问：
+                // 匿名放行等于把模型配额暴露给任意请求。前端 api() 收到 401 会提示登录。
+                "/ticket-assistant.html",
                 "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico")
             .permitAll()
             .anyRequest().authenticated())

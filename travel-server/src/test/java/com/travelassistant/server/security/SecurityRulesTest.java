@@ -90,6 +90,21 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("模型购票建议接口匿名 401，登录后才可调用")
+  void modelAdviceRequiresAuthentication() throws Exception {
+    // 这条接口会触发模型调用，匿名放行等于把模型配额开放给任意请求。
+    mvc.perform(post("/api/agent/tickets/advice")
+            .contentType("application/json").content("{}"))
+        .andExpect(status().isUnauthorized());
+
+    MockHttpSession owner = registerAndLogin();
+    mvc.perform(post("/api/agent/tickets/advice")
+            .session(owner).contentType("application/json").content("{}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stockVerified").value(false));
+  }
+
+  @Test
   @DisplayName("所有行程接口未登录一律 401")
   void allItineraryEndpointsRequireAuthentication() throws Exception {
     String id = "any-id";

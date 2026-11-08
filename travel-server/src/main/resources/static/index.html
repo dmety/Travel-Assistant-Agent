@@ -141,6 +141,38 @@
         </div>
       </div>
 
+      <!-- ===== 基础业务闭环：填需求 → 补问 → 逐日草案 → 检查 → 确认保存 ===== -->
+      <div class="card" id="draftCard" style="margin-top:16px;">
+        <h1 style="margin:0;">规划草案 → 确认保存</h1>
+        <p class="sub" style="margin:4px 0 0;">
+          生成草案只检索、不写库；点「确认保存」才会走 /api/itineraries 创建行程。
+        </p>
+        <div class="create">
+          <div class="row">
+            <input id="dfDestination" placeholder="目的地，如 杭州" style="width:160px;" />
+            <label class="muted">出发 <input id="dfDepart" type="date" /></label>
+            <label class="muted">返回 <input id="dfReturn" type="date" /></label>
+            <input id="dfDays" type="number" min="1" max="30" placeholder="天数" style="width:88px;" />
+            <input id="dfTravelers" type="number" min="1" placeholder="人数" style="width:88px;" />
+            <input id="dfBudget" type="number" min="0" step="1" placeholder="预算上限" style="width:120px;" />
+            <input id="dfCurrency" value="CNY" placeholder="币种" style="width:80px;" />
+            <input id="dfPrefs" placeholder="偏好，逗号分隔（可选）" style="width:180px;" />
+          </div>
+          <div class="row">
+            <button id="dfPlanBtn">① 生成草案（不写库）</button>
+            <input id="dfTitle" placeholder="行程标题，如 杭州二日游" style="width:220px;" />
+            <button id="dfConfirmBtn" class="secondary" disabled>② 确认保存为行程</button>
+          </div>
+          <div class="hint">
+            流程：POST /api/agent/plan →（按补问补全后重试）→ POST /api/agent/plan/materialize
+            → POST /api/itineraries → PUT /api/itineraries/{id}/daily?version=&lt;创建版本号&gt;。
+            逐日草案带景点 ID、来源与未知项；票价或开放时间未知一律显示「未知」，不推断为免费。
+            预算粗估只含已核验门票，不含交通住宿餐饮。
+          </div>
+        </div>
+        <div id="dfOut" class="list" style="margin-top:12px;"><span class="muted">尚未生成草案</span></div>
+      </div>
+
       <!-- 行程详情 -->
       <div id="itineraryPanel" class="panel" style="display:none;">
         <div class="it-head">
@@ -460,6 +492,9 @@
       const res = await api('POST', '/api/logout');
       const d = await res.json().catch(() => ({}));
       showAuthView();
+      // 退出后不留上一份用户的草案在内存里，避免换账号误点「确认保存」。
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      $('dfOut').innerHTML = '<span class="muted">尚未生成草案</span>';
       show('已退出：' + (d.loggedOut ? '服务端会话已失效' : 'OK'), 'ok');
     };
 
@@ -1118,6 +1153,150 @@
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+
+    // ---- 基础业务闭环：草案 → 确认保存 ----
+    let currentDraft = null;
+    let currentDraftRequest = null;
+
+    function dfNum(id) {
+      const raw = $(id).value.trim();
+      return raw === '' ? null : Number(raw);
+    }
+
+    function draftRequestBody() {
+      const body = { destination: $('dfDestination').value.trim() };
+      if ($('dfDepart').value) body.departDate = $('dfDepart').value;
+      if ($('dfReturn').value) body.returnDate = $('dfReturn').value;
+      const days = dfNum('dfDays'); if (days !== null) body.days = days;
+      const travelers = dfNum('dfTravelers'); if (travelers !== null) body.travelers = travelers;
+      const budget = dfNum('dfBudget'); if (budget !== null) body.budget = budget;
+      body.currency = $('dfCurrency').value.trim() || 'CNY';
+      const prefs = $('dfPrefs').value.split(',').map(s => s.trim()).filter(Boolean);
+      if (prefs.length) body.preferences = prefs;
+      return body;
+    }
+
+    function dfUpdateConfirmButton() {
+      const questions = (currentDraft && currentDraft.questions) || [];
+      const blocking = questions.filter(q => q.field === 'departDate' || q.field === 'returnDate');
+      $('dfConfirmBtn').disabled = !currentDraft || blocking.length > 0;
+      $('dfConfirmBtn').title = blocking.length ? '请先补全出发/返回日期再确认保存' : '';
+    }
+
+    function renderDraft(d) {
+      const parts = [];
+      const questions = d.questions || [];
+      if (questions.length) {
+        parts.push('<div class="item" style="display:block;"><div><b>缺项补问（' + questions.length
+          + '）</b><div class="hint">在上方补全后重新点「生成草案」；补全前不能确认保存日期缺失的草案。</div></div></div>');
+        questions.forEach(q => parts.push('<div class="item" style="display:block;"><div><b>'
+          + escapeHtml(q.question) + '</b><div class="meta">字段 ' + escapeHtml(q.field)
+          + ' · ' + escapeHtml(q.hint) + ' · ' + escapeHtml(q.retryWith) + '</div></div></div>'));
+      } else {
+        parts.push('<div class="item"><div><b>需求已填全</b><span class="meta"> 无补问项</span></div></div>');
+      }
+
+      (d.checks || []).forEach(c => parts.push('<div class="item" style="display:block;"><div><b>['
+        + escapeHtml(c.severity) + '] ' + escapeHtml(c.code) + '</b><div class="meta">'
+        + escapeHtml(c.message) + (c.suggestion ? ' · 建议：' + escapeHtml(c.suggestion) : '')
+        + '</div></div></div>'));
+
+      const b = d.budgetEstimate;
+      if (b) {
+        parts.push('<div class="item" style="display:block;"><div><b>预算粗估：'
+          + escapeHtml(b.verdict) + '</b><div class="meta">已核验门票小计 '
+          + escapeHtml(b.totalForKnownTickets) + ' ' + escapeHtml(b.currency)
+          + '，上限 ' + escapeHtml(b.budgetLimit === null ? '未填写' : b.budgetLimit)
+          + '，票价未知 ' + escapeHtml(b.unknownTicketCount) + ' 项</div><div class="hint">'
+          + escapeHtml(b.message) + '</div></div></div>');
+      }
+
+      (d.dailySchedules || []).forEach(day => {
+        const items = (day.items || []).map(i => '<div class="meta">· '
+          + escapeHtml(i.name) + ' <code>' + escapeHtml(i.attractionId) + '</code> · 来源 '
+          + escapeHtml(i.source) + ' · 票价 ' + escapeHtml(i.ticket || '未知')
+          + ' · 开放时间 ' + escapeHtml(i.openTime || '未知') + ' · 未知项 '
+          + escapeHtml((i.unknowns || []).length ? i.unknowns.join('、') : '无') + '</div>').join('');
+        parts.push('<div class="item" style="display:block;"><div><b>第 '
+          + escapeHtml(day.dayIndex) + ' 天 ' + escapeHtml(day.date || '（日期待补）')
+          + '</b></div>' + (items || '<div class="meta">· 本日暂无可用候选景点</div>')
+          + '<div class="hint">' + escapeHtml(day.note) + '</div></div>');
+      });
+      if (!(d.dailySchedules || []).length) {
+        parts.push('<div class="item"><span class="muted">未生成逐日草案：请先填写天数或出发/返回日期</span></div>');
+      }
+
+      if (d.advice) parts.push('<div class="item" style="display:block;"><div><b>文字建议（模型润色）</b></div><pre>'
+        + escapeHtml(d.advice) + '</pre></div>');
+      (d.notices || []).forEach(n => parts.push('<div class="item"><span class="muted">'
+        + escapeHtml(n) + '</span></div>'));
+      parts.push('<div class="item"><span class="muted">来源：'
+        + escapeHtml((d.sources || []).join('、') || '无') + ' · 生成时间 '
+        + escapeHtml(d.generatedAt) + '</span></div>');
+      parts.push('<details><summary class="hint">查看原始草案 JSON</summary><pre>'
+        + escapeHtml(JSON.stringify(d, null, 2)) + '</pre></details>');
+      $('dfOut').innerHTML = parts.join('');
+    }
+
+    $('dfPlanBtn').onclick = async () => {
+      const body = draftRequestBody();
+      if (!body.destination) { show('请填写目的地', 'err'); return; }
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      $('dfOut').innerHTML = '<span class="muted">生成中…</span>';
+      const res = await api('POST', '/api/agent/plan', body, true);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        $('dfOut').innerHTML = '<span class="muted">生成失败</span>';
+        show('生成草案失败(' + res.status + ')：' + (d.error || ''), 'err');
+        return;
+      }
+      currentDraft = d; currentDraftRequest = body;
+      renderDraft(d); dfUpdateConfirmButton();
+      show((d.questions || []).length
+        ? '草案已生成，还有 ' + d.questions.length + ' 项待补全；尚未写库'
+        : '草案已生成，需求已填全；尚未写库', 'ok');
+    };
+
+    $('dfConfirmBtn').onclick = async () => {
+      if (!currentDraft || !currentDraftRequest) return;
+      const title = $('dfTitle').value.trim() || (currentDraftRequest.destination + '行程');
+      const high = (currentDraft.checks || []).filter(c => c.severity === 'HIGH');
+      if (high.length && !confirm('草案有 ' + high.length + ' 条高风险提示：\n'
+        + high.map(c => c.message).join('\n') + '\n仍要保存吗？')) return;
+
+      // 载荷由服务端按景点 ID 重新从知识库装配，客户端不回传票价/来源结论。
+      const mr = await api('POST', '/api/agent/plan/materialize',
+        { title, request: currentDraftRequest, attractionIds: [] }, true);
+      const payload = await mr.json().catch(() => ({}));
+      if (!mr.ok) {
+        show('确认载荷失败(' + mr.status + ')：' + (payload.error || ''), 'err');
+        return;
+      }
+
+      const cr = await api('POST', '/api/itineraries',
+        { title: payload.title, plan: payload.plan }, true);
+      const it = await cr.json().catch(() => ({}));
+      if (cr.status !== 201) {
+        show('创建行程失败(' + cr.status + ')：' + (it.error || ''), 'err');
+        return;
+      }
+
+      if ((payload.dailySchedules || []).length) {
+        const dr = await api('PUT', '/api/itineraries/' + it.id + '/daily?version=' + it.version,
+          payload.dailySchedules, true);
+        if (!dr.ok) {
+          const e = await dr.json().catch(() => ({}));
+          show('行程已创建，但每日安排保存失败(' + dr.status + ')：' + (e.error || '')
+            + '。请在「每日安排」页签手动重试。', 'err');
+          await refreshList(); await openItinerary(it.id);
+          return;
+        }
+      }
+
+      show('已确认保存：' + it.title + '。重启服务后重新登录仍可读取该行程与逐日安排。', 'ok');
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      await refreshList(); await openItinerary(it.id);
+    };
 
     // ---- 初始化：先判断会话，再决定显示登录卡还是测试台 ----
     refreshMe();
