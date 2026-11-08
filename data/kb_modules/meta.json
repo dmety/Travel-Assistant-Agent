@@ -1,0 +1,33 @@
+{
+  "schema": "kb-module-v1",
+  "layer": "meta",
+  "fields": {
+    "generated_at": "2026-11-07T07:50:44Z",
+    "source": "OpenStreetMap Overpass (ODbL) + 高德 Amap Web服务(商业免费额度)",
+    "note": "Travel-Assistant-Agent 的中国景点统一知识库；OSM 作开源基底，高德补强等级/评分/开放时间/票价/电话/图片",
+    "osm_count": 4073,
+    "count": 7745,
+    "with_level": 1321,
+    "with_rating": 4480,
+    "with_open_time": 4346,
+    "with_ticket": 874,
+    "with_image": 4630,
+    "amap_stats": {
+      "fetched": 8053,
+      "matched": 264,
+      "added": 7789,
+      "cities": 37
+    },
+    "enriched_at": "2026-11-07T07:50:44Z",
+    "ticket_status_counts": {
+      "verified": 145,
+      "unverified": 729,
+      "pending": 6871
+    },
+    "open_time_status_counts": {
+      "verified": 104,
+      "unverified": 4242,
+      "pending": 3399
+    }
+  }
+}

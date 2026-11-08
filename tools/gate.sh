@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 完整交付检查：索引一致性、知识库治理门禁、Maven测试与覆盖率、真实服务和重启回归。
+# 完整交付检查：内容分层一致性、索引一致性、知识库治理门禁、Maven测试与覆盖率、真实服务和重启回归。
 # 用法：bash tools/gate.sh [--skip-tests]
 # MVN、PYTHON 可指定可执行文件；--skip-tests 仅跳过Maven测试及覆盖率。
 set -euo pipefail
@@ -26,6 +26,8 @@ if ! command -v "$MVN" >/dev/null 2>&1; then
   fi
 fi
 command -v "$PYTHON" >/dev/null 2>&1 || { echo 'Python unavailable: set PYTHON' >&2; exit 2; }
+# 内容分层门禁：主库必须由 data/kb_modules/ 合成。绕过模块直接改主库、或改了模块没合成，都会在此失败。
+"$PYTHON" -B tools/kb_modules.py --check
 "$PYTHON" -B tools/build_attraction_index.py --check
 # 知识库治理门禁：存量数据欠账必须在 tools/kb_quality_waivers.json 逐项登记理由与证据；
 # 未登记的新失败、欠账恶化或豁免过期一律 exit=1。kb 包在 tools/ 下，

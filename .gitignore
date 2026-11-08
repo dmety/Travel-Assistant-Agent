@@ -45,9 +45,12 @@ Desktop.ini
 /screenshots/
 
 # 运行态数据不提交；保留全国知识库与初始化种子
+# kb_modules/ 是知识库的可维护源（按职责分层的模块文件），必须入库
 /data/*
 !/data/china_attractions.json
 !/data/attractions_index.json
+!/data/kb_modules/
+!/data/kb_modules/*.json
 !/data/*.example.json
 /travel-server/data/
 
