@@ -1123,8 +1123,8 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
   文件缺失或解析失败时购票辅助以「无经核验入口」运行，程序不覆盖原文件。
 - 景点库：`data/attractions_index.json`（只读，Python 离线构建产物）。
 - 运行数据文件按需创建，**全部由 `.gitignore` 排除**（含 accounts / itineraries / invitations /
-  comments / changelog / candidates / votes）。仓库里只保留 `data/*.example.json` 空数组种子，
-  用于说明初始形态；各 `Store` 在文件缺失时自动创建空文件，新克隆无需手工拷贝即可启动。
+  comments / changelog / candidates / votes）。各 `Store` 在文件缺失时自动创建空文件，新克隆无需
+  手工初始化即可启动，仓库不再预置 `*.example.json` 空数组种子。
   运行态数据里是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库，因此不跟踪。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
 
@@ -1143,7 +1143,7 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 分片编辑源 | `data/attractions/*.json`（按省切成 30 个小文件，一条记录一行）；`python -B tools/kb_shards.py --check` 要求分片合成结果与 `china_attractions.json` 逐字节一致 |
 | 一键同步 | `python -B tools/kb_shards.py --sync` 贯通「分片 → 主库 → 运行索引」；`tools/gate.sh` 第一步做分片一致性校验 |
 | 字段视图 | `tools/kb_modules.py --split` 可按需生成本地视图，目录不入库、不参与门禁，2026-11-08 的 data 目录优化已移除常驻副本 |
-| 数据目录 | `data/` 只保留编辑源、两份产物、购票配置与 `*.example.json` 种子；运行态数据不提交 |
+| 数据目录 | `data/` 只保留编辑源、两份产物与购票配置；运行态 JSON 按需创建、不提交，仓库不预置空数组种子 |
 | 加载时机 | 服务端启动，`AttractionStore#load()` |
 | 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
 | 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |

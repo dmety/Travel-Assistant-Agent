@@ -490,7 +490,7 @@ PYTHONPATH="F:/pythons/pkgs" "C:/Users/zipei/.workbuddy/binaries/python/versions
 grep -rn "PlanningService\|DecisionService\|TicketAssistantService" travel-server/src/main/java/com/travelassistant/server/application/agent/runtime 2>/dev/null
 
 # Provider 注册来源与配置
-grep -rn "AgentProvider\|agent_providers" travel-server/src/main data/*.example.json
+grep -rn "AgentProvider\|agent_providers" travel-server/src/main data/agent_providers.example.json
 
 # 调用预算：死配置已删除，配置与源码应同时为空（期望 0 命中）
 grep -rn "max-tool-calls" travel-server/src/main || true

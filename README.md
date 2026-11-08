@@ -135,7 +135,7 @@ python -B tools/kb_shards.py --sync    # 分片 -> 主库 -> 运行索引
 | `travel-server/` | Spring Boot 后端、REST API 与浏览器联调页面 |
 | `travel-client/` | 控制台客户端 |
 | `travel-common/` | 共享模型 |
-| `data/` | 全国源库产物、`attractions/` 按省分片编辑源、运行索引与初始化种子；业务运行数据不提交 |
+| `data/` | 全国源库产物、`attractions/` 按省分片编辑源、运行索引与购票配置；业务运行数据由各 `Store` 按需创建，不提交 |
 | `tools/` | 构建检查、数据维护与回归入口 |
 | `reports/` | `current/` 为当前核验清单，`evidence/` 为来源证据，`archive/` 为历史治理记录 |
 | `docs/` | 需求、架构、接口、能力规划与开发日志 |

@@ -44,14 +44,16 @@ Desktop.ini
 /previews/
 /screenshots/
 
-# 运行态数据不提交；保留全国知识库与初始化种子
+# 运行态数据不提交；保留全国知识库与按省分片编辑源
 # attractions/ 是按省切分的小文件，是知识库的唯一编辑源，必须入库
 # china_attractions.json 与 attractions_index.json 是产物，保留以便新克隆开箱即用
+# 各 Store 在文件缺失时自动创建空文件，仓库不再预置 *.example.json 空数组
 /data/*
 !/data/china_attractions.json
 !/data/attractions_index.json
 !/data/attractions/
 !/data/attractions/*.json
+# 预留给未来的脱敏配置种子（如 agent_providers.example.json），当前无此类文件
 !/data/*.example.json
 /travel-server/data/
 
