@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" width="1000" height="470" style="max-width:100%;height:auto" role="img" font-family="-apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+<title>美食 Agent 数据分层与证据绑定</title>
+<desc>事实层、灵感层、偏好层三类输入进入证据绑定；绑定后的结果分别落入 facts、advice、unknownFields；展示层的评分快照与评价外链只进 value，不进 facts 与 advice；底部标注未知值与 grounding 规则。</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+<rect x="0" y="0" width="1000" height="470" fill="#f1f5f9"/>
+<text x="40" y="30" font-size="13" fill="#475569">数据分层与证据绑定</text>
+
+<rect x="40" y="54" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="54" width="3" height="104" rx="1.5" fill="#2563eb"/>
+<text x="58" y="80" font-size="13" font-weight="600" fill="#0f172a">事实层</text>
+<text x="58" y="102" font-size="11" fill="#64748b">官方公示 · 商户公示 · 地图 POI</text>
+<text x="58" y="124" font-size="11" fill="#64748b">带核验状态与抓取时间</text>
+
+<rect x="40" y="178" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="178" width="3" height="104" rx="1.5" fill="#16a34a"/>
+<text x="58" y="204" font-size="13" font-weight="600" fill="#0f172a">灵感层</text>
+<text x="58" y="226" font-size="11" fill="#64748b">Wikivoyage · Wikidata</text>
+<text x="58" y="248" font-size="11" fill="#64748b">用户开启才召回，需署名</text>
+
+<rect x="40" y="302" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="302" width="3" height="104" rx="1.5" fill="#64748b"/>
+<text x="58" y="328" font-size="13" font-weight="600" fill="#0f172a">偏好层</text>
+<text x="58" y="350" font-size="11" fill="#64748b">忌口 · 口味 · 筛选</text>
+<text x="58" y="372" font-size="11" fill="#64748b">用户可改，不进 facts 与日志</text>
+
+<path d="M320 106 L376 106" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M320 230 L376 230" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+<path d="M320 354 L376 354" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+
+<rect x="380" y="54" width="240" height="352" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+<text x="398" y="84" font-size="13" font-weight="600" fill="#2563eb">证据绑定</text>
+<text x="398" y="106" font-size="11" fill="#64748b">每条 fact 必带</text>
+<path d="M398 118 L602 118" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="398" y="144" font-size="11" fill="#0f172a" font-family="'SFMono-Regular', Consolas, monospace">sourceKind</text>
+<text x="398" y="170" font-size="11" fill="#0f172a" font-family="'SFMono-Regular', Consolas, monospace">verificationStatus</text>
+<text x="398" y="196" font-size="11" fill="#0f172a" font-family="'SFMono-Regular', Consolas, monospace">fetchedAt</text>
+<path d="M398 214 L602 214" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="398" y="240" font-size="12" font-weight="600" fill="#0f172a">外部 facts</text>
+<text x="398" y="262" font-size="11" fill="#64748b">一律 unverified</text>
+<path d="M398 280 L602 280" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="398" y="306" font-size="12" font-weight="600" fill="#0f172a">安全硬约束</text>
+<text x="398" y="328" font-size="11" fill="#64748b">忌口命中整条剔除</text>
+<text x="398" y="356" font-size="11" fill="#64748b">软条件只标注不剔除</text>
+<text x="398" y="382" font-size="11" fill="#64748b">未知写「未知」，不猜</text>
+
+<path d="M620 106 L676 106" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M620 230 L676 230" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M620 354 L676 354" fill="none" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+<rect x="680" y="54" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="680" y="54" width="3" height="104" rx="1.5" fill="#2563eb"/>
+<text x="698" y="80" font-size="13" font-weight="600" fill="#0f172a">facts</text>
+<text x="698" y="102" font-size="11" fill="#64748b">候选与字段</text>
+<text x="698" y="124" font-size="11" fill="#64748b">每条带 evidence</text>
+
+<rect x="680" y="178" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="680" y="178" width="3" height="104" rx="1.5" fill="#2563eb"/>
+<text x="698" y="204" font-size="13" font-weight="600" fill="#0f172a">advice</text>
+<text x="698" y="226" font-size="11" fill="#64748b">纯文本，最多 2,000 字符</text>
+<text x="698" y="248" font-size="11" fill="#64748b">只引用 facts 里的值</text>
+
+<rect x="680" y="302" width="280" height="104" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="680" y="302" width="3" height="104" rx="1.5" fill="#2563eb"/>
+<text x="698" y="328" font-size="13" font-weight="600" fill="#0f172a">unknownFields</text>
+<text x="698" y="350" font-size="11" fill="#64748b">人均价格 · 营业时段 · 缺项</text>
+<text x="698" y="372" font-size="11" fill="#64748b">未知写「未知」，不猜</text>
+
+<rect x="40" y="424" width="920" height="34" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="424" width="3" height="34" rx="1.5" fill="#64748b"/>
+<text x="58" y="446" font-size="11" fill="#475569">实线进 facts，虚线只作线索；展示层只进 value，不进 facts 与 advice。S-03 与 S-05：未知不猜，advice 的值要能在 facts 找到。</text>
+</svg>

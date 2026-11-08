@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" style="max-width:100%;height:auto" role="img" font-family="-apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+<title>美食 Agent 单次调用六阶段</title>
+<desc>按编号顺序执行：契约校验、上下文补全、候选召回、安全硬约束、排序与理由、证据绑定；每阶段右侧标注失败处置，底部为统一响应约束。</desc>
+<rect x="0" y="0" width="1000" height="560" fill="#f1f5f9"/>
+<text x="40" y="30" font-size="13" fill="#475569">单次调用六阶段 · 按编号顺序执行</text>
+
+<rect x="40" y="48" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="48" width="4" height="62" rx="2" fill="#2563eb"/>
+<rect x="56" y="64" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">01</text>
+<text x="104" y="75" font-size="13" font-weight="600" fill="#0f172a">契约校验</text>
+<text x="104" y="95" font-size="11" fill="#64748b">输入 HTTP 请求体 → 输出 归一化请求</text>
+<path d="M548 60 L548 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="75" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="95" font-size="11" fill="#64748b">结构不符返回 REFUSED</text>
+<path d="M496 112 L504 112 L500 120 Z" fill="#94a3b8"/>
+
+<rect x="40" y="122" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="122" width="4" height="62" rx="2" fill="#2563eb"/>
+<rect x="56" y="138" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="158" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">02</text>
+<text x="104" y="149" font-size="13" font-weight="600" fill="#0f172a">上下文补全</text>
+<text x="104" y="169" font-size="11" fill="#64748b">输入 context 与 facts → 输出 缺项清单</text>
+<path d="M548 134 L548 172" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="149" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="169" font-size="11" fill="#64748b">缺城市 REFUSED，缺项不猜</text>
+<path d="M496 186 L504 186 L500 194 Z" fill="#94a3b8"/>
+
+<rect x="40" y="196" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="196" width="4" height="62" rx="2" fill="#2563eb"/>
+<rect x="56" y="212" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="232" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">03</text>
+<text x="104" y="223" font-size="13" font-weight="600" fill="#0f172a">候选召回</text>
+<text x="104" y="243" font-size="11" fill="#64748b">输入 用户开启的数据源 → 输出 候选集</text>
+<path d="M548 208 L548 246" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="223" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="243" font-size="11" fill="#64748b">空集转 DEGRADED</text>
+<path d="M496 260 L504 260 L500 268 Z" fill="#94a3b8"/>
+
+<rect x="40" y="270" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="270" width="4" height="62" rx="2" fill="#16a34a"/>
+<rect x="56" y="286" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="306" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">04</text>
+<text x="104" y="297" font-size="13" font-weight="600" fill="#0f172a">安全硬约束</text>
+<text x="104" y="317" font-size="11" fill="#64748b">输入 忌口与过敏标签 → 输出 剔除不安全候选，其余保留</text>
+<path d="M548 282 L548 320" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="297" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="317" font-size="11" fill="#64748b">整条剔除，notices 记汇总条数</text>
+<path d="M496 334 L504 334 L500 342 Z" fill="#94a3b8"/>
+
+<rect x="40" y="344" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="344" width="4" height="62" rx="2" fill="#2563eb"/>
+<rect x="56" y="360" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="380" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">05</text>
+<text x="104" y="371" font-size="13" font-weight="600" fill="#0f172a">排序与理由</text>
+<text x="104" y="391" font-size="11" fill="#64748b">输入 距离、预算、softFilters → 输出 带理由标签的全部候选</text>
+<path d="M548 356 L548 394" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="371" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="391" font-size="11" fill="#64748b">不截断前 N 条，不编造</text>
+<path d="M496 408 L504 408 L500 416 Z" fill="#94a3b8"/>
+
+<rect x="40" y="418" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="418" width="4" height="62" rx="2" fill="#2563eb"/>
+<rect x="56" y="434" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="454" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">06</text>
+<text x="104" y="445" font-size="13" font-weight="600" fill="#0f172a">证据绑定</text>
+<text x="104" y="465" font-size="11" fill="#64748b">输入 候选、来源与评价入口 → 输出 facts、advice、unknownFields</text>
+<path d="M548 430 L548 468" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="568" y="445" font-size="11" fill="#475569">失败时</text>
+<text x="568" y="465" font-size="11" fill="#64748b">无来源字段写「未知」</text>
+
+<rect x="40" y="496" width="920" height="48" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="496" width="4" height="48" rx="2" fill="#16a34a"/>
+<text x="60" y="516" font-size="13" font-weight="600" fill="#0f172a">统一响应 AgentResult</text>
+<text x="60" y="536" font-size="11" fill="#64748b">facts ≤ 50 · advice ≤ 2,000 字符 · unknownFields ≤ 20 · elapsedMs 必填 · 评分与外链只进 value · 不预选候选</text>
+</svg>
