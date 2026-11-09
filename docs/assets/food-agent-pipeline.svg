@@ -53,10 +53,10 @@
 <rect x="56" y="360" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
 <text x="71" y="380" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">05</text>
 <text x="104" y="371" font-size="13" font-weight="600" fill="#0f172a">排序与理由</text>
-<text x="104" y="391" font-size="11" fill="#64748b">输入 距离、预算、softFilters → 输出 带理由标签的全部候选</text>
+<text x="104" y="391" font-size="11" fill="#64748b">输入 距离、预算、softFilters → 输出 带理由标签的候选，上限 50 条</text>
 <path d="M548 356 L548 394" fill="none" stroke="#e2e8f0" stroke-width="1"/>
 <text x="568" y="371" font-size="11" fill="#475569">失败时</text>
-<text x="568" y="391" font-size="11" fill="#64748b">不截断前 N 条，不编造</text>
+<text x="568" y="391" font-size="11" fill="#64748b">不按距离或评分挑前 N 条</text>
 <path d="M496 408 L504 408 L500 416 Z" fill="#94a3b8"/>
 
 <rect x="40" y="418" width="920" height="62" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>

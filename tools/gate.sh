@@ -34,6 +34,8 @@ command -v "$PYTHON" >/dev/null 2>&1 || { echo 'Python unavailable: set PYTHON' 
 # 未登记的新失败、欠账恶化或豁免过期一律 exit=1。kb 包在 tools/ 下，
 # Windows 版 Python 的 PYTHONPATH 用分号分隔，因此保留调用方原有的 PYTHONPATH。
 PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B tools/kb_quality_gate.py
+# 坐标转换回归：BD-09 系数、往返一致性、链路自洽（零依赖 unittest）
+PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B -m unittest kb.test_coordinates -v
 if [ "$SKIP_TESTS" -eq 0 ]; then
   "$MVN" -B clean verify
 else
