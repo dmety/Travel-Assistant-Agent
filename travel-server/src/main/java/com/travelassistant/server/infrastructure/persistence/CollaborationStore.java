@@ -5,11 +5,9 @@ import com.travelassistant.server.domain.collaboration.ChangeEntry;
 import com.travelassistant.server.domain.collaboration.Comment;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -155,17 +153,6 @@ public class CollaborationStore {
   }
 
   private void write(Path file, List<?> data, String label) {
-    try {
-      Path dir = file.getParent();
-      Path tmp = Files.createTempFile(dir, file.getFileName().toString(), ".tmp");
-      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), data);
-      try {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-      } catch (AtomicMoveNotSupportedException e) {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("无法写入" + label + "文件: " + file, e);
-    }
+    PersistenceSupport.writeAtomically(file, mapper, data, label);
   }
 }

@@ -25,7 +25,9 @@ import org.springframework.web.client.RestTemplate;
  * <p>为什么手写 HTTP 而不用 Spring AI 的 {@code ChatClient}：本项目的模型调用必须能在
  * **没有密钥时正常启动、正常降级**，而 Spring AI 的自动配置在缺少密钥时会导致上下文启动失败。
  * 这里改为显式 HTTP 调用，密钥为空就整体停用，行程、景点、预算、协作都不受影响。
- * 依赖仍然保留 {@code spring-ai-deepseek}，后续要换回 ChatClient 只需替换本类。
+ * 源码零引用 Spring AI，因此 POM 中不再保留 {@code spring-ai-deepseek} 及其 BOM
+ * （此前打进 jar 的 5 个 spring-ai 依赖与 jtokkit 约 3.8 MB 属于死重）。
+ * 后续若要换回 ChatClient，需先验证缺密钥时自动配置不会导致启动失败，再替换本类。
  *
  * <p>模型只负责措辞，不负责事实：调用方传给它的全部是已经查到的数据，
  * 返回的文本也不会被解析成结构化指令。

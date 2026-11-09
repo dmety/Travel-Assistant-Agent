@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "baselineDate": "2026-11-08",
+  "source": "data/china_attractions.json",
+  "purpose": "登记 kb.quality_report --strict 的已知数据欠账，供 tools/kb_quality_gate.py 逐项核对。这里登记的是「暂不阻断交付」，不是「已核验」或「已修复」；任何条目恶化、过期或出现未登记的新失败，门禁一律失败。",
+  "owner": "知识库数据线",
+  "waivers": [
+    {
+      "metric": "duplicate_description_rows",
+      "observed": 2,
+      "maxAllowed": 2,
+      "reason": "黄鹤楼公园（osm-node-4448663394）与黄鹤楼（osm-way-81641900）是同一实体的 OSM 节点与面两条记录，共用一段简介。两条记录的来源 id 不同，直接删一条会丢失跨源证据。",
+      "evidence": "reports/current/飞书任务核验对照表-2026-11-08.md 第五节；data/china_attractions.json 中 description 分组计数为 1 组 2 行",
+      "plan": "按《知识库架构与周更工作流》的同名实体合并流程查证后，或合并为一条并保留双 source_ids，或改写其中一条简介；在此之前保持现状，禁止新增重复行。",
+      "reviewBy": "2026-11-15"
+    },
+    {
+      "metric": "cities_without_intro",
+      "observed": 16,
+      "maxAllowed": 16,
+      "reason": "湖北补全批次新增 16 个地市州，但顶层 city_introductions 仍只有 65 个键，未覆盖这些城市。城市简介是展示层增强字段，缺失不影响景点检索与行程事实。",
+      "evidence": "缺失键：湖北省|仙桃、十堰、咸宁、天门、孝感、宜昌、恩施、潜江、神农架、荆州、荆门、襄阳、鄂州、随州、黄冈、黄石",
+      "plan": "周更时按权威地方志/文旅官方资料逐城补齐，补一条即从本清单核减；不得用模板文案批量填充。",
+      "reviewBy": "2026-11-15"
+    },
+    {
+      "metric": "missing_coordinates",
+      "observed": 1,
+      "maxAllowed": 1,
+      "reason": "kb-hb-yichang-06「百里荒生态旅游区」为湖北人工补全记录，录入时没有可靠坐标。按既有纪律不猜测坐标、不填近似值。",
+      "evidence": "data/china_attractions.json 中该记录 lat/lon 不可解析；tools/kb/quality_report.py 的 missing_coordinates 计数为 1",
+      "plan": "用官方或地图 POI 查证坐标并做 WGS-84 / GCJ-02 换算后回填；未查证前保持缺失。",
+      "reviewBy": "2026-11-15"
+    },
+    {
+      "metric": "records_missing_source_ids",
+      "observed": 69,
+      "maxAllowed": 69,
+      "reason": "湖北人工补全批次的 69 条 kb-hb-* 记录来自地方文旅名录的人工录入，本就没有 OSM / 高德原始 id，不是合并行遗漏。",
+      "evidence": "id 前缀 kb-hb-yichang-* / kb-hb-shiyan-* 等共 69 条；tools/kb/quality_report.py 计数 69",
+      "plan": "周更时补录权威来源编号；无法取得原始 id 的记录，在文档里明确标注「人工录入、无外部原始 id」，不得伪造 source_ids。",
+      "reviewBy": "2026-11-15"
+    },
+    {
+      "metric": "records_missing_primary_source_id",
+      "observed": 69,
+      "maxAllowed": 69,
+      "reason": "与上一条是同一批记录：source_ids 缺失时记录自身 id 自然也不在列表里，属于同一欠账的第二个视角，不是另一次回归。",
+      "evidence": "records_missing_source_ids 与 records_missing_primary_source_id 计数同为 69，抽样 id 完全一致",
+      "plan": "随 records_missing_source_ids 一并销项，两者不得单独放宽。",
+      "reviewBy": "2026-11-15"
+    },
+    {
+      "metric": "merged_rows_missing_amap_id",
+      "observed": 247,
+      "maxAllowed": 247,
+      "reason": "247 条记录声明了 OpenStreetMap + Amap 双来源，但 source_ids 里没有 amap- 前缀 id。这是高德侧来源 id 回补的历史欠账，不是数据损坏。",
+      "evidence": "reports/current/飞书任务核验对照表-2026-11-08.md 第五节「Amap 欠账 247」；抽样 osm-node-3884441391 等",
+      "plan": "按《知识库架构与周更工作流》的跨源比对流程逐批回补高德 POI id，回补一批即从 maxAllowed 下调一批；禁止用猜测 id 填数。",
+      "reviewBy": "2026-11-15"
+    }
+  ]
+}

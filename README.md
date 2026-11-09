@@ -27,7 +27,9 @@ Agent 由 Java 编排景点、天气和票务工具，模型负责组织文字�
 ### 1. 准备环境
 
 - JDK 21。
-- Maven 3.9，作为建议使用的构建版本。
+- Maven 3.9，作为建议使用的构建版本。**若 `mvn` 不在 PATH**，不必改系统环境变量：
+  - 门禁脚本支持 `MVN=/path/to/mvn bash tools/gate.sh`，或设置 `MAVEN_HOME` 后直接 `bash tools/gate.sh`（脚本会自动探测 `$MAVEN_HOME/bin/mvn`）；
+  - 直接执行 `mvn` 命令时，先确保 `<maven>/bin` 在当前 shell 的 PATH 中。
 - Python 3.10+：用于知识库维护和真实服务回归，基础服务启动无需 Python。
 - Windows 命令使用 PowerShell 7（`pwsh`）。以下命令均在项目根目录执行。
 
@@ -99,12 +101,13 @@ java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 在项目根目录依次执行：
 
 ```powershell
+python -B tools/kb_shards.py --check
 python -B tools/build_attraction_index.py --check
 mvn clean verify
 python -B tools/acceptance.py
 ```
 
-三步分别检查知识库与运行索引一致性、执行 Maven 测试和覆盖率检查、执行真实 HTTP 业务及进程重启恢复回归。最后一步依赖前一步生成的服务端 JAR。
+四步分别检查分片一致性、知识库与运行索引一致性、执行 Maven 测试和覆盖率检查、执行真实 HTTP 业务及进程重启恢复回归。最后一步依赖前一步生成的服务端 JAR。完整门禁还包含知识库治理审计，用 `bash tools/gate.sh` 一次跑完。
 
 回归脚本自动启动隔离服务，使用仓库外临时数据目录和随机端口，不调用外部 API，不修改现有业务数据。具备 Bash 环境时，可用 `bash tools/gate.sh` 执行同一流程。自动化检查通过后，仍需按需求完成团队正式验收。
 
@@ -112,12 +115,16 @@ python -B tools/acceptance.py
 
 知识库保留全国景点检索范围，北京、上海、深圳为当前重点核验城市。字段有值不等于已核验，历史快照不代表实时信息；未知票价不能视为免费，未知开放时间不能视为全天开放。
 
-更新源库后，重建运行索引，再执行一致性检查：
+`data/china_attractions.json` 是 6.3 MiB 的单行产物，不直接编辑。编辑源按省切成 30 个小文件，放在 `data/attractions/`，每个文件一条记录一行，最大 524 KiB。改广东某景点的票价，只需打开 `广东省.json` 改那一行，再一键同步：
 
 ```powershell
-python -B tools/build_attraction_index.py
-python -B tools/build_attraction_index.py --check
+python -B tools/kb_shards.py --check   # 确认分片与当前主库一致
+python -B tools/kb_shards.py --sync    # 分片 -> 主库 -> 运行索引
 ```
+
+`--sync` 按需写回主库，再按需重建 `data/attractions_index.json`。索引带构建时间戳，内容一致时跳过重建，避免无意义的字节变化。`--check` 要求分片合成结果与主库逐字节一致：改了分片没同步、绕过分片直接改主库、分片缺失或位置漂移，门禁都会失败。
+
+主库记录原本不按省聚簇，分片里的 `positions` 保存每条记录在原数组中的下标，合成时按下标归位。`manifest.json` 登记顶层字段、城市简介和分片清单；增减分片要同步改清单，或运行 `--split` 从主库重建。旧治理脚本若直接改了主库，同样用 `--split` 反向对齐。需要按字段浏览全库时，可临时运行 `tools/kb_modules.py --split` 生成本地视图，该目录不入库、用完可删。
 
 字段级来源、核验日期与必要证据集中维护。候选扫描和预览默认写入系统临时目录 `travel-assistant-kb-work/`，审查采用后才纳入 `reports/evidence/`；历史治理记录不作为当前核验结论。当前范围及核验情况见 [知识库范围与完整度清单](reports/current/知识库范围与最全景点清单.md)。
 
@@ -128,7 +135,7 @@ python -B tools/build_attraction_index.py --check
 | `travel-server/` | Spring Boot 后端、REST API 与浏览器联调页面 |
 | `travel-client/` | 控制台客户端 |
 | `travel-common/` | 共享模型 |
-| `data/` | 全国源库、运行索引与初始化种子；业务运行数据不提交 |
+| `data/` | 全国源库产物、`attractions/` 按省分片编辑源、运行索引与购票配置；业务运行数据由各 `Store` 按需创建，不提交 |
 | `tools/` | 构建检查、数据维护与回归入口 |
 | `reports/` | `current/` 为当前核验清单，`evidence/` 为来源证据，`archive/` 为历史治理记录 |
 | `docs/` | 需求、架构、接口、能力规划与开发日志 |

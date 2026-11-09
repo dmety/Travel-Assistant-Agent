@@ -49,6 +49,20 @@ public class PlanningService {
 
   /** 生成规划草案（不落库）。 */
   public PlanDraft plan(PlanningRequest request) {
+    return plan(request, true);
+  }
+
+  /**
+   * 只装配事实，不调用模型。
+   *
+   * <p>「确认保存」要按同一套规则重新装配一遍载荷，此时调模型润色既浪费又有失败风险，
+   * 因此单独留一个无模型入口。两种入口生成的 questions / dailySchedules / checks 完全一致。
+   */
+  public PlanDraft planFacts(PlanningRequest request) {
+    return plan(request, false);
+  }
+
+  private PlanDraft plan(PlanningRequest request, boolean withAdvice) {
     if (request == null || request.destination() == null || request.destination().isBlank()) {
       throw new InvalidPlanningRequestException("请填写目的地");
     }
@@ -134,9 +148,13 @@ public class PlanningService {
       notices.add("未提供同行人数，人均费用无法计算");
     }
 
+    // 4b. 结构化补问、逐日草案、日期与预算检查（纯规则，与模型无关）
+    DraftAssembler.Draft assembled = DraftAssembler.assemble(request, candidates);
+    notices.addAll(assembled.notices());
+
     // 5. 模型建议（可失败）
     String advice = null;
-    if (model.configured()) {
+    if (withAdvice && model.configured()) {
       try {
         advice = model.complete(systemPrompt(), userPrompt(request, candidates, weather));
         sources.add("DeepSeek " + model.model());
@@ -144,12 +162,13 @@ public class PlanningService {
         log.warn("模型建议生成失败：{}", e.getMessage());
         notices.add(e.getMessage() + "，以下仅列出检索到的景点");
       }
-    } else {
+    } else if (withAdvice) {
       notices.add("未配置模型密钥（DEEPSEEK_API_KEY），本次仅提供检索到的景点，未生成文字建议");
     }
 
     return new PlanDraft(request, candidates, weather, ticketAdvice, advice,
-        notices, List.copyOf(sources), Instant.now());
+        notices, List.copyOf(sources), assembled.questions(), assembled.dailySchedules(),
+        assembled.checks(), assembled.budgetEstimate(), Instant.now());
   }
 
   /** 模型是否可用，供状态接口展示。 */
@@ -175,6 +194,10 @@ public class PlanningService {
     sb.append("需求：\n");
     sb.append("- 目的地：").append(request.destination().strip()).append('\n');
     sb.append("- 天数：").append(request.days() == null ? "未提供" : request.days() + " 天").append('\n');
+    sb.append("- 出发日期：").append(request.departDate() == null
+        ? "未提供" : request.departDate()).append('\n');
+    sb.append("- 返回日期：").append(request.returnDate() == null
+        ? "未提供" : request.returnDate()).append('\n');
     sb.append("- 人数：").append(request.travelers() == null ? "未提供" : request.travelers()).append('\n');
     sb.append("- 预算：").append(request.budget() == null
         ? "未提供" : request.budget().toPlainString() + " " + request.currencyOrDefault()).append('\n');
