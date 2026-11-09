@@ -1,12 +1,27 @@
 # 美食 Agent 架构设计
 
-这份文档定义美食 Agent 的能力边界、内部处理流程和接入契约。它是《Agent 运行时架构设计》里 `food.recommender` 这个示例 Provider 的领域设计，本文只出设计，不改 Java 代码、配置文件和数据文件。
+这份文档定义美食 Agent 的能力边界、内部处理流程和接入契约。它是《Agent 运行时架构设计》里 `food.recommender` 这个示例 Provider 的领域设计。2026-11-09 起已按本文落地内置与外部两种 Provider 形态，本文同时作为设计依据与实现说明；未落地的部分在「实现状态」一节逐条列明，不把设计写成已上线功能。
 
 读者是准备实现这个 Provider 的人。读完要能写出合规的 HTTP 服务，知道哪些数据可以用，知道附近候选怎么来，知道评价怎么给用户看，知道怎么过 G0 至 G4 准入。
 
 本期有两条设计原则。一是选择权归用户：Provider 给出候选和依据，不替用户挑、不替用户假设、不替用户排除。二是看评价属于用户决策的一部分：国内用户选餐厅普遍会看评分和别人写的评价，不因为数据链路的合规约束砍掉这一步，改由「不抓取、只给入口」实现。
 
 两条原则都从一个外出者的真实需求倒推。外出想体验当地美食，看重的是这些：正宗与本地性、口碑可信度、位置顺路、忌口硬约束、价格预期、营业状态、氛围体验。其中「正宗」和「口碑可信」恰恰是地图 API 给不了的，这决定了信息的获取分三层：位置、价格、营业时段、基础评分走实时 POI 接口；正宗、本地性、老字号走开放数据做轻量底账；真实口碑走外链交还给用户自己看。
+
+## 实现状态（2026-11-09）
+
+两种形态都已落地，共用《Agent 接入规范》契约 1.0，未升主版本、未新增 `Fact.type` 枚举。
+
+| 形态 | 落点 | 状态 |
+| --- | --- | --- |
+| 内置 Bean | `builtin.food`，`application/agent/food/FoodRecommendationService.java` 与 `FoodProviderConfiguration.java` | 已注册为 `FOOD_RECOMMEND` 默认 primary，走同一套 `ContractValidator`，无需 G1 至 G4 |
+| 外部 HTTP | `tools/agent/food_provider_server.py`（`POST /v1/invoke` 与 `GET /healthz`）+ `data/agent_providers.example.json` 种子 | 参考实现已可运行，离线自测 12/12；本机环回地址被 G0 拒绝，进注册表仍需公网 https 域名并入 allowlist |
+| L1 编排入口 | `POST /api/agent/invoke`，`application/agent/orchestration/AgentOrchestrator.java` | 已接通注册表，按 intent 逐个 invoke、失败切兜底；不改 `/api/agent/plan` |
+| 归纳层 | `application/agent/orchestration/SummaryComposer.java` | 已接入编排层：facts 到一句人话，数字校验不过即回退模板 `advice`，见「归纳层：facts 到一句人话」 |
+
+硬前置已补齐：`tools/build_attraction_index.py` 的 `KEEP_FIELDS` 增加 `coordinateSystem`，索引重建为 7745 条（WGS-84 3350 / GCJ-02 4395）；Java `Attraction` 与 `AttractionView` 透传该字段；`infrastructure/geo/CoordinateTransforms.java` 提供 WGS-84 / BD-09LL 到 GCJ-02 的换算与 Haversine，独立基准向量单测锁死 `x_pi = pi * 3000 / 180` 系数。高德新增 `/v3/place/around` + `types=050000` + `extensions=all`，百度第二源 `scope=2` 并先做 GCJ-02 到 BD-09LL 的锚点换算。
+
+**仍未做**，不要按本文正文里「计划」语气误读为已实现：本地开放数据底账（没有它，无 key 时降级为**零候选并如实标注**，不是「本地有什么值得吃」）、Wikivoyage 灵感层与 `includeInspiration`、评价平台外链白名单与 `reviewLinks` 实际生成（`reviewLinks` 恒为空数组）、按 `runId` 的 24 h 幂等缓存与摘要缓存、九条餐饮准入探针、餐饮条目独立 ID 校验、前端实时定位。这些都在正文里保留原设计，列在「待决」。
 
 ## 边界与前提
 
@@ -33,12 +48,45 @@
 | 附近是多大 | 半径档位与锚点 | 不替用户定「附近」的范围 | `context.radiusMeters` 与锚点，见「附近美食的数据获取」 |
 | 看哪些候选 | 在契约上限内看全部可用候选，自己排序和筛 | 不静默剔除软条件不符的候选，不按距离或评分替用户挑前 N 条 | `facts` 上限 50；`value.constraintNotes` 与 `value.reasonTags` |
 | 看不看评价 | 是否显示评分快照与评价平台入口 | 不按评分替用户排序，不替用户读评价 | `context.showReviews`，见「评价怎么给用户看」 |
+| 要不要连锁 | 默认推荐本地口味，勾选「含连锁」则保留连锁快餐与饮品 | 不静默剔除，剔除条数与排序规则都写进 `notices` | `context.includeChains`，默认 `false`，见「本地口味优先与连锁剔除」 |
 | 用不用灵感层 | 是否纳入白名单内容源 | 用户未开启时不召回，不接禁爬站点 | `context.includeInspiration`，默认 `false` |
 | 确认与改动 | 勾选哪几条、改选、撤销 | 不默认勾选，不自动写库 | 确认后走既有 `POST /api/itineraries` 与 `PUT .../daily` |
 
 用户改主意的成本要低。每次请求都重读当前选择，不缓存偏好。幂等缓存只按 `runId` 存响应，用户改了条件就换 `runId` 重新发起，不复用上一次结果。前端不把上一次的勾选带到下一次询问。
 
 以下六项不随用户选择放开：过敏与忌口的硬过滤、契约校验与 G0 至 G4 准入、响应体的 `additionalProperties: false`、robots 与 license、评价正文不搬运、PII 过滤与 24 h 留存。它们是安全与合规底线，做成可选项会让准入失去意义。这几项由服务端和准入流程固定，不进 `context`。
+
+## 本地口味优先与连锁剔除
+
+旅行者要的是「当地能吃到的」，不是全国同款的连锁。默认行为因此改了两处，并都做成显式可查：
+
+| 行为 | 规则 | 用户能否改变 | 如何被看见 |
+| --- | --- | --- | --- |
+| 连锁剔除 | 店名或类别命中连锁品牌词（咖啡、西式快餐、茶饮等）即剔除 | 能，`context.includeChains=true` 全部保留 | `notices` 报剔除条数 |
+| 本地优先排序 | 命中土菜、农家、老字号、地方小吃等信号词的排在前面；其余维持原有 `poiId` 与名称固定顺序 | 能，关掉连锁保留即可看到完整集合 | `notices` 说明排序规则 |
+
+两处都只依据店名与类别标签做关键词判定，不查库、不联网、不调用模型；命中即处理，宁可少推荐也不把连锁当成当地美食。响应里用 `value.locality`（`LOCAL` / `OTHER`）标记结果，命中本地信号时 `value.reasonTags` 追加一条说明。
+
+这不是「静默排除」：剔除条数、排序规则每次都写进 `notices`，且 `includeChains` 可一键放开。排序不涉及评分与距离，因此不违反「不按评分或距离替用户挑前 N 条」这条边界。
+
+品牌词表与本地信号词表都在 `FoodRecommendationService` 的常量里，扩充时同步补单测（连锁剔除、`includeChains` 保留、本地优先排序三条用例已覆盖）。
+
+## 归纳层：facts 到一句人话
+
+结构化候选适合核对，不适合阅读。`application/agent/orchestration/SummaryComposer.java` 在编排层把 facts 归纳成一句中文，用来顶替 Provider 的模板 `advice`。
+
+四条约束把「模型只做表达、不做事实」钉死：
+
+| 约束 | 做法 | 失败后果 |
+| --- | --- | --- |
+| 输入不含店名 | 摘要视图只喂距离、人均、评分、标签、餐次、限制与 `locality` | 模型没有名字可复述，编造店名这条路径直接不存在 |
+| 数字必须可核对 | 输出里每个数字都要在 facts 中找到同一个值（候选条数也算），小数按整数归一比较 | 整条丢弃，回退 Provider 原 `advice` |
+| 长度受限 | 取 `min(120 字, limits.maxAdviceChars)` | 超长丢弃 |
+| 全程可降级 | 未配密钥、无 facts、调用异常、输出不合规一律返回 `null` | 主链路不受影响，不报错、不改变状态码与 facts 条数 |
+
+模型看不到店名，也只能引用给定数值，所以这段文案不能引入新事实。它不写库、不缓存，失败只在 debug 日志记异常类型，不落模型原文与密钥。
+
+注意：归纳层不参与候选生成、排序、过滤与忌口判定——那些仍在确定性代码里完成，可审计性不因引入模型而下降。
 
 ## 和外部契约的接缝
 
@@ -123,7 +171,7 @@
 
 高德餐饮类周边检索用 `/v3/place/around`，参数 `types=050000`（餐饮服务大类）、`location`、`radius`、`sortrule=distance`，`extensions=all` 才会返回 `biz_ext.rating`、`cost` 与 `tag` 等商业字段。项目现在只接了 `/v3/place/text` 与 `/v3/geocode/geo`，且 `AmapClient.searchPlaces` 写死 `extensions=base`，拿不到评分与人均，`Place` record 也没有这些字段。周边检索是新增适配器，不能照抄 `tools/kb/amap_source.py` 的 `AMAP_TOURISM_TYPES`（只覆盖风景名胜与科教文化），要按餐饮类型码另写。`tools/kb/amap_source.py` 注释写的每日免费额度约 5,000 次，以控制台实际配额为准。
 
-百度作为可选第二源。`place/v2/search` 配 `query=美食` 与 `location`/`radius`，`scope=2` 返回 `detail_info` 里的 `overall_rating`、`taste_rating`、`service_rating`、`environment_rating`、`comment_num`、`price`、`shop_hours` 与 `content_tag`，还带 `detail_url` 官方详情页，可直接当 `reviewLinks`。百度坐标是 BD-09LL，比 GCJ-02 多一层加密，接入前要先转坐标系。本期以高德为主源，百度列为待决，不预设接入。
+百度作为第二源，2026-11-09 已接入。`place/v2/search` 配 `query=美食` 与 `location`/`radius`，`scope=2` 返回 `detail_info` 里的 `overall_rating`、`comment_num`、`price`、`shop_hours` 与 `tag`。百度坐标是 BD-09LL，比 GCJ-02 多一层加密：请求锚点先由 GCJ-02 转 BD-09LL，返回的 POI 坐标再转回 GCJ-02，两套结果才能合并算距离。`detail_url` 官方详情页虽然可取，但评价平台外链白名单未定，本轮不生成 `reviewLinks`，见「实现状态」。
 
 ### 距离与坐标系
 
@@ -131,7 +179,7 @@
 
 用 Haversine 算直线距离。`distanceMeters` 是直线距离，不是步行距离或步行时间；需要步行时间得另调路径规划接口，本期不做，`notices` 里要说明距离按直线计算。半径由用户选，超出半径的候选写标注、不剔除，见「用户选择权」。
 
-**当前阻塞**：源库里 `coordinateSystem` 是 GCJ-02 4,395 条、WGS-84 3,350 条，而 `tools/build_attraction_index.py` 的 `KEEP_FIELDS` 只有 20 个字段，不含 `coordinateSystem`。索引不带坐标系标签，服务端就无法正确下发锚点。最小改动是构建脚本把该字段加进白名单，Java 侧 `AttractionStore` 用 `mapper.treeToValue(node, Attraction.class)` 解析，新增字段的行为要实测确认。这一步要改代码，本期不做，列在「待决」。在此之前，本地桩只能用显式标注为 GCJ-02 的锚点。
+**阻塞已解除（2026-11-09）**：源库里 `coordinateSystem` 是 GCJ-02 4,395 条、WGS-84 3,350 条，原先 `tools/build_attraction_index.py` 的 `KEEP_FIELDS` 只有 20 个字段，索引不带坐标系标签，服务端无法正确下发锚点。现已把该字段加进白名单并重建索引；`AttractionStore` 用 `mapper.treeToValue(node, Attraction.class)` 解析时，因 `Attraction` 是 `@JsonIgnoreProperties(ignoreUnknown = true)` 的 record，必须同步在 record 里加 `@JsonProperty("coordinateSystem")` 才会透传，这一点已用真实服务验收 `/api/attractions/{id}` 复核。锚点标签缺失或无法识别时编排层直接跳过该点，不猜坐标系。
 
 ### 事实字段的来源
 
@@ -294,7 +342,7 @@ Provider 只返回建议，且不默认勾选任何一条。用户确认后，�
 | G3 影子运行 | 20 次调用零违规，`elapsedMs` 在预算内 |
 | G4 启用 | 人工确认后置 `enabled=true`，状态转 `ACTIVE` |
 
-建议补九条餐饮探针。用例集随规范版本入库，新增用例要同步升规范版本，所以这九条先列为待决项。机器可读规范源 `tools/agent/provider-contract.json` 尚未落地，《Agent 接入规范》「请求与响应契约」写明它是落地时才生成，本期没有可改的文件。
+建议补九条餐饮探针。用例集随规范版本入库，新增用例要同步升规范版本，所以这九条仍列为待决项。机器可读规范源 `tools/agent/provider-contract.json` 与 `tools/agent/gold_cases.json` 已于 2026-11-09 落地，Java 侧的 `ContractValidator` 与 G0 闸门以它们为单一判定依据；下表是新增餐饮用例的设计提案，不是已入库的 gold cases。当前实现用单元自测覆盖其中六条口径，未改契约、未升版本。
 
 | 建议用例 | 输入特征 | 期望 |
 | --- | --- | --- |
@@ -314,19 +362,19 @@ Provider 只返回建议，且不默认勾选任何一条。用户确认后，�
 
 ## 实施步骤
 
-1. 定餐饮事实字段的数据形状、锚点与半径的取值、本地开放数据底账的来源白名单与 license 清单，以及评价外链的平台清单与 URL 模板。本期只出 schema，不抓数据。
-2. 核对索引坐标系缺口：`KEEP_FIELDS` 补 `coordinateSystem` 并实测 Java 侧解析行为，确认锚点能正确下发。
-3. 写 Python Provider 本地桩，实现 `POST /v1/invoke` 与 `GET /healthz`，返回固定合规响应，先用标注为 GCJ-02 的锚点跑通。
-4. 配 `data/agent_providers.json`，跑 G0 至 G3，保持 `enabled=false`。配置是运行态文件，不入库。仓库里没有 `data/agent_providers.example.json`：11-08 清理空数组种子时删掉了这批文件，`.gitignore` 只留白名单。配置形状按《Agent 接入规范》附录 A 手工建，不要依赖复制种子。上游《Agent 运行时架构设计》「附录：复核命令」里的种子路径也指向尚不存在的文件，跑命令前先确认。
-5. G4 通过后启用。前端从 `GET /api/agent/capabilities` 动态渲染入口，不改页面代码；入口不自动发起调用，用户本地开关默认关闭。
+1. 定餐饮事实字段的数据形状、锚点与半径的取值。**待做**：本地开放数据底账的来源白名单与 license 清单、评价外链的平台清单与 URL 模板。
+2. 核对索引坐标系缺口。**已完成**：`KEEP_FIELDS` 补 `coordinateSystem`、Java record 加字段、索引重建、真实服务验收复核透传。
+3. 写外部 Provider。**已完成**：`tools/agent/food_provider_server.py` 实现 `POST /v1/invoke` 与 `GET /healthz`，用真实高德 / 百度 POI，本机 `--self-test` 12/12 通过；Java 侧 `FoodHttpProviderTest` 用本地桩验证同形状响应能过 `ContractValidator`。
+4. 配 `data/agent_providers.json`，跑 G0 至 G3，保持 `enabled=false`。**部分完成**：脱敏种子 `data/agent_providers.example.json` 已存在且受 G0 校验；运行态配置仍是 gitignored 的本地文件。G0 拒绝环回地址与 IP 字面量，本机服务不能直接写进运行态配置，正式部署需公网 https 域名并把域名加入 `provider-contract.json` 的 `runtime.endpointAllowlist`，再走 G1 至 G4。
+5. G4 通过后启用。**待做**：前端从 `GET /api/agent/capabilities` 动态渲染入口，用户本地开关默认关闭。内置 Bean `builtin.food` 已不需要这一步。
 
-本期只出设计，第 2 步起需要动代码，未执行。用户选择项全部走 `context` 开放对象与前端本地状态，结果侧走 `value` 里的字段，不新增顶层字段，所以不需要升契约主版本。第 1 步的数据源清单与外链白名单要先确认可抓取范围，避免把禁爬站点接进流水线。
+用户选择项全部走 `context` 开放对象与前端本地状态，结果侧走 `value` 里的字段，不新增顶层字段，所以不需要升契约主版本。第 1 步的数据源清单与外链白名单要先确认可抓取范围，避免把禁爬站点接进流水线。为避免把设计写成已上线功能，未做项集中列在「实现状态」一节。
 
 ## 已知风险
 
 | 编号 | 风险 | 影响与缓解 |
 | --- | --- | --- |
-| F-1 | 索引不带 `coordinateSystem`，源库两套坐标系混存 | 附近距离可能偏 300 至 600 m；先补字段再上线，见第 2 步 |
+| F-1 | 索引不带 `coordinateSystem`，源库两套坐标系混存 | **已销项**：2026-11-09 补字段、重建索引、Java 透传并用真实服务复核；标签缺失的锚点直接跳过 |
 | F-2 | 高德周边检索的参数、类型码与配额未经官方文档核实 | 适配器可能调用失败或超额；写实现前逐项核对 |
 | F-3 | 高德 Web 服务有再分发限制 | 在线结果不得落库，只进本次响应与 24 h 摘要缓存 |
 | F-4 | `AMAP_KEY` 与 `AMAP_API_KEY` 两套命名 | 配错会整体停用地点查询；两套分别配置，不共用 `.env` |

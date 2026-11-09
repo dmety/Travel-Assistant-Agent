@@ -32,8 +32,10 @@
 | `POST /api/login` | 表单登录 |
 | `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
-| `GET /`、`GET /login`、`GET /app` | 测试前端单页（`PageController` 转发到 `index.html`，登录卡与测试台同页切换） |
+| `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
+| `GET /chat.html` | AI 对话页（登录后落地页；未登录由页内脚本跳回 `/?next=/chat.html`） |
+| `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
 | `GET /favicon.ico` | 站点图标，避免未登录时打日志噪音 |
 
@@ -1053,11 +1055,15 @@ GET /api/itineraries/{id}/export
 
 ---
 
-## 5. 测试前端页面
+## 5. 前端页面
 
-服务端内置**一个**静态测试页（仅用于本地联调，非生产 UI）：`static/index.html`。
+服务端内置**三个**静态页（仅用于本地联调与展示，非生产 UI）：
 
-页面按会话自动切换两种形态，不需要跳转：
+- `static/index.html`：首页 / 登录与注册页，`GET /`、`/login`、`/app` 均转发到此；
+- `static/chat.html`：AI 对话页，登录后的落地页；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/chat.html`；
+- `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换。
+
+接口测试台按会话自动切换两种形态，不需要跳转：
 
 | 状态 | 显示内容 |
 |---|---|
@@ -1068,11 +1074,13 @@ GET /api/itineraries/{id}/export
 
 | 地址 | 行为 |
 |---|---|
-| `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（三个地址等价，`/login`、`/app` 为历史链接） |
-| `GET /index.html` | 静态资源直连 |
+| `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（登录 / 注册页；`/login`、`/app` 为历史链接） |
+| `GET /index.html` | 登录页直连 |
+| `GET /chat.html` | AI 对话页直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /api-console.html` | 接口测试台直连 |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
 
-页面区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 归档导出）。
+页面用左侧竖排栏区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 美食推荐 / Agent 投票 / 归档导出）。
 
 所有请求通过 `fetch` 调用 §2/§3 的真实接口，同源携带 `JSESSIONID`；响应按 UTF-8 解码（服务端已配置 `server.servlet.encoding.force=true`，静态页与 JSON 都带 `charset=UTF-8`）。
 

@@ -1,10 +1,10 @@
 # 多 Agent 方案投票编排设计
 
-本文说明旅行助手的“主 Agent 生成多套方案、其他 Agent 打分、主 Agent 计票”怎么落地。计票原型已在 `tools/agent/plan_vote.py` 跑通，22 个自测用例全过。Java 侧 Agent 运行时尚未落地，本文是设计，不代表功能已实现。
+本文说明旅行助手的“主 Agent 生成多套方案、其他 Agent 打分、主 Agent 计票”怎么落地。计票原型已在 `tools/agent/plan_vote.py` 跑通，22 个自测用例全过，并被门禁 `tools/gate.sh` 每次交付前复跑。Java 侧 P0 运行基座与 L1 编排骨架已于 2026-11-09 落地，两轮投票协议也在同日晚上线：三位评委 Bean、`POST /api/agent/vote` 与确定性计票器 `PlanVoteTally` 已实现并接入主 Agent。下文除“待决”外均已在代码里兑现。
 
 ## 与其他文档的关系
 
-《多 Agent 与票务能力方案》开头已注明，它是 2026-11-02 的目标态记录，不作运行时最高口径。本文遵循《Agent 运行时架构设计》和《Agent 接入规范》的契约，不改契约主版本，也不改 Java 代码。
+《多 Agent 与票务能力方案》开头已注明，它是 2026-11-02 的目标态记录，不作运行时最高口径。本文遵循《Agent 运行时架构设计》和《Agent 接入规范》的契约，不改契约主版本。
 
 Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteTally` 让成员对候选投 `SUPPORT` / `OPPOSE` / `ABSTAIN`。那是**人对方案投票**。本文的投票由 Agent 给出结构化评分，两者概念不同，不复用同一套表和算法。混用会让“几票支持”和“几个评分项”出现在同一处，结果无法解释。
 
@@ -64,7 +64,7 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 | `E_VOTE_UNKNOWNPLAN` | `planId` 不在本轮候选里 | 编排层局部 |
 | `E_VOTE_DUPLICATE` | 同一评委对同一方案交了两张票 | 编排层局部 |
 
-后三条已定案为编排层局部原因码，不在《Agent 接入规范》的原因码表里，也不进 `AdmissionReport`。它们校验的是编排层的轮次状态，不是单个 Provider 的响应。判定依据见“新增原因码的查明依据”。
+后三条已定案为编排层局部原因码，不在《Agent 接入规范》的原因码表里，也不进 `AdmissionReport`。它们校验的是编排层的轮次状态，判定对象不是单个 Provider 的响应。判定依据见“新增原因码的查明依据”，边界见《Agent 运行时架构设计》「编排层局部原因码」一节。
 
 ## 计票规则
 
@@ -114,7 +114,7 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 
 ## 待决
 
-三条 `E_VOTE_*` 的归属已定案，见上节，不列入本表。
+三条 `E_VOTE_*` 的归属已定案，见上节，已在《Agent 运行时架构设计》单列一节，不列入本表。
 
 | 项 | 待定内容 |
 | --- | --- |
@@ -130,19 +130,36 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 
 三条新码覆盖的校验，现有码接不上。`planId` 不在本轮候选，不属于 `E_SEMANTIC_GROUNDING` 管的事实接地；重复票是跨 fact 的聚合一致性，`E_TRANSPORT_IDEMPOTENCY` 管的是同一 `runId` 重放；rubric 越权是评委声明与票的一致性，规范里没有对应项。原型不能假装已有码能覆盖，否则负例对不上号。
 
-纳入规范的代价也比“升规范版本”这句说法更大。规范第 421 至 424 行的版本治理表规定，收窄枚举或把 `WARN` 升 `BLOCK` 要升主版本 1.x 到 2.0，全部已 ACTIVE Provider 转 `DEPRECATED` 重新准入。三条码都是新增的 BLOCK 级拒绝条件，票会被整体丢弃，落在收窄一侧。第 427 行还要求规范变更同步更新规范本文、`tools/agent/provider-contract.json`、gold cases 与《Agent 运行时架构设计》的引用，不允许只改一处。后两项目前不存在，Java 侧 `ContractValidator` 等基座也是零文件，现在纳入连同步对象都不齐。
+纳入规范的代价也比“升规范版本”这句说法更大。规范第 421 至 424 行的版本治理表规定，收窄枚举或把 `WARN` 升 `BLOCK` 要升主版本 1.x 到 2.0，全部已 ACTIVE Provider 转 `DEPRECATED` 重新准入。三条码都是新增的 BLOCK 级拒绝条件，票会被整体丢弃，落在收窄一侧。第 427 行还要求规范变更同步更新规范本文、`tools/agent/provider-contract.json`、gold cases 与《Agent 运行时架构设计》的引用，不允许只改一处。定案时 `provider-contract.json` 与 gold cases 还没建，Java 侧 `ContractValidator` 等基座也是零文件，当时纳入连同步对象都不齐。这些文件与基座同日已补齐，结论不变。
 
 更根本的是层级。候选清单由编排层本轮生成，rubric 声明由编排层持有，重复票要聚合后才看得出来。这些判定不归 Provider 自检，修复方也常是编排层自己。写进接入方契约，会让接入方为自己无法控制的失败码去自助修复。
 
 定案口径（2026-11-09，用户确认）：保留 `E_VOTE_*` 作为编排层局部原因码，不进准入契约、不参与 `contractVersion`、不触发重新准入，也不写进 `AdmissionReport`。编排层拒绝只进 `rejections` 与 `notices`，不计 Provider 违规、不加熔断计数。
 
-挂起项：等编排层校验落地时，再决定是否在《Agent 运行时架构设计》里单列一节。本文定案不消解这条。
+挂起项已销项，2026-11-09 用户决定单列一节，见《Agent 运行时架构设计》「编排层局部原因码」。三条码仍不进任何准入契约。
 
 ## 落地前置
 
-《Agent 运行时架构设计》里的 `AgentProvider`、`AgentRegistry`、`ContractValidator`、`HttpAgentAdapter` 和 `AdmissionController` 目前都没有代码，`/api/agent/capabilities`、`provider-contract.json` 和 gold cases 也不存在。两轮协议要跑在编排层的 `INVOKING` 阶段上，基座没落地前无法接入。
+2026-11-09 已补齐 P0 基座：`AgentProvider`、`AgentRegistry`、`ContractValidator`、`HttpAgentAdapter` 和 `AdmissionController` 落在 `application/agent/spi/`，`/api/agent/capabilities`、`provider-contract.json` 和 gold cases 也已存在。同日又落地了 L1 编排层骨架：`AgentOrchestrator` 与 `POST /api/agent/invoke` 已接通注册表，按 intent 逐轮 invoke、响应过契约校验、失败切兜底。
 
-原型是离线纯函数，不接入 Java 运行时，不是 `AgentProvider` 实现，也不参与构建。它只证明计票规则可复核，不能当成运行时已可用的证据。
+但骨架只做**单轮路由**，不生成候选清单、不收评分票、不跑计票；`INVOKING` 阶段的两轮协议仍未接线。更关键的缺口是评委：用户明确后续由购票、停车推荐等功能 Agent 担任评委，这些 Agent 还没实现，现在硬造评委 Provider 只会得到没有独立视角的假票。因此本轮不启用范式 B，也不把三条 `E_VOTE_*` 局部码搬进 Java 运行时。
+
+原型是离线纯函数，不接入 Java 运行时，也不是 `AgentProvider` 实现，不参与构建。它只证明计票规则可复核，不能当成运行时已可用的证据。
+
+### 实现状态（2026-11-09 晚）
+
+用户决定不再等购票 / 停车推荐独立成「评委 Agent」，而是先把范式 B 跑通：本轮直接用具备独立评分视角的三位评委 Bean 接进投票，等后续功能 Agent 就位再扩展。**状态：已落地，门禁全绿**。
+
+落地的代码（均在 `travel-server/src/main/java/.../application/agent/vote/`）：
+
+- `PlanVoteTally`：确定性计票器，等价移植 `plan_vote.py` 的 22 条规则（VETO 硬剔除、弃票不进分母、加权、三步平局、同构检测、三条 `E_VOTE_*` 只进 `rejections`/`notices`）。Java 侧 `PlanVoteTallyTest` 22 例全过。
+- `JudgeProviderConfiguration`：三位评委 Bean `judge.ticket` / `judge.food` / `judge.parking`，各自声明独立 `Rubric`（评分项 + 权重 + 否决权），复用现有 `DECISION_ADVICE` 能力，不新增 capability 枚举。
+- `VoteOrchestrator`：两轮编排层。第一轮按 `hints.votePhase=COLLECT` 征集事实并记录 `providerId → ownFactIds`；候选方案「模型优先 + 规则兜底」，模型输出必须引用真实 `factId`，任何编造 / 格式错误 / 无密钥 / 调用失败自动降级为确定性规则草案；第二轮 `SCORE` 一次性收齐评分票后交给 `PlanVoteTally`。评委响应统一过 `ContractValidator`，违规或异常只记编排层 notice，不改注册表状态、不计 Provider 违规。刻意不改动 `AgentOrchestrator`，保护既有单轮测试。
+- `AgentVoteController`：`POST /api/agent/vote`，路径落在 `/api/agent/**` 自动继承登录鉴权（匿名 401），信封脱敏不含 endpoint / authRef / 凭据。
+
+触发条件里担心的「硬造评委 Provider 得到假票」在本轮被绕开：评委用确定性规则基于公开行程事实打分，并在 `notices` 如实标注「停车视角暂无专属数据源，未编造停车 POI」；票数只用 `CONTENT` + `value.category=PLAN_SCORE`，不动 `Fact.type` 枚举，契约仍是 1.0。
+
+本轮未做（仍属上方「待决」）：评委权重写入注册配置或按用户偏好动态给、否决范围扩展到忌口 / 体力之外、推荐结果落 V3 候选看板由用户再投人票。这些等真实功能 Agent 接入后再定，不阻塞当前闭环。
 
 ## 复核命令
 
@@ -153,4 +170,4 @@ PYTHONPATH="F:/pythons/pkgs" \
   tools/agent/plan_vote.py
 ```
 
-自测全过时退出码为 0，末行输出 `22/22 通过`。
+自测全过时退出码为 0，输出里有 `-- 22/22 通过 --`。
