@@ -15,7 +15,7 @@ class AttractionViewTest {
   private static Attraction withStatus(String ticketStatus, String openTimeStatus) {
     return new Attraction("t-1", "测试景点", "杭州", "浙江省",
         null, null, null, null, null, null, null, null, null, null,
-        null, null, null, List.of(), ticketStatus, openTimeStatus);
+        null, null, null, List.of(), ticketStatus, openTimeStatus, "WGS-84");
   }
 
   @Test

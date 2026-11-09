@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "providers": [
+    {
+      "id": "py.food.recommender",
+      "kind": "HTTP",
+      "endpoint": "https://agent.example.com/v1/invoke",
+      "healthPath": "/healthz",
+      "authRef": "PY_AGENT_TOKEN",
+      "version": "0.2.0",
+      "owner": "travel-team",
+      "description": "脱敏种子：外部美食推荐 Provider 模板，参考实现见 tools/agent/food_provider_server.py；不含任何凭据值",
+      "capabilities": ["FOOD_RECOMMEND"],
+      "schemaVersion": "1.0",
+      "timeoutMs": 4000,
+      "maxResponseBytes": 65536,
+      "sideEffect": "NONE",
+      "enabled": false
+    }
+  ],
+  "routes": [
+    {
+      "intent": "FOOD_RECOMMEND",
+      "primary": "py.food.recommender",
+      "fallback": ["builtin.rules"]
+    }
+  ]
+}

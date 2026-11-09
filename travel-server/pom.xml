@@ -42,6 +42,21 @@
     </dependency>
   </dependencies>
   <build>
+    <!-- 规范单一源只留 tools/agent/provider-contract.json 一份，构建时复制进 classpath，
+         运行时 ContractRules 从 classpath 读，避免仓库里出现第二份口径。 -->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>${project.basedir}/../tools/agent</directory>
+        <includes>
+          <include>provider-contract.json</include>
+          <include>gold_cases.json</include>
+        </includes>
+        <targetPath>agent</targetPath>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
