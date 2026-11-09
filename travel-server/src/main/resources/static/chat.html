@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · AI 对话</title>
+<style>
+/* ==================================================================
+   旅行助手 · AI 对话界面
+   ------------------------------------------------------------------
+   Step 0：单文件原生 HTML + 内联 CSS/JS，无框架、无 Tailwind、无组件库、
+   无暗色模式（沿用 api-console.html 的 light + blue 主题）。
+   复用 api-console.html 既有 token：主色 #2563eb、slate 中性色阶、
+   12/14/16/20/25 字级、4/8/12/16/24/32/48/64 间距、6/8/12 圆角、三级阴影。
+   未引入新色相，聊天气泡色由 --primary / --primary-soft 派生。
+
+   约束简报（Workflow B 步骤 1–3 留痕）
+   内容排序
+     主：对话消息流（用户问 + 助手答），承载全部信息
+     次：输入区（本页唯一主操作 =「发送」）
+     末：左侧会话历史、顶部标题与状态、推荐问题 chips
+   动作排序
+     主：发送；次：新对话 / 推荐问题；末：复制、移动端菜单
+
+   token 取用（步骤 4–6）
+     间距：消息内 12 / 消息间 24 / 区块间 32；组外 > 组内
+     字级：正文 14、气泡标题 16、空状态标题 25、元信息 12
+     颜色：正文 --ink；次级 --text-2；元信息 --text-3（白底 4.76:1）
+     深度：气泡 --shadow-1、输入区 --shadow-2、侧栏无阴影
+   ================================================================== */
+:root{
+  --primary:#2563eb; --primary-hover:#1d4ed8;
+  --primary-soft:#eff6ff; --primary-line:#bfdbfe;
+  --ok:#15803d; --ok-soft:#ecfdf5; --ok-line:#a7f3d0;
+  --err:#b91c1c;
+
+  --ink:#0f172a; --text-2:#475569; --text-3:#64748b;
+  --line:#e2e8f0; --line-strong:#cbd5e1;
+  --surface:#ffffff; --surface-2:#f8fafc; --bg:#f1f5f9;
+
+  --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+  --r-sm:6px; --r-ctl:8px; --r-card:12px; --r-pill:999px;
+  --shadow-1:0 1px 2px rgba(15,23,42,.06);
+  --shadow-2:0 1px 2px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.06);
+  --shadow-3:0 2px 4px rgba(15,23,42,.06), 0 16px 40px rgba(15,23,42,.10);
+  --inset:inset 0 1px 2px rgba(15,23,42,.06);
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:var(--fs-sm); line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;}
+
+/* ---------- 骨架：侧栏 + 主对话区（§3.6 组外 0，两栏由边框分隔）---------- */
+.app{
+  display:grid; grid-template-columns:264px minmax(0,1fr);
+  height:100vh; height:100dvh; overflow:hidden;
+}
+
+/* ---------- 侧栏（tertiary，无阴影、低对比）---------- */
+.sidebar{
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--surface-2); border-right:1px solid var(--line);
+}
+.side-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:var(--sp-2); padding:var(--sp-4) var(--sp-4) var(--sp-3);
+}
+.brand{display:flex; align-items:center; gap:var(--sp-2); font-weight:600; font-size:var(--fs-md);}
+.brand .mark{
+  width:26px; height:26px; border-radius:var(--r-ctl); display:grid; place-items:center;
+  background:var(--primary); color:#fff; font-size:var(--fs-xs); font-weight:700;
+  letter-spacing:.02em;
+}
+.btn-new{
+  display:flex; align-items:center; gap:var(--sp-1);
+  margin:0 var(--sp-4) var(--sp-3); padding:var(--sp-2) var(--sp-3);
+  border:1px solid var(--line-strong); border-radius:var(--r-ctl);
+  background:var(--surface); color:var(--ink);
+  font-size:var(--fs-sm); font-weight:500; cursor:pointer;
+  box-shadow:var(--shadow-1); transition:background .15s,border-color .15s;
+}
+.btn-new:hover{background:var(--surface-2); border-color:var(--text-3);}
+.btn-new .plus{font-size:var(--fs-md); line-height:1; color:var(--text-2);}
+
+.conv-scroll{flex:1; min-height:0; overflow-y:auto; padding:0 var(--sp-2) var(--sp-3);}
+.glabel{
+  padding:var(--sp-2) var(--sp-2) var(--sp-1);
+  font-size:var(--fs-xs); font-weight:600; color:var(--text-3); letter-spacing:.02em;
+}
+.conv{
+  display:flex; align-items:center; gap:var(--sp-2); width:100%;
+  padding:var(--sp-2) var(--sp-3); margin-bottom:2px;
+  border:0; border-radius:var(--r-ctl); background:transparent;
+  color:var(--text-2); font-size:var(--fs-sm); text-align:left; cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.conv:hover{background:var(--line); color:var(--ink);}
+.conv.active{background:var(--surface); color:var(--ink); font-weight:500; box-shadow:var(--shadow-1);}
+.conv .ico{flex:0 0 auto; color:var(--text-3); font-size:var(--fs-xs);}
+.conv.active .ico{color:var(--primary);}
+.conv .txt{overflow:hidden; text-overflow:ellipsis;}
+
+.side-foot{
+  border-top:1px solid var(--line); padding:var(--sp-3) var(--sp-4);
+  display:flex; align-items:center; gap:var(--sp-2); font-size:var(--fs-xs); color:var(--text-2);
+}
+.side-foot .dot{width:7px; height:7px; border-radius:50%; background:var(--ok); flex:0 0 auto;}
+.foot-link{
+  margin-left:auto; flex:0 0 auto; color:var(--text-3); text-decoration:none;
+  border-bottom:1px solid var(--line-strong); font-size:var(--fs-xs);
+}
+.foot-link:hover{color:var(--primary); border-bottom-color:var(--primary-line);}
+
+/* ---------- 主对话区 ---------- */
+.chat{display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--surface);}
+
+.chat-head{
+  display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-6); border-bottom:1px solid var(--line);
+  background:var(--surface);
+}
+.menu-btn{
+  display:none; align-items:center; justify-content:center;
+  width:36px; height:36px; border:1px solid var(--line-strong); border-radius:var(--r-ctl);
+  background:var(--surface); color:var(--ink); cursor:pointer; font-size:var(--fs-md);
+}
+.head-txt{min-width:0;}
+.head-txt .t{font-size:var(--fs-md); font-weight:600; line-height:1.4;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.head-txt .s{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+.head-spacer{flex:1;}
+.chip-status{
+  display:inline-flex; align-items:center; gap:6px; flex:0 0 auto;
+  padding:4px var(--sp-3); border:1px solid var(--primary-line); border-radius:var(--r-pill);
+  background:var(--primary-soft); color:var(--primary); font-size:var(--fs-xs); font-weight:600;
+}
+.chip-status .dot{width:6px; height:6px; border-radius:50%; background:var(--ok);}
+
+/* 已登录用户与退出：弱化处理，不与「发送」争层级 */
+.head-user{display:inline-flex; align-items:center; gap:var(--sp-2); flex:0 0 auto;}
+.head-user .who{
+  max-width:120px; font-size:var(--fs-xs); color:var(--text-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.head-user .quit{
+  appearance:none; cursor:pointer;
+  padding:4px var(--sp-2); border:1px solid var(--line-strong); border-radius:var(--r-ctl);
+  background:var(--surface); color:var(--text-2);
+  font-size:var(--fs-xs); font-family:inherit; line-height:1.5;
+  transition:border-color .15s, color .15s;
+}
+.head-user .quit:hover{border-color:var(--text-3); color:var(--ink);}
+.head-user .quit:disabled{color:var(--text-3); cursor:not-allowed;}
+
+/* ---------- 消息流 ---------- */
+.messages{
+  flex:1; min-height:0; overflow-y:auto; scroll-behavior:smooth;
+  padding:var(--sp-8) var(--sp-6) var(--sp-6);
+}
+.stream{max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:var(--sp-6); min-height:100%;}
+
+.msg{display:flex; gap:var(--sp-3); align-items:flex-start; animation:rise .22s ease-out;}
+@keyframes rise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+.msg.user{flex-direction:row-reverse;}
+
+.avatar{
+  flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center; font-size:var(--fs-xs); font-weight:700;
+  background:var(--primary-soft); color:var(--primary); border:1px solid var(--primary-line);
+}
+.msg.user .avatar{background:var(--surface-2); color:var(--text-2); border-color:var(--line-strong);}
+
+.body{min-width:0; max-width:min(78%, 620px); display:flex; flex-direction:column; gap:6px;}
+.msg.user .body{align-items:flex-end;}
+
+.bubble{
+  padding:var(--sp-3) var(--sp-4); border-radius:var(--r-card);
+  font-size:var(--fs-sm); line-height:1.7; overflow-wrap:anywhere;
+}
+.msg.assistant .bubble{
+  background:var(--surface); border:1px solid var(--line);
+  border-top-left-radius:var(--r-sm); box-shadow:var(--shadow-1);
+}
+.msg.user .bubble{
+  background:var(--primary); color:#fff;
+  border-top-right-radius:var(--r-sm);
+}
+.bubble p{margin:0;}
+.bubble p + p{margin-top:var(--sp-2);}
+.bubble b{font-weight:600;}
+
+.msg-meta{
+  display:flex; align-items:center; gap:var(--sp-2);
+  padding:0 var(--sp-1); font-size:var(--fs-xs); color:var(--text-3);
+}
+.msg.user .msg-meta{justify-content:flex-end;}
+.copy-btn{
+  border:0; background:transparent; color:var(--text-3); cursor:pointer;
+  font-size:var(--fs-xs); padding:2px 6px; border-radius:var(--r-sm);
+  opacity:0; transition:opacity .15s, background .15s;
+}
+.msg:hover .copy-btn{opacity:1;}
+.copy-btn:hover{background:var(--surface-2); color:var(--text-2);}
+.copy-btn:focus-visible{opacity:1; outline:2px solid var(--primary); outline-offset:2px;}
+
+/* ---------- 结构化行程卡（助手富内容）---------- */
+.plan{
+  border:1px solid var(--line); border-radius:var(--r-card);
+  background:var(--surface); box-shadow:var(--shadow-1); overflow:hidden;
+}
+.plan-head{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2);
+  padding:var(--sp-3) var(--sp-4); background:var(--surface-2);
+  border-bottom:1px solid var(--line);
+}
+.plan-title{font-size:var(--fs-sm); font-weight:600;}
+.plan-tag{
+  font-size:var(--fs-xs); font-weight:600; color:var(--primary);
+  background:var(--primary-soft); border:1px solid var(--primary-line);
+  border-radius:var(--r-pill); padding:1px var(--sp-2);
+}
+.day{
+  display:flex; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4);
+  border-bottom:1px solid var(--line);
+}
+.day:last-child{border-bottom:0;}
+.day-no{
+  flex:0 0 auto; width:34px; height:22px; border-radius:var(--r-sm);
+  display:grid; place-items:center; background:var(--primary-soft);
+  color:var(--primary); font-size:var(--fs-xs); font-weight:700;
+}
+.day-txt{min-width:0;}
+.day-txt b{display:block; font-size:var(--fs-sm); font-weight:600; line-height:1.5;}
+.day-txt span{display:block; font-size:var(--fs-xs); color:var(--text-2); line-height:1.6; margin-top:1px;}
+.plan-foot{
+  padding:var(--sp-2) var(--sp-4) var(--sp-3);
+  font-size:var(--fs-xs); color:var(--text-3); background:var(--surface-2);
+}
+
+/* ---------- 追问 chips ---------- */
+.chips{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:2px;}
+.chip{
+  padding:6px var(--sp-3); border:1px solid var(--line-strong); border-radius:var(--r-pill);
+  background:var(--surface); color:var(--text-2); font-size:var(--fs-xs); cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.chip:hover{border-color:var(--primary-line); background:var(--primary-soft); color:var(--primary);}
+
+/* ---------- 打字指示 ---------- */
+.typing{display:inline-flex; align-items:center; gap:5px; padding:var(--sp-4) var(--sp-4);}
+.typing span{
+  width:7px; height:7px; border-radius:50%; background:var(--text-3);
+  animation:blink 1.2s infinite ease-in-out;
+}
+.typing span:nth-child(2){animation-delay:.18s;}
+.typing span:nth-child(3){animation-delay:.36s;}
+@keyframes blink{0%,80%,100%{opacity:.25; transform:translateY(0);} 40%{opacity:1; transform:translateY(-2px);}}
+
+/* ---------- 空状态（首页即功能，非事后补）---------- */
+.empty{
+  max-width:680px; margin:0 auto; padding:var(--sp-6) 0; flex:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+}
+.empty .mark-lg{
+  width:56px; height:56px; border-radius:var(--r-card); display:grid; place-items:center;
+  background:var(--primary); color:#fff; font-size:var(--fs-lg); font-weight:700;
+  box-shadow:var(--shadow-2); margin-bottom:var(--sp-6);
+}
+.empty h1{font-size:var(--fs-xl); font-weight:600; line-height:1.35; margin:0 0 var(--sp-2);}
+.empty p{font-size:var(--fs-sm); color:var(--text-2); line-height:1.7;
+  max-width:46ch; margin:0 0 var(--sp-8);}
+.suggests{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); width:100%;}
+.suggest{
+  text-align:left; padding:var(--sp-3) var(--sp-4);
+  border:1px solid var(--line); border-radius:var(--r-card); background:var(--surface);
+  cursor:pointer; box-shadow:var(--shadow-1); transition:border-color .15s, box-shadow .15s, transform .15s;
+}
+.suggest:hover{border-color:var(--primary-line); box-shadow:var(--shadow-2); transform:translateY(-1px);}
+.suggest b{display:block; font-size:var(--fs-sm); font-weight:600; margin-bottom:2px;}
+.suggest span{font-size:var(--fs-xs); color:var(--text-3); line-height:1.6;}
+
+/* ---------- 输入区（本页唯一主操作）---------- */
+.composer{
+  border-top:1px solid var(--line); background:var(--surface);
+  padding:var(--sp-3) var(--sp-6) var(--sp-4);
+}
+.composer-inner{max-width:760px; margin:0 auto;}
+.input-box{
+  display:flex; align-items:flex-end; gap:var(--sp-2);
+  border:1px solid var(--line-strong); border-radius:var(--r-card);
+  background:var(--surface); padding:var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  box-shadow:var(--inset); transition:border-color .15s, box-shadow .15s;
+}
+.input-box:focus-within{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-soft), var(--inset);
+}
+#input{
+  flex:1; min-width:0; border:0; background:transparent; resize:none;
+  padding:var(--sp-2) 0; font-size:var(--fs-sm); line-height:1.6; color:var(--ink);
+  font-family:inherit; outline:none; max-height:168px;
+}
+#input::placeholder{color:var(--text-3);}
+.send{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:var(--sp-1);
+  padding:var(--sp-2) var(--sp-4); border:1px solid var(--primary);
+  border-radius:var(--r-ctl); background:var(--primary); color:#fff;
+  font-size:var(--fs-sm); font-weight:600; cursor:pointer;
+  transition:background .15s, border-color .15s, opacity .15s;
+}
+.send:hover{background:var(--primary-hover); border-color:var(--primary-hover);}
+.send:disabled{
+  background:var(--surface-2); border-color:var(--line-strong); color:var(--text-3);
+  cursor:not-allowed;
+}
+.composer-hint{
+  display:flex; justify-content:space-between; gap:var(--sp-2);
+  margin-top:var(--sp-2); padding:0 var(--sp-1);
+  font-size:var(--fs-xs); color:var(--text-3);
+}
+.composer-hint .grad{color:var(--text-3);}
+
+/* ---------- 移动端遮罩 ---------- */
+.overlay{
+  display:none; position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:40;
+}
+.overlay.show{display:block;}
+
+/* ---------- 响应式（§3.7 断点 860）---------- */
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{
+    position:fixed; top:0; left:0; bottom:0; width:280px; z-index:50;
+    transform:translateX(-100%); transition:transform .22s ease;
+    box-shadow:var(--shadow-3);
+  }
+  .sidebar.open{transform:none;}
+  .menu-btn{display:inline-flex;}
+  .chat-head{padding:var(--sp-3) var(--sp-4);}
+  .messages{padding:var(--sp-6) var(--sp-4) var(--sp-4);}
+  .composer{padding:var(--sp-3) var(--sp-4) var(--sp-4);}
+  .body{max-width:84%;}
+  .empty{padding:var(--sp-4) 0;}
+  .empty h1{font-size:var(--fs-lg);}
+  .suggests{grid-template-columns:1fr;}
+  .composer-hint .grad{display:none;}
+  /* 窄屏只留退出，用户名与在线标记让位给标题 */
+  .chip-status{display:none;}
+  .head-user .who{display:none;}
+}
+
+/* ---------- 焦点可见（键盘可达）---------- */
+:focus-visible{outline:2px solid var(--primary); outline-offset:2px;}
+button:focus:not(:focus-visible){outline:none;}
+.visually-hidden{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="overlay" id="overlay"></div>
+
+  <!-- ============ 侧栏 ============ -->
+  <aside class="sidebar" id="sidebar" aria-label="会话历史">
+    <div class="side-head">
+      <div class="brand"><span class="mark">旅</span>旅行助手</div>
+    </div>
+    <button class="btn-new" id="newChat" type="button"><span class="plus">＋</span>新对话</button>
+    <div class="conv-scroll">
+      <div class="glabel">最近对话</div>
+      <button class="conv active" type="button" data-q="帮我规划云南 5 天行程" data-key="yunnan">
+        <span class="ico">▸</span><span class="txt">云南 5 天行程规划</span>
+      </button>
+      <button class="conv" type="button" data-q="武汉周末两天怎么玩" data-key="wuhan">
+        <span class="ico">▸</span><span class="txt">武汉周末两日游</span>
+      </button>
+      <button class="conv" type="button" data-q="成都有哪些必吃的美食" data-key="food">
+        <span class="ico">▸</span><span class="txt">成都美食路线</span>
+      </button>
+      <button class="conv" type="button" data-q="黄鹤楼开放时间和门票" data-key="spot">
+        <span class="ico">▸</span><span class="txt">黄鹤楼门票与开放时间</span>
+      </button>
+    </div>
+    <div class="side-foot">
+      <span class="dot" aria-hidden="true"></span>
+      <span>知识库 · 7745 个景点</span>
+      <a class="foot-link" href="/api-console.html">接口测试台</a>
+    </div>
+  </aside>
+
+  <!-- ============ 主对话区 ============ -->
+  <main class="chat">
+    <header class="chat-head">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="打开会话列表">☰</button>
+      <div class="head-txt">
+        <div class="t" id="chatTitle">新的对话</div>
+        <div class="s">基于景区知识库 + 实时地图的行程规划</div>
+      </div>
+      <div class="head-spacer"></div>
+      <span class="chip-status"><span class="dot" aria-hidden="true"></span>在线</span>
+      <div class="head-user">
+        <span class="who" id="whoName"></span>
+        <button class="quit" id="logoutBtn" type="button">退出</button>
+      </div>
+    </header>
+
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="stream" id="stream">
+        <!-- 空状态：首页即功能 -->
+        <div class="empty" id="empty">
+          <div class="mark-lg" aria-hidden="true">旅</div>
+          <h1>今天想去哪儿？</h1>
+          <p>告诉我目的地、天数或偏好，我会结合景区知识库与实时路况，给出可执行的每日行程。</p>
+          <div class="suggests" id="suggests">
+            <button class="suggest" type="button" data-q="帮我规划云南 5 天行程">
+              <b>云南 5 天行程</b><span>昆明 · 大理 · 丽江，含每日安排</span>
+            </button>
+            <button class="suggest" type="button" data-q="武汉周末两天怎么玩">
+              <b>武汉两日游</b><span>黄鹤楼、东湖与本地小吃</span>
+            </button>
+            <button class="suggest" type="button" data-q="黄鹤楼开放时间和门票">
+              <b>查景点信息</b><span>开放时间、门票与坐标核验</span>
+            </button>
+            <button class="suggest" type="button" data-q="带老人小孩，行程别太赶">
+              <b>定制节奏</b><span>按人群调整强度与通勤</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="input-box">
+          <label class="visually-hidden" for="input">输入你的旅行需求</label>
+          <textarea id="input" rows="1" placeholder="说说目的地、天数和偏好…"></textarea>
+          <button class="send" id="send" type="button" disabled>发送</button>
+        </div>
+        <div class="composer-hint">
+          <span>Enter 发送 · Shift + Enter 换行</span>
+          <span class="grad">行程建议仅供参考，门票与开放时间以景区公告为准</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ==================================================================
+   交互：发送 → 打字指示 → 逐字输出 → 结构化行程卡 → 追问 chips
+   数据为演示用固定回复，按关键词路由；不发起任何网络请求。
+   ================================================================== */
+(function(){
+  var stream   = document.getElementById('stream');
+  var empty    = document.getElementById('empty');
+  var messages = document.getElementById('messages');
+  var input    = document.getElementById('input');
+  var sendBtn  = document.getElementById('send');
+  var newChat  = document.getElementById('newChat');
+  var chatTitle= document.getElementById('chatTitle');
+  var sidebar  = document.getElementById('sidebar');
+  var overlay  = document.getElementById('overlay');
+  var menuBtn  = document.getElementById('menuBtn');
+
+  var busy = false;
+
+  /* ---------- 演示语料 ---------- */
+  var PLANS = {
+    yunnan: {
+      title: '云南 5 日行程',
+      text: '按「昆明进出 + 大理丽江」的经典环线排，通勤控制在每天 2 小时内，适合第一次去云南：',
+      plan: {
+        title: '五日行程概览',
+        tag: '推荐',
+        days: [
+          ['D1','昆明 · 滇池','抵达后去海埂大坝看红嘴鸥，傍晚逛南屏街，宿昆明。'],
+          ['D2','昆明 → 大理','动车 2 小时；下午环洱海西线，才村码头看日落，宿大理古城。'],
+          ['D3','大理 · 苍山','上午感通索道，下午古城闲逛，避免高强度徒步。'],
+          ['D4','大理 → 丽江','动车 1.5 小时；束河古镇慢逛，宿丽江。'],
+          ['D5','丽江 · 玉龙雪山','大索道上冰川公园，下午返程或续住。']
+        ],
+        foot: '数据来源：景区知识库 · 高德地图 ｜ 门票与开放时间以景区公告为准'
+      },
+      chips: ['把 D2 改成住双廊','玉龙雪山门票多少','带老人怎么减强度']
+    },
+    wuhan: {
+      title: '武汉两日游',
+      text: '武汉两天的核心是「一江一湖一楼」，把过江通勤集中安排，避免来回折返：',
+      plan: {
+        title: '两日行程概览',
+        tag: '经典',
+        days: [
+          ['D1','武昌 · 黄鹤楼','上午黄鹤楼，中午户部巷小吃，下午湖北省博物馆（需预约）。'],
+          ['D2','汉口 · 江汉路','上午东湖绿道骑行，午后过江逛江汉路与黎黄陂路。']
+        ],
+        foot: '数据来源：景区知识库 · 高德地图 ｜ 博物馆需提前预约'
+      },
+      chips: ['湖北省博物馆怎么预约','东湖骑行租车点','推荐本地小吃']
+    },
+    food: {
+      title: '成都美食路线',
+      text: '成都吃的主要集中在三个片区，按片区走比按店走更省时间：',
+      plan: {
+        title: '美食片区建议',
+        tag: '本地',
+        days: [
+          ['①','玉林片区','苍蝇馆子密集，适合晚饭后串串与烧烤。'],
+          ['②','建设路','小吃一条街，适合边走边吃，人均低。'],
+          ['③','宽窄巷子周边','川菜正餐，适合安排一顿正经午饭。']
+        ],
+        foot: '提示：辣度可提前说明；具体营业时间以商家为准'
+      },
+      chips: ['推荐不辣的川菜','玉林有哪些老店','两个人预算多少']
+    },
+    spot: {
+      title: '黄鹤楼信息',
+      text: '黄鹤楼位于武汉市武昌区蛇山西山坡特 1 号，是武汉的地标性景点：',
+      plan: null,
+      chips: ['黄鹤楼周边还有什么','怎么去最方便','附近吃饭推荐']
+    },
+    generic: {
+      title: '新的对话',
+      text: '我可以帮你做行程规划、查景点信息，或按人群调整节奏。告诉我目的地和天数就能开始，比如「成都 3 天，主要想吃」或「西安两天，带小孩」。',
+      chips: ['给我一个三日游模板','帮我查景点开放时间','行程怎么排不赶']
+    }
+  };
+
+  function pickKey(text){
+    if(/云南|大理|丽江|昆明|洱海|玉龙/.test(text)) return 'yunnan';
+    if(/武汉|黄鹤楼|湖北|东湖|武昌|汉口/.test(text)) return 'wuhan';
+    if(/吃|美食|餐厅|小吃|火锅|串串/.test(text)) return 'food';
+    if(/开放时间|门票|票价|几点|预约/.test(text)) return 'spot';
+    return 'generic';
+  }
+
+  /* ---------- DOM helpers ---------- */
+  function el(tag, cls, html){
+    var n = document.createElement(tag);
+    if(cls) n.className = cls;
+    if(html != null) n.innerHTML = html;
+    return n;
+  }
+  function scrollBottom(){
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function hideEmpty(){
+    if(empty && empty.parentNode){ empty.remove(); empty = null; }
+  }
+  function nowTime(){
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    return (h<10?'0'+h:h) + ':' + (m<10?'0'+m:m);
+  }
+
+  /* ---------- 构建消息 ---------- */
+  function userMsg(text){
+    var wrap = el('div','msg user');
+    wrap.appendChild(el('div','avatar','我'));
+    var body = el('div','body');
+    var b = el('div','bubble');
+    b.textContent = text;
+    body.appendChild(b);
+    body.appendChild(el('div','msg-meta', nowTime()));
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function assistantShell(){
+    var wrap = el('div','msg assistant');
+    wrap.appendChild(el('div','avatar','旅'));
+    var body = el('div','body');
+    var b = el('div','bubble');
+    body.appendChild(b);
+    wrap.appendChild(body);
+    return {wrap:wrap, body:body, bubble:b};
+  }
+
+  function typingMsg(){
+    var wrap = el('div','msg assistant');
+    wrap.appendChild(el('div','avatar','旅'));
+    var body = el('div','body');
+    var b = el('div','bubble typing');
+    b.innerHTML = '<span></span><span></span><span></span>';
+    body.appendChild(b);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function planCard(plan){
+    var box = el('div','plan');
+    box.innerHTML =
+      '<div class="plan-head"><span class="plan-title">'+plan.title+'</span>'+
+      '<span class="plan-tag">'+plan.tag+'</span></div>'+
+      plan.days.map(function(d){
+        return '<div class="day"><span class="day-no">'+d[0]+'</span>'+
+               '<div class="day-txt"><b>'+d[1]+'</b><span>'+d[2]+'</span></div></div>';
+      }).join('') +
+      '<div class="plan-foot">'+plan.foot+'</div>';
+    return box;
+  }
+
+  function chipRow(chips){
+    var row = el('div','chips');
+    chips.forEach(function(c){
+      var b = el('button','chip');
+      b.type = 'button';
+      b.textContent = c;
+      b.addEventListener('click', function(){
+        input.value = c;
+        autoGrow();
+        refreshSend();
+        input.focus();
+      });
+      row.appendChild(b);
+    });
+    return row;
+  }
+
+  function copyBtn(target){
+    var b = el('button','copy-btn');
+    b.type = 'button';
+    b.textContent = '复制';
+    b.setAttribute('aria-label','复制这条回复');
+    b.addEventListener('click', function(){
+      var t = target.innerText || '';
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t).then(function(){
+          b.textContent = '已复制';
+          setTimeout(function(){ b.textContent = '复制'; }, 1400);
+        }).catch(function(){});
+      }
+    });
+    return b;
+  }
+
+  /* ---------- 逐字输出 ---------- */
+  function typeText(node, text){
+    return new Promise(function(resolve){
+      var i = 0;
+      node.textContent = '';
+      (function step(){
+        if(i >= text.length){ resolve(); return; }
+        node.textContent += text.slice(i, i + 2);
+        i += 2;
+        scrollBottom();
+        setTimeout(step, 16);
+      })();
+    });
+  }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  /* ---------- 生成回复 ---------- */
+  async function respond(text){
+    busy = true;
+    refreshSend();
+
+    var t = typingMsg();
+    stream.appendChild(t);
+    scrollBottom();
+    await sleep(520);
+    t.remove();
+
+    var data = PLANS[pickKey(text)];
+    var shell = assistantShell();
+    shell.bubble.style.minHeight = '1.7em';
+    stream.appendChild(shell.wrap);
+    scrollBottom();
+
+    await typeText(shell.bubble, data.text);
+
+    if(data.plan){
+      var card = planCard(data.plan);
+      card.style.marginTop = 'var(--sp-2)';
+      shell.body.appendChild(card);
+    }
+    if(data.chips && data.chips.length){
+      var row = chipRow(data.chips);
+      row.style.marginTop = '2px';
+      shell.body.appendChild(row);
+    }
+
+    var meta = el('div','msg-meta');
+    meta.appendChild(document.createTextNode(nowTime() + ' · 知识库'));
+    meta.appendChild(copyBtn(shell.bubble));
+    shell.body.appendChild(meta);
+
+    scrollBottom();
+    busy = false;
+    refreshSend();
+  }
+
+  /* ---------- 发送 ---------- */
+  function refreshSend(){
+    var has = input.value.trim().length > 0;
+    sendBtn.disabled = !has || busy;
+  }
+  function autoGrow(){
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 168) + 'px';
+  }
+  async function submit(){
+    var text = input.value.trim();
+    if(!text || busy) return;
+    hideEmpty();
+    if(chatTitle.textContent === '新的对话') chatTitle.textContent = text.slice(0, 18);
+    stream.appendChild(userMsg(text));
+    input.value = '';
+    autoGrow();
+    refreshSend();
+    scrollBottom();
+    await respond(text);
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  sendBtn.addEventListener('click', submit);
+
+  input.addEventListener('input', function(){ autoGrow(); refreshSend(); });
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  document.getElementById('suggests').addEventListener('click', function(e){
+    var btn = e.target.closest('.suggest');
+    if(!btn) return;
+    input.value = btn.getAttribute('data-q');
+    autoGrow();
+    refreshSend();
+    submit();
+  });
+
+  newChat.addEventListener('click', function(){
+    stream.innerHTML = '';
+    stream.appendChild(emptyState());
+    empty = document.getElementById('empty');
+    chatTitle.textContent = '新的对话';
+    document.querySelectorAll('.conv').forEach(function(c){ c.classList.remove('active'); });
+    closeSidebar();
+    input.value = '';
+    autoGrow();
+    refreshSend();
+    input.focus();
+  });
+
+  function emptyState(){
+    var d = el('div','empty');
+    d.id = 'empty';
+    d.innerHTML =
+      '<div class="mark-lg" aria-hidden="true">旅</div>'+
+      '<h1>今天想去哪儿？</h1>'+
+      '<p>告诉我目的地、天数或偏好，我会结合景区知识库与实时路况，给出可执行的每日行程。</p>'+
+      '<div class="suggests" id="suggests">'+
+        '<button class="suggest" type="button" data-q="帮我规划云南 5 天行程"><b>云南 5 天行程</b><span>昆明 · 大理 · 丽江，含每日安排</span></button>'+
+        '<button class="suggest" type="button" data-q="武汉周末两天怎么玩"><b>武汉两日游</b><span>黄鹤楼、东湖与本地小吃</span></button>'+
+        '<button class="suggest" type="button" data-q="黄鹤楼开放时间和门票"><b>查景点信息</b><span>开放时间、门票与坐标核验</span></button>'+
+        '<button class="suggest" type="button" data-q="带老人小孩，行程别太赶"><b>定制节奏</b><span>按人群调整强度与通勤</span></button>'+
+      '</div>';
+    return d;
+  }
+
+  /* 历史会话：点击即载入预设问答 */
+  document.querySelectorAll('.conv').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.conv').forEach(function(c){ c.classList.remove('active'); });
+      btn.classList.add('active');
+      stream.innerHTML = '';
+      empty = null;
+      var q = btn.getAttribute('data-q');
+      var key = btn.getAttribute('data-key');
+      chatTitle.textContent = PLANS[key] ? PLANS[key].title : q;
+      var um = userMsg(q);
+      um.style.animation = 'none';
+      stream.appendChild(um);
+      var data = PLANS[key] || PLANS.generic;
+      var shell = assistantShell();
+      shell.wrap.style.animation = 'none';
+      shell.bubble.textContent = data.text;
+      shell.body.appendChild(shell.bubble);
+      if(data.plan){
+        var card = planCard(data.plan);
+        card.style.marginTop = 'var(--sp-2)';
+        shell.body.appendChild(card);
+      }
+      if(data.chips && data.chips.length){
+        var row = chipRow(data.chips);
+        row.style.marginTop = '2px';
+        shell.body.appendChild(row);
+      }
+      var meta = el('div','msg-meta');
+      meta.appendChild(document.createTextNode(nowTime() + ' · 知识库'));
+      meta.appendChild(copyBtn(shell.bubble));
+      shell.body.appendChild(meta);
+      stream.appendChild(shell.wrap);
+      closeSidebar();
+      scrollBottom();
+    });
+  });
+
+  /* 移动端侧栏 */
+  function openSidebar(){ sidebar.classList.add('open'); overlay.classList.add('show'); }
+  function closeSidebar(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  menuBtn.addEventListener('click', openSidebar);
+  overlay.addEventListener('click', closeSidebar);
+
+  /* ---------- 会话：未登录回登录页，登录后显示用户名 ---------- */
+  var whoName   = document.getElementById('whoName');
+  var logoutBtn = document.getElementById('logoutBtn');
+
+  fetch('/api/account/me', { credentials: 'same-origin' })
+    .then(function (res) {
+      if (res.status === 401) {
+        location.replace('/?next=' + encodeURIComponent(location.pathname));
+        return null;
+      }
+      return res.ok ? res.json() : null;
+    })
+    .then(function (u) {
+      if (u && u.username) whoName.textContent = u.username;
+    })
+    .catch(function () { /* 服务未就绪时停在演示页，避免跳转循环 */ });
+
+  logoutBtn.addEventListener('click', function () {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = '退出中…';
+    fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+      .catch(function () { /* 会话已失效也照常回登录页 */ })
+      .then(function () { location.replace('/'); });
+  });
+
+  /* 初始 */
+  autoGrow();
+  refreshSend();
+  input.focus();
+})();
+</script>
+</body>
+</html>
