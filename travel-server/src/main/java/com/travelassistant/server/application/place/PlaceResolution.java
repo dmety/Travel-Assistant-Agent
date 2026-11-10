@@ -15,7 +15,8 @@ import java.util.List;
  * @param spot         若识别到的是具体景点，景点名；否则为空
  * @param province     省份（知识库里有才给）
  * @param level        识别粒度：{@code city} / {@code county} / {@code spot} / {@code unknown}
- * @param source       依据来源：{@code kb}（知识库直查）/ {@code llm}（模型判断）/ {@code none}
+ * @param source       依据来源：{@code kb}（知识库直查）/ {@code alias}（著名景点权威归属表）
+ *                     / {@code llm}（模型判断）/ {@code none}
  * @param note         给人看的说明，例如「黄梅县属黄冈市，按黄冈检索」
  * @param alternatives 未识别时给出的相近城市（可点选），最多 3 个
  */

@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -20,8 +21,11 @@ import org.springframework.stereotype.Service;
 /**
  * 把用户嘴里的地名翻译成知识库里的城市。
  *
- * <p>三级判断，逐级降级，任何一级失败都不阻塞对话：
+ * <p>四级判断，逐级降级，任何一级失败都不阻塞对话：
  * <ol>
+ *   <li><b>著名景点权威归属</b>：知识库里只有「济南华山」「广州黄山鲁森林公园」这类
+ *       同名冷门条目，先由 {@link FamousPlaces} 定住常识里的那个景区，不让覆盖缺口
+ *       把西岳华山认成济南；用户显式点名同名冷门地时这张表主动让位；</li>
  *   <li><b>知识库直查</b>：城市 / 省份 / 景点名，精确命中即返回，零延迟零成本；</li>
  *   <li><b>模型判断</b>：只在知识库落空时调用，让模型在**已知城市清单内**做归属判断
  *       （「黄梅」→ 黄冈、「婺源」→ 上饶），输出 JSON 后还要过一遍清单校验，
@@ -83,6 +87,17 @@ public class PlaceResolver {
     PlaceResolution cached = cache.get(key);
     if (cached != null) {
       return cached;
+    }
+    // 同名冷门条目不能抢走著名景点的默认含义；显式写了「济南华山」就交还给常规链路
+    for (String candidate : candidates) {
+      Optional<FamousPlaces.Entry> famous = FamousPlaces.find(candidate);
+      if (famous.isPresent()) {
+        FamousPlaces.Entry entry = famous.get();
+        PlaceResolution result = PlaceResolution.hit(candidate, entry.destination(),
+            entry.spot(), entry.province(), "spot", "alias", entry.note());
+        remember(key, result);
+        return result;
+      }
     }
     PlaceResolution result = lookup(candidates);
     remember(key, result);

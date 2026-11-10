@@ -31,6 +31,8 @@ import com.travelassistant.server.application.agent.spi.Fact;
 import com.travelassistant.server.application.agent.spi.RunBudget;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.domain.ticket.TicketAdvice;
+import com.travelassistant.server.domain.ticket.TicketChannel;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -314,6 +316,38 @@ class BuiltinServiceProviderTest {
         .invoke(context(Map.of("message", "x")), budget());
     assertEquals("REFUSED", result.status());
     assertTrue(result.notices().stream().noneMatch(n -> n.contains("bad input")));
+  }
+
+  @Test
+  void ticketEmitsOfficialGuidanceAndNeverOrders() {
+    TicketChannel channel = new TicketChannel("amap-1", "八达岭长城", "北京",
+        "八达岭长城官方参观／购票指引",
+        "https://www.badaling.cn/website/pc/index.html", List.of(),
+        List.of("官网指引"), "官网", LocalDate.of(2026, 11, 6), "官网指引入口");
+    TicketAdvice advice = TicketAdvice.found(null, "八达岭长城", "北京",
+        List.of(channel), Instant.now());
+    when(tickets.advise(any(), any())).thenReturn(
+        new TicketAssistantService.Result(null, List.of(), List.of(), null,
+            false, false, advice, Map.of(), List.of()));
+    AgentResult result = configuration.builtinTicket(rules, tickets)
+        .invoke(context(Map.of("message", "八达岭长城怎么买票")), budget());
+
+    Fact guidance = result.facts().stream()
+        .filter(f -> "builtin.ticket:guidance".equals(f.factId())).findFirst().orElseThrow();
+    assertEquals("TICKET_GUIDANCE", guidance.value().get("category"));
+    assertEquals(false, guidance.value().get("stockVerified"));
+    assertTrue(String.valueOf(guidance.value().get("method")).contains("不代下单"));
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> channels =
+        (List<Map<String, Object>>) guidance.value().get("channels");
+    assertEquals(1, channels.size());
+    assertEquals("https://www.badaling.cn/website/pc/index.html", channels.get(0).get("url"));
+    // 契约 S-04：链接只能进 fact value，advice 里不能出现 URL
+    assertNotNull(result.advice());
+    assertFalse(result.advice().contains("https://"));
+    ContractValidator validator = new ContractValidator(rules);
+    assertTrue(validator.validateResult(
+        validator.toResponseMap("builtin.ticket", result)).isEmpty());
   }
 
   // ---------------------------------------------------------------- descriptor

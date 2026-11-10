@@ -72,6 +72,31 @@ class AmapClientTest {
   }
 
   @Test
+  @DisplayName("景点检索改用 extensions=all：拿到地图真实评分，人均消费不冒充票价")
+  void parsesScenicRating() {
+    server.expect(request -> assertThat(request.getURI().toString())
+            .contains("/v3/place/text").contains("extensions=all"))
+        .andRespond(withSuccess("""
+            {"status":"1","info":"OK","infocode":"10000","count":"2","pois":[
+              {"id":"B001","name":"五祖寺","type":"风景名胜;寺庙","address":"黄梅县五祖镇",
+               "location":"115.934000,30.116000","cityname":"黄冈市","adname":"黄梅县",
+               "biz_ext":{"rating":"4.7","cost":"120"}},
+              {"id":"B002","name":"四祖寺","type":"风景名胜;寺庙","address":"黄梅县大河镇",
+               "location":"115.912000,30.152000","cityname":"黄冈市","adname":"黄梅县",
+               "biz_ext":{"rating":"[]","cost":"[]"}}
+            ]}
+            """, MediaType.APPLICATION_JSON));
+
+    List<Place> places = client("test-key").searchScenicSpots("黄梅", null, 8);
+
+    assertThat(places).hasSize(2);
+    assertThat(places.get(0).rating()).isEqualTo(4.7);
+    // biz_ext.cost 是人均消费，Place 里没有票价字段，不会被误当门票展示
+    assertThat(places.get(1).rating()).isNull();
+    assertThat(places.get(0).commentCount()).isNull();
+  }
+
+  @Test
   @DisplayName("高德返回的错误码翻成人话，同时保留 infocode")
   void mapsErrorCodeToHumanReadable() {
     server.expect(requestTo(containsString("/v3/place/text")))

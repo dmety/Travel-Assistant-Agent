@@ -386,6 +386,15 @@ button{font-family:inherit;}
 .wx-row:first-of-type{border-top:0;}
 .wx-row .d{color:var(--text-2); font-size:var(--fs-xs); font-variant-numeric:tabular-nums;}
 .wx-row .t{color:var(--text-2); font-size:var(--fs-xs); text-align:right; font-variant-numeric:tabular-nums;}
+/* 景点卡专用：名字占主列，评分与票价各一列；票价原文可 hover 查看全文 */
+.places .wx-row{grid-template-columns:minmax(0,1fr) auto minmax(0,38%); align-items:start;}
+.places .wx-row .d{color:var(--text); font-size:var(--fs-sm); font-variant-numeric:normal; line-height:1.45;}
+.places .wx-row .d .sub{display:block; margin-top:2px; color:var(--text-3); font-size:var(--fs-xs);}
+.places .wx-row .rate{color:var(--primary); font-size:var(--fs-xs); white-space:nowrap; padding-top:2px;}
+.places .wx-row .t{white-space:normal; word-break:break-word; line-height:1.45;}
+.places .wx-row .t.unknown{color:var(--text-3);}
+.places .wx-link{padding:var(--sp-1) var(--sp-3); font-size:var(--fs-xs); color:var(--primary);}
+.places .wx-link a{color:inherit; text-decoration:underline; text-underline-offset:2px;}
 .wx-tip{
   padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
   background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
@@ -1816,20 +1825,101 @@ button:focus:not(:focus-visible){outline:none;}
     } else {
       box.appendChild(el('div','vote-tip','评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。'));
     }
+    var draft = data.draft || null;
+    if(draft){
+      var dbox = el('div','');
+      dbox.style.marginTop = 'var(--sp-2)';
+      dbox.appendChild(el('div','wx-h', '主 Agent 汇总 ' + (data.collectedFactCount || 0)
+        + ' 条子 Agent 事实整理的草案'));
+      (draft.dailySchedules || []).forEach(function(d){
+        var names = (d.items || []).join('、') || '本轮未收集到景点候选';
+        dbox.appendChild(el('div','vote-tip', escapeHtml('D' + d.day + '：' + names)));
+      });
+      var guidanceBox = ticketGuidanceBlock(draft.ticketGuidance);
+      if(guidanceBox){
+        guidanceBox.style.marginTop = 'var(--sp-2)';
+        dbox.appendChild(guidanceBox);
+      }
+      box.appendChild(dbox);
+    }
     return box;
   }
 
-  /** 景点小表：只列名字、等级、票价原文，详情让用户点开行程看。 */
-  function placesBlock(rows){
+  /**
+   * 票务子 Agent 的产物：只列经核验的官方入口与购票方法。
+   * 不渲染「下单」「支付」按钮——系统不替用户购票，也不生成猜测链接。
+   */
+  function ticketGuidanceBlock(g){
+    if(!g) return null;
     var box = el('div','wx');
-    box.appendChild(el('div','wx-h','景点（票价与开放时间以景区公告为准）'));
-    (rows || []).forEach(function(r){
+    box.appendChild(el('div','wx-h','官方购票入口（只给入口与方法，不代下单）'));
+    if(g.method){
+      box.appendChild(el('div','vote-tip', escapeHtml(g.method)));
+    }
+    var channels = g.channels || [];
+    channels.forEach(function(c){
+      var url = String(c.url || '');
+      if(!/^https?:\/\//i.test(url)) return;
       var row = el('div','wx-row');
-      row.appendChild(el('div','d', escapeHtml(brief(r.name || '', 8))));
-      row.appendChild(el('div','', escapeHtml(r.level || '—')));
-      row.appendChild(el('div','t', escapeHtml(brief(r.ticket || '票价未知', 16))));
+      var link = el('a','d', escapeHtml(c.name || '官方入口'));
+      link.setAttribute('href', url);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      row.appendChild(link);
+      row.appendChild(el('div','t', escapeHtml(c.note || '以官方页面为准')));
       box.appendChild(row);
     });
+    box.appendChild(el('div','vote-tip', escapeHtml(channels.length
+      ? (g.note || '余票未核验，购票前请以官方页面显示为准。')
+      : '暂未收录经核验的官方入口，请自行进入景区官方网站或官方公众号；本系统不生成猜测链接。')));
+    return box;
+  }
+
+  /**
+   * 景点小表：候选已按真实评分排序；票价只显示数据源原文，缺票价就明说「未核验」
+   * 并给出购票方法。人工核验过的官方入口才渲染成链接，绝不拼一个猜测网址。
+   */
+  function placesBlock(rows){
+    var box = el('div','wx places');
+    box.appendChild(el('div','wx-h','景点（好评高的在前，同分按评价数 · 票价以景区公告为准）'));
+    var links = [], seen = {};
+    (rows || []).forEach(function(r){
+      var row = el('div','wx-row');
+      var nameBox = el('div','d', escapeHtml(r.name || ''));
+      var sub = (r.commentCount == null || String(r.commentCount) === '')
+          ? '' : String(r.commentCount) + ' 条评价';
+      if(r.level) sub += (sub ? ' · ' : '') + String(r.level);
+      if(sub) nameBox.appendChild(el('div','sub', escapeHtml(sub)));
+      row.appendChild(nameBox);
+      var rate = (r.rating == null || String(r.rating) === '') ? '' : '★ ' + String(r.rating);
+      row.appendChild(el('div','rate', escapeHtml(rate || '暂无评分')));
+      var ticket = (r.ticket == null) ? '' : String(r.ticket);
+      var t = el('div', 't' + (ticket ? '' : ' unknown'),
+          ticket ? escapeHtml(brief(ticket, 26)) : '票价未核验');
+      if(ticket) t.setAttribute('title', ticket);
+      row.appendChild(t);
+      (r.channels || []).forEach(function(c){
+        var url = String(c.url || '');
+        if(!/^https?:\/\//i.test(url) || seen[url]) return;
+        seen[url] = 1;
+        links.push({name: String(c.name || '官方购票入口'), url: url, note: String(c.note || '')});
+      });
+      box.appendChild(row);
+    });
+    links.slice(0, 4).forEach(function(c){
+      var line = el('div','wx-link');
+      var a = document.createElement('a');
+      a.textContent = c.name + ' ↗';
+      a.setAttribute('href', c.url);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      if(c.note) a.setAttribute('title', c.note);
+      line.appendChild(a);
+      box.appendChild(line);
+    });
+    box.appendChild(el('div','wx-tip', links.length
+      ? '票价是知识库原文或人工核验快照，可能已变更；地图检索不提供票价，未核验的不补数字。上方为人工核验的官方入口，余票未核验，本系统不代下单、不查库存。'
+      : '票价与开放时间以景区公告为准；地图检索和多数知识库条目没有票价，未核验的不补数字。购票请到景区官方公众号/官网或现场售票窗口，本系统不代下单、不查余票、不生成猜测链接。'));
     return box;
   }
 
@@ -1844,6 +1934,9 @@ button:focus:not(:focus-visible){outline:none;}
     if(card.type === 'vote') return voteBlock(card.data);
     if(card.type === 'envelope'){
       var env = card.data || {};
+      if(card.intent === 'TICKET_ADVICE'){
+        return ticketGuidanceBlock(env.ticketGuidance);
+      }
       if(card.intent === 'FOOD_RECOMMEND'){
         var food = foodFromEnvelope(env);
         if(!food) return null;

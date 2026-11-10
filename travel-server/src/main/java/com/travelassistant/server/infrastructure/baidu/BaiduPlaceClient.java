@@ -215,7 +215,11 @@ public class BaiduPlaceClient {
           null,
           gcjLat, gcjLon,
           gcjLat == null ? null : "GCJ-02",
-          null));
+          null,
+          // scope=2 的 detail_info.overall_rating 是地图用户评分，
+          // comment_num 是评价数（评分可信度，不是好评数）；price 是人均消费，不是门票价。
+          number(detail.path("overall_rating").asText("")),
+          integer(detail.path("comment_num").asText(""))));
     }
     return places;
   }

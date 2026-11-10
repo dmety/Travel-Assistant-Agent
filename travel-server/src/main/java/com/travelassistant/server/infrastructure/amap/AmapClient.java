@@ -99,6 +99,10 @@ public class AmapClient {
    * 高德该参数按市级口径解析，区县命中不稳定；由 {@code MapTools} 在结果里
    * 按 {@code adname}/地址过滤。
    *
+   * 用 {@code extensions=all} 才能拿到 {@code biz_ext.rating} 地图用户评分——
+   * 写死 {@code base} 的旧版本让「好评高的放前面」无从下手，也没有把评分编出来的余地。
+   * 注意 {@code biz_ext.cost} 是人均消费，<b>不是门票价</b>，绝不拿来当票价展示。
+   *
    * @param keywords 关键词，如「黄梅」「五祖寺」
    * @param city     限定城市名或 adcode，可为空
    * @param limit    期望条数，会被夹到 1..25
@@ -118,7 +122,7 @@ public class AmapClient {
         .queryParam("keywords", kw)
         .queryParam("offset", size)
         .queryParam("page", 1)
-        .queryParam("extensions", "base");
+        .queryParam("extensions", "all");
     if (types != null && !types.isBlank()) {
       builder.queryParam("types", types);
     }
@@ -130,6 +134,7 @@ public class AmapClient {
     List<Place> places = new ArrayList<>();
     for (JsonNode poi : array(root, "pois")) {
       Double[] lngLat = parseLngLat(poi.path("location").asText(""));
+      JsonNode biz = poi.path("biz_ext");
       places.add(new Place(
           text(poi, "name"),
           text(poi, "type"),
@@ -140,7 +145,10 @@ public class AmapClient {
           lngLat == null ? null : lngLat[1],
           lngLat == null ? null : lngLat[0],
           "GCJ-02",
-          text(poi, "distance")));
+          text(poi, "distance"),
+          number(biz.path("rating").asText("")),
+          // place/text 的 biz_ext 不提供评价数；不拿 cost 或其它字段凑数
+          null));
     }
     log.debug("高德地点检索「{}」命中 {} 条", kw, places.size());
     return places;

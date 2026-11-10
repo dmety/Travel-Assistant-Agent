@@ -55,6 +55,22 @@ class PlaceResolverTest {
   }
 
   @Test
+  @DisplayName("著名景点优先于同名冷门条目：华山按原名检索，不认成济南、不问模型")
+  void famousSpotBeatsSameNameNoise() {
+    // 库里其实有「华山风景区（济南市）」：不 stub 也能验证权威表先于库生效
+    PlaceResolution r = resolver.resolve("华山", List.of("华山"));
+
+    assertThat(r.resolved()).isTrue();
+    assertThat(r.city()).isEqualTo("华山");
+    assertThat(r.city()).isNotEqualTo("济南市");
+    assertThat(r.source()).isEqualTo("alias");
+    assertThat(r.note()).contains("陕西").contains("渭南");
+    verify(store, never()).findByCity(anyString());
+    verify(store, never()).findByName(anyString());
+    verify(model, never()).complete(anyString(), anyString());
+  }
+
+  @Test
   @DisplayName("知识库有城市：直接命中，不调用模型")
   void knowledgeBaseCityWins() {
     when(store.findByCity("武汉")).thenReturn(List.of(spot("黄鹤楼", "武汉", "湖北省")));

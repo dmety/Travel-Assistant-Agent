@@ -2,9 +2,11 @@ package com.travelassistant.server.application.chat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.travelassistant.server.application.agent.AgentUnavailableException;
 import com.travelassistant.server.application.intent.ConversationState;
 import com.travelassistant.server.application.intent.ConversationTurn;
+import com.travelassistant.server.application.place.FamousPlaces;
 import com.travelassistant.server.infrastructure.ai.DeepSeekClient;
 import com.travelassistant.server.infrastructure.ai.DeepSeekClient.ModelTurn;
 import com.travelassistant.server.infrastructure.ai.DeepSeekClient.ToolCall;
@@ -14,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,17 +58,23 @@ public class ChatAgent {
       1. 凡是涉及具体事实的问题——某地有什么景点、门票多少、天气如何、附近有什么馆子、
          几天怎么安排——必须先调用对应工具，不许凭记忆回答。
       2. 地名归属不确定时先调 resolve_place；它是权威口径，不要自己判断「婺源属于上饶」这类归属。
-         但 resolve_place 没认出的地名（比如华山、婺源）不要让用户重说一遍：直接拿原名调
+         但 resolve_place 没认出的地名（比如婺源）不要让用户重说一遍：直接拿原名调
          get_inspiration 或 draft_itinerary，它们会自动实时检索本地景点。
+         著名景点（华山、黄山、老君山等）一律按 resolve_place 给的检索名/用户原名查，
+         不要因为库里有同名景点就改成别的城市。
       3. 用户只说「玩几天」「怎么安排」但没给天数：先问一句玩几天，不要默认成 3 天。
       4. 查完发现数据不足（工具说没查到），就如实告诉用户「这个我没查到」，不要解释内部数据来源；
          不要用常识补齐景点名、票价或餐厅。没查到的地名，get_inspiration 会自动改用
          地图实时检索——实时结果没有票价等级，提到时说「以景区官方信息为准」。
+         景点卡按真实评分排序，票价只引用卡里原文；标「未核验」的就说没查到票价、
+         让用户到景区官方公众号/官网或现场窗口查询，不要补数字、不要把人均消费当门票、
+         不要编网址。
       5. 同一个工具不要用同样的参数重复调用。最多 6 次工具调用。
       6. vote_plan 会让三个评委 Agent 两轮投票、比较费时：只在用户明确想比较不同侧重
          （省钱/美食/少走路哪个好）或问「哪个方案更好」时用；排一份普通行程用 draft_itinerary。
-      7. book_ticket 只给购票建议与缺口，不能下单、查库存余票或退款；缺条件就照工具说的问，
-         不要替用户猜年龄、学生资格。
+      7. book_ticket 只给购票建议、经核验的官方入口链接与方法，不能下单、查库存余票或退款；
+         把链接与「自行到官方页面预约或购票、余票未核验」原样转述给用户，不要说「已经买好」，
+         也不要编造网址；缺条件就照工具说的问，不要替用户猜年龄、学生资格。
 
       回答方式
       6. 用口语，称呼「你」，最多 4 句话；不要标题、表格、编号清单、emoji、Markdown 加粗。
@@ -100,6 +109,10 @@ public class ChatAgent {
   public ChatReply chat(String message, List<ConversationTurn> history, ConversationState state) {
     String text = message == null ? "" : message.strip();
     ConversationState known = state == null ? ConversationState.empty() : state;
+    // 旧会话可能存着「华山→济南」这种错城市：著名景点以权威归属为准，
+    // 否则第二轮「4天3人」会照着济南/成都排一版跨省草案
+    FamousPlaces.Entry activePlace = activePlace(text, history);
+    known = reconcile(known, activePlace);
     if (text.isEmpty()) {
       return new ChatReply("想聊点什么？说个城市和天数，我来排行程。", List.of(), List.of(),
           known, "agent", null);
@@ -110,7 +123,7 @@ public class ChatAgent {
     }
 
     List<Map<String, Object>> messages = new ArrayList<>();
-    messages.add(Map.of("role", "system", "content", systemPrompt(known)));
+    messages.add(Map.of("role", "system", "content", systemPrompt(known, activePlace)));
     for (ConversationTurn turn : trim(history)) {
       messages.add(Map.of("role", turn.role(), "content", turn.text()));
     }
@@ -149,14 +162,19 @@ public class ChatAgent {
           continue;
         }
         calls++;
-        ChatTools.Outcome outcome = tools.execute(call.name(), call.arguments());
+        String args = reconcileArgs(call.arguments(), activePlace);
+        // 用户定案：所有子 Agent 收集到的信息全量交给主 Agent 整理草案，再由评委投票。
+        // vote_plan 因此会收到此前工具产生的全部卡片；其他工具不感知这个内部字段。
+        ChatTools.Outcome outcome = "vote_plan".equals(call.name())
+            ? tools.execute(call.name(), args, new ArrayList<>(cards))
+            : tools.execute(call.name(), args);
         messages.add(Map.of("role", "tool", "tool_call_id", call.id(),
             "content", outcome.summary()));
         trace.add(new ChatReply.ToolTrace(call.name(), label(call.name()), outcome.ok()));
         if (outcome.card() != null) {
           cards.add(outcome.card());
         }
-        carried = track(carried, call.name(), call.arguments());
+        carried = track(carried, call.name(), args);
       }
       if (System.currentTimeMillis() > deadline) {
         messages.add(Map.of("role", "user",
@@ -182,15 +200,15 @@ public class ChatAgent {
     String cleaned = clean(content);
     if (cleaned == null) {
       cleaned = cards.isEmpty()
-          ? "这个我没查到。我的知识库只覆盖部分城市，可以换个说法或换个城市再问。"
+          ? "这个我没查到，可以换个地名再问。"
           : "查到的东西都在下面了，没能组织成一句话。";
     }
     return new ChatReply(cleaned, cards, trace, state, "agent", note);
   }
 
   /** 系统提示里附上「本轮已确认」，让「那呢」「再玩两天」有落点。 */
-  private String systemPrompt(ConversationState state) {
-    if (state.isEmpty()) {
+  private String systemPrompt(ConversationState state, FamousPlaces.Entry activePlace) {
+    if (state.isEmpty() && activePlace == null) {
       return SYSTEM_PROMPT;
     }
     List<String> parts = new ArrayList<>();
@@ -210,7 +228,54 @@ public class ChatAgent {
       parts.add("偏好=" + String.join("、", state.preferences()));
     }
     return SYSTEM_PROMPT + "\n本轮已确认（只在这句话明显指代上文时才沿用）："
-        + String.join("；", parts) + "\n";
+        + String.join("；", parts)
+        + (activePlace == null ? "" : "\n本次聊的是「" + activePlace.name() + "」，查景点与排行程"
+            + "按「" + activePlace.destination() + "」这个名字，不要换成别的城市")
+        + "\n";
+  }
+
+  /** 这句话里的著名景点优先；没写地名时才从最近的用户轮次里找（只看用户说的话）。 */
+  private static FamousPlaces.Entry activePlace(String message,
+      List<ConversationTurn> history) {
+    Optional<FamousPlaces.Entry> inMessage = FamousPlaces.find(message);
+    if (inMessage.isPresent()) {
+      return inMessage.get();
+    }
+    if (FamousPlaces.mentionsOtherPlace(message)) {
+      return null;
+    }
+    return FamousPlaces.findInRecentUserTurns(history).orElse(null);
+  }
+
+  /** 旧 state 里的错城市不再跨轮沿用，换成景点的检索名。 */
+  private ConversationState reconcile(ConversationState state, FamousPlaces.Entry place) {
+    if (place == null || !FamousPlaces.conflicts(state.city(), place)) {
+      return state;
+    }
+    log.info("会话城市「{}」与景点「{}」冲突，按「{}」检索",
+        state.city(), place.name(), place.destination());
+    return new ConversationState(place.destination(), state.days(), state.travelers(),
+        state.budget(), state.preferences());
+  }
+
+  /** 模型偶尔仍会拿旧城市当 city 参数：在这种冲突下改回景点检索名。 */
+  private String reconcileArgs(String rawArgs, FamousPlaces.Entry place) {
+    if (place == null || rawArgs == null || rawArgs.isBlank()) {
+      return rawArgs;
+    }
+    try {
+      JsonNode node = mapper.readTree(rawArgs);
+      if (!node.isObject() || !node.path("city").isTextual()) {
+        return rawArgs;
+      }
+      if (!FamousPlaces.conflicts(node.path("city").asText("").strip(), place)) {
+        return rawArgs;
+      }
+      ((ObjectNode) node).put("city", place.destination());
+      return mapper.writeValueAsString(node);
+    } catch (Exception e) {
+      return rawArgs;
+    }
   }
 
   private Map<String, Object> assistantMessage(ModelTurn turn) {

@@ -129,6 +129,37 @@ def main():
                 check(any('不可用' in n for n in invoke['result']['notices'])
                       or any('未编造' in n for n in invoke['result']['notices']),
                       'degradation reason is stated in notices')
+
+                # ---- 景点卡：好评高的在前、票价原文透出、没票价不补数字 ----
+                code, insp = request(owner, base, '/api/agent/invoke', {
+                    'intent': 'CONTENT_INSPIRATION', 'context': {'city': '北京'}})
+                picks = []
+                if code == 200:
+                    for fact in insp['result']['facts']:
+                        value = fact.get('value') or {}
+                        if value.get('category') == 'INSPIRATION':
+                            picks = value.get('items') or []
+                check(code == 200 and picks, 'inspiration returns real KB candidates')
+                ratings = [float(x['rating']) for x in picks if x.get('rating')]
+                check(ratings == sorted(ratings, reverse=True),
+                      'attraction candidates are sorted by real rating, highest first')
+                check(all('ticket' in x and 'ticketStatus' in x and 'rating' in x
+                          for x in picks),
+                      'candidates expose rating, ticket text and verification status')
+                check(all(x['ticket'] is None for x in picks if not x.get('ticket')),
+                      'missing ticket stays null, never filled with free or zero')
+                keep_words = ('博物馆', '纪念馆', '旧址', '遗址', '美术馆',
+                              '艺术馆', '观景台', '公园', '景区', '古镇')
+                noise_words = ('大学', '中学', '小学', '幼儿园', '图书馆', '驾校')
+                check(not any(any(w in (x.get('name') or '') for w in noise_words)
+                              and not any(k in (x.get('name') or '') for k in keep_words)
+                              for x in picks),
+                      'high-rated non-tourism POIs are filtered out')
+                chat_page = (ROOT / 'travel-server/src/main/resources/static/chat.html'
+                             ).read_text(encoding='utf-8')
+                check('票价未核验' in chat_page and 'r.channels' in chat_page
+                      and '好评高的在前' in chat_page,
+                      'chat page renders rating order, unverified tickets and official links')
                 code, caps = request(client(), base, '/api/agent/capabilities')
                 check(code == 200 and any(p['id'] == 'builtin.food'
                                          and p['status'] == 'ACTIVE'
@@ -164,6 +195,39 @@ def main():
                 check('endpoint' not in vote_serialized and 'authRef' not in vote_serialized
                       and 'api_key' not in vote_serialized.lower(),
                       'vote envelope is sanitized, no endpoint/authRef/credentials')
+
+                # ---- #7b 信息流定案：子 Agent 供料 → 主 Agent 草案 → 评委投票 ----
+                code2, vote2 = request(owner, base, '/api/agent/vote',
+                    {'intent': 'DECISION_ADVICE',
+                     'context': {
+                         'city': '北京', 'days': 2,
+                         'collectedCards': [
+                             {'type': 'places', 'intent': None,
+                              'data': [{'name': '八达岭长城'}, {'name': '首都博物馆'}]},
+                             {'type': 'envelope', 'intent': 'TICKET_ADVICE',
+                              'data': {'ticketGuidance': {
+                                  'method': '打开官方入口自行预约或购票，本系统不代下单',
+                                  'stockVerified': False,
+                                  'channels': [
+                                      {'name': '八达岭长城官方购票指引',
+                                       'url': 'https://www.badaling.cn/website/pc/index.html',
+                                       'note': '官网指引入口'}]}}}]}})
+                check(code2 == 200 and vote2['status'] == 'OK',
+                      'vote with collected sub-agent facts still produces a winner')
+                check(code2 == 200 and vote2['collectedFactCount'] >= 5,
+                      'all sub-agent facts are collected for the main agent')
+                check(code2 == 200 and vote2['draft']['source'] == 'MAIN_AGENT'
+                      and vote2['draft']['destination'] == '北京',
+                      'main agent assembles the draft from collected facts')
+                check(code2 == 200 and vote2['draft']['dailySchedules'][0]['items']
+                      == ['八达岭长城', '首都博物馆'],
+                      'draft schedules only real collected attractions, no invented names')
+                check(code2 == 200 and vote2['draft']['ticketGuidance']['channels']
+                      and vote2['draft']['ticketGuidance']['channels'][0]['url']
+                      .startswith('https://'),
+                      'draft exposes the official purchase link, not an order action')
+                check(code2 == 200 and vote2['draft']['ticketGuidance']['stockVerified'] is False,
+                      'draft states that ticket stock is not verified')
 
                 # ---- #5 基础业务闭环：草案 -> 补问 -> 检查 -> 确认保存 -> 重启重读 ----
                 draft_req = {'destination': '杭州', 'departDate': '2026-11-21',

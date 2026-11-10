@@ -208,9 +208,9 @@ flowchart TB
                 ├─ get_weather     → builtin.weather    (WEATHER_ADVICE) ← 新建 Provider
                 ├─ get_inspiration → builtin.inspiration(CONTENT_INSPIRATION) ← 新建 Provider
                 └─ vote_plan       → VoteOrchestrator   ← 新接入投票
-                                        ├─ 第一轮：三评委 Agent（票务/美食/停车）上报事实
-                                        ├─ 主 Agent 生成 5 套侧重不同的候选
-                                        └─ 第二轮：评分计票 → 胜出方案
+                                        ├─ 汇集：本轮所有子 Agent 卡片 + 三评委事实 → 全量给主 Agent
+                                        ├─ 主 Agent：整理成一份结构化草案 + N 套侧重候选
+                                        └─ 第二轮：评委按草案真实内容评分计票 → 胜出方案
 ```
 
 要点：五个子 Agent 全部经 `orchestrator.dispatch` 走同一条契约校验链，工具只是
@@ -230,6 +230,8 @@ primary/fallback 切换语义。
 「未经核验」，没有等级票价开放时间就不给这三个字段。契约不升版本：能力仍是
 `CONTENT_INSPIRATION`，证据 sourceKind 仍走 `AMAP`/`EXTERNAL` 白名单。
 
+**著名景点归属（2026-11-10 下午）**：`application/place/FamousPlaces.java` 是一张只记「省份 / 地级市 / 景区本名 / 检索名」的权威归属表，优先级高于知识库直查与模型判断。起因是库里只有同名冷门条目（华山=济南、黄山=广州黄山鲁森林公园、老君山=成都），导致「华山」被认成济南；库里有可核验条目的景区（故宫、兵马俑、鼓浪屿、西湖）按城市检索，只有同名噪音的按景区原名走 `MapTools` 实时检索。用户显式写「济南华山」时该表主动让位。`ChatAgent` 同时用这张表纠正跨轮遗留的错城市（旧会话 `state.city=济南/成都`），并在模型仍把旧城市写进工具参数时改回景点检索名；`draft_itinerary` 的工具摘要改为带出逐日景点，避免模型误判「只拿到空壳」而凭记忆补内容。
+
 失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
 对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。
 
@@ -244,6 +246,7 @@ primary/fallback 切换语义。
 - **不改旧链路**：`/api/agent/plan` 仍直连 `PlanningService`，本层是新增入口，不迁移旧接口。
 - **归纳层不造事实（2026-11-09 晚已落地）**：`SummaryComposer` 在 `success()` 里把 facts 归纳成一句人话顶替 Provider 模板 `advice`。它只喂距离、人均、评分、标签等数值字段，**不喂店名**；输出里每个数字都必须在 facts 中找到同值（候选条数也算），否则整条丢弃回退原 `advice`；未配密钥、无 facts、调用异常、超长同样静默回退。它不改状态码、不改 facts 条数、不参与排序过滤。
 - **两轮投票已落地（2026-11-09 晚）**：独立 `VoteOrchestrator` 承担范式 B 两轮协议，不动 `AgentOrchestrator`。第一轮 `COLLECT` 征集事实，候选「模型优先 + 规则兜底」；第二轮 `SCORE` 一次性收票后交 `PlanVoteTally` 确定性计票（VETO 硬剔除、弃票不进分母、加权、三步平局、同构检测）。三位评委 `judge.ticket` / `judge.food` / `judge.parking` 复用 `DECISION_ADVICE` 能力，各自声明独立 `Rubric`，不新增 capability 枚举。三条 `E_VOTE_*` 已进 Java 运行时的 `rejections` 与 `notices`，不再只在离线原型里。
+- **信息流定案（2026-11-10）**：用户明确「所有 Agent 收集到的信息全部给主 Agent，由主 Agent 整理生成草案，其他子 Agent 投票；票务只把购票链接或方法告诉用户，不替用户购票」。`ChatAgent` 在调 `vote_plan` 时把本轮所有工具卡片注入请求，`VoteOrchestrator` 把它们连同评委事实全量合成 `allFacts`，主 Agent 据此确定性整理一份草案（逐日 / 餐饮 / 天气 / 购票方式 / 未提供项），模型 prompt 也改为带事实内容而不是只有 ID；评委第二轮按草案真实字段评分。购票入口由 `builtin.ticket` 以 `TICKET_GUIDANCE` fact 输出 `officialUrl` 与方法，链接只进 fact value（契约 S-04 禁止 `advice` 含 URL），前端列成可点入口，明确不代下单、不查余票。契约仍是 1.0，不新增 capability / factType。详见《多 Agent 方案投票编排设计》「实现状态（2026-11-10）」。
 - **不重复计数**：外部 Provider 的运行期违规由 `HttpAgentAdapter` 的 `runtimeSink` 上报准入控制器，编排层只记录尝试结果，不改注册表状态、不生成第二份违规回执。
 
 `DispatchOutcome.Attempt.reason` 是编排层自己的标签（`NOT_FOUND` / `CONTRACT_VIOLATION` / `EXCEPTION` / `REFUSED` / `OK`），不是准入原因码，不进 `AdmissionReport`、不计违规、不加熔断。响应是信封加契约形状的 `result`，不含 endpoint、authRef 或任何凭据。

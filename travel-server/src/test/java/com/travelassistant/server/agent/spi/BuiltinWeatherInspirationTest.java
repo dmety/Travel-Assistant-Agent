@@ -93,7 +93,7 @@ class BuiltinWeatherInspirationTest {
   }
 
   @Test
-  @DisplayName("builtin.inspiration：有景区等级的排前（学校、图书馆不算景点），同级按评分")
+  @DisplayName("builtin.inspiration：好评高的排前（学校不算景点），票价原文进 fact")
   void inspirationPicks() {
     AttractionStore store = mock(AttractionStore.class);
     when(store.findByCity("杭州")).thenReturn(List.of(
@@ -115,11 +115,14 @@ class BuiltinWeatherInspirationTest {
     assertThat(value).containsEntry("category", "INSPIRATION").containsEntry("city", "杭州");
     @SuppressWarnings("unchecked")
     List<java.util.Map<String, Object>> items = (List<java.util.Map<String, Object>>) value.get("items");
-    // 等级优先：5A 景区排前，rating=5.0 的学校排后；没等级没评分的殿后但不丢
+    // 评分优先：4.9 > 4.5 > 无评分；rating=5.0 的大学是科教条目，直接剔除非景点
     assertThat(items).extracting(i -> i.get("name"))
-        .containsExactly("西湖", "千岛湖", "某大学", "灵隐寺");
+        .containsExactly("西湖", "千岛湖", "灵隐寺")
+        .doesNotContain("某大学");
     assertThat(items.get(0).get("reason")).isEqualTo("5A，评分 4.9，门票 免费");
     assertThat(items.get(1).get("reason")).isEqualTo("5A，评分 4.5，门票 130 元");
+    assertThat(items.get(0)).containsEntry("ticket", "免费")
+        .containsEntry("rating", "4.9").containsKey("ticketStatus");
     ContractValidator validator = new ContractValidator(rules);
     assertThat(validator.validateResult(validator.toResponseMap("builtin.inspiration", result)))
         .isEmpty();
@@ -134,9 +137,9 @@ class BuiltinWeatherInspirationTest {
     when(mapTools.findScenicSpots("黄梅", 8)).thenReturn(new MapTools.ScenicResult(
         "黄梅",
         List.of(new MapTools.ScenicSpot("五祖寺", "风景名胜;寺庙", "黄梅县五祖镇", "黄梅县",
-            "0713-3361111", 30.116, 115.934, "GCJ-02", MapTools.SOURCE_AMAP),
+            "0713-3361111", 30.116, 115.934, "GCJ-02", MapTools.SOURCE_AMAP, 4.7, 53),
             new MapTools.ScenicSpot("四祖寺", "风景名胜;寺庙", "黄梅县大河镇", "黄梅县",
-                null, 30.152, 115.912, "GCJ-02", MapTools.SOURCE_BAIDU)),
+                null, 30.152, 115.912, "GCJ-02", MapTools.SOURCE_BAIDU, null, null)),
         List.of("百度密钥未配置")));
     AgentProvider provider = configuration.builtinInspiration(rules, store, mapTools);
 
@@ -157,9 +160,16 @@ class BuiltinWeatherInspirationTest {
     @SuppressWarnings("unchecked")
     List<java.util.Map<String, Object>> items = (List<java.util.Map<String, Object>>) value.get("items");
     assertThat(items).hasSize(2);
-    assertThat(items.get(0)).containsEntry("name", "五祖寺").containsEntry("source", "高德");
-    // 地图没有等级票价开放时间，就不许有这些键——有值即编造
-    assertThat(items.get(0)).doesNotContainKeys("level", "ticket", "openTime", "rating");
+    assertThat(items.get(0)).containsEntry("name", "五祖寺").containsEntry("source", "高德")
+        .containsEntry("rating", 4.7).containsEntry("commentCount", 53);
+    // 地图真实评分与评价数进 reason；等级、票价、开放时间明确以 null 标注「没有」
+    assertThat(items.get(0).get("reason").toString()).contains("评分 4.7")
+        .contains("53 条评价");
+    assertThat(items.get(0)).containsKeys("level", "ticket", "openTime");
+    assertThat(items.get(0).get("level")).isNull();
+    assertThat(items.get(0).get("ticket")).isNull();
+    assertThat(items.get(0).get("openTime")).isNull();
+    assertThat(items.get(1).get("rating")).isNull();
     assertThat(result.notices()).anyMatch(n -> n.contains("未经核验"));
     ContractValidator validator = new ContractValidator(rules);
     assertThat(validator.validateResult(validator.toResponseMap("builtin.inspiration", result)))

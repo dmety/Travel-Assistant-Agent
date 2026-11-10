@@ -5,6 +5,7 @@ import com.travelassistant.server.infrastructure.amap.AmapClient;
 import com.travelassistant.server.infrastructure.baidu.BaiduPlaceClient;
 import com.travelassistant.server.infrastructure.geo.CoordinateTransforms;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
@@ -34,10 +35,12 @@ public class MapTools {
 
   /**
    * 单个景点候选。字段全部来自地图 POI 原文：等级、票价、开放时间地图检索拿不到，
-   * 就是没有——调用方不得用「免费」「全天开放」补齐。
+   * 就是没有——调用方不得用「免费」「全天开放」补齐。评分只有 {@code extensions=all}
+   * / {@code scope=2} 才返回，缺失为 null，同样不补默认值。
    */
   public record ScenicSpot(String name, String type, String address, String district,
-      String tel, Double lat, Double lon, String coordinateSystem, String source) {
+      String tel, Double lat, Double lon, String coordinateSystem, String source,
+      Double rating, Integer commentCount) {
   }
 
   /** 一次检索的结果：候选 + 给人看的 notice（含降级原因），候选可能为空。 */
@@ -57,6 +60,30 @@ public class MapTools {
    */
   private static final List<String> NOISE_TYPE_WORDS = List.of(
       "学校", "小学", "中学", "大学", "学院", "幼儿园", "职业技术", "培训");
+
+  /** 评分先验：没有评价数时把分数往这个基准收缩，避免「1 条评价的 5.0」压过老牌景区。 */
+  private static final double PRIOR_SCORE = 4.0;
+  private static final int PRIOR_WEIGHT = 30;
+  /** 评价数缺失（高德 place/text 不提供）时按这个样本量参与排序；只影响次序，不展示成数据。 */
+  private static final int UNKNOWN_SAMPLE = 15;
+
+  /**
+   * 好评高的放前面，但评分要带样本量：实测黄梅有一批 5.0 分、只有 6～11 条评价的冷门小庙，
+   * 纯按评分会把 4.6 分 / 53 条评价的四祖寺挤出候选。这里按评价数把评分向 4.0 先验收缩，
+   * 卡片仍展示原始评分与评价数，用户能自己判断；无评分的候选排最后。
+   */
+  private static double rankScore(ScenicSpot s) {
+    if (s.rating() == null) {
+      return -1;
+    }
+    int n = s.commentCount() == null ? UNKNOWN_SAMPLE : Math.max(s.commentCount(), 0);
+    return (s.rating() * n + PRIOR_SCORE * PRIOR_WEIGHT) / (n + PRIOR_WEIGHT);
+  }
+
+  private static final Comparator<ScenicSpot> RANK = Comparator
+      .comparingDouble((ScenicSpot s) -> -rankScore(s))
+      .thenComparingInt(s -> -(s.commentCount() == null ? 0 : s.commentCount()))
+      .thenComparingInt(s -> s.type() != null && s.type().contains("风景名胜") ? 0 : 1);
 
   private final AmapClient amap;
   private final BaiduPlaceClient baidu;
@@ -123,14 +150,13 @@ public class MapTools {
       notices.add("百度密钥未配置");
     }
 
-    // 风景名胜排前、科教文化（博物馆、广场）殿后：稳定排序，同一请求响应可复现
-    merged.sort(java.util.Comparator.comparing(
-        (ScenicSpot s) -> s.type() != null && s.type().contains("风景名胜") ? 0 : 1));
+    // 好评高的放前面；无评分的候选仍按风景名胜优先，稳定且可复现
+    merged.sort(RANK);
     List<ScenicSpot> unique = dedupe(merged);
     int capped = Math.min(Math.max(limit, 1), MAX_LIMIT);
     List<ScenicSpot> spots = unique.size() <= capped ? unique : unique.subList(0, capped);
     if (spots.size() < unique.size()) {
-      notices.add("候选超过上限，按固定顺序截取到 " + capped + " 条");
+      notices.add("候选超过上限，按评分（含评价数可信度）与类型顺序截取到 " + capped + " 条");
     }
     if (!spots.isEmpty() && sourceFailures > 0) {
       notices.add("部分数据源不可用，候选覆盖可能不完整");
@@ -193,10 +219,11 @@ public class MapTools {
 
   private static ScenicSpot toSpot(Place poi, String source) {
     return new ScenicSpot(poi.name(), poi.type(), poi.address(), poi.district(),
-        poi.tel(), poi.lat(), poi.lon(), poi.coordinateSystem(), source);
+        poi.tel(), poi.lat(), poi.lon(), poi.coordinateSystem(), source,
+        poi.rating(), poi.commentCount());
   }
 
-  /** 同来源按名称去重；跨来源「同名且 50 米内」去重。名称归一化去掉空白与大小写。 */
+  /** 同来源按名称去重；跨来源「同名且 50 米内」视为同一实体，保留评分更高的那条原文。 */
   private static List<ScenicSpot> dedupe(List<ScenicSpot> spots) {
     List<ScenicSpot> result = new ArrayList<>();
     for (ScenicSpot spot : spots) {
@@ -204,7 +231,8 @@ public class MapTools {
         continue;
       }
       boolean duplicate = false;
-      for (ScenicSpot kept : result) {
+      for (int i = 0; i < result.size(); i++) {
+        ScenicSpot kept = result.get(i);
         if (!normalize(spot.name()).equals(normalize(kept.name()))) {
           continue;
         }
@@ -216,6 +244,12 @@ public class MapTools {
             && kept.lat() != null && kept.lon() != null
             && CoordinateTransforms.haversineMeters(spot.lat(), spot.lon(),
                 kept.lat(), kept.lon()) < MERGE_METERS) {
+          // 直接换整条记录：评分、评价数与 POI 来源保持一致，不把两个源拼成「半个事实」
+          if (rankScore(spot) > rankScore(kept)
+              || (rankScore(spot) == rankScore(kept)
+                  && comments(spot) > comments(kept))) {
+            result.set(i, spot);
+          }
           duplicate = true;
           break;
         }
@@ -224,7 +258,12 @@ public class MapTools {
         result.add(spot);
       }
     }
+    result.sort(RANK);
     return result;
+  }
+
+  private static int comments(ScenicSpot s) {
+    return s.commentCount() == null ? 0 : s.commentCount();
   }
 
   private static String normalize(String raw) {
