@@ -117,6 +117,56 @@ class MapToolsTest {
   }
 
   @Test
+  @DisplayName("好评高的放前面：有评分的按评分降序，无评分的排后且仍按类型次序")
+  void ranksByRealRating() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(false);
+    when(amap.searchScenicSpots("黄梅", null, 25)).thenReturn(List.of(
+        ratedPlace("黄梅县博物馆", "科教文化服务;博物馆", "黄梅县", 4.8),
+        ratedPlace("五祖寺", "风景名胜;寺庙", "黄梅县", 4.5),
+        place("黄梅文化广场", "黄梅县人民路", "黄冈市", "黄梅县"),
+        ratedPlace("四祖寺", "风景名胜;寺庙", "黄梅县", 4.9)));
+    MapTools.ScenicResult result = mapTools.findScenicSpots("黄梅", 8);
+
+    assertThat(result.spots()).extracting(MapTools.ScenicSpot::name)
+        .containsExactly("四祖寺", "黄梅县博物馆", "五祖寺", "黄梅文化广场");
+    assertThat(result.spots().get(0).rating()).isEqualTo(4.9);
+    assertThat(result.spots().get(3).rating()).isNull();
+  }
+
+  @Test
+  @DisplayName("跨源合并：同一实体保留带真实评分的那条 POI 原文，不拼字段")
+  void keepsRatedPoiWhenMergingSources() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(true);
+    when(amap.searchScenicSpots("黄梅", null, 25)).thenReturn(List.of(
+        place("五祖寺", "黄梅县五祖镇", "黄冈市", "黄梅县")));
+    when(baidu.searchScenicSpots("黄梅", 25)).thenReturn(List.of(
+        ratedPlace("五祖寺", "风景名胜;寺庙", "黄梅县", 4.6, 30.1161, 115.9341)));
+    MapTools.ScenicResult result = mapTools.findScenicSpots("黄梅", 8);
+
+    assertThat(result.spots()).hasSize(1);
+    assertThat(result.spots().get(0).source()).isEqualTo(MapTools.SOURCE_BAIDU);
+    assertThat(result.spots().get(0).rating()).isEqualTo(4.6);
+  }
+
+  @Test
+  @DisplayName("评分可信度：11 条评价的 5.0 不压过 53 条评价的 4.6 与 64 条评价的 4.4")
+  void ranksByRatingCredibility() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(false);
+    when(amap.searchScenicSpots("黄梅", null, 25)).thenReturn(List.of(
+        ratedPlace("芦花庵", "风景名胜;寺庙", "黄梅县", 5.0, 11),
+        ratedPlace("四祖寺", "风景名胜;寺庙", "黄梅县", 4.6, 53),
+        ratedPlace("五祖寺", "风景名胜;寺庙", "黄梅县", 4.4, 64)));
+    MapTools.ScenicResult result = mapTools.findScenicSpots("黄梅", 8);
+
+    assertThat(result.spots()).extracting(MapTools.ScenicSpot::name)
+        .containsExactly("四祖寺", "五祖寺", "芦花庵");
+    assertThat(result.spots().get(0).commentCount()).isEqualTo(53);
+  }
+
+  @Test
   @DisplayName("名称命中 + 风景类类型：华阴市的西岳华山不被区县过滤漏掉，同名医院仍剔除")
   void keepsNameHitScenicPoi() {
     when(amap.configured()).thenReturn(true);
@@ -144,9 +194,26 @@ class MapToolsTest {
     return namedPlace(name, type, district, 30.116, 115.934);
   }
 
+  private static Place ratedPlace(String name, String type, String district, double rating) {
+    return ratedPlace(name, type, district, rating, 30.116, 115.934);
+  }
+
+  /** 带评价数的 POI：评分可信度排序用。 */
+  private static Place ratedPlace(String name, String type, String district,
+      double rating, int comments) {
+    return new Place(name, type, district, "黄冈市", district, null,
+        30.116, 115.934, "GCJ-02", null, rating, comments);
+  }
+
+  private static Place ratedPlace(String name, String type, String district,
+      double rating, double lat, double lon) {
+    return new Place(name, type, district, "黄冈市", district, null,
+        lat, lon, "GCJ-02", null, rating, null);
+  }
+
   private static Place namedPlace(String name, String type, String district,
       double lat, double lon) {
     return new Place(name, type, district, "黄冈市", district, null,
-        lat, lon, "GCJ-02", null);
+        lat, lon, "GCJ-02", null, null, null);
   }
 }

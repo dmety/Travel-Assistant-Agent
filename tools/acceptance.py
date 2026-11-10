@@ -129,6 +129,37 @@ def main():
                 check(any('不可用' in n for n in invoke['result']['notices'])
                       or any('未编造' in n for n in invoke['result']['notices']),
                       'degradation reason is stated in notices')
+
+                # ---- 景点卡：好评高的在前、票价原文透出、没票价不补数字 ----
+                code, insp = request(owner, base, '/api/agent/invoke', {
+                    'intent': 'CONTENT_INSPIRATION', 'context': {'city': '北京'}})
+                picks = []
+                if code == 200:
+                    for fact in insp['result']['facts']:
+                        value = fact.get('value') or {}
+                        if value.get('category') == 'INSPIRATION':
+                            picks = value.get('items') or []
+                check(code == 200 and picks, 'inspiration returns real KB candidates')
+                ratings = [float(x['rating']) for x in picks if x.get('rating')]
+                check(ratings == sorted(ratings, reverse=True),
+                      'attraction candidates are sorted by real rating, highest first')
+                check(all('ticket' in x and 'ticketStatus' in x and 'rating' in x
+                          for x in picks),
+                      'candidates expose rating, ticket text and verification status')
+                check(all(x['ticket'] is None for x in picks if not x.get('ticket')),
+                      'missing ticket stays null, never filled with free or zero')
+                keep_words = ('博物馆', '纪念馆', '旧址', '遗址', '美术馆',
+                              '艺术馆', '观景台', '公园', '景区', '古镇')
+                noise_words = ('大学', '中学', '小学', '幼儿园', '图书馆', '驾校')
+                check(not any(any(w in (x.get('name') or '') for w in noise_words)
+                              and not any(k in (x.get('name') or '') for k in keep_words)
+                              for x in picks),
+                      'high-rated non-tourism POIs are filtered out')
+                chat_page = (ROOT / 'travel-server/src/main/resources/static/chat.html'
+                             ).read_text(encoding='utf-8')
+                check('票价未核验' in chat_page and 'r.channels' in chat_page
+                      and '好评高的在前' in chat_page,
+                      'chat page renders rating order, unverified tickets and official links')
                 code, caps = request(client(), base, '/api/agent/capabilities')
                 check(code == 200 and any(p['id'] == 'builtin.food'
                                          and p['status'] == 'ACTIVE'

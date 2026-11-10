@@ -16,5 +16,9 @@ public record Place(
     Double lat,
     Double lon,
     String coordinateSystem,
-    String distanceMeters) {
+    String distanceMeters,
+    /** 地图 POI 用户评分（5 分制），无评分时为 null；不是票价、不是人均消费。 */
+    Double rating,
+    /** 该评分对应的评价数，地图没有提供时为 null；只用于排序可信度与展示，不当成好评数。 */
+    Integer commentCount) {
 }

@@ -12,8 +12,11 @@ import com.travelassistant.server.application.agent.vote.PlanVoteTally;
 import com.travelassistant.server.application.agent.vote.VoteOrchestrator;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
+import com.travelassistant.server.application.place.RatingOrder;
+import com.travelassistant.server.application.ticket.TicketService;
 import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.domain.ticket.TicketChannel;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -60,16 +63,18 @@ public class ChatTools {
   private final VoteOrchestrator votes;
   private final ObjectMapper mapper;
   private final MapTools maps;
+  private final TicketService tickets;
 
   public ChatTools(PlaceResolver places, AttractionStore store,
       AgentOrchestrator orchestrator, VoteOrchestrator votes, ObjectMapper mapper,
-      MapTools maps) {
+      MapTools maps, TicketService tickets) {
     this.places = places;
     this.store = store;
     this.orchestrator = orchestrator;
     this.votes = votes;
     this.mapper = mapper;
     this.maps = maps;
+    this.tickets = tickets;
   }
 
   /**
@@ -81,7 +86,8 @@ public class ChatTools {
       fn("resolve_place", "核实一个地名属于哪座城市、是不是具体景点。地名写法不确定、"
           + "或用户说的可能是景区名时先调它，不要自己猜归属。",
           Map.of("name", str("地名原文，例如「武当山」「婺源」")), List.of("name")),
-      fn("list_attractions", "按城市列出景点，含等级、票价、开放时间。"
+      fn("list_attractions", "按城市列出景点，好评高的排前面，附真实评分、等级、票价原文与"
+          + "人工核验过的官方购票入口；没有票价的明确标「未核验」。"
           + "问「有什么好玩的」「值不值得去」「门票多少」时用它。",
           Map.of("city", str("城市名，例如「武汉」"),
               "limit", Map.of("type", "integer", "description", "最多返回几条，默认 8，上限 12")),
@@ -97,7 +103,8 @@ public class ChatTools {
           + "它只给入口、方法与缺口，不代下单、不查余票、不处理退款。",
           Map.of("message", str("用户的购票原话，尽量保留年龄、日期、人数等条件，例如"
               + "「两个成人一个1.2米儿童下周六去黄鹤楼」")), List.of("message")),
-      fn("get_inspiration", "按地名给主题灵感候选（附等级、票价、推荐理由）。"
+      fn("get_inspiration", "按地名给主题灵感候选，好评高的排前面，附真实评分、等级、"
+          + "票价原文与官方购票入口；没有票价的只说「未核验」，不要补数字。"
           + "未收录的地名（如区县「黄梅」「婺源」）会自动改用地图实时检索，结果未经核验。"
           + "用户说「不知道去哪」「随便逛逛」「有什么好玩的推荐一下」时用它；"
           + "传用户提到的原始地名，不要先替换成地级市。",
@@ -207,15 +214,20 @@ public class ChatTools {
           Map<String, Object> row = new LinkedHashMap<>();
           row.put("name", s.name());
           row.put("type", s.type());
+          row.put("rating", s.rating());
+          row.put("commentCount", s.commentCount());
           row.put("address", s.address());
           row.put("district", s.district());
           row.put("tel", s.tel());
           row.put("city", s.district() != null && !s.district().isBlank() ? s.district() : city);
+          row.put("channels", channelsFor(s.name()));
           liveRows.add(row);
         }
         if (!liveRows.isEmpty()) {
-          return new Outcome(true, cut(city + " 的实时检索景点：" + namesFromRows(liveRows)
-                  + "。候选未经核验，票价与开放时间地图未提供，以景区官方信息为准。"),
+          return new Outcome(true, cut(city + " 的实时检索景点（按地图评分排序，无评分的排后）：\n"
+                  + placeLines(liveRows)
+                  + "\n候选未经核验：地图不提供票价与开放时间，未核验的不补数字；"
+                  + "购票请到景区官方公众号/官网或现场窗口，本系统不代购。"),
               new Card("places", null, liveRows));
         }
       } catch (RuntimeException ignored) {
@@ -223,32 +235,96 @@ public class ChatTools {
       }
       return new Outcome(false, "没查到「" + city + "」的景点。不要编造景点名，如实告诉用户没查到。", null);
     }
-    List<Attraction> shown = found.stream().limit(limit).toList();
+    // 与灵感卡片同一口径：好评高的放前面，明显非景点的科教条目剔除
+    List<Attraction> shown = RatingOrder.ranked(found, limit);
     List<Map<String, Object>> rows = new ArrayList<>();
-    StringBuilder sb = new StringBuilder(city + " 的景点（共 " + found.size() + " 条，列出 "
-        + shown.size() + " 条）：\n");
     for (Attraction a : shown) {
-      StringBuilder line = new StringBuilder("- ").append(a.name());
-      if (a.level() != null && !a.level().isBlank()) {
-        line.append("｜").append(a.level());
-      }
-      if (a.ticket() != null && !a.ticket().isBlank()) {
-        line.append("｜门票：").append(a.ticket());
-      }
-      if (a.openTime() != null && !a.openTime().isBlank()) {
-        line.append("｜开放：").append(a.openTime());
-      }
-      sb.append(line).append('\n');
       Map<String, Object> row = new LinkedHashMap<>();
       row.put("name", a.name());
       row.put("level", a.level());
+      row.put("rating", a.rating());
       row.put("ticket", a.ticket());
+      row.put("ticketStatus", a.ticketStatus());
       row.put("openTime", a.openTime());
       row.put("city", a.city());
+      row.put("channels", channelsFor(a.name()));
       rows.add(row);
     }
-    sb.append("票价与开放时间可能有变化，以景区公告为准。");
-    return new Outcome(true, cut(sb.toString()), new Card("places", null, rows));
+    String summary = city + " 的景点（共 " + found.size() + " 条，按评分列出 "
+        + rows.size() + " 条）：\n" + placeLines(rows)
+        + "\n票价原文与开放时间可能有变化，以景区公告为准；没有票价的只说未核验，不补数字。";
+    return new Outcome(true, cut(summary), new Card("places", null, rows));
+  }
+
+  /**
+   * 给模型看的景点逐条文本：评分、票价原文、开放时间都来自数据，缺票价明确写「未核验」。
+   * 票价原文可能很长（含适用人群与来源），这里只取第一句避免撑爆上下文；卡片里是全文。
+   */
+  private static String placeLines(List<Map<String, Object>> rows) {
+    List<String> lines = new ArrayList<>();
+    for (Map<String, Object> row : rows) {
+      StringBuilder line = new StringBuilder("- ").append(String.valueOf(row.getOrDefault("name", "")));
+      Object rating = row.get("rating");
+      if (rating != null && !String.valueOf(rating).isBlank()) {
+        line.append("｜评分 ").append(rating);
+      }
+      Object comments = row.get("commentCount");
+      if (comments != null && !String.valueOf(comments).isBlank()) {
+        line.append("（").append(comments).append(" 条评价）");
+      }
+      String ticket = briefTicket(row.get("ticket"));
+      line.append(ticket == null ? "｜门票未核验" : "｜门票 ").append(ticket == null ? "" : ticket);
+      Object openTime = row.get("openTime");
+      if (openTime != null && !String.valueOf(openTime).isBlank()) {
+        line.append("｜开放 ").append(openTime);
+      }
+      Object level = row.get("level");
+      if (level != null && !String.valueOf(level).isBlank()) {
+        line.append("｜").append(level);
+      }
+      lines.add(line.toString());
+    }
+    return String.join("\n", lines);
+  }
+
+  private static String briefTicket(Object raw) {
+    if (raw == null) {
+      return null;
+    }
+    String text = String.valueOf(raw).strip();
+    if (text.isEmpty()) {
+      return null;
+    }
+    String head = text.split("[；;(（]")[0].strip();
+    return head.length() > 40 ? head.substring(0, 40) + "…" : head;
+  }
+
+  /**
+   * 只透出配置里人工核验过的官方购票入口。链接是配置的原文，不拼、不猜、不抓；
+   * 没有配置就返回空列表，由前端明确告诉用户去景区官方渠道查询。
+   */
+  private List<Map<String, Object>> channelsFor(String name) {
+    if (tickets == null || name == null || name.isBlank()) {
+      return List.of();
+    }
+    try {
+      List<Map<String, Object>> out = new ArrayList<>();
+      for (TicketChannel channel : tickets.lookup(null, name, null).channels()) {
+        if (!channel.usable()) {
+          continue;
+        }
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("name", channel.channelName());
+        item.put("url", channel.officialUrl());
+        item.put("note", channel.note() == null || channel.note().isBlank()
+            ? "余票未核验，购票前请以官方页面显示为准" : channel.note());
+        out.add(item);
+      }
+      return out;
+    } catch (RuntimeException e) {
+      log.debug("官方购票入口查询失败：{}", e.getMessage());
+      return List.of();
+    }
   }
 
   /**
@@ -474,11 +550,16 @@ public class ChatTools {
           row.put("level", m.get("level"));
           row.put("rating", m.get("rating"));
           row.put("ticket", m.get("ticket"));
+          row.put("ticketStatus", m.get("ticketStatus"));
           row.put("openTime", m.get("openTime"));
           row.put("city", m.get("city"));
           row.put("reason", m.get("reason"));
+          // 官方入口来自人工核验配置：有就给链接，没有就由卡片说明查询方法
+          Object name = m.get("name");
+          row.put("channels", name == null ? List.of() : channelsFor(String.valueOf(name)));
           // 实时检索候选才有这些字段（等级票价地图拿不到，是 null 不是 0）
-          for (String field : new String[] {"type", "address", "district", "tel", "source"}) {
+          for (String field : new String[] {"type", "address", "district", "tel",
+              "source", "commentCount"}) {
             if (m.get(field) != null) {
               row.put(field, m.get(field));
             }
@@ -490,11 +571,13 @@ public class ChatTools {
     Object total = value.get("total");
     String summary;
     if ("LIVE_MAP".equals(value.get("source"))) {
-      summary = city + " 的实时检索景点：" + namesFromRows(rows)
-          + "。候选未经核验，没有等级票价开放时间的字段就不说，以景区官方信息为准。";
+      summary = city + " 的实时检索景点（按地图评分排序，无评分的排后）：\n" + placeLines(rows)
+          + "\n候选未经核验：地图不提供等级、票价与开放时间，未核验的不补数字；"
+          + "购票请到景区官方公众号/官网或现场窗口，本系统不代购。";
     } else {
-      summary = city + " 的灵感候选（共 " + total + " 条，挑了 " + rows.size()
-          + " 条）：" + namesFromRows(rows) + "。票价与开放时间可能有变化，以景区公告为准。";
+      summary = city + " 的灵感候选（共 " + total + " 条，按评分挑了 " + rows.size()
+          + " 条）：\n" + placeLines(rows)
+          + "\n票价原文与开放时间可能有变化，以景区公告为准；没有票价的只说未核验。";
     }
     return new Outcome(true, cut(summary), new Card("places", null, rows));
   }

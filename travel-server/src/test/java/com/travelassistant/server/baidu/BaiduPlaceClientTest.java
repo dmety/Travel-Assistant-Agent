@@ -7,6 +7,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.travelassistant.server.domain.food.FoodPlace;
+import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.infrastructure.baidu.BaiduPlaceClient;
 import com.travelassistant.server.infrastructure.baidu.BaiduUnavailableException;
 import java.util.List;
@@ -60,6 +61,33 @@ class BaiduPlaceClientTest {
     assertThat(first.openHours()).isEqualTo("11:00-22:00");
     assertThat(first.commentCount()).isEqualTo(326);
     assertThat(first.tags()).isEqualTo("鲁菜;老字号");
+    assertThat(places.get(1).rating()).isNull();
+    assertThat(places.get(1).commentCount()).isNull();
+  }
+
+  @Test
+  @DisplayName("景点检索带出 overall_rating 真实评分，人均 price 不当票价、无评分保持 null")
+  void parsesScenicRating() {
+    server.expect(requestTo(containsString("/place/v2/search")))
+        .andExpect(request -> assertThat(request.getURI().getQuery())
+            .contains("scope=2").contains("tag="))
+        .andRespond(withSuccess("""
+            {"status":0,"message":"ok","results":[
+              {"name":"五祖寺","location":{"lat":30.116,"lng":115.934},"city":"黄冈市",
+               "area":"黄梅县","detail_info":{"tag":"风景名胜;寺庙","overall_rating":"4.6",
+                 "comment_num":"53","price":"80"}},
+              {"name":"四祖寺","location":{"lat":30.152,"lng":115.912},"city":"黄冈市",
+               "area":"黄梅县","detail_info":{"tag":"风景名胜","overall_rating":"[]",
+                 "comment_num":"[]"}}
+            ]}
+            """, MediaType.APPLICATION_JSON));
+
+    List<Place> places = client("test-ak").searchScenicSpots("黄梅", 8);
+
+    assertThat(places).hasSize(2);
+    assertThat(places.get(0).rating()).isEqualTo(4.6);
+    assertThat(places.get(0).commentCount()).isEqualTo(53);
+    assertThat(places.get(0).coordinateSystem()).isEqualTo("GCJ-02");
     assertThat(places.get(1).rating()).isNull();
     assertThat(places.get(1).commentCount()).isNull();
   }

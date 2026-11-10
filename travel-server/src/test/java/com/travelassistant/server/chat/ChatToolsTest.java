@@ -22,8 +22,11 @@ import com.travelassistant.server.application.chat.ChatTools;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
 import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.domain.ticket.TicketAdvice;
+import com.travelassistant.server.domain.ticket.TicketChannel;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ class ChatToolsTest {
   private AgentOrchestrator orchestrator;
   private VoteOrchestrator votes;
   private com.travelassistant.server.application.map.MapTools maps;
+  private com.travelassistant.server.application.ticket.TicketService tickets;
   private ChatTools tools;
 
   @BeforeEach
@@ -52,7 +56,13 @@ class ChatToolsTest {
     orchestrator = mock(AgentOrchestrator.class);
     votes = mock(VoteOrchestrator.class);
     maps = mock(com.travelassistant.server.application.map.MapTools.class);
-    tools = new ChatTools(places, store, orchestrator, votes, new ObjectMapper(), maps);
+    tickets = mock(com.travelassistant.server.application.ticket.TicketService.class);
+    // 默认「没有经核验入口」：不生成猜测链接；个别用例再按景点名 stub 出官方入口
+    when(tickets.lookup(org.mockito.ArgumentMatchers.<String>any(),
+        org.mockito.ArgumentMatchers.<String>any(),
+        org.mockito.ArgumentMatchers.<String>any()))
+        .thenReturn(TicketAdvice.notFound(null, "test", null, Instant.now()));
+    tools = new ChatTools(places, store, orchestrator, votes, new ObjectMapper(), maps, tickets);
   }
 
   private static Attraction attraction(String id, String name, Double lat) {
@@ -108,14 +118,51 @@ class ChatToolsTest {
             "华山",
             List.of(new com.travelassistant.server.application.map.MapTools.ScenicSpot(
                 "华山风景名胜区", "风景名胜;风景名胜", "华阴市玉泉路", "华阴市", null,
-                34.48, 110.08, "GCJ-02", "高德")),
+                34.48, 110.08, "GCJ-02", "高德", 4.7, null)),
             List.of()));
 
     ChatTools.Outcome outcome = tools.execute("list_attractions", "{\"city\":\"华山\"}");
 
     assertThat(outcome.ok()).isTrue();
-    assertThat(outcome.summary()).contains("华山风景名胜区").contains("未经核验");
+    assertThat(outcome.summary()).contains("华山风景名胜区").contains("未经核验")
+        .contains("评分 4.7").contains("门票未核验");
     assertThat(outcome.card().type()).isEqualTo("places");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
+    assertThat(rows.get(0)).containsEntry("rating", 4.7).containsKey("channels");
+    assertThat(rows.get(0).get("ticket")).isNull();
+  }
+
+  @Test
+  @DisplayName("列景点：好评高的在前，票价原文与官方入口进卡片，缺票价不补数字")
+  void listAttractionsShowsTicketAndChannels() {
+    TicketChannel channel = new TicketChannel("kb-1", "故宫博物院", "北京", "故宫博物院官网",
+        "https://example.com/gugong", List.of(), List.of("需实名预约"), "人工核验",
+        LocalDate.of(2026, 11, 1), "余票未核验");
+    when(tickets.lookup(null, "故宫博物院", null)).thenReturn(
+        TicketAdvice.found(null, "故宫博物院", null, List.of(channel), Instant.now()));
+    when(store.findByCity("北京")).thenReturn(List.of(
+        kbAttraction("南锣鼓巷", "4.8", null, "pending"),
+        kbAttraction("某大学", "5.0", "免费", "pending"),
+        kbAttraction("故宫博物院", "4.9", "旺季60元/淡季40元", "unverified")));
+
+    ChatTools.Outcome outcome = tools.execute("list_attractions", "{\"city\":\"北京\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("评分 4.9").contains("门票 旺季60元")
+        .contains("门票未核验").doesNotContain("某大学");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
+    assertThat(rows).extracting(r -> r.get("name"))
+        .containsExactly("故宫博物院", "南锣鼓巷");
+    assertThat(rows.get(0)).containsEntry("ticket", "旺季60元/淡季40元")
+        .containsEntry("ticketStatus", "unverified").containsEntry("rating", "4.9");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> links = (List<Map<String, Object>>) rows.get(0).get("channels");
+    assertThat(links).hasSize(1);
+    assertThat(links.get(0)).containsEntry("url", "https://example.com/gugong");
+    assertThat(rows.get(1).get("ticket")).isNull();
+    assertThat((List<?>) rows.get(1).get("channels")).isEmpty();
   }
 
   @Test
@@ -243,12 +290,15 @@ class ChatToolsTest {
     ChatTools.Outcome outcome = tools.execute("get_inspiration", "{\"city\":\"杭州\"}");
 
     assertThat(outcome.ok()).isTrue();
-    assertThat(outcome.summary()).contains("西湖").contains("以景区公告为准");
+    assertThat(outcome.summary()).contains("西湖").contains("以景区公告为准")
+        .contains("评分 4.9").contains("门票 免费");
     assertThat(outcome.card().type()).isEqualTo("places");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
     assertThat(rows).hasSize(1);
-    assertThat(rows.get(0)).containsEntry("name", "西湖").containsEntry("reason", "5A，评分 4.9");
+    assertThat(rows.get(0)).containsEntry("name", "西湖").containsEntry("reason", "5A，评分 4.9")
+        .containsEntry("ticket", "免费").containsEntry("ticketStatus", "verified")
+        .containsEntry("rating", "4.9").containsKey("channels");
   }
 
   @Test
@@ -472,11 +522,20 @@ class ChatToolsTest {
         new Evidence("TICKET_RULE", "builtin.ticket", Evidence.UNVERIFIED, Instant.now(), "匹配计数"));
   }
 
+  private static Attraction kbAttraction(String name, String rating, String ticket,
+      String status) {
+    return new Attraction("kb-" + name, name, "北京", "北京市", "attraction", null, rating,
+        null, ticket, null, null, null, null, null, null, null,
+        "KB", List.of("KB"), status, null, "GCJ-02");
+  }
+
   private static Fact inspirationFact() {
     Map<String, Object> item = new LinkedHashMap<>();
     item.put("name", "西湖");
     item.put("level", "5A");
     item.put("rating", "4.9");
+    item.put("ticket", "免费");
+    item.put("ticketStatus", "verified");
     item.put("reason", "5A，评分 4.9");
     Map<String, Object> value = new LinkedHashMap<>();
     value.put("category", "INSPIRATION");

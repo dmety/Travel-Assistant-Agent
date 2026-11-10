@@ -578,7 +578,8 @@ GET /api/location/places?keywords=西湖&city=杭州&limit=5
   "places": [
     { "name": "西湖", "type": "风景名胜", "address": "龙井路1号",
       "city": "杭州市", "district": "西湖区", "tel": "0571-1234",
-      "lat": 30.259, "lon": 120.13, "coordinateSystem": "GCJ-02", "distanceMeters": "0" }
+      "lat": 30.259, "lon": 120.13, "coordinateSystem": "GCJ-02",
+      "distanceMeters": "0", "rating": 4.7, "commentCount": 53 }
   ],
   "source": "高德地图 Web 服务 · 地点检索",
   "queriedAt": "2026-11-04T12:30:00Z",
@@ -588,6 +589,8 @@ GET /api/location/places?keywords=西湖&city=杭州&limit=5
 
 - 坐标固定标注 `GCJ-02`，**不能**与 WGS-84 直接混用
 - 结果为空时 `notice` 给出可操作提示，而不是干巴巴的空数组
+- 地点检索改用 `extensions=all` 才带 `biz_ext.rating` 地图用户评分；没有评分时 `rating` 为 `null`，不补默认分。`commentCount` 是百度 `detail_info.comment_num` 的评价数，高德 place/text 不提供该字段时为 `null`；**`biz_ext.cost` 是人均消费、不是门票价**，不下发、也不展示成票价
+- 对话里的景点候选按真实评分降序展示（无评分的排后），评分只用于排序与展示，不代表官方评级；地图实时检索额外用评价数做可信度加权，避免「6 条评价的 5.0」压过「53 条评价的 4.6」
 
 **天气预报**
 

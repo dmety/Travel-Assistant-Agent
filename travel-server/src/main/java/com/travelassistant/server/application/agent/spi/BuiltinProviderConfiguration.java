@@ -12,6 +12,7 @@ import com.travelassistant.server.application.agent.PlanningRequest;
 import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.map.MapTools;
+import com.travelassistant.server.application.place.RatingOrder;
 import com.travelassistant.server.application.agent.vote.JudgeProviderConfiguration;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
@@ -366,10 +367,11 @@ public class BuiltinProviderConfiguration {
   private static final int INSPIRATION_LIMIT = 8;
   /** 信封 advice 不带景点名与票价：候选明细全部走 CONTENT fact 由前端渲染。 */
   private static final String INSPIRATION_ADVICE =
-      "已按知识库挑选主题候选，票价与开放时间以景区公告为准，明细见结构化内容。";
+      "已按知识库评分排序挑选主题候选，票价原文与开放时间见结构化内容，以景区公告为准。";
   /** 库外实时检索的 advice 同样无数字无断言：地图快照没有等级票价，说了就是编造。 */
   private static final String LIVE_ADVICE =
-      "已按地图实时检索整理候选，等级、票价与营业信息地图未提供，请以景区官方信息为准，明细见结构化内容。";
+      "已按地图实时检索整理候选并按地图评分排序（无评分的排后面），"
+          + "等级、票价与营业信息地图未提供，请以景区官方信息为准，明细见结构化内容。";
 
   private static AgentResult inspiration(AttractionStore store, MapTools mapTools,
       AgentContext context) {
@@ -380,16 +382,9 @@ public class BuiltinProviderConfiguration {
     }
     List<Attraction> found = store.findByCity(city);
     if (!found.isEmpty()) {
-      // 等级（5A/4A）是景区评定的硬信号，先按有等级排前，再按评分降序：
-      // 知识库里混着学校、图书馆这类 rating=5.0 的非景区条目，纯按评分会排到最前
-      List<Attraction> picked = found.stream()
-          .sorted(java.util.Comparator
-              .comparing((Attraction a) -> a.level() == null || a.level().isBlank() ? 1 : 0)
-              .thenComparing(a -> a.rating() == null || a.rating().isBlank()
-                  ? java.math.BigDecimal.ZERO : new java.math.BigDecimal(a.rating()),
-                  java.util.Comparator.reverseOrder()))
-          .limit(INSPIRATION_LIMIT)
-          .toList();
+      // 用户口径「好评高的放前面」：统一走 RatingOrder，评分优先、同级再看等级；
+      // 大学/图书馆这类 rating 很高但不是景点的条目先剔除，博物馆/旧址等人文场馆保留。
+      List<Attraction> picked = RatingOrder.ranked(found, INSPIRATION_LIMIT);
       Map<String, Object> value = new LinkedHashMap<>();
       value.put("category", "INSPIRATION");
       value.put("city", city);
@@ -403,6 +398,7 @@ public class BuiltinProviderConfiguration {
         item.put("level", a.level());
         item.put("rating", a.rating());
         item.put("ticket", a.ticket());
+        item.put("ticketStatus", a.ticketStatus());
         item.put("openTime", a.openTime());
         item.put("reason", reasonOf(a));
         items.add(item);
@@ -436,6 +432,11 @@ public class BuiltinProviderConfiguration {
       amapContributed = amapContributed || MapTools.SOURCE_AMAP.equals(spot.source());
       Map<String, Object> item = new LinkedHashMap<>();
       item.put("name", spot.name());
+      item.put("level", null);       // 地图 POI 没有景区等级，是 null 不是「免费/全天开放」
+      item.put("rating", spot.rating());
+      item.put("commentCount", spot.commentCount());
+      item.put("ticket", null);      // 地图 POI 没有门票价；人均消费不是票价，不解析
+      item.put("openTime", null);
       item.put("type", spot.type());
       item.put("address", spot.address());
       item.put("district", spot.district());
@@ -473,9 +474,15 @@ public class BuiltinProviderConfiguration {
     return sb.isEmpty() ? "知识库收录景点" : sb.toString();
   }
 
-  /** 实时候选的理由只由区县与类别拼出，缺了就少说，绝不补形容词。 */
+  /** 实时候选的理由只由区县、类别与地图真实评分拼出，缺了就少说，绝不补形容词。 */
   private static String liveReason(MapTools.ScenicSpot spot) {
     StringBuilder sb = new StringBuilder();
+    if (spot.rating() != null) {
+      sb.append("评分 ").append(spot.rating());
+      if (spot.commentCount() != null) {
+        sb.append("（").append(spot.commentCount()).append(" 条评价）");
+      }
+    }
     if (spot.district() != null && !spot.district().isBlank()) {
       sb.append(spot.district());
     }
