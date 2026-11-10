@@ -197,6 +197,27 @@ flowchart TB
   胜出方案随 `vote` 卡片回给用户。系统提示明确：只在用户想比较省钱/美食/少走路
   等侧重时调用，普通排行程仍走 `draft_itinerary`。
 
+当前主 Agent → 子 Agent 的完整调用结构（2026-11-10）：
+
+```text
+用户一句话 → POST /api/chat（主 Agent，模型自主决策）
+                │ 按需调用（工具即子 Agent）
+                ├─ draft_itinerary → builtin.planning   (PLAN_DRAFT)
+                ├─ find_food       → builtin.food       (FOOD_RECOMMEND)
+                ├─ book_ticket     → builtin.ticket     (TICKET_ADVICE)  ← 新接入
+                ├─ get_weather     → builtin.weather    (WEATHER_ADVICE) ← 新建 Provider
+                ├─ get_inspiration → builtin.inspiration(CONTENT_INSPIRATION) ← 新建 Provider
+                └─ vote_plan       → VoteOrchestrator   ← 新接入投票
+                                        ├─ 第一轮：三评委 Agent（票务/美食/停车）上报事实
+                                        ├─ 主 Agent 生成 5 套侧重不同的候选
+                                        └─ 第二轮：评分计票 → 胜出方案
+```
+
+要点：五个子 Agent 全部经 `orchestrator.dispatch` 走同一条契约校验链，工具只是
+模型的「手」；`vote_plan` 是唯一旁路 `AgentOrchestrator` 的工具（直连
+`VoteOrchestrator`），因为两轮投票有自己的协议与计票器，不属于单一 intent 的
+primary/fallback 切换语义。
+
 失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
 对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。
 
