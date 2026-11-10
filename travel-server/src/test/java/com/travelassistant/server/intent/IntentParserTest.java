@@ -7,17 +7,21 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.server.application.agent.AgentUnavailableException;
+import com.travelassistant.server.application.intent.ConversationState;
+import com.travelassistant.server.application.intent.ConversationTurn;
 import com.travelassistant.server.application.intent.IntentParser;
 import com.travelassistant.server.application.intent.IntentResolution;
 import com.travelassistant.server.application.intent.TravelIntent;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
 import com.travelassistant.server.infrastructure.ai.DeepSeekClient;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -290,5 +294,168 @@ class IntentParserTest {
     // 2026-11-10 是周二：「下周六」按下周的周六算 = 11-21，玩四天则 11-24 返回
     assertThat(r.departDate()).isEqualTo(TODAY.plusDays(11));
     assertThat(r.returnDate()).isEqualTo(TODAY.plusDays(14));
+  }
+
+  /* ---------- 上下文记忆 ---------- */
+
+  private static final ConversationState WUHAN =
+      new ConversationState("武汉", null, null, null, List.of());
+
+  @Test
+  @DisplayName("接着上一轮说「有没有小馆子」：补出上文城市，并标注是沿用的")
+  void followUpInheritsCity() {
+    placeHit("武汉");
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"FOOD_RECOMMEND\",\"destination\":null}");
+
+    IntentResolution r = parser.parse("有没有那种很小众的馆子",
+        List.of(new ConversationTurn("user", "武汉有什么好吃的")), WUHAN);
+
+    assertThat(r.intent()).isEqualTo(TravelIntent.FOOD_RECOMMEND);
+    assertThat(r.city()).isEqualTo("武汉");
+    assertThat(r.resolved()).isTrue();
+    assertThat(r.carried()).containsExactly("city");
+  }
+
+  @Test
+  @DisplayName("排行程省略天数人数：沿用上文确认过的值，一次补齐")
+  void planInheritsSlots() {
+    placeHit("武汉");
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"PLAN_DRAFT\",\"destination\":null}");
+
+    IntentResolution r = parser.parse("帮我排一下", List.of(),
+        new ConversationState("武汉", 3, 2, new BigDecimal("3000"), List.of("人文")));
+
+    assertThat(r.city()).isEqualTo("武汉");
+    assertThat(r.days()).isEqualTo(3);
+    assertThat(r.travelers()).isEqualTo(2);
+    assertThat(r.budget()).isEqualByComparingTo("3000");
+    assertThat(r.preferences()).containsExactly("人文");
+    assertThat(r.carried()).containsExactly("city", "days", "travelers", "budget", "preferences");
+  }
+
+  @Test
+  @DisplayName("这一句自己说了目的地：以上文为例不再覆盖")
+  void explicitDestinationWins() {
+    placeHit("西安");
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"PLAN_DRAFT\",\"destination\":\"西安\"}");
+
+    IntentResolution r = parser.parse("那去西安呢", List.of(), WUHAN);
+
+    assertThat(r.city()).isEqualTo("西安");
+    assertThat(r.carried()).doesNotContain("city");
+  }
+
+  @Test
+  @DisplayName("闲聊不继承上文：问「你叫什么名字」不该被城市污染")
+  void chatNeverInherits() {
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"CHAT\",\"reply\":\"我是这个旅行助手的对话入口，还没起名字。\"}");
+
+    IntentResolution r = parser.parse("你叫什么名字", List.of(), WUHAN);
+
+    assertThat(r.intent()).isEqualTo(TravelIntent.CHAT);
+    assertThat(r.resolved()).isFalse();
+    assertThat(r.carried()).isEmpty();
+    assertThat(r.reply()).contains("旅行助手");
+    verify(places, never()).resolve(anyString(), any());
+  }
+
+  @Test
+  @DisplayName("闲聊回复去掉模型顺手编的网址：本项目没有这种页面")
+  void chatReplyDropsLinks() {
+    when(model.complete(anyString(), anyString())).thenReturn("""
+        {"intent":"CHAT","reply":"我没有价格表，票价都来自景区知识库，详见 https://fake.example.com/p 这个页面"}
+        """);
+
+    IntentResolution r = parser.parse("你的价格表在哪里查的 给我官方链接");
+
+    assertThat(r.reply()).isNotNull().doesNotContain("http").doesNotContain("fake.example.com");
+    assertThat(r.reply()).contains("价格表");
+  }
+
+  @Test
+  @DisplayName("只有网址的回复：整条丢弃，交给前端兜底文案")
+  void chatReplyWithOnlyLinkIsDropped() {
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"CHAT\",\"reply\":\"https://fake.example.com/prices\"}");
+
+    IntentResolution r = parser.parse("给我官方链接");
+
+    assertThat(r.reply()).isNull();
+  }
+
+  @Test
+  @DisplayName("问天气：不走景点知识库，城市原样交给天气接口")
+  void weatherSkipsKnowledgeBase() {
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"WEATHER\",\"destination\":\"天津\",\"days\":3}");
+
+    IntentResolution r = parser.parse("未来三天天津的天气怎么样");
+
+    assertThat(r.intent()).isEqualTo(TravelIntent.WEATHER);
+    assertThat(r.resolved()).isTrue();
+    assertThat(r.city()).isEqualTo("天津");
+    assertThat(r.days()).isEqualTo(3);
+    verify(places, never()).resolve(anyString(), any());
+  }
+
+  @Test
+  @DisplayName("问天气但没说城市：问一句并给可点城市")
+  void weatherWithoutCityAsks() {
+    when(places.popularCities(anyInt())).thenReturn(List.of("北京", "杭州", "西安"));
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"WEATHER\",\"destination\":null}");
+
+    IntentResolution r = parser.parse("明天天气怎么样");
+
+    assertThat(r.resolved()).isFalse();
+    assertThat(r.note()).contains("哪座城市");
+    assertThat(r.alternatives()).containsExactly("北京", "杭州", "西安");
+  }
+
+  @Test
+  @DisplayName("规则降级也认天气：「今天天津的天气」不会掉进闲聊")
+  void rulesDetectWeather() {
+    when(model.configured()).thenReturn(false);
+
+    IntentResolution r = parser.parse("今天天津的天气怎么样");
+
+    assertThat(r.source()).isEqualTo("rules");
+    assertThat(r.intent()).isEqualTo(TravelIntent.WEATHER);
+    assertThat(r.city()).isEqualTo("天津");
+  }
+
+  @Test
+  @DisplayName("缓存按上下文区分：同一句话在不同上文里要重新解析")
+  void cacheIsScopedByContext() {
+    placeHit("武汉");
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"PLAN_DRAFT\",\"destination\":null}");
+
+    parser.parse("帮我排一下", List.of(), WUHAN);
+    parser.parse("帮我排一下", List.of(), ConversationState.empty());
+
+    verify(model, times(2)).complete(anyString(), anyString());
+  }
+
+  @Test
+  @DisplayName("超长历史只带最近几条：不会把提示词撑爆")
+  void historyIsTrimmed() {
+    placeHit("武汉");
+    when(model.complete(anyString(), anyString())).thenReturn(
+        "{\"intent\":\"PLAN_DRAFT\",\"destination\":\"武汉\"}");
+    List<ConversationTurn> many = new java.util.ArrayList<>();
+    for (int i = 0; i < 20; i++) {
+      many.add(new ConversationTurn("user", "第 " + i + " 句话"));
+    }
+
+    parser.parse("武汉三天", many, ConversationState.empty());
+
+    org.mockito.ArgumentCaptor<String> prompt = org.mockito.ArgumentCaptor.captor();
+    verify(model).complete(anyString(), prompt.capture());
+    assertThat(prompt.getValue()).doesNotContain("第 11 句话").contains("第 19 句话");
   }
 }

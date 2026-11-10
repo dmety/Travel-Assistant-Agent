@@ -29,6 +29,8 @@ import java.util.List;
  * @param confidence   解析置信度
  * @param reason       一句话依据
  * @param source       来源：{@code llm} / {@code rules}
+ * @param carried      这一句没有明说、从上文沿用过来的字段名（如 {@code city} / {@code days}）
+ * @param reply        闲聊时模型给出的自然语言回复；其它意图为 {@code null}
  * @param notes        解析过程中的修正说明
  */
 public record IntentResolution(
@@ -50,11 +52,14 @@ public record IntentResolution(
     String confidence,
     String reason,
     String source,
+    List<String> carried,
+    String reply,
     List<String> notes) {
 
   public IntentResolution {
     alternatives = alternatives == null ? List.of() : List.copyOf(alternatives);
     preferences = preferences == null ? List.of() : List.copyOf(preferences);
+    carried = carried == null ? List.of() : List.copyOf(carried);
     notes = notes == null ? List.of() : List.copyOf(notes);
   }
 }

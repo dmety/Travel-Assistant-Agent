@@ -3,6 +3,7 @@ package com.travelassistant.server.infrastructure.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.travelassistant.server.application.agent.AgentUnavailableException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,24 +77,93 @@ public class DeepSeekClient {
    * @throws AgentUnavailableException 未配置密钥、调用失败或响应无法解析
    */
   public String complete(String systemPrompt, String userPrompt) {
+    Map<String, Object> body = baseBody(800);
+    body.put("messages", List.of(
+        Map.of("role", "system", "content", systemPrompt),
+        Map.of("role", "user", "content", userPrompt)));
+    JsonNode root = post(body);
+    JsonNode content = root.path("choices").path(0).path("message").path("content");
+    if (content.isMissingNode() || content.asText("").isBlank()) {
+      throw new AgentUnavailableException("模型返回内容为空");
+    }
+    return content.asText().strip();
+  }
+
+  /** 模型要求调用的一次工具：{@code arguments} 是 JSON 字符串，不保证合法。 */
+  public record ToolCall(String id, String name, String arguments) {
+  }
+
+  /** 一轮带工具的模型输出：要么给正文，要么要求调工具（两者可能同时有）。 */
+  public record ModelTurn(String content, List<ToolCall> toolCalls) {
+    public ModelTurn {
+      content = content == null ? "" : content;
+      toolCalls = toolCalls == null ? List.of() : List.copyOf(toolCalls);
+    }
+
+    public boolean wantsTools() {
+      return !toolCalls.isEmpty();
+    }
+  }
+
+  /**
+   * 带工具的一轮对话（OpenAI 兼容的 function calling）。
+   *
+   * <p>为什么保留 {@link #complete} 不合并：解析、措辞这类单轮调用不需要工具，
+   * 走 {@code complete} 更省 token 也更好排查；需要模型自己决定「查什么、查几次」的场景
+   * （对话 Agent）才走这里，上下文消息由调用方维护。
+   *
+   * @param messages 完整的消息序列：system / user / assistant（含 tool_calls）/ tool
+   * @param tools    工具声明，{@code null} 或空则退化成普通补全
+   * @param maxTokens 本次响应的 token 上限，内部夹在 200~2000
+   */
+  public ModelTurn chat(List<Map<String, Object>> messages, List<Map<String, Object>> tools,
+      int maxTokens) {
+    Map<String, Object> body = baseBody(maxTokens);
+    body.put("messages", messages == null ? List.of() : messages);
+    if (tools != null && !tools.isEmpty()) {
+      body.put("tools", tools);
+      body.put("tool_choice", "auto");
+    }
+    JsonNode root = post(body);
+    JsonNode message = root.path("choices").path(0).path("message");
+    String content = message.path("content").isNull() || message.path("content").isMissingNode()
+        ? "" : message.path("content").asText("").strip();
+    List<ToolCall> calls = new ArrayList<>();
+    JsonNode rawCalls = message.path("tool_calls");
+    if (rawCalls.isArray()) {
+      for (JsonNode call : rawCalls) {
+        String id = call.path("id").asText("");
+        String name = call.path("function").path("name").asText("");
+        String args = call.path("function").path("arguments").asText("{}");
+        if (!name.isBlank()) {
+          calls.add(new ToolCall(id.isBlank() ? "call-" + calls.size() : id, name, args));
+        }
+      }
+    }
+    if (content.isBlank() && calls.isEmpty()) {
+      throw new AgentUnavailableException("模型返回内容为空");
+    }
+    return new ModelTurn(content, calls);
+  }
+
+  private Map<String, Object> baseBody(int maxTokens) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("model", model);
+    body.put("temperature", 0.3);
+    body.put("max_tokens", Math.min(Math.max(maxTokens, 200), 2000));
+    body.put("stream", false);
+    return body;
+  }
+
+  /** 统一的请求与错误翻译，两条调用路径共用。 */
+  private JsonNode post(Map<String, Object> body) {
     if (!configured()) {
       throw new AgentUnavailableException(
           "未配置模型密钥（环境变量 DEEPSEEK_API_KEY），本次结果不含模型建议");
     }
-
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("model", model);
-    body.put("messages", List.of(
-        Map.of("role", "system", "content", systemPrompt),
-        Map.of("role", "user", "content", userPrompt)));
-    body.put("temperature", 0.3);
-    body.put("max_tokens", 800);
-    body.put("stream", false);
-
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setBearerAuth(apiKey);
-
     try {
       ResponseEntity<JsonNode> response = restTemplate.postForEntity(
           baseUrl + "/chat/completions", new HttpEntity<>(body, headers), JsonNode.class);
@@ -101,11 +171,7 @@ public class DeepSeekClient {
       if (root == null) {
         throw new AgentUnavailableException("模型返回空响应");
       }
-      JsonNode content = root.path("choices").path(0).path("message").path("content");
-      if (content.isMissingNode() || content.asText("").isBlank()) {
-        throw new AgentUnavailableException("模型返回内容为空");
-      }
-      return content.asText().strip();
+      return root;
     } catch (HttpStatusCodeException e) {
       throw new AgentUnavailableException(explain(e), e);
     } catch (RestClientException e) {

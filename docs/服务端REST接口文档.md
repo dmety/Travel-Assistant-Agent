@@ -1424,7 +1424,7 @@ Content-Type: application/json
 
 | 字段 | 说明 |
 |---|---|
-| `intent` | `PLAN_DRAFT` 排行程 / `FOOD_RECOMMEND` 找吃的 / `CHAT` 闲聊 |
+| `intent` | `PLAN_DRAFT` 排行程 / `FOOD_RECOMMEND` 找吃的 / `WEATHER` 问天气 / `CHAT` 闲聊 |
 | `destination` | 用户原话里的地名写法（未解析），没提到为 `null` |
 | `resolved` / `city` / `spot` / `note` / `alternatives` | 与 §8.8 同口径，目的地核实结果 |
 | `days` / `travelers` / `budget` | 已校验的取值范围（天数 1~30、人数 1~30、预算 ≤ 100 万） |
@@ -1442,11 +1442,95 @@ Content-Type: application/json
 3. **目的地仍走 §8.8 的三级判断**。模型说整句没有地名时不再反查，直接给 `alternatives`
    （知识库里景点最多的几个城市，已排除省份与直辖市重名），让用户点选而不是重打字。
 4. **闲聊不查库、不调编排层**：`intent=CHAT` 时 `resolved=false`、`alternatives=[]`，
-   由对话页本地回一句引导语。
+   回复由模型的 `reply` 字段给出（见 §8.10）；模型不可用时前端用兜底文案。
 5. **接口永远 200**：模型不可用时降级为句式规则（认「武汉 3 天 2 人预算 5000」这类写法），
-   不会因为模型抖动把对话卡住。结果按「日期 + 原话」缓存 256 条，相对日期隔天自动失效。
+   不会因为模型抖动把对话卡住。结果按「日期 + 上下文 + 原话」缓存 256 条，相对日期隔天自动失效。
 6. **不进 Agent 契约**：这是编排层之前的预处理步骤，不新增 capability、不改 `contractVersion`，
    Provider 侧行为完全不变。
+
+#### 8.9.1 请求体带上上下文（2026-11-10）
+
+```json
+{ "text": "有没有那种很小众的馆子",
+  "history": [
+    { "role": "user", "text": "武汉有什么好吃的" },
+    { "role": "assistant", "text": "在武汉找到 30 家可以去的餐馆。" }
+  ],
+  "state": { "city": "武汉", "days": 3 } }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `history` | 最近几轮对话，服务端只取最后 8 条、每条截 240 字；用于理解「那呢」「还有别的吗」「再玩两天」 |
+| `state` | 本轮已确认的槽位：`city` / `days` / `travelers` / `budget` / `preferences` |
+
+响应新增两个字段：
+
+| 字段 | 说明 |
+|---|---|
+| `carried` | 这一句没明说、从上文沿用过来的字段名（`city` / `days` / `travelers` / `budget` / `preferences`），前端据此显示「沿用上文」 |
+| `reply` | 仅 `intent=CHAT` 时有值：模型结合上下文的一句话回答；含网址时整段剥掉 |
+
+**继承规则（Java 侧，不靠模型自觉）**：
+
+1. 闲聊永不继承——「你叫什么名字」不会被上文的「武汉」污染成查景点；
+2. 只补这一句真的没有的字段，模型自己给了值就以模型为准；
+3. 找吃的与问天气只补城市，沿用上一次的天数、预算在这两类里没有意义；
+4. 同一句话在不同上文里分开缓存，不会把上一轮的城市套到新对话。
+
+**天气**：`intent=WEATHER` 时**不查景点知识库**，`city` 直接取原话地名交给
+`GET /api/location/weather`（高德能按城市名换 adcode）。没给城市时 `resolved=false`，
+`note` 问「想查哪座城市的天气」并给可点城市。
+
+
+### 8.10 对话 Agent（需要登录）
+
+```
+POST /api/chat
+Content-Type: application/json
+
+{ "message": "武汉有什么好吃的",
+  "history": [ { "role": "user", "text": "我想去武汉玩三天" } ],
+  "state": { "city": "武汉", "days": 3 } }
+```
+
+一次请求返回「回答 + 结构化卡片 + 查询痕迹」：
+
+```json
+{ "reply": "找到 8 家，先试热干面和豆皮，都在你选的景点附近。",
+  "cards": [ { "type": "envelope", "intent": "FOOD_RECOMMEND", "data": { "status": "OK", "providerId": "builtin.food", "result": { "facts": [] } } } ],
+  "trace": [ { "tool": "find_food", "label": "找餐馆", "ok": true } ],
+  "state": { "city": "武汉", "days": 3 },
+  "source": "agent", "note": null }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `reply` | 自然语言回答，已剥掉 Markdown 与网址；为空表示模型不可用，前端回退到 §8.9 + `/api/agent/invoke` |
+| `cards` | `weather`（逐日预报）/ `places`（景点表）/ `envelope`（行程或餐馆，形状与 `/api/agent/invoke` 完全一致） |
+| `trace` | 这次查了哪些工具，界面显示「查了 天气、景点」，让结论可追溯 |
+| `state` | 本轮结束后的已知槽位，下一轮原样传回即可 |
+| `source` | `agent` 模型驱动 / `unavailable` 模型不可用（未配密钥、余额不足、超时） |
+
+**模型能用五个工具**（`application/chat/ChatTools`）：
+
+| 工具 | 何时用 | 数据来源 |
+|---|---|---|
+| `resolve_place(name)` | 地名归属不确定、可能是景区名 | §8.8 地名识别 |
+| `list_attractions(city, limit)` | 问有什么好玩的、门票多少 | 景区知识库 |
+| `get_weather(city, days)` | 问天气、气温、要不要带伞 | 高德预报 |
+| `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
+| `draft_itinerary(city, days, …)` | 要行程、问怎么安排 | `builtin.planning`（同上） |
+
+**边界**：
+
+1. 工具最多 6 次、最多 5 轮、总预算 45 秒；用尽后强制一次不带工具的收尾，
+   不会让模型无限绕圈，也不会让用户等到超时。
+2. 行程与餐馆复用 L1 编排：同一个 Provider、同一套契约校验、同一种信封，
+   对话里的结论与直接调 `/api/agent/invoke` 完全一致。
+3. 数字、地名、票价、餐馆全部来自工具；工具说没查到，模型必须如实说没查到。
+4. 模型不可用时返回 `source=unavailable` + `reply=null`，对话页自动回退到确定性链路，
+   用户看到的不是错误页。
 
 
 ## 9. 北京景区购票助手（首版）

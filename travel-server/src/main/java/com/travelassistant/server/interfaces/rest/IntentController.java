@@ -1,7 +1,10 @@
 package com.travelassistant.server.interfaces.rest;
 
+import com.travelassistant.server.application.intent.ConversationState;
+import com.travelassistant.server.application.intent.ConversationTurn;
 import com.travelassistant.server.application.intent.IntentParser;
 import com.travelassistant.server.application.intent.IntentResolution;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,8 +31,15 @@ public class IntentController {
     this.parser = parser;
   }
 
-  /** 请求体：一句话原文。 */
-  public record ParseRequest(String text) {
+  /**
+   * 请求体：一句话原文 + 上下文。
+   *
+   * @param text    用户这句话
+   * @param history 最近几轮对话（可选），用于理解「那呢」「有没有小馆子」这类省略句
+   * @param state   本轮已确认的槽位（可选），用于补这一句没说的城市、天数等
+   */
+  public record ParseRequest(String text, List<ConversationTurn> history,
+      ConversationState state) {
   }
 
   @PostMapping("/parse")
@@ -39,7 +49,7 @@ public class IntentController {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "请提供 text：一句话说明想去哪、玩几天"));
     }
-    IntentResolution resolution = parser.parse(text);
+    IntentResolution resolution = parser.parse(text, request.history(), request.state());
     return ResponseEntity.ok(resolution);
   }
 }

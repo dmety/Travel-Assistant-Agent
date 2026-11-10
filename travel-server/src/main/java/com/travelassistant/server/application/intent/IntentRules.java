@@ -83,7 +83,9 @@ final class IntentRules {
   /** 语气、动词与数量词：剥掉这些，剩下的片段才可能是地名。长词在前，避免被短词先切掉。 */
   private static final String NOISE = "帮我|麻烦|请问|请|我想要|我想|我要|我们|我|打算|计划|准备|想去|"
       + "要去|去|到|在|从|出发|游玩|旅游|旅行|度假|逛逛|看看|转转|走走|好玩|行程|安排|规划|推荐|"
-      + "一下|怎么|如何|几天|周末|自驾|老人|小孩|带|和|跟|一家人|一家老小|玩|游|耍";
+      + "一下|怎么|如何|几天|周末|自驾|老人|小孩|带|和|跟|一家人|一家老小|玩|游|耍|"
+      // 天气类句式：剥掉这些，「今天天津的天气怎么样」才剩下「天津」
+      + "天气|气温|温度|下雨|带伞|预报|未来|这几天|今天|明天|后天|怎么样";
 
   private static final String GREETING =
       "^(你好|您好|hi|hello|hey|在吗|在不在|谢谢|多谢|好的|好|嗯|ok|收到|早上好|晚上好)[!！。.~～\\s]*$";
@@ -124,6 +126,7 @@ final class IntentRules {
         "low",
         "按句式规则解析（未使用模型）",
         "rules",
+        null,
         notes);
   }
 
@@ -167,6 +170,11 @@ final class IntentRules {
   private static String intent(String text, Integer days) {
     if (text.strip().matches(GREETING)) {
       return TravelIntent.CHAT;
+    }
+    // 天气优先于排行程：「天津三天天气」里也有「天」，别被天数规则抢走
+    if (text.contains("天气") || text.contains("气温") || text.contains("温度")
+        || text.contains("下雨") || text.contains("带伞") || text.contains("穿什么")) {
+      return TravelIntent.WEATHER;
     }
     boolean planning = days != null
         || text.contains("行程") || text.contains("安排") || text.contains("规划")

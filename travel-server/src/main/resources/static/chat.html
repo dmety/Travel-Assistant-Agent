@@ -372,6 +372,25 @@ button{font-family:inherit;}
 .warn.high{border-left-color:var(--err); background:#fef2f2; color:#991b1b;}
 .warn.med{border-left-color:#b45309; background:#fffbeb; color:#92400e;}
 
+/* ---------- 天气 / 景点这类小表格：数据是查回来的，排版只求一眼读完 ---------- */
+.wx{border:1px solid var(--line); border-radius:var(--r-card); overflow:hidden; background:var(--surface);}
+.wx-h{
+  padding:var(--sp-2) var(--sp-3); background:var(--surface-2);
+  border-bottom:1px solid var(--line); font-size:var(--fs-xs); color:var(--text-2);
+}
+.wx-row{
+  display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:var(--sp-2);
+  align-items:center; padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  font-size:var(--fs-sm);
+}
+.wx-row:first-of-type{border-top:0;}
+.wx-row .d{color:var(--text-2); font-size:var(--fs-xs); font-variant-numeric:tabular-nums;}
+.wx-row .t{color:var(--text-2); font-size:var(--fs-xs); text-align:right; font-variant-numeric:tabular-nums;}
+.wx-tip{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
+}
+
 /* ---------- 追问 chips ---------- */
 .chips{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:2px;}
 .chip{
@@ -1654,17 +1673,159 @@ button:focus:not(:focus-visible){outline:none;}
      四、调 L1 编排层 POST /api/agent/invoke（intent=PLAN_DRAFT / FOOD_RECOMMEND）
      ================================================================ */
 
+  /* ================================================================
+     五、对话 Agent（模型自己决定查什么）
+     前端只做两件事：把上下文带上去，把结果画出来。
+     不再按意图写分支——「有没有小馆子」「你家是哪的」「那明天呢」
+     这类话由模型看着工具清单自己决定去查什么。
+     ================================================================ */
+
+  /**
+   * 组上下文：最近 10 条对话 + 本轮已确认的槽位。
+   * 当前这句话在 sendText 里已经存进会话，这里去掉末尾重复的一条。
+   */
+  function historyOf(session, skipText){
+    var out = [];
+    var msgs = (session && session.messages) || [];
+    for(var i=0;i<msgs.length;i++){
+      var m = msgs[i];
+      if(!m || !m.text) continue;
+      out.push({ role:(m.role === 'user' ? 'user' : 'assistant'), text:String(m.text).slice(0, 240) });
+    }
+    if(out.length && skipText){
+      var last = out[out.length - 1];
+      if(last.role === 'user' && last.text === String(skipText).slice(0, 240)) out.pop();
+    }
+    return out.slice(-10);
+  }
+
+  function stateOf(session){
+    var s = session && session.state;
+    if(!s) return null;
+    var out = {};
+    if(s.city) out.city = s.city;
+    if(s.days) out.days = s.days;
+    if(s.travelers) out.travelers = s.travelers;
+    if(s.budget) out.budget = s.budget;
+    if(s.preferences && s.preferences.length) out.preferences = s.preferences;
+    return Object.keys(out).length ? out : null;
+  }
+
+  function saveState(session, next){
+    if(!session || !next) return;
+    session.state = next;
+    saveSessions();
+  }
+
+  /** 调对话 Agent；接口不可用（老后端、模型未配置）返回 null，由 respond 回落旧链路。 */
+  async function chatAgent(text, session){
+    try{
+      var res = await fetch('/api/chat', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          message: String(text || '').slice(0, 300),
+          history: historyOf(session, text),
+          state: stateOf(session)
+        })
+      });
+      if(res.status === 401){
+        location.replace('/?next=' + encodeURIComponent('/chat.html'));
+        return null;
+      }
+      if(!res.ok) return null;
+      return await res.json();
+    }catch(e){ return null; }
+  }
+
+  /** 天气卡：逐日一行，右上角是温度区间与风。数据是高德预报，不是实况。 */
+  function weatherBlock(data){
+    var box = el('div','wx');
+    var head = el('div','wx-h');
+    head.textContent = fmt(data && data.city) + ' · 逐日预报'
+      + (data && data.reportTime ? ' · 发布 ' + data.reportTime : '')
+      + ' · 来源高德';
+    box.appendChild(head);
+    var days = (data && data.days) || [];
+    days.forEach(function(d){
+      var row = el('div','wx-row');
+      row.appendChild(el('div','d', escapeHtml(String(d.date || '').slice(5))));
+      var mid = [d.dayWeather, (d.nightWeather && d.nightWeather !== d.dayWeather) ? d.nightWeather : '']
+        .filter(Boolean).join(' → ');
+      row.appendChild(el('div','', escapeHtml(mid || '天气未知')));
+      var temps = (d.nightTemp || '?') + '~' + (d.dayTemp || '?') + '℃';
+      var wind = [d.dayWind, d.dayPower ? d.dayPower + ' 级' : ''].filter(Boolean).join(' ');
+      row.appendChild(el('div','t', escapeHtml(temps + (wind ? ' · ' + wind : ''))));
+      box.appendChild(row);
+    });
+    box.appendChild(el('div','wx-tip','预报会变，出行当天再看一次；温度是区间，早晚差得多记得带外套。'));
+    return box;
+  }
+
+  /** 景点小表：只列名字、等级、票价原文，详情让用户点开行程看。 */
+  function placesBlock(rows){
+    var box = el('div','wx');
+    box.appendChild(el('div','wx-h','景点 · 来自景区知识库（票价与开放时间是原文快照，可能过期）'));
+    (rows || []).forEach(function(r){
+      var row = el('div','wx-row');
+      row.appendChild(el('div','d', escapeHtml(brief(r.name || '', 8))));
+      row.appendChild(el('div','', escapeHtml(r.level || '—')));
+      row.appendChild(el('div','t', escapeHtml(brief(r.ticket || '票价未知', 16))));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  /**
+   * 卡片 → DOM。行程与餐馆直接复用既有渲染器：
+   * Agent 的工具结果和 /api/agent/invoke 是同一个信封，形状一致才能不写第二套渲染。
+   */
+  function paintCard(card, baseText){
+    if(!card) return null;
+    if(card.type === 'weather') return weatherBlock(card.data);
+    if(card.type === 'places') return placesBlock(card.data);
+    if(card.type === 'envelope'){
+      var env = card.data || {};
+      if(card.intent === 'FOOD_RECOMMEND'){
+        var food = foodFromEnvelope(env);
+        if(!food) return null;
+        var foodBox = el('div','');
+        if(food.advice){
+          foodBox.appendChild(el('div','warn', escapeHtml(food.advice)));
+        }
+        noticeNodes(food.notices).forEach(function(n){ foodBox.appendChild(n); });
+        if(food.items.length){
+          var fc = foodCard(food.items, food.items.length);
+          fc.style.marginTop = 'var(--sp-2)';
+          foodBox.appendChild(fc);
+        }
+        return foodBox;
+      }
+      var view = draftFromEnvelope(env);
+      if(!view) return null;
+      var planBox = el('div','');
+      appendDraftBlocks(planBox, view, { baseText: baseText || '' });
+      return planBox.childNodes.length ? planBox : null;
+    }
+    return null;
+  }
+
   /**
    * 先把整句话交给后端解析：意图、目的地、天数、人数、预算、日期、偏好一次拿全。
    * 后端用模型理解语言、用 Java 校验范围，前端不再自己猜「几个字算天数」。
    * 接口不可用（老版本后端、网络异常）时返回 null，由 buildRequest 走降级路径。
    */
-  function understand(text){
+  function understand(text, session){
     return fetch('/api/intent/parse', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: String(text || '').slice(0, 300) })
+      body: JSON.stringify({
+        text: String(text || '').slice(0, 300),
+        history: historyOf(session, text),
+        state: stateOf(session)
+      })
     }).then(function(r){
       if(r.status === 401){
         location.replace('/?next=' + encodeURIComponent('/chat.html'));
@@ -1847,24 +2008,70 @@ button:focus:not(:focus-visible){outline:none;}
     stream.appendChild(typing);
     scrollBottom();
 
-    // 先让后端把话听懂：意图、目的地、天数、人数、预算、日期、偏好一次给全
-    var parsed = await understand(text);
+    // 点选补问卡（extra）说明槽位已经齐了，直接走确定性链路，不必再让模型猜
+    if(!extra){
+      var agent = await chatAgent(text, session);
+      if(agent && agent.reply){
+        typing.remove();
+        var shell0 = assistantShell();
+        shell0.bubble.style.minHeight = '1.7em';
+        stream.appendChild(shell0.wrap);
+        await typeText(shell0.bubble, plainText(agent.reply));
+        shell0.bubble.innerHTML = formatRich(agent.reply);
+        var savedCards = [];
+        var savedDraft = null;
+        (agent.cards || []).forEach(function(card){
+          var node = paintCard(card, text);
+          if(node){
+            node.style.marginTop = 'var(--sp-2)';
+            shell0.body.appendChild(node);
+          }
+          // 回放只保留体积小的卡片：行程存精简草案，餐馆三十条不进 localStorage
+          if(card.type !== 'envelope'){
+            savedCards.push(card);
+          }else if(card.intent !== 'FOOD_RECOMMEND' && !savedDraft){
+            savedDraft = draftFromEnvelope(card.data);
+          }
+        });
+        var traces = (agent.trace || []).map(function(t){ return t.label; });
+        var meta = 'Agent';
+        if(traces.length) meta += ' · 查了 ' + traces.join('、');
+        if(agent.note) meta += ' · ' + brief(agent.note, 24);
+        finishMeta(shell0, meta);
+        saveState(session, agent.state);
+        addMessage(session, { role:'assistant', text:agent.reply, at:nowTime(),
+          cards:savedCards, draft:savedDraft,
+          agent:{ providerId:'chat.agent', status:'OK' } });
+        scrollBottom();
+        busy = false;
+        refreshSend();
+        return;
+      }
+    }
 
-    // 闲聊：不查知识库也不调编排层，本地回一句 + 给几个能直接点的开场
+    // 模型不可用（未配密钥 / 调用失败）：回落到「解析 + 编排」这条确定性链路
+    var parsed = await understand(text, session);
+
+    // 闲聊：不查知识库也不调编排层，优先用模型结合上文的回复
     if(parsed && parsed.intent === 'CHAT'){
       typing.remove();
       var chatShell = assistantShell();
       stream.appendChild(chatShell.wrap);
-      var hello = '我在。说个目的地和大概几天就能排行程，也可以问我某地有什么好吃的、有哪些景点。';
+      var hello = parsed.reply
+        || '我在。说个目的地和大概几天就能排行程，也可以问我某地有什么好吃的、有哪些景点。';
       await typeText(chatShell.bubble, plainText(hello));
       chatShell.bubble.innerHTML = formatRich(hello);
-      var starters = chipCard('也可以直接点这些', [
-        { text:'武汉 3 天', send:'武汉 3 天，2 个人，预算 3000' },
-        { text:'武当山 2 天', send:'武当山 2 天' },
-        { text:'武汉有什么好吃的', send:'武汉有什么好吃的' }
-      ]);
-      starters.style.marginTop = 'var(--sp-2)';
-      chatShell.body.appendChild(starters);
+      // 已经聊过几轮就不再塞开场按钮：那是第一次见面才需要的台阶
+      var turns = historyOf(session, text).length;
+      if(!turns){
+        var starters = chipCard('也可以直接点这些', [
+          { text:'武汉 3 天', send:'武汉 3 天，2 个人，预算 3000' },
+          { text:'武当山 2 天', send:'武当山 2 天' },
+          { text:'武汉有什么好吃的', send:'武汉有什么好吃的' }
+        ]);
+        starters.style.marginTop = 'var(--sp-2)';
+        chatShell.body.appendChild(starters);
+      }
       finishMeta(chatShell, '闲聊');
       addMessage(session, { role:'assistant', text:hello, at:nowTime() });
       scrollBottom();
@@ -1909,6 +2116,15 @@ button:focus:not(:focus-visible){outline:none;}
 
     // 意图决定走哪条链路：找吃的去美食 Provider，其余排行程
     var capability = built.intent === 'FOOD_RECOMMEND' ? 'FOOD_RECOMMEND' : 'PLAN_DRAFT';
+
+    // 记住这一轮确认了什么：下一句省略城市/天数时可以直接沿用
+    saveState(session, {
+      city: built.place.name,
+      days: built.request.days,
+      travelers: built.request.travelers,
+      budget: built.request.budget,
+      preferences: built.request.preferences
+    });
 
     // 美食 Provider 只按坐标找周边餐馆，不接受「按城市中心」兜底：
     // 先拿该城市景点库第一条当锚点，拿不到就明确说明找不到，不编地址。
@@ -2195,6 +2411,14 @@ button:focus:not(:focus-visible){outline:none;}
           replayDest.style.marginTop = 'var(--sp-2)';
           shell.body.appendChild(replayDest);
         } else {
+          // Agent 回复里的天气/景点卡可以原样重建，行程卡走精简草案
+          (m.cards || []).forEach(function(card){
+            var node = paintCard(card, m.baseText || m.text);
+            if(node){
+              node.style.marginTop = 'var(--sp-2)';
+              shell.body.appendChild(node);
+            }
+          });
           appendDraftBlocks(shell.body, m.draft, { baseText: m.baseText || m.text });
         }
         var meta = el('div','msg-meta');
@@ -2211,6 +2435,17 @@ button:focus:not(:focus-visible){outline:none;}
     });
 
     if(!s.messages.length) resetToEmpty();
+    // 没有状态的历史会话：从消息里捡回最后一次提到的城市，下一句省略时还能接上
+    if(!s.state){
+      var picked = null;
+      s.messages.forEach(function(m){
+        if(m && m.role === 'user' && m.text){
+          var hit = pickPlaceStatic(m.text);
+          if(hit && hit.name) picked = hit.name;
+        }
+      });
+      if(picked) saveState(s, { city:picked });
+    }
     renderConvList();
     closeSidebar();
     scrollBottom();

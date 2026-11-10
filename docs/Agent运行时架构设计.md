@@ -148,15 +148,42 @@ flowchart TB
 把整句话解析成「意图 + 槽位 + 已核实的目的地」，再按意图调 `/api/agent/invoke`。它有三个刻意的边界：
 
 - **不属于 L1**：这是编排层之前的预处理，不参与路由、不占 `RunBudget`、不写 `Attempt` 记录；
-- **不进契约**：只开放 `PLAN_DRAFT` / `FOOD_RECOMMEND` / `CHAT` 三个意图，不新增 capability、
+- **不进契约**：只开放 `PLAN_DRAFT` / `FOOD_RECOMMEND` / `WEATHER` / `CHAT` 四个意图，不新增 capability、
   不改 `contractVersion`、不改 Provider 的输入输出形状；契约里的 `TICKET_ADVICE` 等能力仍由
   其它入口使用；
 - **模型只给值、Java 给边界**：天数 1~30、人数 1~30、预算上限、日期落在今天起一年内、
   偏好收敛到固定词表，越界一律截断或丢弃并写进 `notes`；目的地仍复用 `PlaceResolver`
   的三级判断，模型说的地方库里没有就不当确定事实。
+- **天气直连既有 REST**：`WEATHER` 不查景点知识库，把地名交给 `GET /api/location/weather`
+  （高德能按城市名换 adcode），也不经过编排层——`WEATHER_ADVICE` 这个能力目前没有 Provider，
+  硬接只会落到 `builtin.rules` 的 REFUSED。
 
 模型不可用、超时或返回非 JSON 时降级为句式规则（`IntentRules`），接口永远 200——
 理解能力可以退化，对话不能中断。
+
+### 对话 Agent：让模型自己决定查什么（2026-11-10）
+
+上面的意图解析还有一处结构性毛病：**分支写在 Java 里**。意图只有三种，用户说一句
+「有没有那种很小众的馆子」「你家是哪的」「那明天呢」，就只能落进兜底话术——
+每加一种问法就要加一个 `if`，而人的问法是加不完的。
+
+所以对话入口加了 L1 之上的一层：`POST /api/chat`（`application/chat/ChatAgent`），
+把「选择」交给模型，把「边界」留在 Java：
+
+| 位置 | 谁负责 | 具体是什么 |
+|---|---|---|
+| 选什么工具、查几次、按什么顺序 | 模型 | 看着五个工具的说明自己决定，可以查完天气发现要下雨再建议改室内 |
+| 事实从哪来 | Java | `ChatTools` 只调既有服务：`PlaceResolver`、`AttractionStore`、`LocationService`、`AgentOrchestrator` |
+| 最多查几次、最多几轮、多少秒 | Java | 6 次工具、5 轮、45 秒；用尽后强制一次不带工具的收尾 |
+| 能不能编 | 规则 | 数字/地名/票价/餐馆全部来自工具；回复里的网址一律剥掉 |
+| 行程与餐馆的结论长什么样 | 契约 | 直接复用 `orchestrator.dispatch` 与 `AgentEnvelope`，与 `/api/agent/invoke` 同一形状 |
+
+工具清单（`ChatTools.SPECS`）：`resolve_place` / `list_attractions` / `get_weather` /
+`find_food` / `draft_itinerary`。前三个直连服务，后两个走 L1 编排——所以对话里说
+「8 家餐馆」和接口里说「8 家餐馆」是同一批数据、同一套契约校验，不会互相打架。
+
+失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
+对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。
 
 ## L1 编排层（2026-11-09 已落地，含两轮投票 2026-11-09 晚）
 
