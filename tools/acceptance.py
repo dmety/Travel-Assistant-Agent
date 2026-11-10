@@ -47,8 +47,8 @@ def check(condition, description):
 
 def main():
     check(JAR.exists(), 'packaged server exists')
-    env = dict(os.environ, AMAP_KEY='', DEEPSEEK_API_KEY='', NO_PROXY='127.0.0.1,localhost',
-        PYTHONIOENCODING='utf-8')
+    env = dict(os.environ, AMAP_KEY='', BAIDU_AK='', DEEPSEEK_API_KEY='',
+        NO_PROXY='127.0.0.1,localhost', PYTHONIOENCODING='utf-8')
     with tempfile.TemporaryDirectory(prefix='travel-acceptance-') as temporary:
         data = Path(temporary) / 'data'
         process = None
@@ -101,6 +101,69 @@ def main():
                 # A-2：模型购票建议会消耗配额，匿名请求必须在安全层被拒，不能进入控制器。
                 check(request(client(), base, '/api/agent/tickets/advice', {})[0] == 401,
                     'anonymous model advice is rejected with 401')
+
+                # ---- L1 编排层与美食 Agent：匿名拦截、intent 校验、真实降级、能力可见 ----
+                check(request(client(), base, '/api/agent/invoke',
+                    {'intent': 'FOOD_RECOMMEND'})[0] == 401,
+                    'anonymous orchestration invoke is rejected with 401')
+                check(request(owner, base, '/api/agent/invoke',
+                    {'intent': 'NOT_AN_INTENT'})[0] == 400,
+                    'unknown intent is rejected with 400')
+                source_index = json.loads((ROOT / 'data/attractions_index.json')
+                    .read_text(encoding='utf-8'))
+                anchor = next(x for x in source_index['attractions']
+                    if x.get('coordinateSystem') and x.get('lat') and x.get('lon'))
+                code, invoke = request(owner, base, '/api/agent/invoke', {
+                    'intent': 'FOOD_RECOMMEND',
+                    'context': {'city': anchor.get('city') or '杭州',
+                                'mealSlot': 'LUNCH', 'budgetCny': 100,
+                                'dietaryFlags': [], 'attractionIds': [anchor['id']]}})
+                check(code == 200 and invoke['status'] in {'DEGRADED', 'REFUSED'},
+                      'food invoke degrades honestly when map keys are absent')
+                check(not invoke['result']['facts'],
+                      'no fabricated food POIs without real map data')
+                check('schemaVersion' in invoke['result'] and 'usage' in invoke['result'],
+                      'orchestration result keeps the contract shape')
+                check(any(a['providerId'] == 'builtin.food' for a in invoke['attempts']),
+                      'builtin.food is actually invoked through the SPI registry')
+                check(any('不可用' in n for n in invoke['result']['notices'])
+                      or any('未编造' in n for n in invoke['result']['notices']),
+                      'degradation reason is stated in notices')
+                code, caps = request(client(), base, '/api/agent/capabilities')
+                check(code == 200 and any(p['id'] == 'builtin.food'
+                                         and p['status'] == 'ACTIVE'
+                                         for p in caps['providers']),
+                      'builtin.food is visible and ACTIVE in capability negotiation')
+
+                # ---- #7 两轮投票：三位评委 Bean 经注册表被 VoteOrchestrator 调用 ----
+                check(request(client(), base, '/api/agent/vote',
+                            {'intent': 'DECISION_ADVICE'})[0] == 401,
+                      'anonymous vote is rejected with 401')
+                check(request(owner, base, '/api/agent/vote', {})[0] == 400,
+                      'vote without intent is rejected with 400')
+                code, vote = request(owner, base, '/api/agent/vote',
+                    {'intent': 'DECISION_ADVICE',
+                     'context': {'city': anchor.get('city') or '北京', 'budgetCny': 300}})
+                check(code == 200 and vote['status'] == 'OK',
+                      'vote produces a winner with three judges')
+                check(code == 200 and sorted(vote['judges']) ==
+                      ['judge.food', 'judge.parking', 'judge.ticket'],
+                      'three judge beans participate through the registry')
+                check(code == 200 and vote['candidateSource'] == 'RULES',
+                      'candidate plans use the rules fallback when the model key is absent')
+                check(code == 200 and any(r['planId'] == vote['result']['winner']
+                                          for r in vote['result']['ranking']),
+                      'the winner is one of the ranked plans')
+                check(code == 200 and any('停车视角暂无专属数据源' in n
+                                          for n in vote['notices']),
+                      'parking judge surfaces that it has no dedicated data source')
+                check(code == 200 and all(r['code'].startswith(('E_VOTE_', 'E_SCHEMA_'))
+                                          for r in vote['result']['rejections']),
+                      'vote rejections carry only local vote/schema codes, never admission codes')
+                vote_serialized = json.dumps(vote)
+                check('endpoint' not in vote_serialized and 'authRef' not in vote_serialized
+                      and 'api_key' not in vote_serialized.lower(),
+                      'vote envelope is sanitized, no endpoint/authRef/credentials')
 
                 # ---- #5 基础业务闭环：草案 -> 补问 -> 检查 -> 确认保存 -> 重启重读 ----
                 draft_req = {'destination': '杭州', 'departDate': '2026-11-21',
@@ -171,6 +234,8 @@ def main():
                 item = next(x for x in source['attractions'] if x['id'] == 'osm-node-1218840067')
                 code, detail = request(stranger, base, '/api/attractions/' + item['id'])
                 check(code == 200 and detail['ticket'] == item['ticket'], 'updated ticket reaches Java detail API')
+                check(detail.get('coordinateSystem') == item.get('coordinateSystem'),
+                      'coordinateSystem reaches Java detail API for food anchors')
                 check(request(owner, base, '/api/logout', {}, method='POST')[0] == 200, 'logout')
                 check(request(owner, base, path)[0] == 401, 'logged-out session rejected')
                 accounts = json.loads((data / 'accounts.json').read_text(encoding='utf-8'))

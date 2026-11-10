@@ -30,10 +30,22 @@ command -v "$PYTHON" >/dev/null 2>&1 || { echo 'Python unavailable: set PYTHON' 
 # 改了分片没跑 --sync、绕过分片直接改主库、分片缺失或位置漂移，都会在此失败。
 "$PYTHON" -B tools/kb_shards.py --check
 "$PYTHON" -B tools/build_attraction_index.py --check
+# Agent Provider G0 静态准入：规范源 tools/agent/provider-contract.json 是单一判定依据，
+# 先跑规则自测（防止实现退化），再校验脱敏种子与本机运行态配置。失败即终止，不进 Maven。
+"$PYTHON" -B tools/agent/check_provider_contract.py --self-test
+"$PYTHON" -B tools/agent/check_provider_contract.py
+# 外部美食 Provider 参考实现的离线自测：不联网、不写盘，验证响应契约、忌口硬过滤、
+# 无 key 降级与坐标系换算。真实部署需要公网 https 域名并入 allowlist，见脚本头注释。
+"$PYTHON" -B tools/agent/food_provider_server.py --self-test
+# 多 Agent 投票计票器自测：plan_vote.py 是 Java PlanVoteTally 的 Python 原型，
+# 22 条规则逐例等价；每次交付前跑一遍，防止 Java 计票器与已定案规则漂移。
+"$PYTHON" -B tools/agent/plan_vote.py
 # 知识库治理门禁：存量数据欠账必须在 tools/kb_quality_waivers.json 逐项登记理由与证据；
 # 未登记的新失败、欠账恶化或豁免过期一律 exit=1。kb 包在 tools/ 下，
 # Windows 版 Python 的 PYTHONPATH 用分号分隔，因此保留调用方原有的 PYTHONPATH。
 PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B tools/kb_quality_gate.py
+# 坐标转换回归：BD-09 系数、往返一致性、链路自洽（零依赖 unittest）
+PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B -m unittest kb.test_coordinates -v
 if [ "$SKIP_TESTS" -eq 0 ]; then
   "$MVN" -B clean verify
 else

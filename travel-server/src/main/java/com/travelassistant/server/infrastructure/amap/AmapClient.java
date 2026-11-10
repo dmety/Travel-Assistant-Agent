@@ -2,6 +2,7 @@ package com.travelassistant.server.infrastructure.amap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.travelassistant.server.application.location.AmapUnavailableException;
+import com.travelassistant.server.domain.food.FoodPlace;
 import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.domain.location.RouteMode;
 import com.travelassistant.server.domain.location.RouteResult;
@@ -24,10 +25,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 高德地图 Web 服务客户端（V2 第 1 节）。
+ * 三条链路：地点检索、天气预报、路线规划。设计上刻意做了三件事：
  *
- * <p>三条链路：地点检索、天气预报、路线规划。设计上刻意做了三件事：
- * <ul>
- *   <li><b>未配置密钥就整体停用</b>，返回 503 并说明原因。不能假装「没有这个地方」——
+ *   未配置密钥就整体停用，返回 503 并说明原因。不能假装「没有这个地方」——
  *       那会把「没接服务」变成「现实里不存在」。</li>
  *   <li><b>结果带来源和查询时间</b>。预报和路线预估都有时效，用户需要知道数据是哪一刻的。</li>
  *   <li><b>错误码转成人话</b>。高德的 {@code infocode} 直接抛给用户没有意义，
@@ -77,14 +77,38 @@ public class AmapClient {
 
   // ---- 地点检索 ----
 
+  /** 景点与文博馆的大类码：风景名胜 110000 + 科学文化服务 140000（博物馆、纪念馆等）。 */
+  public static final String SCENIC_TYPES = "110000|140000";
+
   /**
-   * 按关键词检索地点。
+   * 按关键词检索地点（不限类别）。
    *
    * @param keywords 关键词，如「西湖」
    * @param city     限定城市名或 adcode，可为空
    * @param limit    期望条数，会被夹到 1..25
    */
   public List<Place> searchPlaces(String keywords, String city, int limit) {
+    return search(keywords, city, null, limit);
+  }
+
+  /**
+   * 按关键词检索景点类 POI（风景名胜 + 科学文化服务），坐标 GCJ-02。
+   *
+   * <p>类别码过滤是刻意为之：不限类别的关键字检索会混进学校、公司、小区，
+   * 灵感推荐里出现过「评分 5.0 的中学」。注意区县名不要当 {@code city} 参数传——
+   * 高德该参数按市级口径解析，区县命中不稳定；由 {@code MapTools} 在结果里
+   * 按 {@code adname}/地址过滤。
+   *
+   * @param keywords 关键词，如「黄梅」「五祖寺」
+   * @param city     限定城市名或 adcode，可为空
+   * @param limit    期望条数，会被夹到 1..25
+   */
+  public List<Place> searchScenicSpots(String keywords, String city, int limit) {
+    return search(keywords, city, SCENIC_TYPES, limit);
+  }
+
+  /** {@code searchPlaces} 与 {@code searchScenicSpots} 的公共实现；{@code types} 为空不限类别。 */
+  private List<Place> search(String keywords, String city, String types, int limit) {
     ensureConfigured();
     String kw = requireText(keywords, "请提供查询关键词");
     int size = Math.min(Math.max(limit, 1), MAX_PLACES);
@@ -95,6 +119,9 @@ public class AmapClient {
         .queryParam("offset", size)
         .queryParam("page", 1)
         .queryParam("extensions", "base");
+    if (types != null && !types.isBlank()) {
+      builder.queryParam("types", types);
+    }
     if (city != null && !city.isBlank()) {
       builder.queryParam("city", city.strip()).queryParam("citylimit", "true");
     }
@@ -117,6 +144,80 @@ public class AmapClient {
     }
     log.debug("高德地点检索「{}」命中 {} 条", kw, places.size());
     return places;
+  }
+
+  // ---- 周边餐饮检索 ----
+
+  /**
+   * 按锚点检索附近餐饮 POI，坐标一律 GCJ-02。
+   *
+   * <p>与 {@link #searchPlaces} 的区别：走 {@code /v3/place/around}、餐饮大类
+   * {@code types=050000}、{@code extensions=all}。只有 {@code all} 才带
+   * {@code biz_ext.rating} 与 {@code biz_ext.cost}，写死 {@code base} 拿不到评分与人均。
+   * 单次不翻页，避免配额翻倍；返回的 POI 只用于本次响应，不落库。
+   */
+  public List<FoodPlace> searchFoodNearby(String location, int radiusMeters, int limit) {
+    ensureConfigured();
+    String center = requireLngLat(location, "锚点坐标格式应为「经度,纬度」");
+    int size = Math.min(Math.max(limit, 1), MAX_PLACES);
+    int radius = Math.min(Math.max(radiusMeters, 100), 50000);
+
+    URI uri = UriComponentsBuilder.fromHttpUrl(BASE + "/v3/place/around")
+        .queryParam("key", key)
+        .queryParam("location", center)
+        .queryParam("types", "050000")
+        .queryParam("radius", radius)
+        .queryParam("sortrule", "distance")
+        .queryParam("extensions", "all")
+        .queryParam("offset", size)
+        .queryParam("page", 1)
+        .build().encode().toUri();
+
+    JsonNode root = get(uri, "周边餐饮检索");
+    Instant fetchedAt = Instant.now();
+    List<FoodPlace> places = new ArrayList<>();
+    for (JsonNode poi : array(root, "pois")) {
+      Double[] lngLat = parseLngLat(poi.path("location").asText(""));
+      JsonNode biz = poi.path("biz_ext");
+      String hours = text(poi, "opentime2");
+      if (hours == null) {
+        hours = text(biz, "opentime2");
+      }
+      places.add(new FoodPlace(
+          text(poi, "id"), text(poi, "name"),
+          lngLat == null ? null : lngLat[1], lngLat == null ? null : lngLat[0],
+          joinTags(text(poi, "type"), text(poi, "tag")),
+          number(biz.path("rating").asText("")),
+          number(biz.path("cost").asText("")),
+          hours, null, FoodPlace.SOURCE_AMAP, fetchedAt));
+    }
+    return places;
+  }
+
+  /** 类别与标签合并成一个纯文本线索，供忌口关键词判定与菜系标签使用。 */
+  private static String joinTags(String type, String tag) {
+    if (type == null && tag == null) {
+      return "";
+    }
+    if (tag == null) {
+      return type;
+    }
+    if (type == null) {
+      return tag;
+    }
+    return type + ";" + tag;
+  }
+
+  /** 空串、空数组、非数值一律转 null，不把缺失值写成 0。 */
+  private static Double number(String raw) {
+    if (raw == null || raw.isBlank() || "[]".equals(raw)) {
+      return null;
+    }
+    try {
+      return Double.valueOf(raw.trim());
+    } catch (NumberFormatException e) {
+      return null;
+    }
   }
 
   public Instant now() {

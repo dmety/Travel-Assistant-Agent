@@ -428,37 +428,50 @@ G0 判定为 `E_META_AUTH`（M-09，内联凭据）加 `E_META_SCHEMA`（M-04，
 
 ## 与运行时的接口
 
+接口已于 2026-11-09 落地。实现签名与拟定稿有三处差异：G0 由 `ContractValidator.validateConfig()` 直接承担，不另开接口；探针允许注入 `AgentProvider`，生产路径传 `null` 按配置构造 `HttpAgentAdapter`，测试路径注入本地桩；`status` 用字符串而不是枚举，取值仍来自状态机。
+
 ```java
-// application/agent/spi/AdmissionController.java —— 拟新增，未实现
+// application/agent/spi/AdmissionController.java
 public interface AdmissionController {
-  AdmissionReport validate(ProviderConfig config);          // G0，纯离线
-  AdmissionReport probe(ProviderConfig config, GoldCaseSet cases); // G1/G2
-  AdmissionReport shadow(String providerId, int samples);   // G3
-  void activate(String providerId);                        // G4
-  void suspend(String providerId, String reasonCode);      // 运行期违规
+  AdmissionReport probe(String providerId, AgentProvider targetOverride); // G1 加 G2
+  AdmissionReport shadow(String providerId, int samples, AgentProvider targetOverride); // G3
+  AdmissionReport activate(String providerId);                            // G4
+  AdmissionReport suspend(String providerId, String reasonCode);
+  AdmissionReport recordRuntimeViolation(String providerId, String code);
+  void recordRuntimeSuccess(String providerId);
+  String stage(String providerId);
+  boolean active(String providerId);
+  void reset(String providerId);
+  void resetAbsent(Set<String> presentIds);
+  Map<String, Integer> shadowStats(String providerId);
 }
 
 // application/agent/spi/AdmissionReport.java
 public record AdmissionReport(
     String contractVersion,
     String providerId,
-    ProviderStatus status,       // ACTIVE / REJECTED / SUSPENDED / ...
-    String stage,                // G0..G4 / RUNTIME
-    List<RuleFailure> failures,  // code / rule / field / actual / expected / hint
+    String status,              // ACTIVE / REJECTED / PROBING / SHADOW / SUSPENDED
+    String stage,               // G0..G4 / RUNTIME
+    List<RuleFailure> failures,
     List<RuleFailure> warnings,
     Instant checkedAt) {}
 ```
 
-| 位置 | 变更 |
-| --- | --- |
-| `tools/agent/provider-contract.json` | 规范单一源，内容见「机器可读规范源」一节 |
-| `tools/agent/check_provider_contract.py` | G0 离线校验，由 `tools/gate.sh` 调用，读 `data/agent_providers.json` 与种子文件 |
-| `AgentRegistry` | 只接受 `ACTIVE` Provider；`resolve()` 遇 `REJECTED` / `SUSPENDED` 直接跳到 fallback |
-| `ContractValidator` | 注册期与运行期共用同一套规则，避免两套判定 |
-| `/api/agent/providers/{id}/admission` | 返回最近一次 `AdmissionReport`，供接入方自助修复 |
-| `/api/agent/capabilities` | 暴露 `status` 与 `lastRejectionCode` |
+| 位置 | 变更 | 状态 |
+| --- | --- | --- |
+| `tools/agent/provider-contract.json` | 规范单一源，内容见“机器可读规范源”一节 | 已落地 |
+| `tools/agent/gold_cases.json` | GC-01 至 GC-08 的输入与期望，随规范版本入库 | 已落地 |
+| `tools/agent/check_provider_contract.py` | G0 离线校验，由 `tools/gate.sh` 调用，读 `data/agent_providers.json` 与种子文件；同时校验用例集与规范源同步 | 已落地 |
+| `AgentRegistry` | 只接受 `ACTIVE` Provider；`resolve()` 遇 `REJECTED` / `SUSPENDED` / `PROBING` / `SHADOW` 直接跳到 fallback | 已落地 |
+| `ContractValidator` | 注册期 G0 与运行期响应校验共用同一套规则 | 已落地 |
+| `AdmissionController` | G1 至 G4 状态推进与运行期熔断 | 已落地 |
+| `/api/agent/providers/{id}/admission` | 返回最近一次 `AdmissionReport`，供接入方自助修复 | 已落地 |
+| `/api/agent/providers/{id}/probe` 等 | G1 加 G2、G3、G4 的显式触发端点，需登录 | 已落地 |
+| `/api/agent/capabilities` | 暴露 `status` 与 `lastRejectionCode` | 已落地 |
 
-`tools/gate.sh` 现状只跑索引一致性、Maven verify 与 `acceptance.py`。G0 是纯静态校验，适合加在索引检查之后、Maven 之前，失败即终止。
+`tools/gate.sh` 已在索引检查之后、Maven 之前接入 G0 自测与配置校验，失败即终止。G0 是唯一离线闸门，其余闸门需要调用 Provider，因此做成显式触发端点，不放在启动或 `reload()` 里同步执行，避免拖慢服务并让网络故障影响启动。
+
+实现边界有三条。第一，准入状态保存在内存，服务重启后要重新跑 G1 至 G4，持久化归 P1 热加载。第二，G3 影子样本取自固定 gold case 输入，不是线上真实流量，线上镜像归 P2 编排层。第三，没有真实外部 Provider 时，探针端点会返回明确的 `REJECTED` 与原因码，不会假装通过。
 
 ## 附录 A · Python 实现的 Provider
 
@@ -628,4 +641,4 @@ curl -s -X POST http://127.0.0.1:8090/v1/invoke \
 | endpoint 直接填 `http://127.0.0.1:8090` | M-08 | 公网 https 域名加反向代理 |
 | 配置里写 `token` 字面值、`enabled: true` | M-09 / M-11 | 改 `authRef`；`enabled=false` 等 G4 |
 
-附录 A 的 Python 桩已在本地用标准库实跑，通过 11 项契约自检，覆盖 GC-01、GC-02、T-06、T-07、M-12 与鉴权。它只是接入形态演示：Java 侧的 `HttpAgentAdapter`、`AgentRegistry`、G0 至 G4 均未实现，当前还不能真正接入任何外部 Provider。
+附录 A 的 Python 桩已在本地用标准库实跑，通过 11 项契约自检，覆盖 GC-01、GC-02、T-06、T-07、M-12 与鉴权。它演示的是接入形态。Java 侧的 `HttpAgentAdapter`、`AgentRegistry`、G0 至 G4 已于 2026-11-09 落地，配置走完全部闸门后即可接入外部 Provider。附录 A.4 第 4 步里的 G4 不能由接入方自己完成，需管理员确认并把 `enabled` 置 `true`。

@@ -32,8 +32,10 @@
 | `POST /api/login` | 表单登录 |
 | `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
-| `GET /`、`GET /login`、`GET /app` | 测试前端单页（`PageController` 转发到 `index.html`，登录卡与测试台同页切换） |
+| `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
+| `GET /chat.html` | AI 对话页（登录后落地页；未登录由页内脚本跳回 `/?next=/chat.html`） |
+| `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
 | `GET /favicon.ico` | 站点图标，避免未登录时打日志噪音 |
 
@@ -644,6 +646,7 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 |---|---|---|---|
 | `/api/agent/plan` | POST | 需登录 | 生成规划草案（补问 / 逐日草案 / 检查），**不落库** |
 | `/api/agent/plan/materialize` | POST | 需登录 | 用户确认后生成行程载荷，**仍不落库** |
+| `/api/agent/invoke` | POST | 需登录 | L1 编排层入口，按 intent 走注册表并做契约校验，见 §3.16.1 |
 | `/api/agent/status` | GET | 需登录 | 模型是否配置；规则能力始终列出 |
 
 **两条草案接口都只读。** 需求要求「用户确认后才将建议保存到正式方案」，真正落库仍走
@@ -748,6 +751,32 @@ POST /api/agent/plan/materialize
 
 每日安排不改领域模型：景点 ID、来源与未知项写在 `DailyActivity.note` 的结构化前缀
 `attractionId=...；来源=...；未知项=...` 里，避免为草案新增字段而改动历史数据与既有测试。
+
+#### 3.16.1 L1 编排入口（`POST /api/agent/invoke`）
+
+按 `intent` 走 Provider 注册表：逐个 invoke、响应过契约校验（`ContractValidator`），
+不通过就切下一个，全失败落到 `builtin.rules`。**需登录**：餐饮与规划链路都会触发地图和模型配额。
+
+```json
+POST /api/agent/invoke
+{ "intent": "PLAN_DRAFT", "context": { "destination": "十堰", "days": 2 } }
+```
+
+`context` 字段与 `/api/agent/plan` 的请求体同名（`destination` / `days` /
+`departDate` / `returnDate` / `preferences` / `budget` / `currency` / `travelers`）。
+
+响应是信封：`intent`、`status`、`providerId`、`registryVersion`、`attempts`
+（每个 Provider 的 `status` / `reason` / `codes`）与 `result`（契约形状：
+`schemaVersion` / `facts` / `advice` / `unknownFields` / `notices` / `usage`）。
+
+**`PLAN_DRAFT` 的结构化草案放在 facts 里**，一条 `CONTENT` fact
+（`factId=builtin.planning:draft-summary`，`value.category=PLAN_DRAFT`），
+含 `candidates` / `dailySchedules` / `questions` / `checks` / `budgetEstimate` / `advice`，
+键名与 `/api/agent/plan` 一致，客户端不必维护两套解析。
+
+信封的 `advice` 只放无数字、无断言的摘要（与美食 Provider 同口径）：模型正文若照抄
+知识库里的「免费」「全天开放」，会触发 S-03（未知不得写成确定值），
+把整条响应判为 `CONTRACT_VIOLATION`。正文与明细一律进 `value` 由前端渲染。
 
 ### 3.17 候选与投票（V3 §1）
 
@@ -1053,11 +1082,15 @@ GET /api/itineraries/{id}/export
 
 ---
 
-## 5. 测试前端页面
+## 5. 前端页面
 
-服务端内置**一个**静态测试页（仅用于本地联调，非生产 UI）：`static/index.html`。
+服务端内置**三个**静态页（仅用于本地联调与展示，非生产 UI）：
 
-页面按会话自动切换两种形态，不需要跳转：
+- `static/index.html`：首页 / 登录与注册页，`GET /`、`/login`、`/app` 均转发到此；
+- `static/chat.html`：AI 对话页，登录后的落地页；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/chat.html`；
+- `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换。
+
+接口测试台按会话自动切换两种形态，不需要跳转：
 
 | 状态 | 显示内容 |
 |---|---|
@@ -1068,13 +1101,46 @@ GET /api/itineraries/{id}/export
 
 | 地址 | 行为 |
 |---|---|
-| `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（三个地址等价，`/login`、`/app` 为历史链接） |
-| `GET /index.html` | 静态资源直连 |
+| `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（登录 / 注册页；`/login`、`/app` 为历史链接） |
+| `GET /index.html` | 登录页直连 |
+| `GET /chat.html` | AI 对话页直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /api-console.html` | 接口测试台直连 |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
 
-页面区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 归档导出）。
+页面用左侧竖排栏区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 美食推荐 / Agent 投票 / 归档导出）。
 
-所有请求通过 `fetch` 调用 §2/§3 的真实接口，同源携带 `JSESSIONID`；响应按 UTF-8 解码（服务端已配置 `server.servlet.encoding.force=true`，静态页与 JSON 都带 `charset=UTF-8`）。
+所有请求通过 `fetch` 调用 §2/§3 的真实接口，同源携带 `JSESSIONID`；响应按 UTF-8 编码（服务端已配置 `server.servlet.encoding.force=true`，静态页与 JSON 都带 `charset=UTF-8`）。
+
+### 5.1 对话页的交互约定
+
+**每条消息先解析再路由**：用户发送后，对话页先调 `POST /api/intent/parse`（§8.9）拿到
+意图与槽位，再按 `intent` 分流：
+
+| intent | 行为 |
+|---|---|
+| `PLAN_DRAFT` + 有天数 | 直接调 `/api/agent/invoke`（intent=PLAN_DRAFT）排行程 |
+| `PLAN_DRAFT` + 无天数 | 先渲染天数点选卡，选完带结构化字段重新提交 |
+| `FOOD_RECOMMEND` | 取该城市景点库第一条作锚点，调 `/api/agent/invoke`（intent=FOOD_RECOMMEND） |
+| `CHAT` | 本地回一句引导语 + 三个可点的开场示例，不调后端、不消耗模型 |
+
+**地名解析**仍走三级：知识库反查 → 后端 `POST /api/places/resolve`（§8.8）→ 字面相近。
+解析失败时不再要求用户重新打字，而是把 `alternatives` 渲染成可点城市按钮；
+模型判断出城市但库里没收录时，说明里会明确写「可能属于 X，但知识库里没有 X 的景点」。
+
+**只给地名（没有天数）时不直接出结果**，先渲染一张点选卡：天数必选（1/2/3/5/7），
+同行人与偏好可选（已说过的人数与偏好会预选，不重复问）；选完拼成一句人话（如
+「武当山，2 天，2 人，自然风光」）重新提交，同时带上 `days`/`travelers`/`prefs`
+结构化字段，避免依赖二次解析。另给「先看看景点」出口，只想看候选的人不被卡住。
+
+**美食推荐必须有锚点**：Provider 只按坐标找周边餐馆，不接受「按城市中心」兜底。
+对话页先查该城市景点库第一条的 `id` 放进请求体的 `attractionIds`，拿不到就如实说明
+「没有可用锚点」，不编地址。
+
+**补问项（`questions`）按 `field` 渲染成控件**：`departDate`/`returnDate` 给相对日期按钮
+（今天/明天/本周六/下周六）与原生日期控件，`days`/`travelers`/`budget` 给档位按钮，
+点一次「按这些重排」即提交。结构化字段通过请求体直接传回（`days`/`travelers`/`budget`/
+`departDate`/`returnDate`），不依赖模型从文本里再解析一遍；`builtin.planning` 会把八个
+字段全量透传给 `PlanningRequest`。
 
 ---
 
@@ -1290,6 +1356,195 @@ GET /api/attractions/status
 - 票价、开放时间、等级、评分均为**离线快照**，不保证实时性。2026-11-08 实测：7,745 条中有票价 874 条、有开放时间 4,346 条；票价状态为 verified 145 / unverified 729 / pending 6,871。只有 `verified` 可显示为确定值，未知不等于免费。
 - 源库逐条标注 `coordinateSystem`，2026-11-08 实测 WGS-84 3,350 条、GCJ-02 4,395 条，无 `mixed`、无坐标系缺失；仍有 1 条记录缺坐标值。**精简索引的 `KEEP_FIELDS` 不含该字段**，本接口不下发坐标系。跨源比对要在离线层按各条记录的坐标系换算，不能直接混用。
 - 只做 `limit` 截断，没有分页游标；超过 50 条需收窄查询条件。
+
+### 8.8 地名识别（需要登录）
+
+```
+POST /api/places/resolve
+Content-Type: application/json
+
+{ "text": "黄梅", "candidates": ["黄梅"] }
+```
+
+`text` 是用户原话，`candidates` 是前端剥掉语气词后的候选词，二者至少给一个。
+
+```json
+{ "query": "黄梅", "resolved": true, "city": "黄冈", "spot": null, "province": null,
+  "level": "county", "source": "llm",
+  "note": "黄梅县隶属湖北省黄冈市，按 黄冈 检索", "alternatives": [] }
+```
+
+未识别时：
+
+```json
+{ "query": "婺源", "resolved": false, "city": null, "level": "unknown", "source": "none",
+  "note": "「婺源」可能属于上饶市，但知识库里没有 上饶市 的景点", "alternatives": [] }
+```
+
+判断顺序（逐级降级，任何一级失败都不阻塞对话）：
+
+1. **知识库直查**：城市/省份/景点名精确命中，`source=kb`，零延迟零成本；
+2. **模型判断**：知识库落空时才调用，模型在已知地名清单内判断归属（县级地名、俗称、错别字），
+   输出 JSON 后仍要过清单校验——清单外的城市不会被当成确定事实，只在 `note` 里以
+   「可能属于 X」的措辞出现；
+3. **字面相近**：模型不可用或也判断不出时，用公共子串找相近城市填进 `alternatives`，
+   供前端渲染成可点按钮。只共享一个字（「长白山」vs「长沙」）不算相近，避免误导。
+
+`level` 取值 `city｜county｜spot｜unknown`，`source` 取值 `kb｜llm｜none`。
+同一候选词的结果按候选组合缓存（上限 256 条），重复提问不再调用模型。
+
+**为什么需要这个接口**：知识库目前只覆盖 81 个城市键，全国地级市尚未跑完。
+「库里有这个城市的数据吗」与「这个词是不是一个真实地名」是两件事，
+前者由知识库回答，后者不能靠字符串精确匹配来判定——否则「黄梅」「平遥」这类
+县级地名会被判成「不认识」。
+
+
+### 8.9 自然语言解析（需要登录）
+
+```
+POST /api/intent/parse
+Content-Type: application/json
+
+{ "text": "下周六带爸妈去武当山玩四天，预算六千，想看看人文古迹" }
+```
+
+一次请求返回「意图 + 槽位 + 已核实的目的地」，对话页据此决定下一步渲染什么：
+
+```json
+{ "text": "下周六带爸妈去武当山玩四天，预算六千，想看看人文古迹",
+  "intent": "PLAN_DRAFT", "destination": "武当山",
+  "resolved": true, "city": "十堰", "spot": "武当山风景区",
+  "note": "「武当山」是「武当山风景区」，按所在城市 十堰 检索",
+  "alternatives": [], "days": 4, "travelers": null, "budget": 6000, "currency": "CNY",
+  "preferences": ["人文"], "departDate": "2026-11-21", "returnDate": "2026-11-24",
+  "confidence": "high", "source": "llm",
+  "reason": "下周六出发玩四天，预算六千，带爸妈人数不明，想看人文古迹",
+  "notes": ["返回日期按 4 天行程推算为 2026-11-24"] }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `intent` | `PLAN_DRAFT` 排行程 / `FOOD_RECOMMEND` 找吃的 / `WEATHER` 问天气 / `CHAT` 闲聊 |
+| `destination` | 用户原话里的地名写法（未解析），没提到为 `null` |
+| `resolved` / `city` / `spot` / `note` / `alternatives` | 与 §8.8 同口径，目的地核实结果 |
+| `days` / `travelers` / `budget` | 已校验的取值范围（天数 1~30、人数 1~30、预算 ≤ 100 万） |
+| `departDate` / `returnDate` | `YYYY-MM-DD`；相对说法（明天/下周六）按服务器当天换算，只接受今天起一年内 |
+| `preferences` | 收敛到固定词表：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏 |
+| `source` | `llm` 模型解析 / `rules` 规则降级（未配密钥、超时、返回非 JSON） |
+| `notes` | 解析中的修正说明，例如「天数 99 超过上限 30，已按 30 处理」 |
+
+**口径**：
+
+1. **理解交给模型，校验留在 Java**。模型只输出值，范围与日期边界由服务端兜；
+   越界一律截断或丢弃并写进 `notes`，不会把非法值透传给规划。
+2. **只解析说到过的信息**。没提天数就是 `null`，不默认 3 天；「带爸妈」不知道人数也留空，
+   由补问卡去问——猜错的人数比问一句更贵。
+3. **目的地仍走 §8.8 的三级判断**。模型说整句没有地名时不再反查，直接给 `alternatives`
+   （知识库里景点最多的几个城市，已排除省份与直辖市重名），让用户点选而不是重打字。
+4. **闲聊不查库、不调编排层**：`intent=CHAT` 时 `resolved=false`、`alternatives=[]`，
+   回复由模型的 `reply` 字段给出（见 §8.10）；模型不可用时前端用兜底文案。
+5. **接口永远 200**：模型不可用时降级为句式规则（认「武汉 3 天 2 人预算 5000」这类写法），
+   不会因为模型抖动把对话卡住。结果按「日期 + 上下文 + 原话」缓存 256 条，相对日期隔天自动失效。
+6. **不进 Agent 契约**：这是编排层之前的预处理步骤，不新增 capability、不改 `contractVersion`，
+   Provider 侧行为完全不变。
+
+#### 8.9.1 请求体带上上下文（2026-11-10）
+
+```json
+{ "text": "有没有那种很小众的馆子",
+  "history": [
+    { "role": "user", "text": "武汉有什么好吃的" },
+    { "role": "assistant", "text": "在武汉找到 30 家可以去的餐馆。" }
+  ],
+  "state": { "city": "武汉", "days": 3 } }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `history` | 最近几轮对话，服务端只取最后 8 条、每条截 240 字；用于理解「那呢」「还有别的吗」「再玩两天」 |
+| `state` | 本轮已确认的槽位：`city` / `days` / `travelers` / `budget` / `preferences` |
+
+响应新增两个字段：
+
+| 字段 | 说明 |
+|---|---|
+| `carried` | 这一句没明说、从上文沿用过来的字段名（`city` / `days` / `travelers` / `budget` / `preferences`），前端据此显示「沿用上文」 |
+| `reply` | 仅 `intent=CHAT` 时有值：模型结合上下文的一句话回答；含网址时整段剥掉 |
+
+**继承规则（Java 侧，不靠模型自觉）**：
+
+1. 闲聊永不继承——「你叫什么名字」不会被上文的「武汉」污染成查景点；
+2. 只补这一句真的没有的字段，模型自己给了值就以模型为准；
+3. 找吃的与问天气只补城市，沿用上一次的天数、预算在这两类里没有意义；
+4. 同一句话在不同上文里分开缓存，不会把上一轮的城市套到新对话。
+
+**天气**：`intent=WEATHER` 时**不查景点知识库**，`city` 直接取原话地名交给
+`GET /api/location/weather`（高德能按城市名换 adcode）。没给城市时 `resolved=false`，
+`note` 问「想查哪座城市的天气」并给可点城市。
+
+
+### 8.10 对话 Agent（需要登录）
+
+```
+POST /api/chat
+Content-Type: application/json
+
+{ "message": "武汉有什么好吃的",
+  "history": [ { "role": "user", "text": "我想去武汉玩三天" } ],
+  "state": { "city": "武汉", "days": 3 } }
+```
+
+一次请求返回「回答 + 结构化卡片 + 查询痕迹」：
+
+```json
+{ "reply": "找到 8 家，先试热干面和豆皮，都在你选的景点附近。",
+  "cards": [ { "type": "envelope", "intent": "FOOD_RECOMMEND", "data": { "status": "OK", "providerId": "builtin.food", "result": { "facts": [] } } } ],
+  "trace": [ { "tool": "find_food", "label": "找餐馆", "ok": true } ],
+  "state": { "city": "武汉", "days": 3 },
+  "source": "agent", "note": null }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `reply` | 自然语言回答，已剥掉 Markdown 与网址；为空表示模型不可用，前端回退到 §8.9 + `/api/agent/invoke` |
+| `cards` | `weather`（逐日预报）/ `places`（景点表）/ `envelope`（行程、餐馆或票务，形状与 `/api/agent/invoke` 完全一致）/ `vote`（评委投票结论） |
+| `trace` | 这次查了哪些工具，界面显示「查了 天气、景点」，让结论可追溯 |
+| `state` | 本轮结束后的已知槽位，下一轮原样传回即可 |
+| `source` | `agent` 模型驱动 / `unavailable` 模型不可用（未配密钥、余额不足、超时） |
+
+**模型能用八个工具**（`application/chat/ChatTools`）。其中五个是「主 Agent 调子 Agent」：
+票务、天气、灵感、行程、美食全部经由 `builtin.*` Provider 走 L1 编排，同一入口、
+同一套契约校验、同一种信封——不再有绕过编排层的直连路径：
+
+| 工具 | 何时用 | 数据来源（子 Agent） |
+|---|---|---|
+| `resolve_place(name)` | 地名归属不确定、可能是景区名 | §8.8 地名识别 |
+| `list_attractions(city, limit)` | 问有什么好玩的、门票多少 | 景区知识库 |
+| `get_weather(city, days)` | 问天气、气温、要不要带伞 | `builtin.weather`（`WEATHER_ADVICE`，走 L1 编排） |
+| `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
+| `draft_itinerary(city, days, …)` | 要行程、问怎么安排 | `builtin.planning`（同上） |
+| `book_ticket(message)` | 问门票怎么买、购票条件缺什么 | `builtin.ticket`（`TICKET_ADVICE`，同上；只给建议不能下单） |
+| `get_inspiration(city)` | 「随便逛逛」「不知道去哪」 | `builtin.inspiration`（`CONTENT_INSPIRATION`：知识库按评分挑候选；知识库没收录的地名如区县「黄梅」自动改用地图工具层实时检索，结果标注未经核验） |
+| `vote_plan(city, days, …)` | 想比较省钱/美食/少走路哪种安排好 | `VoteOrchestrator` 两轮投票（见下） |
+
+**评委投票（`vote_plan`）**：主 Agent 把行程输入交给投票编排层，三位评委 Agent
+（`judge.ticket` 票务 / `judge.food` 美食 / `judge.parking` 停车视角）执行既定两轮协议——
+第一轮各自上报领域事实，主 Agent 生成最多五套侧重不同的候选方案
+（模型生成失败自动降级为确定性规则草案），第二轮按各自 rubric 评分计票
+（`PlanVoteTally` 确定性计票），胜出方案与加权得分随 `vote` 卡片返回。
+比较耗时（含一次模型生成），系统提示明确要求模型只在用户想比较方案侧重时调用。
+
+**边界**：
+
+1. 工具最多 6 次、最多 5 轮、总预算 45 秒；用尽后强制一次不带工具的收尾，
+   不会让模型无限绕圈，也不会让用户等到超时。
+2. 票务、天气、灵感、行程、餐馆复用 L1 编排：同一个 Provider、同一套契约校验、
+   同一种信封，对话里的结论与直接调 `/api/agent/invoke` 完全一致。
+3. 数字、地名、票价、餐馆、天气全部来自工具；工具说没查到，模型必须如实说没查到。
+4. `book_ticket` 只给建议与缺口（还差什么条件），不能下单、查库存或退款；
+   缺条件时模型照 Provider 的问题问，不替用户猜年龄与学生资格。
+5. 模型不可用时返回 `source=unavailable` + `reply=null`，对话页自动回退到确定性链路，
+   用户看到的不是错误页。
 
 
 ## 9. 北京景区购票助手（首版）
