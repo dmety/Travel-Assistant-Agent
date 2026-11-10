@@ -172,15 +172,30 @@ flowchart TB
 
 | 位置 | 谁负责 | 具体是什么 |
 |---|---|---|
-| 选什么工具、查几次、按什么顺序 | 模型 | 看着五个工具的说明自己决定，可以查完天气发现要下雨再建议改室内 |
-| 事实从哪来 | Java | `ChatTools` 只调既有服务：`PlaceResolver`、`AttractionStore`、`LocationService`、`AgentOrchestrator` |
+| 选什么工具、查几次、按什么顺序 | 模型 | 看着八个工具的说明自己决定，可以查完天气发现要下雨再建议改室内 |
+| 事实从哪来 | Java | `ChatTools` 只调既有服务与子 Agent：`PlaceResolver`、`AttractionStore`、`AgentOrchestrator`（五个 builtin Provider）、`VoteOrchestrator` |
 | 最多查几次、最多几轮、多少秒 | Java | 6 次工具、5 轮、45 秒；用尽后强制一次不带工具的收尾 |
-| 能不能编 | 规则 | 数字/地名/票价/餐馆全部来自工具；回复里的网址一律剥掉 |
-| 行程与餐馆的结论长什么样 | 契约 | 直接复用 `orchestrator.dispatch` 与 `AgentEnvelope`，与 `/api/agent/invoke` 同一形状 |
+| 能不能编 | 规则 | 数字/地名/票价/餐馆/天气全部来自工具；回复里的网址一律剥掉 |
+| 行程、餐馆、票务的结论长什么样 | 契约 | 直接复用 `orchestrator.dispatch` 与 `AgentEnvelope`，与 `/api/agent/invoke` 同一形状 |
 
-工具清单（`ChatTools.SPECS`）：`resolve_place` / `list_attractions` / `get_weather` /
-`find_food` / `draft_itinerary`。前三个直连服务，后两个走 L1 编排——所以对话里说
-「8 家餐馆」和接口里说「8 家餐馆」是同一批数据、同一套契约校验，不会互相打架。
+工具清单（`ChatTools.SPECS`，2026-11-10 起八个）：`resolve_place` / `list_attractions` /
+`get_weather` / `find_food` / `draft_itinerary` / `book_ticket` / `get_inspiration` / `vote_plan`。
+
+**主 Agent 调子 Agent（2026-11-10）**：票务、天气、灵感不再有绕过编排层的直连路径——
+
+- 新增 `builtin.weather`（`WEATHER_ADVICE`）包装 `LocationService`、
+  `builtin.inspiration`（`CONTENT_INSPIRATION`）包装知识库评分挑选；连同既有的
+  `builtin.planning` / `builtin.food` / `builtin.ticket`，五个子 Agent 全部经由
+  `orchestrator.dispatch` 调用：同一入口、同一套契约校验、同一信封。契约 capability
+  枚举本来就含这两项，**不升契约版本**；
+- `builtin.weather` 的 fact value 字段名与 `WeatherResult` 的 JSON 序列化一致，
+  前端天气渲染器零改动；`builtin.inspiration` 的推荐理由由条目字段确定性拼出，
+  不调模型不编造标签；查不到一律 DEGRADED 并如实标注「未编造」；
+- `vote_plan` 接 `VoteOrchestrator` 两轮投票：三位评委 Agent（`judge.ticket` /
+  `judge.food` / `judge.parking`）先各自上报领域事实，主 Agent 生成最多五套侧重不同的
+  候选（模型失败自动降级规则草案），第二轮按 rubric 评分、`PlanVoteTally` 计票，
+  胜出方案随 `vote` 卡片回给用户。系统提示明确：只在用户想比较省钱/美食/少走路
+  等侧重时调用，普通排行程仍走 `draft_itinerary`。
 
 失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
 对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。

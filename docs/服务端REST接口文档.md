@@ -1507,29 +1507,43 @@ Content-Type: application/json
 | 字段 | 说明 |
 |---|---|
 | `reply` | 自然语言回答，已剥掉 Markdown 与网址；为空表示模型不可用，前端回退到 §8.9 + `/api/agent/invoke` |
-| `cards` | `weather`（逐日预报）/ `places`（景点表）/ `envelope`（行程或餐馆，形状与 `/api/agent/invoke` 完全一致） |
+| `cards` | `weather`（逐日预报）/ `places`（景点表）/ `envelope`（行程、餐馆或票务，形状与 `/api/agent/invoke` 完全一致）/ `vote`（评委投票结论） |
 | `trace` | 这次查了哪些工具，界面显示「查了 天气、景点」，让结论可追溯 |
 | `state` | 本轮结束后的已知槽位，下一轮原样传回即可 |
 | `source` | `agent` 模型驱动 / `unavailable` 模型不可用（未配密钥、余额不足、超时） |
 
-**模型能用五个工具**（`application/chat/ChatTools`）：
+**模型能用八个工具**（`application/chat/ChatTools`）。其中五个是「主 Agent 调子 Agent」：
+票务、天气、灵感、行程、美食全部经由 `builtin.*` Provider 走 L1 编排，同一入口、
+同一套契约校验、同一种信封——不再有绕过编排层的直连路径：
 
-| 工具 | 何时用 | 数据来源 |
+| 工具 | 何时用 | 数据来源（子 Agent） |
 |---|---|---|
 | `resolve_place(name)` | 地名归属不确定、可能是景区名 | §8.8 地名识别 |
 | `list_attractions(city, limit)` | 问有什么好玩的、门票多少 | 景区知识库 |
-| `get_weather(city, days)` | 问天气、气温、要不要带伞 | 高德预报 |
+| `get_weather(city, days)` | 问天气、气温、要不要带伞 | `builtin.weather`（`WEATHER_ADVICE`，走 L1 编排） |
 | `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
 | `draft_itinerary(city, days, …)` | 要行程、问怎么安排 | `builtin.planning`（同上） |
+| `book_ticket(message)` | 问门票怎么买、购票条件缺什么 | `builtin.ticket`（`TICKET_ADVICE`，同上；只给建议不能下单） |
+| `get_inspiration(city)` | 「随便逛逛」「不知道去哪」 | `builtin.inspiration`（`CONTENT_INSPIRATION`，知识库按评分挑候选） |
+| `vote_plan(city, days, …)` | 想比较省钱/美食/少走路哪种安排好 | `VoteOrchestrator` 两轮投票（见下） |
+
+**评委投票（`vote_plan`）**：主 Agent 把行程输入交给投票编排层，三位评委 Agent
+（`judge.ticket` 票务 / `judge.food` 美食 / `judge.parking` 停车视角）执行既定两轮协议——
+第一轮各自上报领域事实，主 Agent 生成最多五套侧重不同的候选方案
+（模型生成失败自动降级为确定性规则草案），第二轮按各自 rubric 评分计票
+（`PlanVoteTally` 确定性计票），胜出方案与加权得分随 `vote` 卡片返回。
+比较耗时（含一次模型生成），系统提示明确要求模型只在用户想比较方案侧重时调用。
 
 **边界**：
 
 1. 工具最多 6 次、最多 5 轮、总预算 45 秒；用尽后强制一次不带工具的收尾，
    不会让模型无限绕圈，也不会让用户等到超时。
-2. 行程与餐馆复用 L1 编排：同一个 Provider、同一套契约校验、同一种信封，
-   对话里的结论与直接调 `/api/agent/invoke` 完全一致。
-3. 数字、地名、票价、餐馆全部来自工具；工具说没查到，模型必须如实说没查到。
-4. 模型不可用时返回 `source=unavailable` + `reply=null`，对话页自动回退到确定性链路，
+2. 票务、天气、灵感、行程、餐馆复用 L1 编排：同一个 Provider、同一套契约校验、
+   同一种信封，对话里的结论与直接调 `/api/agent/invoke` 完全一致。
+3. 数字、地名、票价、餐馆、天气全部来自工具；工具说没查到，模型必须如实说没查到。
+4. `book_ticket` 只给建议与缺口（还差什么条件），不能下单、查库存或退款；
+   缺条件时模型照 Provider 的问题问，不替用户猜年龄与学生资格。
+5. 模型不可用时返回 `source=unavailable` + `reply=null`，对话页自动回退到确定性链路，
    用户看到的不是错误页。
 
 

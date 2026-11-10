@@ -391,6 +391,28 @@ button{font-family:inherit;}
   background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
 }
 
+/* ---------- 评委投票 ---------- */
+.vote{border:1px solid var(--line); border-radius:var(--r-card); overflow:hidden; background:var(--surface);}
+.vote-h{
+  padding:var(--sp-2) var(--sp-3); background:var(--surface-2);
+  border-bottom:1px solid var(--line); font-size:var(--fs-xs); color:var(--text-2);
+}
+.vote-win{
+  padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm); font-weight:600;
+  color:var(--primary); background:var(--primary-soft);
+}
+.vote-row{
+  display:grid; grid-template-columns:56px minmax(0,1fr); gap:var(--sp-2);
+  align-items:center; padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  font-size:var(--fs-sm);
+}
+.vote-row:first-of-type{border-top:0;}
+.vote-row .d{color:var(--text-2); font-size:var(--fs-xs); font-variant-numeric:tabular-nums;}
+.vote-tip{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
+}
+
 /* ---------- 追问 chips ---------- */
 .chips{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:2px;}
 .chip{
@@ -1763,6 +1785,40 @@ button:focus:not(:focus-visible){outline:none;}
     return box;
   }
 
+  /**
+   * 投票卡片：三位评委 Agent 两轮投票的结论。只展示评委与主 Agent 确认过的内容——
+   * 候选方案、加权得分与胜出者全部来自投票计票，不在这里补任何形容词。
+   */
+  function voteBlock(data){
+    data = data || {};
+    var box = el('div','vote');
+    var plans = data.plans || [];
+    var ranking = data.ranking || [];
+    var head = el('div','vote-h');
+    head.textContent = '评委投票 · ' + plans.length + ' 套候选 · ' + ranking.length + ' 套方案计分';
+    box.appendChild(head);
+    if(data.winner){
+      var win = el('div','vote-win');
+      var winnerPlan = plans.find(function(p){ return p && p.planId === data.winner; });
+      win.textContent = '胜出：' + data.winner
+        + (winnerPlan && winnerPlan.title ? ' · ' + winnerPlan.title : '')
+        + (winnerPlan && winnerPlan.focus ? '（侧重' + ({COST:'省钱',FOOD:'美食',WALK:'少走路',BALANCED:'均衡'}[winnerPlan.focus] || winnerPlan.focus) + '）' : '');
+      box.appendChild(win);
+    }
+    ranking.forEach(function(r){
+      var row = el('div','vote-row');
+      row.appendChild(el('div','d', escapeHtml(r.planId || '')));
+      row.appendChild(el('div','', escapeHtml('加权 ' + (r.score || '-') + ' · ' + (r.voterCount || 0) + ' 票有效')));
+      box.appendChild(row);
+    });
+    if(!data.winner && (data.notices || []).length){
+      box.appendChild(el('div','vote-tip', escapeHtml(data.notices[0] || '本轮没有产生推荐')));
+    } else {
+      box.appendChild(el('div','vote-tip','评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。'));
+    }
+    return box;
+  }
+
   /** 景点小表：只列名字、等级、票价原文，详情让用户点开行程看。 */
   function placesBlock(rows){
     var box = el('div','wx');
@@ -1785,6 +1841,7 @@ button:focus:not(:focus-visible){outline:none;}
     if(!card) return null;
     if(card.type === 'weather') return weatherBlock(card.data);
     if(card.type === 'places') return placesBlock(card.data);
+    if(card.type === 'vote') return voteBlock(card.data);
     if(card.type === 'envelope'){
       var env = card.data || {};
       if(card.intent === 'FOOD_RECOMMEND'){

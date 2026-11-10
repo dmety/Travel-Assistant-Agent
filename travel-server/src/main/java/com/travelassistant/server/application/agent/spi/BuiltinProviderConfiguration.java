@@ -10,8 +10,11 @@ import com.travelassistant.server.application.agent.DraftQuestion;
 import com.travelassistant.server.application.agent.PlanDraft;
 import com.travelassistant.server.application.agent.PlanningRequest;
 import com.travelassistant.server.application.agent.PlanningService;
+import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.infrastructure.persistence.AttractionStore;
+import com.travelassistant.server.domain.location.WeatherResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,6 +57,32 @@ public class BuiltinProviderConfiguration {
   public AgentProvider builtinTicket(ContractRules rules, TicketAssistantService tickets) {
     return new BuiltinServiceProvider(descriptor(rules, "builtin.ticket", "TICKET_ADVICE"),
         context -> ticket(tickets, context));
+  }
+
+  /**
+   * 天气子 Agent：包装既有 {@link LocationService}，让主 Agent 通过编排层调用而不是直连。
+   *
+   * <p>价值在于统一：票务、美食、行程、天气全部走同一条 {@code orchestrator.dispatch}，
+   * 契约校验、信封形状、降级姿态一致—— Provider 查不到就 DEGRADED，绝不编造天气。
+   * fact value 的字段名与 {@link WeatherResult} 的 JSON 序列化完全一致，
+   * 前端天气渲染器不用为此改一行。
+   */
+  @Bean
+  public AgentProvider builtinWeather(ContractRules rules, LocationService location) {
+    return new BuiltinServiceProvider(descriptor(rules, "builtin.weather", "WEATHER_ADVICE"),
+        context -> weather(location, context));
+  }
+
+  /**
+   * 灵感子 Agent：从知识库挑主题条目（「有什么好玩的」「去哪逛逛」的轻量入口）。
+   *
+   * <p>推荐理由由条目字段确定性拼出（等级、评分、票价原文），不调模型、不编造标签；
+   * 城市没收录就如实 DEGRADED。主 Agent 拿到的是同一份知识库快照，与查景点工具互为补充。
+   */
+  @Bean
+  public AgentProvider builtinInspiration(ContractRules rules, AttractionStore store) {
+    return new BuiltinServiceProvider(descriptor(rules, "builtin.inspiration", "CONTENT_INSPIRATION"),
+        context -> inspiration(store, context));
   }
 
   private static AgentDescriptor descriptor(ContractRules rules, String id, String capability) {
@@ -225,6 +254,8 @@ public class BuiltinProviderConfiguration {
     notices.add("票价明细与渠道请使用既有购票接口，本响应只带结构化计数");
     int matches = outcome.matches() == null ? 0 : outcome.matches().size();
     Map<String, Object> value = new LinkedHashMap<>();
+    // 与美食/天气/灵感同一套路：主 Agent 的工具按 category 捧 fact
+    value.put("category", "TICKET");
     value.put("matchCount", matches);
     value.put("questionCount", questions.size());
     value.put("stockVerified", outcome.stockVerified());
@@ -235,6 +266,137 @@ public class BuiltinProviderConfiguration {
         ? "已按当前条件整理购票建议，请核对结构化计数与既有购票接口"
         : null;
     return result(context, advice, questions, notices, List.of(fact));
+  }
+
+  // ---------------------------------------------------------------- 天气
+
+  /** 信封 advice 不带温度数字与「晴/雨」断言：数字必须有 facts 出处，天气永远是预报。 */
+  private static final String WEATHER_ADVICE =
+      "已附目标城市的逐日预报，请以结构化内容为准；天气是预报不是实况，出发前请再确认。";
+
+  private static AgentResult weather(LocationService service, AgentContext context) {
+    Map<String, Object> input = values(context);
+    String city = text(input.get("city"));
+    if (city == null || city.isBlank()) {
+      return AgentResult.refused(facts(context), List.of("city"), "查询天气需要城市名");
+    }
+    WeatherResult result;
+    try {
+      result = service.weather(city);
+    } catch (RuntimeException e) {
+      return new AgentResult("DEGRADED", facts(context), null, List.of("weather"),
+          List.of("天气查询失败：" + brief(e.getMessage()) + "，未编造天气"), new Usage(0L, 0));
+    }
+    if (result.days().isEmpty()) {
+      return new AgentResult("DEGRADED", facts(context), null, List.of("weather"),
+          List.of("高德没有返回 " + result.city() + " 的预报，未编造天气"), new Usage(0L, 0));
+    }
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "WEATHER");
+    value.put("city", result.city());
+    value.put("adcode", result.adcode());
+    value.put("reportTime", result.reportTime());
+    value.put("source", result.source());
+    value.put("queriedAt", result.queriedAt() == null ? null : result.queriedAt().toString());
+    List<Map<String, Object>> days = new ArrayList<>();
+    for (WeatherResult.DayWeather day : result.days()) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("date", day.date());
+      item.put("dayWeather", day.dayWeather());
+      item.put("nightWeather", day.nightWeather());
+      item.put("dayTemp", day.dayTemp());
+      item.put("nightTemp", day.nightTemp());
+      item.put("dayWind", day.dayWind());
+      item.put("dayPower", day.dayPower());
+      item.put("nightWind", day.nightWind());
+      item.put("nightPower", day.nightPower());
+      days.add(item);
+    }
+    value.put("days", days);
+    Fact fact = new Fact("builtin.weather:forecast", "CONTENT", value,
+        new Evidence("AMAP", "builtin.weather", Evidence.UNVERIFIED,
+            Instant.now(), "高德天气预报快照，非实况"));
+    return result(context, WEATHER_ADVICE, List.of(),
+        List.of("天气是预报不是实况，出行前请再确认"), List.of(fact));
+  }
+
+  // ---------------------------------------------------------------- 灵感
+
+  private static final int INSPIRATION_LIMIT = 8;
+  /** 信封 advice 不带景点名与票价：候选明细全部走 CONTENT fact 由前端渲染。 */
+  private static final String INSPIRATION_ADVICE =
+      "已按知识库挑选主题候选，票价与开放时间以景区公告为准，明细见结构化内容。";
+
+  private static AgentResult inspiration(AttractionStore store, AgentContext context) {
+    Map<String, Object> input = values(context);
+    String city = text(input.get("city"));
+    if (city == null || city.isBlank()) {
+      return AgentResult.refused(facts(context), List.of("city"), "灵感推荐需要城市名");
+    }
+    List<Attraction> found = store.findByCity(city);
+    if (found.isEmpty()) {
+      return new AgentResult("DEGRADED", facts(context), null, List.of("inspiration"),
+          List.of("知识库里没有「" + city + "」的景点条目，未编造推荐"), new Usage(0L, 0));
+    }
+    // 等级（5A/4A）是景区评定的硬信号，先按有等级排前，再按评分降序：
+    // 知识库里混着学校、图书馆这类 rating=5.0 的非景区条目，纯按评分会排到最前
+    List<Attraction> picked = found.stream()
+        .sorted(java.util.Comparator
+            .comparing((Attraction a) -> a.level() == null || a.level().isBlank() ? 1 : 0)
+            .thenComparing(a -> a.rating() == null || a.rating().isBlank()
+                ? java.math.BigDecimal.ZERO : new java.math.BigDecimal(a.rating()),
+                java.util.Comparator.reverseOrder()))
+        .limit(INSPIRATION_LIMIT)
+        .toList();
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "INSPIRATION");
+    value.put("city", city);
+    value.put("total", found.size());
+    List<Map<String, Object>> items = new ArrayList<>();
+    for (Attraction a : picked) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("name", a.name());
+      item.put("city", a.city());
+      item.put("level", a.level());
+      item.put("rating", a.rating());
+      item.put("ticket", a.ticket());
+      item.put("openTime", a.openTime());
+      item.put("reason", reasonOf(a));
+      items.add(item);
+    }
+    value.put("items", items);
+    Fact fact = new Fact("builtin.inspiration:picks", "CONTENT", value,
+        new Evidence("KB", "builtin.inspiration", Evidence.UNVERIFIED, Instant.now(),
+            "知识库主题候选快照，票价与开放时间为原文，未逐条核验"));
+    return result(context, INSPIRATION_ADVICE, List.of(), List.of(), List.of(fact));
+  }
+
+  /** 推荐理由只由知识库字段拼出，缺字段就少说，绝不补形容词。 */
+  private static String reasonOf(Attraction a) {
+    StringBuilder sb = new StringBuilder();
+    if (a.level() != null && !a.level().isBlank()) {
+      sb.append(a.level());
+    }
+    if (a.rating() != null && !a.rating().isBlank()) {
+      if (!sb.isEmpty()) {
+        sb.append("，");
+      }
+      sb.append("评分 ").append(a.rating());
+    }
+    if (a.ticket() != null && !a.ticket().isBlank()) {
+      if (!sb.isEmpty()) {
+        sb.append("，");
+      }
+      sb.append("门票 ").append(a.ticket());
+    }
+    return sb.isEmpty() ? "知识库收录景点" : sb.toString();
+  }
+
+  private static String brief(String message) {
+    if (message == null) {
+      return "无详细信息";
+    }
+    return message.length() > 120 ? message.substring(0, 120) + "…" : message;
   }
 
   private static AgentResult result(AgentContext context, String advice,

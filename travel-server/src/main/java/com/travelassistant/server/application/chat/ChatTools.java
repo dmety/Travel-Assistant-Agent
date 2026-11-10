@@ -6,11 +6,11 @@ import com.travelassistant.server.application.agent.orchestration.AgentEnvelope;
 import com.travelassistant.server.application.agent.orchestration.AgentOrchestrator;
 import com.travelassistant.server.application.agent.orchestration.DispatchOutcome;
 import com.travelassistant.server.application.agent.orchestration.DispatchRequest;
-import com.travelassistant.server.application.location.LocationService;
+import com.travelassistant.server.application.agent.vote.PlanVoteTally;
+import com.travelassistant.server.application.agent.vote.VoteOrchestrator;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
 import com.travelassistant.server.domain.attraction.Attraction;
-import com.travelassistant.server.domain.location.WeatherResult;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -53,16 +53,16 @@ public class ChatTools {
 
   private final PlaceResolver places;
   private final AttractionStore store;
-  private final LocationService location;
   private final AgentOrchestrator orchestrator;
+  private final VoteOrchestrator votes;
   private final ObjectMapper mapper;
 
-  public ChatTools(PlaceResolver places, AttractionStore store, LocationService location,
-      AgentOrchestrator orchestrator, ObjectMapper mapper) {
+  public ChatTools(PlaceResolver places, AttractionStore store,
+      AgentOrchestrator orchestrator, VoteOrchestrator votes, ObjectMapper mapper) {
     this.places = places;
     this.store = store;
-    this.location = location;
     this.orchestrator = orchestrator;
+    this.votes = votes;
     this.mapper = mapper;
   }
 
@@ -84,6 +84,25 @@ public class ChatTools {
           + "问天气、气温、要不要带伞、穿什么时用它。",
           Map.of("city", str("城市名，例如「天津」"),
               "days", Map.of("type", "integer", "description", "查几天，默认 3，最多 4")),
+          List.of("city")),
+      fn("book_ticket", "按一句自然语言查购票建议（规则匹配景区票种、指出还缺什么条件）。"
+          + "用户问「门票怎么买」「带学生证多少钱」「预订要注意什么」时用它；"
+          + "它只给建议与缺口，不能真正下单。",
+          Map.of("message", str("用户的购票原话，尽量保留年龄、日期、人数等条件，例如"
+              + "「两个成人一个1.2米儿童下周六去黄鹤楼」")), List.of("message")),
+      fn("get_inspiration", "按城市给主题灵感候选（知识库里评分较高的景点，附推荐理由）。"
+          + "用户说「不知道去哪」「随便逛逛」「有什么好玩的推荐一下」但还没定具体行程时用它。",
+          Map.of("city", str("城市名，例如「杭州」")), List.of("city")),
+      fn("vote_plan", "让三位评委 Agent（票务/美食/停车视角）对行程方案做两轮投票："
+          + "第一轮各自上报领域事实，主 Agent 生成多套侧重不同的候选，第二轮评分计票选出胜者。"
+          + "用户已经给了目的地和天数、想比较不同侧重（省钱/美食/少走路）怎么安排时用它。"
+          + "投票比较耗时，用户只是闲聊或问天气时不要调。",
+          Map.of("city", str("目的地城市，例如「武汉」"),
+              "days", Map.of("type", "integer", "description", "游玩天数"),
+              "travelers", Map.of("type", "integer", "description", "同行总人数，含本人"),
+              "budget", Map.of("type", "number", "description", "预算上限，单位元"),
+              "preferences", Map.of("type", "array", "items", Map.of("type", "string"),
+                  "description", "偏好，只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏")),
           List.of("city")),
       fn("find_food", "查某座城市真实的餐馆候选（按该城市一个景点的坐标找周边，含人均、评分、距离）。"
           + "问吃什么、找馆子、本地小吃时用它。",
@@ -109,6 +128,9 @@ public class ChatTools {
         case "get_weather" -> weather(args);
         case "find_food" -> food(args);
         case "draft_itinerary" -> plan(args);
+        case "book_ticket" -> ticket(args);
+        case "get_inspiration" -> inspiration(args);
+        case "vote_plan" -> votePlan(args);
         default -> new Outcome(false, "没有名为 " + name + " 的工具，请从给定工具里选择。", null);
       };
     } catch (RuntimeException e) {
@@ -175,26 +197,51 @@ public class ChatTools {
     return new Outcome(true, cut(sb.toString()), new Card("places", null, rows));
   }
 
+  /**
+   * 天气走编排层的 {@code builtin.weather} 子 Agent：与其余能力同一入口、同一契约校验。
+   * fact value 与 {@code WeatherResult} 的 JSON 字段一致，前端天气渲染器零改动。
+   */
   private Outcome weather(JsonNode args) {
     String city = text(args, "city");
     if (city == null) {
       return new Outcome(false, "缺少 city 参数。", null);
     }
-    int days = Math.min(Math.max(number(args, "days", 3), 1), 4);
-    WeatherResult result = location.weather(city);
-    List<WeatherResult.DayWeather> shown = result.days().stream().limit(days).toList();
-    if (shown.isEmpty()) {
-      return new Outcome(false, "高德没有返回 " + result.city() + " 的预报。", null);
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("city", city);
+    Integer days = number(args, "days", 0);
+    if (days > 0) {
+      context.put("days", Math.min(days, 4));
     }
-    StringBuilder sb = new StringBuilder(result.city() + " 天气预报（发布时间 " + result.reportTime()
-        + "，是预报不是实况）：\n");
-    for (WeatherResult.DayWeather day : shown) {
-      sb.append("- ").append(day.date())
-          .append("｜白天 ").append(day.dayWeather()).append(' ').append(day.dayTemp()).append("℃")
-          .append("｜夜间 ").append(day.nightWeather()).append(' ').append(day.nightTemp()).append("℃")
-          .append("｜").append(day.dayWind()).append(' ').append(day.dayPower()).append(" 级\n");
+    DispatchOutcome outcome = orchestrator.dispatch(
+        new DispatchRequest("WEATHER_ADVICE", context, Map.of()));
+    Map<String, Object> value = firstFactOf(outcome, "WEATHER");
+    if (value == null) {
+      String why = outcome.result() == null || outcome.result().notices().isEmpty()
+          ? "编排层没有给出原因" : outcome.result().notices().get(0);
+      return new Outcome(false, city + " 的天气没查到：" + why
+          + "。不要编造天气，可以如实告诉用户这次没查到。", null);
     }
-    return new Outcome(true, cut(sb.toString()), new Card("weather", null, result));
+    StringBuilder sb = new StringBuilder(value.get("city") + " 天气预报（发布时间 "
+        + value.get("reportTime") + "，是预报不是实况）：\n");
+    Object rawDays = value.get("days");
+    int shown = 0;
+    if (rawDays instanceof List<?> list) {
+      int limit = days > 0 ? Math.min(days, 4) : list.size();
+      for (Object item : list) {
+        if (shown >= limit) {
+          break;
+        }
+        if (item instanceof Map<?, ?> d) {
+          sb.append("- ").append(d.get("date"))
+              .append("｜白天 ").append(d.get("dayWeather")).append(' ').append(d.get("dayTemp")).append("℃")
+              .append("｜夜间 ").append(d.get("nightWeather")).append(' ').append(d.get("nightTemp")).append("℃")
+              .append("｜").append(d.get("dayWind")).append(' ').append(d.get("dayPower")).append(" 级\n");
+          shown++;
+        }
+      }
+    }
+    return new Outcome(true, cut(sb.toString()),
+        new Card("weather", null, withoutCategory(value)));
   }
 
   private Outcome food(JsonNode args) {
@@ -246,6 +293,173 @@ public class ChatTools {
     DispatchOutcome outcome = orchestrator.dispatch(
         new DispatchRequest("PLAN_DRAFT", context, Map.of()));
     return envelopeOutcome(outcome, "PLAN_DRAFT", namesOf(outcome, "PLAN_DRAFT", "destination"));
+  }
+
+  /**
+   * 票务子 Agent：一句话原话直接交给 {@code builtin.ticket}。缺什么条件由 Provider 的
+   * questions 说清，工具摘要原样转述，不替用户猜年龄与学生资格。
+   *
+   * <p>注意 {@code builtin.ticket} 在 questions 非空时按契约返回 DEGRADED（advice 为空），
+   * 但 fact 与 notices 里的购票规则仍然有效——工具层有结构化计数就视为可用，
+   * 并把规则提示带给模型，否则「旺季、学生优惠」这些真实信息就被状态码埋没了。
+   */
+  private Outcome ticket(JsonNode args) {
+    String message = text(args, "message");
+    if (message == null) {
+      return new Outcome(false, "缺少 message 参数。把用户的购票原话传过来。", null);
+    }
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("message", message);
+    DispatchOutcome outcome = orchestrator.dispatch(
+        new DispatchRequest("TICKET_ADVICE", context, Map.of()));
+    Map<String, Object> value = firstFactOf(outcome, "TICKET");
+    if (value == null) {
+      return new Outcome(false, "购票建议没拿到：" + firstNotice(outcome) + "。如实告诉用户，不要编票价。", null);
+    }
+    StringBuilder sb = new StringBuilder("购票建议（provider=" + outcome.providerId() + "）：");
+    if (value.get("matchCount") instanceof Number n) {
+      sb.append("匹配到 ").append(n.intValue()).append(" 条票务规则；");
+    }
+    if (value.get("stockVerified") instanceof Boolean b) {
+      sb.append("库存").append(b ? "已核验" : "未核验").append("；");
+    }
+    List<String> notices = outcome.result() == null ? List.of() : outcome.result().notices();
+    List<String> rules = notices.stream()
+        .filter(s -> s != null && !s.contains("票价明细与渠道")).limit(4).toList();
+    if (!rules.isEmpty()) {
+      sb.append("规则提示：").append(String.join("；", rules)).append("。");
+    }
+    if (value.get("questionCount") instanceof Number q && q.intValue() > 0) {
+      sb.append("还有 ").append(q.intValue()).append(" 个条件要问用户（按上面缺的问题问），"
+          + "不要猜年龄或资格；票价明细与渠道要用既有购票接口。");
+    } else {
+      sb.append("条件齐了。票价明细与渠道要用既有购票接口，本工具只给建议。");
+    }
+    boolean ok = "OK".equals(outcome.status()) || "DEGRADED".equals(outcome.status());
+    return new Outcome(ok, cut(sb.toString()), new Card("envelope", "TICKET_ADVICE",
+        AgentEnvelope.view(outcome, orchestrator)));
+  }
+
+  /** 灵感子 Agent：{@code builtin.inspiration} 按知识库评分挑主题候选。 */
+  private Outcome inspiration(JsonNode args) {
+    String city = text(args, "city");
+    if (city == null) {
+      return new Outcome(false, "缺少 city 参数。", null);
+    }
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("city", city);
+    DispatchOutcome outcome = orchestrator.dispatch(
+        new DispatchRequest("CONTENT_INSPIRATION", context, Map.of()));
+    Map<String, Object> value = firstFactOf(outcome, "INSPIRATION");
+    if (value == null) {
+      return new Outcome(false, city + " 的灵感候选没拿到：" + firstNotice(outcome)
+          + "。知识库可能没收录这座城市，如实说明。", null);
+    }
+    List<Map<String, Object>> rows = new ArrayList<>();
+    if (value.get("items") instanceof List<?> list) {
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> m) {
+          Map<String, Object> row = new LinkedHashMap<>();
+          row.put("name", m.get("name"));
+          row.put("level", m.get("level"));
+          row.put("rating", m.get("rating"));
+          row.put("ticket", m.get("ticket"));
+          row.put("openTime", m.get("openTime"));
+          row.put("city", m.get("city"));
+          row.put("reason", m.get("reason"));
+          rows.add(row);
+        }
+      }
+    }
+    Object total = value.get("total");
+    String summary = city + " 的灵感候选（知识库共 " + total + " 条，挑了 " + rows.size()
+        + " 条）：" + namesFromRows(rows) + "。票价与开放时间是知识库原文快照，可能过期。";
+    return new Outcome(true, cut(summary), new Card("places", null, rows));
+  }
+
+  /**
+   * 投票编排：主 Agent 把行程输入交给 {@link VoteOrchestrator}，三位评委 Agent 两轮投票。
+   * 这是「多 Agent 协作」的直接入口——模型不需要知道评委是谁，只看到谁胜出、为什么。
+   */
+  private Outcome votePlan(JsonNode args) {
+    String city = text(args, "city");
+    if (city == null) {
+      return new Outcome(false, "缺少 city 参数。", null);
+    }
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("city", city);
+    Integer days = number(args, "days", 0) > 0 ? number(args, "days", 0) : null;
+    if (days != null) {
+      context.put("days", days);
+    }
+    Integer travelers = number(args, "travelers", 0) > 0 ? number(args, "travelers", 0) : null;
+    if (travelers != null) {
+      context.put("travelers", travelers);
+    }
+    double budget = decimal(args, "budget", 0);
+    if (budget > 0) {
+      context.put("budget", budget);
+      // 评委第一轮的公开事实用的是 budgetCny 字段（字符串）
+      context.put("budgetCny", java.math.BigDecimal.valueOf(budget)
+          .stripTrailingZeros().toPlainString() + " 元");
+    }
+    List<String> prefs = strings(args, "preferences");
+    if (!prefs.isEmpty()) {
+      context.put("preferences", prefs);
+    }
+    VoteOrchestrator.VoteRun run = votes.vote(
+        new VoteOrchestrator.VoteRequest("DECISION_ADVICE", context, Map.of(), List.of()));
+    boolean ok = "OK".equals(run.status());
+    StringBuilder sb = new StringBuilder("两轮投票完成（评委：" + String.join("、", run.judges())
+        + "，候选来自 " + run.candidateSource() + "）：");
+    PlanVoteTally.VoteOutcome tally = run.outcome();
+    if (tally != null && tally.winner() != null) {
+      sb.append("胜出方案 ").append(tally.winner());
+      if (tally.ranking() != null && !tally.ranking().isEmpty()) {
+        PlanVoteTally.Ranking top = tally.ranking().get(0);
+        sb.append("（加权 ").append(top.score()).append("，").append(top.voterCount())
+            .append(" 位评委有效票）");
+      }
+    } else {
+      sb.append("没有产生可推荐方案——").append(String.join("；", run.notices()));
+    }
+    // 投票没产生胜者时 winner 是 null：Map.of 不收 null 值，改用 LinkedHashMap
+    Map<String, Object> card = new LinkedHashMap<>();
+    card.put("plans", run.plans() == null ? List.of() : run.plans());
+    card.put("winner", tally == null ? null : tally.winner());
+    card.put("ranking", tally == null ? List.of() : tally.ranking());
+    card.put("notices", run.notices() == null ? List.of() : run.notices());
+    return new Outcome(ok, cut(sb.toString()), new Card("vote", "DECISION_ADVICE", card));
+  }
+
+  private static String namesFromRows(List<Map<String, Object>> rows) {
+    List<String> names = new ArrayList<>();
+    for (Map<String, Object> row : rows) {
+      Object name = row.get("name");
+      if (name != null && !String.valueOf(name).isBlank()) {
+        names.add(String.valueOf(name));
+      }
+    }
+    return names.isEmpty() ? "无" : String.join("、", names.stream().limit(MAX_FOOD).toList());
+  }
+
+  /** 取第一个声明了目标类别的 CONTENT fact value；没有返回 null。 */
+  private Map<String, Object> firstFactOf(DispatchOutcome outcome, String category) {
+    List<Object> facts = factsOf(outcome, category);
+    return facts.isEmpty() ? null
+        : (facts.get(0) instanceof Map<?, ?> map ? asMutable(map) : null);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> asMutable(Map<?, ?> map) {
+    return (Map<String, Object>) map;
+  }
+
+  /** 天气卡片不需要内部类别标记，去掉再发给前端。 */
+  private static Map<String, Object> withoutCategory(Map<String, Object> value) {
+    Map<String, Object> out = new LinkedHashMap<>(value);
+    out.remove("category");
+    return out;
   }
 
   /**

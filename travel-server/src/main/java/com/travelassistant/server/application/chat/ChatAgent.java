@@ -59,6 +59,10 @@ public class ChatAgent {
       4. 查完发现数据不足（工具说没查到），就如实告诉用户「这个我没查到」，并说明知识库覆盖有限；
          不要用常识补齐景点名、票价或餐厅。
       5. 同一个工具不要用同样的参数重复调用。最多 6 次工具调用。
+      6. vote_plan 会让三个评委 Agent 两轮投票、比较费时：只在用户明确想比较不同侧重
+         （省钱/美食/少走路哪个好）或问「哪个方案更好」时用；排一份普通行程用 draft_itinerary。
+      7. book_ticket 只给购票建议与缺口，不能下单、查库存余票或退款；缺条件就照工具说的问，
+         不要替用户猜年龄、学生资格。
 
       回答方式
       6. 用口语，称呼「你」，最多 4 句话；不要标题、表格、编号清单、emoji、Markdown 加粗。
@@ -312,6 +316,9 @@ public class ChatAgent {
       case "get_weather" -> "查天气";
       case "find_food" -> "找餐馆";
       case "draft_itinerary" -> "排行程";
+      case "book_ticket" -> "问票务";
+      case "get_inspiration" -> "找灵感";
+      case "vote_plan" -> "评委投票";
       default -> tool;
     };
   }
