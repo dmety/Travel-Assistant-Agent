@@ -90,9 +90,11 @@ public class ChatTools {
           + "它只给建议与缺口，不能真正下单。",
           Map.of("message", str("用户的购票原话，尽量保留年龄、日期、人数等条件，例如"
               + "「两个成人一个1.2米儿童下周六去黄鹤楼」")), List.of("message")),
-      fn("get_inspiration", "按城市给主题灵感候选（知识库里评分较高的景点，附推荐理由）。"
-          + "用户说「不知道去哪」「随便逛逛」「有什么好玩的推荐一下」但还没定具体行程时用它。",
-          Map.of("city", str("城市名，例如「杭州」")), List.of("city")),
+      fn("get_inspiration", "按地名给主题灵感候选。知识库收录的城市返回评分较高的景点（附等级、票价、推荐理由）；"
+          + "知识库没收录的地名（如区县「黄梅」「婺源」）会自动改用高德/百度实时检索，结果标注未经核验。"
+          + "用户说「不知道去哪」「随便逛逛」「有什么好玩的推荐一下」时用它；"
+          + "传用户提到的原始地名，不要先替换成地级市。",
+          Map.of("city", str("地名，如「杭州」「黄梅」")), List.of("city")),
       fn("vote_plan", "让三位评委 Agent（票务/美食/停车视角）对行程方案做两轮投票："
           + "第一轮各自上报领域事实，主 Agent 生成多套侧重不同的候选，第二轮评分计票选出胜者。"
           + "用户已经给了目的地和天数、想比较不同侧重（省钱/美食/少走路）怎么安排时用它。"
@@ -155,6 +157,11 @@ public class ChatTools {
     String summary = "「" + name + "」→ 城市 " + place.city()
         + (place.spot() == null || place.spot().isBlank() ? "" : "，景点 " + place.spot())
         + (place.note() == null || place.note().isBlank() ? "" : "（" + place.note() + "）");
+    if ("county".equals(place.level()) && place.city() != null) {
+      // 知识库只按地级市收录：不提示的话模型会拿地级市查库，给的景点全在别的县区
+      summary += "。知识库按地级市收录，查「" + name
+          + "」本地的实时景点可把原名传给 get_inspiration";
+    }
     return new Outcome(true, summary, null);
   }
 
@@ -166,8 +173,8 @@ public class ChatTools {
     int limit = Math.min(Math.max(number(args, "limit", MAX_PLACES), 1), 12);
     List<Attraction> found = store.findByCity(city);
     if (found.isEmpty()) {
-      return new Outcome(false, "知识库里没有「" + city + "」的景点条目。不要编造景点名，"
-          + "可以如实说这座城市还没收录。", null);
+      return new Outcome(false, "知识库里没有「" + city + "」的景点条目。不要编造景点名；"
+          + "如果用户想看真实景点，可以改调 get_inspiration（知识库未收录会自动实时检索）。", null);
     }
     List<Attraction> shown = found.stream().limit(limit).toList();
     List<Map<String, Object>> rows = new ArrayList<>();
@@ -367,13 +374,25 @@ public class ChatTools {
           row.put("openTime", m.get("openTime"));
           row.put("city", m.get("city"));
           row.put("reason", m.get("reason"));
+          // 实时检索候选才有这些字段（等级票价地图拿不到，是 null 不是 0）
+          for (String field : new String[] {"type", "address", "district", "tel", "source"}) {
+            if (m.get(field) != null) {
+              row.put(field, m.get(field));
+            }
+          }
           rows.add(row);
         }
       }
     }
     Object total = value.get("total");
-    String summary = city + " 的灵感候选（知识库共 " + total + " 条，挑了 " + rows.size()
-        + " 条）：" + namesFromRows(rows) + "。票价与开放时间是知识库原文快照，可能过期。";
+    String summary;
+    if ("LIVE_MAP".equals(value.get("source"))) {
+      summary = city + " 的实时检索景点（高德/百度快照，未经核验，等级票价开放时间地图未提供）："
+          + namesFromRows(rows) + "。回答时要说明这是地图实时结果，不是知识库核验数据。";
+    } else {
+      summary = city + " 的灵感候选（知识库共 " + total + " 条，挑了 " + rows.size()
+          + " 条）：" + namesFromRows(rows) + "。票价与开放时间是知识库原文快照，可能过期。";
+    }
     return new Outcome(true, cut(summary), new Card("places", null, rows));
   }
 

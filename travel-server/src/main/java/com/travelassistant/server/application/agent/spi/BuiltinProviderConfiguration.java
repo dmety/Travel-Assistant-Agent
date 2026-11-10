@@ -11,6 +11,7 @@ import com.travelassistant.server.application.agent.PlanDraft;
 import com.travelassistant.server.application.agent.PlanningRequest;
 import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.location.LocationService;
+import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
@@ -77,12 +78,15 @@ public class BuiltinProviderConfiguration {
    * 灵感子 Agent：从知识库挑主题条目（「有什么好玩的」「去哪逛逛」的轻量入口）。
    *
    * <p>推荐理由由条目字段确定性拼出（等级、评分、票价原文），不调模型、不编造标签；
-   * 城市没收录就如实 DEGRADED。主 Agent 拿到的是同一份知识库快照，与查景点工具互为补充。
+   * 城市没收录时不直接报空——改用 {@code MapTools} 工具层做地图实时检索
+   * （高德主源 + 百度第二源），候选标注「未经核验」，让「黄梅」这类区县地名
+   * 不再被迫归位到地级市。两个源都查不到才如实 DEGRADED。
    */
   @Bean
-  public AgentProvider builtinInspiration(ContractRules rules, AttractionStore store) {
+  public AgentProvider builtinInspiration(ContractRules rules, AttractionStore store,
+      MapTools mapTools) {
     return new BuiltinServiceProvider(descriptor(rules, "builtin.inspiration", "CONTENT_INSPIRATION"),
-        context -> inspiration(store, context));
+        context -> inspiration(store, mapTools, context));
   }
 
   private static AgentDescriptor descriptor(ContractRules rules, String id, String capability) {
@@ -326,49 +330,89 @@ public class BuiltinProviderConfiguration {
   /** 信封 advice 不带景点名与票价：候选明细全部走 CONTENT fact 由前端渲染。 */
   private static final String INSPIRATION_ADVICE =
       "已按知识库挑选主题候选，票价与开放时间以景区公告为准，明细见结构化内容。";
+  /** 库外实时检索的 advice 同样无数字无断言：地图快照没有等级票价，说了就是编造。 */
+  private static final String LIVE_ADVICE =
+      "已按地图实时检索整理候选，等级、票价与营业信息地图未提供，请以景区官方信息为准，明细见结构化内容。";
 
-  private static AgentResult inspiration(AttractionStore store, AgentContext context) {
+  private static AgentResult inspiration(AttractionStore store, MapTools mapTools,
+      AgentContext context) {
     Map<String, Object> input = values(context);
     String city = text(input.get("city"));
     if (city == null || city.isBlank()) {
       return AgentResult.refused(facts(context), List.of("city"), "灵感推荐需要城市名");
     }
     List<Attraction> found = store.findByCity(city);
-    if (found.isEmpty()) {
-      return new AgentResult("DEGRADED", facts(context), null, List.of("inspiration"),
-          List.of("知识库里没有「" + city + "」的景点条目，未编造推荐"), new Usage(0L, 0));
+    if (!found.isEmpty()) {
+      // 等级（5A/4A）是景区评定的硬信号，先按有等级排前，再按评分降序：
+      // 知识库里混着学校、图书馆这类 rating=5.0 的非景区条目，纯按评分会排到最前
+      List<Attraction> picked = found.stream()
+          .sorted(java.util.Comparator
+              .comparing((Attraction a) -> a.level() == null || a.level().isBlank() ? 1 : 0)
+              .thenComparing(a -> a.rating() == null || a.rating().isBlank()
+                  ? java.math.BigDecimal.ZERO : new java.math.BigDecimal(a.rating()),
+                  java.util.Comparator.reverseOrder()))
+          .limit(INSPIRATION_LIMIT)
+          .toList();
+      Map<String, Object> value = new LinkedHashMap<>();
+      value.put("category", "INSPIRATION");
+      value.put("city", city);
+      value.put("total", found.size());
+      value.put("source", "KB");
+      List<Map<String, Object>> items = new ArrayList<>();
+      for (Attraction a : picked) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("name", a.name());
+        item.put("city", a.city());
+        item.put("level", a.level());
+        item.put("rating", a.rating());
+        item.put("ticket", a.ticket());
+        item.put("openTime", a.openTime());
+        item.put("reason", reasonOf(a));
+        items.add(item);
+      }
+      value.put("items", items);
+      Fact fact = new Fact("builtin.inspiration:picks", "CONTENT", value,
+          new Evidence("KB", "builtin.inspiration", Evidence.UNVERIFIED, Instant.now(),
+              "知识库主题候选快照，票价与开放时间为原文，未逐条核验"));
+      return result(context, INSPIRATION_ADVICE, List.of(), List.of(), List.of(fact));
     }
-    // 等级（5A/4A）是景区评定的硬信号，先按有等级排前，再按评分降序：
-    // 知识库里混着学校、图书馆这类 rating=5.0 的非景区条目，纯按评分会排到最前
-    List<Attraction> picked = found.stream()
-        .sorted(java.util.Comparator
-            .comparing((Attraction a) -> a.level() == null || a.level().isBlank() ? 1 : 0)
-            .thenComparing(a -> a.rating() == null || a.rating().isBlank()
-                ? java.math.BigDecimal.ZERO : new java.math.BigDecimal(a.rating()),
-                java.util.Comparator.reverseOrder()))
-        .limit(INSPIRATION_LIMIT)
-        .toList();
+    // 知识库没收录：改用地图工具层实时检索（高德主源 + 百度第二源）。
+    // 等级、票价、开放时间地图关键字检索拿不到，就没有——绝不补「免费」「全天开放」。
+    MapTools.ScenicResult live = mapTools.findScenicSpots(city, INSPIRATION_LIMIT);
+    List<String> notices = new ArrayList<>();
+    notices.add("知识库未收录「" + city + "」，已改用地图实时检索，结果未经核验；"
+        + "等级、票价与开放时间以景区官方信息为准");
+    notices.addAll(live.notices());
+    if (live.spots().isEmpty()) {
+      notices.add("未编造推荐");
+      return new AgentResult("DEGRADED", facts(context), null, List.of("inspiration"),
+          List.copyOf(notices), new Usage(0L, 0));
+    }
     Map<String, Object> value = new LinkedHashMap<>();
     value.put("category", "INSPIRATION");
     value.put("city", city);
-    value.put("total", found.size());
+    value.put("total", live.spots().size());
+    value.put("source", "LIVE_MAP");
     List<Map<String, Object>> items = new ArrayList<>();
-    for (Attraction a : picked) {
+    boolean amapContributed = false;
+    for (MapTools.ScenicSpot spot : live.spots()) {
+      amapContributed = amapContributed || MapTools.SOURCE_AMAP.equals(spot.source());
       Map<String, Object> item = new LinkedHashMap<>();
-      item.put("name", a.name());
-      item.put("city", a.city());
-      item.put("level", a.level());
-      item.put("rating", a.rating());
-      item.put("ticket", a.ticket());
-      item.put("openTime", a.openTime());
-      item.put("reason", reasonOf(a));
+      item.put("name", spot.name());
+      item.put("type", spot.type());
+      item.put("address", spot.address());
+      item.put("district", spot.district());
+      item.put("tel", spot.tel());
+      item.put("source", spot.source());
+      item.put("reason", liveReason(spot));
       items.add(item);
     }
     value.put("items", items);
-    Fact fact = new Fact("builtin.inspiration:picks", "CONTENT", value,
-        new Evidence("KB", "builtin.inspiration", Evidence.UNVERIFIED, Instant.now(),
-            "知识库主题候选快照，票价与开放时间为原文，未逐条核验"));
-    return result(context, INSPIRATION_ADVICE, List.of(), List.of(), List.of(fact));
+    Fact fact = new Fact("builtin.inspiration:discover", "CONTENT", value,
+        new Evidence(amapContributed ? "AMAP" : "EXTERNAL", "builtin.inspiration",
+            Evidence.UNVERIFIED, Instant.now(),
+            "地图 POI 实时检索快照（高德/百度），未经核验"));
+    return result(context, LIVE_ADVICE, List.of(), notices, List.of(fact));
   }
 
   /** 推荐理由只由知识库字段拼出，缺字段就少说，绝不补形容词。 */
@@ -390,6 +434,21 @@ public class BuiltinProviderConfiguration {
       sb.append("门票 ").append(a.ticket());
     }
     return sb.isEmpty() ? "知识库收录景点" : sb.toString();
+  }
+
+  /** 实时候选的理由只由区县与类别拼出，缺了就少说，绝不补形容词。 */
+  private static String liveReason(MapTools.ScenicSpot spot) {
+    StringBuilder sb = new StringBuilder();
+    if (spot.district() != null && !spot.district().isBlank()) {
+      sb.append(spot.district());
+    }
+    if (spot.type() != null && !spot.type().isBlank()) {
+      if (!sb.isEmpty()) {
+        sb.append(" · ");
+      }
+      sb.append(spot.type());
+    }
+    return sb.isEmpty() ? "地图收录 POI" : sb.toString();
   }
 
   private static String brief(String message) {

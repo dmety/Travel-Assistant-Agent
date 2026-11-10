@@ -77,14 +77,38 @@ public class AmapClient {
 
   // ---- 地点检索 ----
 
+  /** 景点与文博馆的大类码：风景名胜 110000 + 科学文化服务 140000（博物馆、纪念馆等）。 */
+  public static final String SCENIC_TYPES = "110000|140000";
+
   /**
-   * 按关键词检索地点。
+   * 按关键词检索地点（不限类别）。
    *
    * @param keywords 关键词，如「西湖」
    * @param city     限定城市名或 adcode，可为空
    * @param limit    期望条数，会被夹到 1..25
    */
   public List<Place> searchPlaces(String keywords, String city, int limit) {
+    return search(keywords, city, null, limit);
+  }
+
+  /**
+   * 按关键词检索景点类 POI（风景名胜 + 科学文化服务），坐标 GCJ-02。
+   *
+   * <p>类别码过滤是刻意为之：不限类别的关键字检索会混进学校、公司、小区，
+   * 灵感推荐里出现过「评分 5.0 的中学」。注意区县名不要当 {@code city} 参数传——
+   * 高德该参数按市级口径解析，区县命中不稳定；由 {@code MapTools} 在结果里
+   * 按 {@code adname}/地址过滤。
+   *
+   * @param keywords 关键词，如「黄梅」「五祖寺」
+   * @param city     限定城市名或 adcode，可为空
+   * @param limit    期望条数，会被夹到 1..25
+   */
+  public List<Place> searchScenicSpots(String keywords, String city, int limit) {
+    return search(keywords, city, SCENIC_TYPES, limit);
+  }
+
+  /** {@code searchPlaces} 与 {@code searchScenicSpots} 的公共实现；{@code types} 为空不限类别。 */
+  private List<Place> search(String keywords, String city, String types, int limit) {
     ensureConfigured();
     String kw = requireText(keywords, "请提供查询关键词");
     int size = Math.min(Math.max(limit, 1), MAX_PLACES);
@@ -95,6 +119,9 @@ public class AmapClient {
         .queryParam("offset", size)
         .queryParam("page", 1)
         .queryParam("extensions", "base");
+    if (types != null && !types.isBlank()) {
+      builder.queryParam("types", types);
+    }
     if (city != null && !city.isBlank()) {
       builder.queryParam("city", city.strip()).queryParam("citylimit", "true");
     }

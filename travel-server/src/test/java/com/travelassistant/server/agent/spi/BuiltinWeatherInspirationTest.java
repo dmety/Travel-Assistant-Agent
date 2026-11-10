@@ -13,6 +13,7 @@ import com.travelassistant.server.application.agent.spi.ContractRules;
 import com.travelassistant.server.application.agent.spi.ContractValidator;
 import com.travelassistant.server.application.agent.spi.Fact;
 import com.travelassistant.server.application.location.LocationService;
+import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.domain.location.WeatherResult;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
@@ -100,7 +101,7 @@ class BuiltinWeatherInspirationTest {
         attraction("a2", "某大学", null, "5.0", "免费"),
         attraction("a3", "千岛湖", "5A", "4.5", "130 元"),
         attraction("a4", "灵隐寺", null, null, "45 元")));
-    AgentProvider provider = configuration.builtinInspiration(rules, store);
+    AgentProvider provider = configuration.builtinInspiration(rules, store, mock(MapTools.class));
 
     AgentResult result = provider.invoke(new AgentContext(
         "ctx-1", null, "CONTENT_INSPIRATION", mapOf("city", "杭州"),
@@ -125,11 +126,55 @@ class BuiltinWeatherInspirationTest {
   }
 
   @Test
-  @DisplayName("builtin.inspiration：城市没收录就 DEGRADED，不给假推荐")
+  @DisplayName("builtin.inspiration：知识库没收录就改用地图实时检索，候选标注未经核验且过契约")
+  void inspirationDiscoverFromMap() {
+    AttractionStore store = mock(AttractionStore.class);
+    when(store.findByCity("黄梅")).thenReturn(List.of());
+    MapTools mapTools = mock(MapTools.class);
+    when(mapTools.findScenicSpots("黄梅", 8)).thenReturn(new MapTools.ScenicResult(
+        "黄梅",
+        List.of(new MapTools.ScenicSpot("五祖寺", "风景名胜;寺庙", "黄梅县五祖镇", "黄梅县",
+            "0713-3361111", 30.116, 115.934, "GCJ-02", MapTools.SOURCE_AMAP),
+            new MapTools.ScenicSpot("四祖寺", "风景名胜;寺庙", "黄梅县大河镇", "黄梅县",
+                null, 30.152, 115.912, "GCJ-02", MapTools.SOURCE_BAIDU)),
+        List.of("百度密钥未配置")));
+    AgentProvider provider = configuration.builtinInspiration(rules, store, mapTools);
+
+    AgentResult result = provider.invoke(new AgentContext(
+        "ctx-1", null, "CONTENT_INSPIRATION", mapOf("city", "黄梅"),
+        List.of(), java.util.Map.of(), Instant.now().plusSeconds(10)), null);
+
+    assertThat(result.status()).isEqualTo("OK");
+    // advice 无数字无断言，不触发 S-03/S-05
+    assertThat(result.advice()).doesNotContain("五祖").doesNotContain("免费").doesNotContain("开放");
+    Fact fact = result.facts().stream()
+        .filter(f -> "builtin.inspiration:discover".equals(f.factId())).findFirst().orElseThrow();
+    assertThat(fact.evidence().sourceKind()).isEqualTo("AMAP");
+    @SuppressWarnings("unchecked")
+    java.util.Map<String, Object> value = (java.util.Map<String, Object>) fact.value();
+    assertThat(value).containsEntry("category", "INSPIRATION")
+        .containsEntry("city", "黄梅").containsEntry("source", "LIVE_MAP");
+    @SuppressWarnings("unchecked")
+    List<java.util.Map<String, Object>> items = (List<java.util.Map<String, Object>>) value.get("items");
+    assertThat(items).hasSize(2);
+    assertThat(items.get(0)).containsEntry("name", "五祖寺").containsEntry("source", "高德");
+    // 地图没有等级票价开放时间，就不许有这些键——有值即编造
+    assertThat(items.get(0)).doesNotContainKeys("level", "ticket", "openTime", "rating");
+    assertThat(result.notices()).anyMatch(n -> n.contains("未经核验"));
+    ContractValidator validator = new ContractValidator(rules);
+    assertThat(validator.validateResult(validator.toResponseMap("builtin.inspiration", result)))
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("builtin.inspiration：知识库与地图都没收录就 DEGRADED，不给假推荐")
   void inspirationDegraded() {
     AttractionStore store = mock(AttractionStore.class);
     when(store.findByCity("婺源")).thenReturn(List.of());
-    AgentProvider provider = configuration.builtinInspiration(rules, store);
+    MapTools mapTools = mock(MapTools.class);
+    when(mapTools.findScenicSpots("婺源", 8)).thenReturn(new MapTools.ScenicResult(
+        "婺源", List.of(), List.of("未检索到「婺源」的景点候选，未编造")));
+    AgentProvider provider = configuration.builtinInspiration(rules, store, mapTools);
 
     AgentResult result = provider.invoke(new AgentContext(
         "ctx-1", null, "CONTENT_INSPIRATION", mapOf("city", "婺源"),

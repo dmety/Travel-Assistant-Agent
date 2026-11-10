@@ -2,6 +2,7 @@ package com.travelassistant.server.infrastructure.baidu;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.travelassistant.server.domain.food.FoodPlace;
+import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.infrastructure.geo.CoordinateTransforms;
 import com.travelassistant.server.infrastructure.geo.CoordinateTransforms.LatLon;
 import java.net.URI;
@@ -137,6 +138,84 @@ public class BaiduPlaceClient {
           number(detail.path("price").asText("")),
           text(detail, "shop_hours"), comments,
           FoodPlace.SOURCE_BAIDU, fetchedAt));
+    }
+    return places;
+  }
+
+  // ---- 景点检索（地图工具层第二数据源） ----
+
+  /**
+   * 按区县/地名检索景点类 POI（{@code tag=景点}），坐标 BD-09LL 统一转 GCJ-02。
+   *
+   * <p>与餐饮检索同一套边界：{@code region} 支持区县名（百度口径比高德宽松），
+   * {@code scope=2} 才带 {@code detail_info.tag}；AK 只进请求参数，不写日志。
+   * 返回的 {@link Place} 供 {@code MapTools} 做跨源去重，调用方还需按区县名过滤，
+   * 因为 {@code query} 命中的 POI 不一定都在目标区县内。
+   *
+   * @param region 区县或城市名，如「黄梅」「婺源」
+   */
+  public List<Place> searchScenicSpots(String region, int limit) {
+    if (!configured()) {
+      throw new BaiduUnavailableException("未配置百度地图 AK（环境变量 BAIDU_AK），第二数据源停用");
+    }
+    if (region == null || region.isBlank()) {
+      throw new BaiduUnavailableException("百度景点检索需要区县或城市名");
+    }
+    String area = region.strip();
+    int size = Math.min(Math.max(limit, 1), MAX_PLACES);
+
+    URI uri = UriComponentsBuilder.fromHttpUrl(BASE + "/place/v2/search")
+        .queryParam("query", area)
+        .queryParam("tag", "景点")
+        .queryParam("region", area)
+        .queryParam("scope", 2)
+        .queryParam("output", "json")
+        .queryParam("page_size", size)
+        .queryParam("page_num", 0)
+        .queryParam("ak", ak)
+        .build().encode().toUri();
+
+    JsonNode root;
+    try {
+      root = restTemplate.getForObject(uri, JsonNode.class);
+    } catch (RestClientException e) {
+      throw new BaiduUnavailableException("百度景点检索请求失败", e);
+    }
+    if (root == null) {
+      throw new BaiduUnavailableException("百度景点检索返回空响应");
+    }
+    int status = root.path("status").asInt(-1);
+    if (status != 0) {
+      throw new BaiduUnavailableException(
+          "百度景点检索返回错误，状态码 " + status + "（" + root.path("message").asText("") + "）");
+    }
+    JsonNode results = root.path("results");
+    if (!results.isArray()) {
+      return List.of();
+    }
+    List<Place> places = new ArrayList<>();
+    for (JsonNode poi : results) {
+      JsonNode position = poi.path("location");
+      Double bdLat = number(position.path("lat").asText(""));
+      Double bdLon = number(position.path("lng").asText(""));
+      Double gcjLat = null;
+      Double gcjLon = null;
+      if (bdLat != null && bdLon != null) {
+        LatLon converted = CoordinateTransforms.bd09ToGcj02(bdLat, bdLon);
+        gcjLat = converted.lat();
+        gcjLon = converted.lon();
+      }
+      JsonNode detail = poi.path("detail_info");
+      places.add(new Place(
+          text(poi, "name"),
+          text(detail, "tag"),
+          text(poi, "address"),
+          text(poi, "city"),
+          text(poi, "area"),
+          null,
+          gcjLat, gcjLon,
+          gcjLat == null ? null : "GCJ-02",
+          null));
     }
     return places;
   }

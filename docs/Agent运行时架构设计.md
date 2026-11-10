@@ -218,6 +218,18 @@ flowchart TB
 `VoteOrchestrator`），因为两轮投票有自己的协议与计票器，不属于单一 intent 的
 primary/fallback 切换语义。
 
+**地图工具层（2026-11-10）**：高德与百度不再由各 Provider 直连，统一封装为
+`application/map/MapTools`（Spring `@Service`），任何 agent Provider 都可注入调用。
+这层消化四件事：坐标系换算（百度 BD-09LL 统一转 GCJ-02）、跨源去重（同名且
+50 米内视为同一实体）、区县过滤（关键字检索命中其他省市，且地址匹配只在区县
+缺失时兜底，防「黄梅公司大厦」式误配）、降级姿态（缺密钥或接口失败只记 notice，
+零候选不编造）。首个消费者是 `builtin.inspiration` 的库外景点发现：知识库没收录的
+地名（区县「黄梅」「婺源」）不再被迫归位到地级市，改用高德主源（`/v3/place/text`，
+`types=110000|140000`）+ 百度第二源（`tag=景点`）实时检索，候选按「风景名胜优先、
+科教文化殿后」稳定排序，学校/职教类噪音按类型与名称关键词剔除；候选标注
+「未经核验」，没有等级票价开放时间就不给这三个字段。契约不升版本：能力仍是
+`CONTENT_INSPIRATION`，证据 sourceKind 仍走 `AMAP`/`EXTERNAL` 白名单。
+
 失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
 对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。
 

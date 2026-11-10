@@ -1524,7 +1524,7 @@ Content-Type: application/json
 | `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
 | `draft_itinerary(city, days, …)` | 要行程、问怎么安排 | `builtin.planning`（同上） |
 | `book_ticket(message)` | 问门票怎么买、购票条件缺什么 | `builtin.ticket`（`TICKET_ADVICE`，同上；只给建议不能下单） |
-| `get_inspiration(city)` | 「随便逛逛」「不知道去哪」 | `builtin.inspiration`（`CONTENT_INSPIRATION`，知识库按评分挑候选） |
+| `get_inspiration(city)` | 「随便逛逛」「不知道去哪」 | `builtin.inspiration`（`CONTENT_INSPIRATION`：知识库按评分挑候选；知识库没收录的地名如区县「黄梅」自动改用地图工具层实时检索，结果标注未经核验） |
 | `vote_plan(city, days, …)` | 想比较省钱/美食/少走路哪种安排好 | `VoteOrchestrator` 两轮投票（见下） |
 
 **评委投票（`vote_plan`）**：主 Agent 把行程输入交给投票编排层，三位评委 Agent
