@@ -22,7 +22,7 @@
 | 模型接入 | OpenAI 兼容 HTTP 直连；两个 POM 已无 `spring-ai` | `DeepSeekClient.java:22-34`、`pom.xml`、`travel-server/pom.xml` |
 | 调用预算 | 原 `max-tool-calls` 是死配置，2026-11-08 已从 `application.yml` 删除；当前配置与源码都不含调用预算 | `application.yml`（已无该键） |
 | Agent 接口 | `POST /api/agent/plan`、`POST /api/agent/itineraries/{id}/advice`、`GET /api/agent/status`、`POST /api/agent/tickets/advice` | `AgentController.java`、`TicketAssistantController.java` |
-| 前端入口 | 接口测试台已接通 `/api/agent/plan` 与 `/api/agent/plan/materialize`；静态页共直接调用 4 个 Agent 接口 | `api-console.html`、`ticket-assistant.html` |
+| 前端入口 | 对话页 `chat.html` 走 `POST /api/agent/invoke`（intent=`PLAN_DRAFT`），按信封里的 Provider、attempts 与 facts 渲染；接口测试台仍直连 `/api/agent/plan` 与 `/api/agent/plan/materialize` | `chat.html`、`api-console.html`、`ticket-assistant.html` |
 | 工具层 | `PlanningTools` 提供 3 个确定性工具，失败统一转 `ToolOutcome`，不向上抛 | `PlanningTools.java:51-130` |
 | 结果契约 | `PlanDraft` 把事实与模型说的话分开 | `PlanDraft.java:26-41` |
 | 保存流程 | 草案不自动写库；用户确认后由前端走既有行程接口与 `X-Version` | `AgentController.java`、`reports/current/基础业务闭环-逐环节验收-2026-11-08.md` |
@@ -269,6 +269,12 @@ public interface AgentRegistry {
 | `builtin.ticket` | `TicketAssistantService` | `TICKET_ADVICE` |
 | `builtin.food` | `FoodRecommendationService` | `FOOD_RECOMMEND` |
 | `builtin.rules` | 无模型纯规则 | 所有 intent 的兜底 |
+
+`builtin.planning` 额外把草案装成一条 `CONTENT` fact（`builtin.planning:draft-summary`，
+`value.category=PLAN_DRAFT`），信封 `advice` 只留无数字、无断言的摘要 —— 与美食 Provider 同口径。
+原因很具体：模型常把知识库里的「免费」「全天开放」照抄进正文，一旦进了信封 `advice`，
+S-03 会把整条响应判为 `CONTRACT_VIOLATION`，编排层随即切兜底、用户什么也拿不到。
+正文与明细放进 `value` 由前端渲染，数字 grounding（S-05）也就只作用于摘要。
 
 `builtin.food` 是 2026-11-09 新增的内置美食能力，与外部 `py.food.recommender` 用同一套契约。配置式外部 Provider 仍是「候选」，只有走完 G1 至 G4 才进入路由；本机环回服务被 G0 的 M-08 拒绝，见《美食 Agent 架构设计》「实现状态」。
 
@@ -529,7 +535,7 @@ PYTHONPATH="F:/pythons/pkgs" "C:/Users/zipei/.workbuddy/binaries/python/versions
 | --- | --- | --- | --- |
 | R-1 | 《需求文档》把 2026-11-02 的三角色目标态列为「最高口径」，与本文的 Provider SPI 落地稿并存 | 读者不确定按哪份实施 | 已于 2026-11-08 更正：《需求文档》「版本口径」删除该表述；《多Agent与票务能力方案》《架构设计》《业务功能技术实现方案》均补口径更正说明，三角色拆分降为 P3 对照实验 |
 | R-2 | 三份设计文档的事实数字必须同源；改动事实层后若只更新其中一份，会出现互相矛盾的容量估算 | 评审依据失实 | 以《知识库架构与周更工作流》「事实层现状」一节为唯一基线，改动时同步三份 |
-| R-3 | `POST /api/agent/plan` 前端无直接入口 | 新运行时可能只有测试在跑 | P1 由 `capabilities` 动态生成入口，不再手写按钮 |
+| R-3 | `POST /api/agent/plan` 前端无直接入口 | 新运行时可能只有测试在跑 | 已部分销项：对话页 `chat.html` 走 `/api/agent/invoke`（L1 编排 + 契约校验），Provider 与 attempts 直接显示在回复脚注；接口测试台仍用 plan 接口 |
 | R-4 | 事实层质量门禁未纳入 `tools/gate.sh` | 带病知识库会让 Agent 输出看似有据的错误结论 | 检索前校验 `quality_report --strict` 结果快照 |
 | R-5 | 模型成功路径无真实密钥实测 | 网关重构可能引入未覆盖回归 | 拿到密钥后补 4 条真实联调，之前标注「未实测」 |
 | R-6 | 契约腐化：为接新 Agent 不断加字段，最终契约变成大杂烩 | 零代码承诺失效 | `hints` / `extensions` 预留位、语义化主版本、契约评审；改契约必须升主版本 |

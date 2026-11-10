@@ -13,6 +13,9 @@ import static org.mockito.Mockito.when;
 
 import com.travelassistant.server.application.agent.DecisionReport;
 import com.travelassistant.server.application.agent.DecisionService;
+import com.travelassistant.server.application.agent.DraftBudgetEstimate;
+import com.travelassistant.server.application.agent.DraftCheck;
+import com.travelassistant.server.application.agent.DraftDay;
 import com.travelassistant.server.application.agent.DraftQuestion;
 import com.travelassistant.server.application.agent.PlanDraft;
 import com.travelassistant.server.application.agent.PlanningRequest;
@@ -23,11 +26,14 @@ import com.travelassistant.server.application.agent.spi.AgentProvider;
 import com.travelassistant.server.application.agent.spi.AgentResult;
 import com.travelassistant.server.application.agent.spi.BuiltinProviderConfiguration;
 import com.travelassistant.server.application.agent.spi.ContractRules;
+import com.travelassistant.server.application.agent.spi.ContractValidator;
 import com.travelassistant.server.application.agent.spi.Fact;
 import com.travelassistant.server.application.agent.spi.RunBudget;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
+import com.travelassistant.server.domain.attraction.Attraction;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +99,12 @@ class BuiltinServiceProviderTest {
         "budget", "1000", "currency", "CNY", "travelers", 2)), budget());
 
     assertEquals("OK", result.status());
-    assertEquals("已按候选景点排好两日行程", result.advice());
+    // 信封 advice 只留安全摘要：模型原文进 CONTENT fact，避免 S-03 / S-05 判违规
+    assertNotNull(result.advice());
+    assertTrue(result.advice().contains("结构化内容"));
+    Fact draftFact = result.facts().stream()
+        .filter(f -> "builtin.planning:draft-summary".equals(f.factId())).findFirst().orElseThrow();
+    assertEquals("已按候选景点排好两日行程", draftFact.value().get("advice"));
     assertTrue(result.unknownFields().contains("budget"));
     assertTrue(result.notices().contains("未接入实时天气"));
 
@@ -104,6 +115,73 @@ class BuiltinServiceProviderTest {
     assertEquals(List.of("人文"), captor.getValue().preferences());
     assertEquals(new BigDecimal("1000"), captor.getValue().budget());
     assertEquals(2, captor.getValue().travelers());
+  }
+
+  @Test
+  void planningCarriesStructuredDraftAsOneContentFact() {
+    PlanDraft full = new PlanDraft(
+        new PlanningRequest("十堰", 2, List.of("自然"), new BigDecimal("1500"), "CNY", 2),
+        List.of(new Attraction("hb-wudang", "武当山风景区", "十堰", "湖北省", "风景名胜",
+            "5A景区", "4.8", "07:30-17:30", "240元", "十堰市丹江口", null, null, null,
+            "道教名山", 32.4003, 111.0036, "知识库", List.of("本地景点知识库"),
+            "unverified", "unverified", "WGS-84")),
+        null, List.of(), "建议按两日安排", List.of("未接入实时天气"), List.of("本地景点知识库"),
+        List.of(new DraftQuestion("MISSING_DATE", "startDate", "哪天出发", "yyyy-MM-dd",
+            "/api/agent/plan")),
+        List.of(new DraftDay(1, LocalDate.of(2026, 11, 12), "第 1 天",
+            List.of(new DraftDay.Item("hb-wudang", "武当山风景区", "十堰", "知识库",
+                "240元", "07:30-17:30", List.of(), "票价原文未核验")))),
+        List.of(new DraftCheck("MISSING_BUDGET", "INFO", "budget", "预算未知", null)),
+        new DraftBudgetEstimate("CNY", new BigDecimal("1500"), 2, new BigDecimal("240"),
+            new BigDecimal("480"), 0, "WITHIN_KNOWN_SCOPE", "只统计已核验门票"),
+        Instant.now());
+    when(planning.plan(any())).thenReturn(full);
+
+    AgentResult result = configuration.builtinPlanning(rules, planning)
+        .invoke(context(Map.of("destination", "十堰", "days", 2)), budget());
+
+    assertEquals("OK", result.status());
+    Fact fact = result.facts().stream()
+        .filter(f -> "builtin.planning:draft-summary".equals(f.factId()))
+        .findFirst().orElseThrow();
+    assertEquals("CONTENT", fact.type());
+    assertEquals("PLAN_DRAFT", fact.value().get("category"));
+    assertEquals("unverified", fact.evidence().verificationStatus());
+    assertNotNull(fact.evidence().fetchedAt());
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> candidates = (List<Map<String, Object>>) fact.value().get("candidates");
+    assertEquals(1, candidates.size());
+    // 与 /api/agent/plan 同键名，前端只保留一套解析
+    assertEquals("武当山风景区", candidates.get(0).get("name"));
+    assertEquals("07:30-17:30", candidates.get(0).get("open_time"));
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> days = (List<Map<String, Object>>) fact.value().get("dailySchedules");
+    assertEquals(1, days.size());
+    assertEquals("2026-11-12", days.get(0).get("date"));
+  }
+
+  @Test
+  void planningDraftFactSurvivesContractValidation() {
+    when(planning.plan(any())).thenReturn(draft("建议", List.of(), List.of()));
+    AgentResult result = configuration.builtinPlanning(rules, planning)
+        .invoke(context(Map.of("destination", "杭州")), budget());
+    ContractValidator validator = new ContractValidator(rules);
+    assertTrue(validator.validateResult(validator.toResponseMap("builtin.planning", result)).isEmpty());
+  }
+
+  @Test
+  void planningProseWithBannedAssertionsDoesNotBreakTheContract() {
+    // 模型常把知识库里的「免费」照抄进正文；这类断言进信封 advice 会触发 S-03
+    when(planning.plan(any())).thenReturn(
+        draft("太极湖免费开放，全天开放，门票 240 元", List.of(), List.of()));
+    AgentResult result = configuration.builtinPlanning(rules, planning)
+        .invoke(context(Map.of("destination", "十堰")), budget());
+    assertEquals("OK", result.status());
+    assertFalse(result.advice().contains("免费"));
+    ContractValidator validator = new ContractValidator(rules);
+    assertTrue(validator.validateResult(validator.toResponseMap("builtin.planning", result)).isEmpty());
   }
 
   @Test

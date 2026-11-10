@@ -646,6 +646,7 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 |---|---|---|---|
 | `/api/agent/plan` | POST | 需登录 | 生成规划草案（补问 / 逐日草案 / 检查），**不落库** |
 | `/api/agent/plan/materialize` | POST | 需登录 | 用户确认后生成行程载荷，**仍不落库** |
+| `/api/agent/invoke` | POST | 需登录 | L1 编排层入口，按 intent 走注册表并做契约校验，见 §3.16.1 |
 | `/api/agent/status` | GET | 需登录 | 模型是否配置；规则能力始终列出 |
 
 **两条草案接口都只读。** 需求要求「用户确认后才将建议保存到正式方案」，真正落库仍走
@@ -750,6 +751,32 @@ POST /api/agent/plan/materialize
 
 每日安排不改领域模型：景点 ID、来源与未知项写在 `DailyActivity.note` 的结构化前缀
 `attractionId=...；来源=...；未知项=...` 里，避免为草案新增字段而改动历史数据与既有测试。
+
+#### 3.16.1 L1 编排入口（`POST /api/agent/invoke`）
+
+按 `intent` 走 Provider 注册表：逐个 invoke、响应过契约校验（`ContractValidator`），
+不通过就切下一个，全失败落到 `builtin.rules`。**需登录**：餐饮与规划链路都会触发地图和模型配额。
+
+```json
+POST /api/agent/invoke
+{ "intent": "PLAN_DRAFT", "context": { "destination": "十堰", "days": 2 } }
+```
+
+`context` 字段与 `/api/agent/plan` 的请求体同名（`destination` / `days` /
+`departDate` / `returnDate` / `preferences` / `budget` / `currency` / `travelers`）。
+
+响应是信封：`intent`、`status`、`providerId`、`registryVersion`、`attempts`
+（每个 Provider 的 `status` / `reason` / `codes`）与 `result`（契约形状：
+`schemaVersion` / `facts` / `advice` / `unknownFields` / `notices` / `usage`）。
+
+**`PLAN_DRAFT` 的结构化草案放在 facts 里**，一条 `CONTENT` fact
+（`factId=builtin.planning:draft-summary`，`value.category=PLAN_DRAFT`），
+含 `candidates` / `dailySchedules` / `questions` / `checks` / `budgetEstimate` / `advice`，
+键名与 `/api/agent/plan` 一致，客户端不必维护两套解析。
+
+信封的 `advice` 只放无数字、无断言的摘要（与美食 Provider 同口径）：模型正文若照抄
+知识库里的「免费」「全天开放」，会触发 S-03（未知不得写成确定值），
+把整条响应判为 `CONTRACT_VIOLATION`。正文与明细一律进 `value` 由前端渲染。
 
 ### 3.17 候选与投票（V3 §1）
 

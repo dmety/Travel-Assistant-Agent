@@ -3,11 +3,15 @@ package com.travelassistant.server.application.agent.spi;
 import com.travelassistant.server.application.agent.DecisionReport;
 import com.travelassistant.server.application.agent.DecisionRequest;
 import com.travelassistant.server.application.agent.DecisionService;
+import com.travelassistant.server.application.agent.DraftBudgetEstimate;
+import com.travelassistant.server.application.agent.DraftCheck;
+import com.travelassistant.server.application.agent.DraftDay;
 import com.travelassistant.server.application.agent.DraftQuestion;
 import com.travelassistant.server.application.agent.PlanDraft;
 import com.travelassistant.server.application.agent.PlanningRequest;
 import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
+import com.travelassistant.server.domain.attraction.Attraction;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -57,6 +61,16 @@ public class BuiltinProviderConfiguration {
 
   // ---------------------------------------------------------------- 映射
 
+  /**
+   * 信封 {@code advice} 只放无数字、无断言的摘要。
+   *
+   * <p>口径与美食 Provider 一致：模型正文与候选明细走 {@code CONTENT} fact，由前端按 value 渲染；
+   * 信封里的 advice 一旦带上票价数字或「免费」「全天开放」这类断言，就会触发 S-03 / S-05
+   * 把整条响应判为 CONTRACT_VIOLATION —— 未知信息不能写成确定值，数字必须有 facts 出处。
+   */
+  private static final String SAFE_ADVICE =
+      "已按景区知识库给出候选与逐日草案；票价与开放时间以景区公告为准，模型措辞与明细见结构化内容。";
+
   private static AgentResult planning(PlanningService service, AgentContext context) {
     Map<String, Object> input = values(context);
     PlanningRequest request = new PlanningRequest(
@@ -68,7 +82,110 @@ public class BuiltinProviderConfiguration {
     for (DraftQuestion question : draft.questions()) {
       unknown.add(question.field());
     }
-    return result(context, draft.advice(), unknown, draft.notices(), List.of());
+    // 既没有候选也没有模型建议时才降级，避免把「空草案」报成 OK
+    boolean hasContent = !draft.candidates().isEmpty()
+        || (draft.advice() != null && !draft.advice().isBlank());
+    return result(context, hasContent ? SAFE_ADVICE : null, unknown, draft.notices(),
+        List.of(draftSummary(draft)));
+  }
+
+  /**
+   * 把草案的结构化部分装成一条 {@code CONTENT} fact（与 ticket 的 match-summary 同一套路）。
+   *
+   * <p>前端走 {@code /api/agent/invoke} 时据此渲染候选景点与逐日安排，不必再回调
+   * {@code /api/agent/plan} 二次调用模型与地图配额。字段名与 plan 接口保持一致
+   * （{@code open_time} 是 Attraction 的 JSON 键），避免前端出现两套解析。
+   *
+   * <p>事实只搬运已查到的字段，证据统一标 {@code unverified}：票价与开放时间是原文，
+   * 不等于官方核验值。
+   */
+  private static Fact draftSummary(PlanDraft draft) {
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "PLAN_DRAFT");
+    value.put("destination", draft.request().destination());
+    value.put("days", draft.request().days());
+    value.put("advice", draft.advice());
+    value.put("notices", List.copyOf(draft.notices()));
+    value.put("sources", List.copyOf(draft.sources()));
+
+    List<Map<String, Object>> questions = new ArrayList<>();
+    for (DraftQuestion q : draft.questions()) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("code", q.code());
+      item.put("field", q.field());
+      item.put("question", q.question());
+      item.put("hint", q.hint());
+      questions.add(item);
+    }
+    value.put("questions", questions);
+
+    List<Map<String, Object>> checks = new ArrayList<>();
+    for (DraftCheck c : draft.checks()) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("code", c.code());
+      item.put("severity", c.severity());
+      item.put("field", c.field());
+      item.put("message", c.message());
+      item.put("suggestion", c.suggestion());
+      checks.add(item);
+    }
+    value.put("checks", checks);
+
+    List<Map<String, Object>> candidates = new ArrayList<>();
+    for (Attraction a : draft.candidates()) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("id", a.id());
+      item.put("name", a.name());
+      item.put("city", a.city());
+      item.put("level", a.level());
+      item.put("rating", a.rating());
+      item.put("ticket", a.ticket());
+      item.put("open_time", a.openTime());
+      candidates.add(item);
+    }
+    value.put("candidates", candidates);
+
+    List<Map<String, Object>> days = new ArrayList<>();
+    for (DraftDay day : draft.dailySchedules()) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("dayIndex", day.dayIndex());
+      item.put("date", day.date() == null ? null : day.date().toString());
+      item.put("note", day.note());
+      List<Map<String, Object>> items = new ArrayList<>();
+      for (DraftDay.Item it : day.items()) {
+        Map<String, Object> one = new LinkedHashMap<>();
+        one.put("attractionId", it.attractionId());
+        one.put("name", it.name());
+        one.put("city", it.city());
+        one.put("source", it.source());
+        one.put("ticket", it.ticket());
+        one.put("openTime", it.openTime());
+        one.put("unknowns", List.copyOf(it.unknowns()));
+        items.add(one);
+      }
+      item.put("items", items);
+      days.add(item);
+    }
+    value.put("dailySchedules", days);
+
+    DraftBudgetEstimate budget = draft.budgetEstimate();
+    if (budget != null) {
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("currency", budget.currency());
+      item.put("budgetLimit", budget.budgetLimit());
+      item.put("travelers", budget.travelers());
+      item.put("knownTicketSubtotal", budget.knownTicketSubtotal());
+      item.put("totalForKnownTickets", budget.totalForKnownTickets());
+      item.put("unknownTicketCount", budget.unknownTicketCount());
+      item.put("verdict", budget.verdict());
+      item.put("message", budget.message());
+      value.put("budgetEstimate", item);
+    }
+    value.put("generatedAt", draft.generatedAt() == null ? null : draft.generatedAt().toString());
+
+    return new Fact("builtin.planning:draft-summary", "CONTENT", value,
+        new Evidence("KB", "builtin.planning", Evidence.UNVERIFIED, Instant.now(),
+            "规划草案结构化摘要：候选与逐日项来自景点知识库，票价与开放时间未逐条核验"));
   }
 
   private static AgentResult decision(DecisionService service, AgentContext context) {
