@@ -1816,6 +1816,53 @@ button:focus:not(:focus-visible){outline:none;}
     } else {
       box.appendChild(el('div','vote-tip','评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。'));
     }
+    var draft = data.draft || null;
+    if(draft){
+      var dbox = el('div','');
+      dbox.style.marginTop = 'var(--sp-2)';
+      dbox.appendChild(el('div','wx-h', '主 Agent 汇总 ' + (data.collectedFactCount || 0)
+        + ' 条子 Agent 事实整理的草案'));
+      (draft.dailySchedules || []).forEach(function(d){
+        var names = (d.items || []).join('、') || '本轮未收集到景点候选';
+        dbox.appendChild(el('div','vote-tip', escapeHtml('D' + d.day + '：' + names)));
+      });
+      var guidanceBox = ticketGuidanceBlock(draft.ticketGuidance);
+      if(guidanceBox){
+        guidanceBox.style.marginTop = 'var(--sp-2)';
+        dbox.appendChild(guidanceBox);
+      }
+      box.appendChild(dbox);
+    }
+    return box;
+  }
+
+  /**
+   * 票务子 Agent 的产物：只列经核验的官方入口与购票方法。
+   * 不渲染「下单」「支付」按钮——系统不替用户购票，也不生成猜测链接。
+   */
+  function ticketGuidanceBlock(g){
+    if(!g) return null;
+    var box = el('div','wx');
+    box.appendChild(el('div','wx-h','官方购票入口（只给入口与方法，不代下单）'));
+    if(g.method){
+      box.appendChild(el('div','vote-tip', escapeHtml(g.method)));
+    }
+    var channels = g.channels || [];
+    channels.forEach(function(c){
+      var url = String(c.url || '');
+      if(!/^https?:\/\//i.test(url)) return;
+      var row = el('div','wx-row');
+      var link = el('a','d', escapeHtml(c.name || '官方入口'));
+      link.setAttribute('href', url);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      row.appendChild(link);
+      row.appendChild(el('div','t', escapeHtml(c.note || '以官方页面为准')));
+      box.appendChild(row);
+    });
+    box.appendChild(el('div','vote-tip', escapeHtml(channels.length
+      ? (g.note || '余票未核验，购票前请以官方页面显示为准。')
+      : '暂未收录经核验的官方入口，请自行进入景区官方网站或官方公众号；本系统不生成猜测链接。')));
     return box;
   }
 
@@ -1844,6 +1891,9 @@ button:focus:not(:focus-visible){outline:none;}
     if(card.type === 'vote') return voteBlock(card.data);
     if(card.type === 'envelope'){
       var env = card.data || {};
+      if(card.intent === 'TICKET_ADVICE'){
+        return ticketGuidanceBlock(env.ticketGuidance);
+      }
       if(card.intent === 'FOOD_RECOMMEND'){
         var food = foodFromEnvelope(env);
         if(!food) return null;

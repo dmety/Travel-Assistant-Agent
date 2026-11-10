@@ -2,10 +2,12 @@ package com.travelassistant.server.application.chat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.travelassistant.server.application.agent.orchestration.AgentEnvelope;
 import com.travelassistant.server.application.agent.orchestration.AgentOrchestrator;
 import com.travelassistant.server.application.agent.orchestration.DispatchOutcome;
 import com.travelassistant.server.application.agent.orchestration.DispatchRequest;
+import com.travelassistant.server.application.agent.vote.JudgeProviderConfiguration;
 import com.travelassistant.server.application.agent.vote.PlanVoteTally;
 import com.travelassistant.server.application.agent.vote.VoteOrchestrator;
 import com.travelassistant.server.application.place.PlaceResolution;
@@ -89,9 +91,10 @@ public class ChatTools {
           Map.of("city", str("城市名，例如「天津」"),
               "days", Map.of("type", "integer", "description", "查几天，默认 3，最多 4")),
           List.of("city")),
-      fn("book_ticket", "按一句自然语言查购票建议（规则匹配景区票种、指出还缺什么条件）。"
-          + "用户问「门票怎么买」「带学生证多少钱」「预订要注意什么」时用它；"
-          + "它只给建议与缺口，不能真正下单。",
+      fn("book_ticket", "按一句自然语言查购票信息：给出经核验的官方购票链接与购票方法、"
+          + "规则匹配景区票种、指出还缺什么条件。"
+          + "用户问「门票怎么买」「在哪买票」「带学生证多少钱」「预订要注意什么」时用它；"
+          + "它只给入口、方法与缺口，不代下单、不查余票、不处理退款。",
           Map.of("message", str("用户的购票原话，尽量保留年龄、日期、人数等条件，例如"
               + "「两个成人一个1.2米儿童下周六去黄鹤楼」")), List.of("message")),
       fn("get_inspiration", "按地名给主题灵感候选（附等级、票价、推荐理由）。"
@@ -100,8 +103,10 @@ public class ChatTools {
           + "传用户提到的原始地名，不要先替换成地级市。",
           Map.of("city", str("地名，如「杭州」「黄梅」")), List.of("city")),
       fn("vote_plan", "让三位评委 Agent（票务/美食/停车视角）对行程方案做两轮投票："
-          + "第一轮各自上报领域事实，主 Agent 生成多套侧重不同的候选，第二轮评分计票选出胜者。"
+          + "主 Agent 先汇总本轮所有工具查到的信息整理成一份逐日草案（含官方购票方式），"
+          + "再生成多套侧重不同的候选，评委第二轮按草案内容评分计票选出胜者。"
           + "用户已经给了目的地和天数、想比较不同侧重（省钱/美食/少走路）怎么安排时用它。"
+          + "先调过查景点、找餐馆、问票务的工具再来投票，汇总的信息才完整；"
           + "投票比较耗时，用户只是闲聊或问天气时不要调。",
           Map.of("city", str("目的地城市，例如「武汉」"),
               "days", Map.of("type", "integer", "description", "游玩天数"),
@@ -126,7 +131,21 @@ public class ChatTools {
 
   /** 执行一次工具调用；任何异常都收敛成一句可读的失败摘要，不把堆栈丢给模型。 */
   public Outcome execute(String name, String rawArgs) {
+    return execute(name, rawArgs, List.of());
+  }
+
+  /**
+   * 带「本轮已汇集卡片」的工具调用。用户定案的信息流：所有子 Agent 的结果先全量交给
+   * 主 Agent，由它整理草案再让评委投票，所以 vote_plan 会收到此前工具产生的全部卡片。
+   * 卡片在工具层注入，模型看不到这个内部字段，也不需要改变 function calling 规格。
+   */
+  public Outcome execute(String name, String rawArgs, List<Card> collected) {
     JsonNode args = read(rawArgs);
+    if ("vote_plan".equals(name) && collected != null && !collected.isEmpty()
+        && args instanceof ObjectNode node) {
+      node.set(JudgeProviderConfiguration.COLLECTED_CARDS_KEY,
+          mapper.valueToTree(compactCards(collected)));
+    }
     try {
       return switch (name == null ? "" : name) {
         case "resolve_place" -> resolvePlace(args);
@@ -387,6 +406,8 @@ public class ChatTools {
     if (value == null) {
       return new Outcome(false, "购票建议没拿到：" + firstNotice(outcome) + "。如实告诉用户，不要编票价。", null);
     }
+    Map<String, Object> guidance = firstFactOf(outcome,
+        JudgeProviderConfiguration.TICKET_GUIDANCE_CATEGORY);
     StringBuilder sb = new StringBuilder("购票建议（provider=" + outcome.providerId() + "）：");
     if (value.get("matchCount") instanceof Number n) {
       sb.append("匹配到 ").append(n.intValue()).append(" 条票务规则；");
@@ -406,9 +427,27 @@ public class ChatTools {
     } else {
       sb.append("条件齐了。票价明细与渠道要用既有购票接口，本工具只给建议。");
     }
+    // 票务子 Agent 只给官方入口与方法：把链接说清楚，同时明确不代购、余票未核验。
+    if (guidance != null
+        && guidance.get("channels") instanceof List<?> channels && !channels.isEmpty()) {
+      sb.append("官方购票入口：");
+      for (Object raw : channels.stream().limit(3).toList()) {
+        if (raw instanceof Map<?, ?> channel) {
+          sb.append(channel.get("name")).append(" ").append(channel.get("url")).append("；");
+        }
+      }
+      sb.append("方法：").append(guidance.get("method"))
+          .append("余票未核验，本系统不代下单，也不生成猜测链接。");
+    } else {
+      sb.append("没有经核验的官方购票入口，请让用户自行进入景区官方网站或官方公众号，"
+          + "不要编造网址，也不要说「已经买好」。");
+    }
     boolean ok = "OK".equals(outcome.status()) || "DEGRADED".equals(outcome.status());
-    return new Outcome(ok, cut(sb.toString()), new Card("envelope", "TICKET_ADVICE",
-        AgentEnvelope.view(outcome, orchestrator)));
+    Map<String, Object> envelope = new LinkedHashMap<>(AgentEnvelope.view(outcome, orchestrator));
+    if (guidance != null) {
+      envelope.put("ticketGuidance", guidance);
+    }
+    return new Outcome(ok, cut(sb.toString()), new Card("envelope", "TICKET_ADVICE", envelope));
   }
 
   /** 灵感子 Agent：{@code builtin.inspiration} 按知识库评分挑主题候选。 */
@@ -490,6 +529,11 @@ public class ChatTools {
     if (!prefs.isEmpty()) {
       context.put("preferences", prefs);
     }
+    if (args.has(JudgeProviderConfiguration.COLLECTED_CARDS_KEY)) {
+      context.put(JudgeProviderConfiguration.COLLECTED_CARDS_KEY,
+          mapper.convertValue(args.get(JudgeProviderConfiguration.COLLECTED_CARDS_KEY),
+              List.class));
+    }
     VoteOrchestrator.VoteRun run = votes.vote(
         new VoteOrchestrator.VoteRequest("DECISION_ADVICE", context, Map.of(), List.of()));
     boolean ok = "OK".equals(run.status());
@@ -506,13 +550,46 @@ public class ChatTools {
     } else {
       sb.append("没有产生可推荐方案——").append(String.join("；", run.notices()));
     }
+    Map<String, Object> draft = run.draft() == null ? Map.of() : run.draft();
+    if (!draft.isEmpty()) {
+      sb.append("。主 Agent 汇总 ").append(run.collectedFactCount())
+          .append(" 条子 Agent 事实整理出草案（").append(draft.get("destination"))
+          .append(" ").append(draft.get("days")).append(" 天）：");
+      appendDraftSummary(sb, draft);
+    }
     // 投票没产生胜者时 winner 是 null：Map.of 不收 null 值，改用 LinkedHashMap
     Map<String, Object> card = new LinkedHashMap<>();
     card.put("plans", run.plans() == null ? List.of() : run.plans());
     card.put("winner", tally == null ? null : tally.winner());
     card.put("ranking", tally == null ? List.of() : tally.ranking());
     card.put("notices", run.notices() == null ? List.of() : run.notices());
+    card.put("draft", draft);
+    card.put("collectedFactCount", run.collectedFactCount());
     return new Outcome(ok, cut(sb.toString()), new Card("vote", "DECISION_ADVICE", card));
+  }
+
+  /** 摘要里明确带出逐日安排与购票方式，模型不必凭记忆补草案。 */
+  private static void appendDraftSummary(StringBuilder sb, Map<String, Object> draft) {
+    if (draft.get("dailySchedules") instanceof List<?> days) {
+      for (Object raw : days) {
+        if (!(raw instanceof Map<?, ?> day)) {
+          continue;
+        }
+        String items = day.get("items") instanceof List<?> list
+            ? String.join("、", list.stream().limit(3).map(String::valueOf).toList()) : "无";
+        sb.append("D").append(day.get("day")).append(" ").append(items).append("；");
+      }
+    }
+    if (draft.get("ticketGuidance") instanceof Map<?, ?> guidance
+        && guidance.get("channels") instanceof List<?> channels && !channels.isEmpty()) {
+      sb.append("购票方式：");
+      for (Object raw : channels.stream().limit(2).toList()) {
+        if (raw instanceof Map<?, ?> channel) {
+          sb.append(channel.get("name")).append(" ").append(channel.get("url")).append("；");
+        }
+      }
+      sb.append("只给官方入口与方法，不代下单，余票未核验。");
+    }
   }
 
   private static String namesFromRows(List<Map<String, Object>> rows) {
@@ -681,6 +758,41 @@ public class ChatTools {
       }
     }
     return out;
+  }
+
+  /** 卡片全量转给主 Agent，但单轮设上限，避免把整份对话塞进投票上下文。 */
+  private static List<Map<String, Object>> compactCards(List<Card> cards) {
+    List<Map<String, Object>> out = new ArrayList<>();
+    for (Card card : cards) {
+      if (out.size() >= 12) {
+        break;
+      }
+      Map<String, Object> row = new LinkedHashMap<>();
+      row.put("type", card.type());
+      row.put("intent", card.intent());
+      row.put("data", compactCardData(card.data()));
+      out.add(row);
+    }
+    return out;
+  }
+
+  private static Object compactCardData(Object data) {
+    if (data instanceof List<?> list && list.size() > 12) {
+      return new ArrayList<>(list.subList(0, 12));
+    }
+    if (data instanceof Map<?, ?> map && map.size() > 20) {
+      Map<String, Object> cut = new LinkedHashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        if (cut.size() >= 20) {
+          break;
+        }
+        if (entry.getKey() instanceof String key) {
+          cut.put(key, entry.getValue());
+        }
+      }
+      return cut;
+    }
+    return data;
   }
 
   private static String cut(String text) {

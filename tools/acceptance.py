@@ -165,6 +165,39 @@ def main():
                       and 'api_key' not in vote_serialized.lower(),
                       'vote envelope is sanitized, no endpoint/authRef/credentials')
 
+                # ---- #7b 信息流定案：子 Agent 供料 → 主 Agent 草案 → 评委投票 ----
+                code2, vote2 = request(owner, base, '/api/agent/vote',
+                    {'intent': 'DECISION_ADVICE',
+                     'context': {
+                         'city': '北京', 'days': 2,
+                         'collectedCards': [
+                             {'type': 'places', 'intent': None,
+                              'data': [{'name': '八达岭长城'}, {'name': '首都博物馆'}]},
+                             {'type': 'envelope', 'intent': 'TICKET_ADVICE',
+                              'data': {'ticketGuidance': {
+                                  'method': '打开官方入口自行预约或购票，本系统不代下单',
+                                  'stockVerified': False,
+                                  'channels': [
+                                      {'name': '八达岭长城官方购票指引',
+                                       'url': 'https://www.badaling.cn/website/pc/index.html',
+                                       'note': '官网指引入口'}]}}}]}})
+                check(code2 == 200 and vote2['status'] == 'OK',
+                      'vote with collected sub-agent facts still produces a winner')
+                check(code2 == 200 and vote2['collectedFactCount'] >= 5,
+                      'all sub-agent facts are collected for the main agent')
+                check(code2 == 200 and vote2['draft']['source'] == 'MAIN_AGENT'
+                      and vote2['draft']['destination'] == '北京',
+                      'main agent assembles the draft from collected facts')
+                check(code2 == 200 and vote2['draft']['dailySchedules'][0]['items']
+                      == ['八达岭长城', '首都博物馆'],
+                      'draft schedules only real collected attractions, no invented names')
+                check(code2 == 200 and vote2['draft']['ticketGuidance']['channels']
+                      and vote2['draft']['ticketGuidance']['channels'][0]['url']
+                      .startswith('https://'),
+                      'draft exposes the official purchase link, not an order action')
+                check(code2 == 200 and vote2['draft']['ticketGuidance']['stockVerified'] is False,
+                      'draft states that ticket stock is not verified')
+
                 # ---- #5 基础业务闭环：草案 -> 补问 -> 检查 -> 确认保存 -> 重启重读 ----
                 draft_req = {'destination': '杭州', 'departDate': '2026-11-21',
                     'returnDate': '2026-11-22', 'days': 2, 'travelers': 2,

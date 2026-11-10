@@ -14,7 +14,7 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 
 ## 两轮协议
 
-第一轮征集事实。每个评委 Agent 按自己的职责上报 `facts`，编排层记录每个 `providerId` 交过哪些 `factId`。主 Agent 汇总这些事实，生成 N 套候选方案，每套方案带 `planId` 和它引用的 `factId` 列表。
+第一轮征集事实。用户定案的信息流是「所有子 Agent 收集到的信息全部给主 Agent → 主 Agent 整理生成草案 → 其他子 Agent 投票」：编排层先把本轮各工具 / 子 Agent 产生的卡片全量转成事实（`collected.card.N`），连同三位评委按各自视角上报的 `facts` 合成 `allFacts`；主 Agent 拿到的是**事实内容而不只是 ID**，据此整理出一份结构化草案（逐日安排、餐饮、天气、购票方式、未提供项），再派生 N 套侧重不同的候选方案，每套带 `planId` 和它引用的真实 `factId` 列表。汇集事实与草案放在 `context` 里传递，不塞进评委响应的 `facts`——计票器只接受 `PLAN_SCORE` 类票，混入其它 fact 会整票判违规。
 
 第二轮评审。编排层把 N 套方案一次性发给每个评委。评委一次调用返回对所有方案的评分票，不按方案拆成多次调用。编排层校验全部票，再计票。
 
@@ -160,6 +160,16 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 触发条件里担心的「硬造评委 Provider 得到假票」在本轮被绕开：评委用确定性规则基于公开行程事实打分，并在 `notices` 如实标注「停车视角暂无专属数据源，未编造停车 POI」；票数只用 `CONTENT` + `value.category=PLAN_SCORE`，不动 `Fact.type` 枚举，契约仍是 1.0。
 
 本轮未做（仍属上方「待决」）：评委权重写入注册配置或按用户偏好动态给、否决范围扩展到忌口 / 体力之外、推荐结果落 V3 候选看板由用户再投人票。这些等真实功能 Agent 接入后再定，不阻塞当前闭环。
+
+### 实现状态（2026-11-10）：子 Agent 供料 → 主 Agent 草案 → 子 Agent 投票
+
+用户定案：**所有 Agent 收集到的信息全部给主 Agent，由主 Agent 整理生成草案，其他子 Agent 投票；票务平台不替用户购票，只把购票链接或方法告诉用户**。本轮按此改造，契约仍是 1.0（不新增 capability / factType，评分票继续用 `CONTENT` + `PLAN_SCORE`）。
+
+- **汇集**：`ChatAgent` 调 `vote_plan` 时把本轮已产生的全部 `Card` 注入工具参数（模型看不到这个内部字段）；`ChatTools.execute(name, args, collected)` 转成 `context.collectedCards`，`VoteOrchestrator.collectedFacts` 逐张转 `CONTENT` fact，`VoteRun.collectedFactCount` 如实计数。不重复调用外部 API，也不重新查一遍景点。
+- **草案**：`VoteOrchestrator.buildDraft` 只把各子 Agent 事实里真实出现的名字归位（逐日、餐饮、天气、官方购票入口），缺哪类就写进 `unknowns`，不补常识、不编景点、不生成链接。`VoteRun.draft` 同步出现在 `/api/agent/vote` 响应与对话 `vote` 卡片。模型仍负责候选侧重，但 prompt 改为带事实内容摘要而不只是 ID；候选的 `groundingFactIds` 仍只准引用本轮真实 factId。
+- **投票**：评委 COLLECT 不再回同一个常量模板，各自上报真实视角事实（票务声明「只给入口与方法、余票未核验」，停车声明无专属数据源）；SCORE 读取草案真实字段调整分数，**只有草案里确实存在本领域数据时才调整**——「没查到」不等于表现差，也不能凭空加分；`SCORE_TABLE` 作为无草案时的确定性基准，保证既有计票结论可复现。
+- **票务出口**：`builtin.ticket` 从 `TicketAssistantService.Result.channels()` 提取人工核验的官方入口，新增 `builtin.ticket:guidance` fact（`value.category=TICKET_GUIDANCE`，含 `officialUrl` / `rules` / `method` / `stockVerified=false`）。链接只能进 fact value：契约 S-04 禁止 `advice` 出现 URL。`ChatTools.book_ticket` 摘要与前端 `envelope` 卡片把入口与方法列给用户，明确不代下单、不查余票、不生成猜测链接。
+- **边界**：没有订单、支付、出票、退款、实时库存；评委不是完整功能 Agent，投票只产出建议；官方购票入口目前只有人工核验的 3 条配置，查不到就如实说没有。
 
 ## 复核命令
 

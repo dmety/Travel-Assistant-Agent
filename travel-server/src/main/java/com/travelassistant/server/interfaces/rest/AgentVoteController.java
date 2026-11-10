@@ -56,6 +56,8 @@ public class AgentVoteController {
     body.put("candidateSource", run.candidateSource());
     body.put("judges", run.judges());
     body.put("plans", run.plans());
+    body.put("draft", run.draft());
+    body.put("collectedFactCount", run.collectedFactCount());
     body.put("result", result(run.outcome()));
     body.put("notices", run.notices());
     return body;

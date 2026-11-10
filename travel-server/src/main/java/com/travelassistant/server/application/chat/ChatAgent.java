@@ -69,8 +69,9 @@ public class ChatAgent {
       5. 同一个工具不要用同样的参数重复调用。最多 6 次工具调用。
       6. vote_plan 会让三个评委 Agent 两轮投票、比较费时：只在用户明确想比较不同侧重
          （省钱/美食/少走路哪个好）或问「哪个方案更好」时用；排一份普通行程用 draft_itinerary。
-      7. book_ticket 只给购票建议与缺口，不能下单、查库存余票或退款；缺条件就照工具说的问，
-         不要替用户猜年龄、学生资格。
+      7. book_ticket 只给购票建议、经核验的官方入口链接与方法，不能下单、查库存余票或退款；
+         把链接与「自行到官方页面预约或购票、余票未核验」原样转述给用户，不要说「已经买好」，
+         也不要编造网址；缺条件就照工具说的问，不要替用户猜年龄、学生资格。
 
       回答方式
       6. 用口语，称呼「你」，最多 4 句话；不要标题、表格、编号清单、emoji、Markdown 加粗。
@@ -159,7 +160,11 @@ public class ChatAgent {
         }
         calls++;
         String args = reconcileArgs(call.arguments(), activePlace);
-        ChatTools.Outcome outcome = tools.execute(call.name(), args);
+        // 用户定案：所有子 Agent 收集到的信息全量交给主 Agent 整理草案，再由评委投票。
+        // vote_plan 因此会收到此前工具产生的全部卡片；其他工具不感知这个内部字段。
+        ChatTools.Outcome outcome = "vote_plan".equals(call.name())
+            ? tools.execute(call.name(), args, new ArrayList<>(cards))
+            : tools.execute(call.name(), args);
         messages.add(Map.of("role", "tool", "tool_call_id", call.id(),
             "content", outcome.summary()));
         trace.add(new ChatReply.ToolTrace(call.name(), label(call.name()), outcome.ok()));

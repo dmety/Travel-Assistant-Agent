@@ -176,6 +176,65 @@ class ChatToolsTest {
   }
 
   @Test
+  @DisplayName("问票务：只给官方购票链接与方法，明确不代购、余票未核验")
+  void ticketShowsOfficialLinkAndMethod() {
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "TICKET_GUIDANCE");
+    value.put("method", "打开官方入口自行预约或购票；本系统不代下单、不查余票。");
+    value.put("stockVerified", false);
+    value.put("channels", List.of(Map.of("name", "八达岭长城官方购票指引",
+        "url", "https://www.badaling.cn/website/pc/index.html", "note", "官网指引入口")));
+    Fact guidance = new Fact("f4g", "CONTENT", value,
+        new Evidence("TICKET_RULE", "builtin.ticket", Evidence.UNVERIFIED,
+            Instant.now(), "官方入口快照"));
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(
+        okWithFacts("TICKET_ADVICE", "builtin.ticket", List.of(ticketFact(), guidance)));
+
+    ChatTools.Outcome outcome = tools.execute("book_ticket",
+        "{\"message\":\"八达岭长城怎么买票\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary())
+        .contains("https://www.badaling.cn/website/pc/index.html")
+        .contains("不代下单").contains("余票未核验");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> card = (Map<String, Object>) outcome.card().data();
+    assertThat(card).containsKey("ticketGuidance");
+  }
+
+  @Test
+  @DisplayName("投票：本轮所有子 Agent 卡片全量交给主 Agent，草案与购票方式写进卡片")
+  void votePlanReceivesCollectedCardsAndDraft() {
+    Map<String, Object> draft = new LinkedHashMap<>();
+    draft.put("destination", "武汉");
+    draft.put("days", 2);
+    draft.put("dailySchedules", List.of(Map.of("day", 1, "items", List.of("黄鹤楼"))));
+    draft.put("ticketGuidance", Map.of("method", "只给入口",
+        "channels", List.of(Map.of("name", "官方入口", "url", "https://example.com"))));
+    when(votes.vote(any(VoteOrchestrator.VoteRequest.class))).thenReturn(
+        new VoteOrchestrator.VoteRun("OK", "DECISION_ADVICE", "v1", "RULES",
+            List.of("judge.ticket"), List.of(Map.of("planId", "A", "title", "控制花费")),
+            new PlanVoteTally.VoteOutcome("1.0", "DECISION_ADVICE", "A",
+                List.of(), List.of(), List.of(), List.of(), false),
+            List.of(), draft, 6));
+    List<ChatTools.Card> collected = List.of(
+        new ChatTools.Card("places", null, List.of(Map.of("name", "黄鹤楼"))));
+
+    ChatTools.Outcome outcome = tools.execute("vote_plan",
+        "{\"city\":\"武汉\",\"days\":2}", collected);
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("主 Agent 汇总 6 条子 Agent 事实")
+        .contains("D1 黄鹤楼").contains("https://example.com");
+    ArgumentCaptor<VoteOrchestrator.VoteRequest> captor = ArgumentCaptor.captor();
+    verify(votes).vote(captor.capture());
+    assertThat(captor.getValue().context()).containsKey("collectedCards");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> card = (Map<String, Object>) outcome.card().data();
+    assertThat(card).containsEntry("collectedFactCount", 6).containsKey("draft");
+  }
+
+  @Test
   @DisplayName("找灵感：子 Agent 返回的主题候选摊成景点卡片")
   void inspirationViaSubAgent() {
     when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("CONTENT_INSPIRATION",
@@ -345,8 +404,13 @@ class ChatToolsTest {
   }
 
   private static DispatchOutcome ok(String intent, String provider, Fact fact) {
+    return okWithFacts(intent, provider, List.of(fact));
+  }
+
+  private static DispatchOutcome okWithFacts(String intent, String provider,
+      List<Fact> facts) {
     return new DispatchOutcome(intent, "OK", provider,
-        new AgentResult("OK", List.of(fact), "建议", List.of(), List.of(), new Usage(10L, 5)),
+        new AgentResult("OK", facts, "建议", List.of(), List.of(), new Usage(10L, 5)),
         List.of(new DispatchOutcome.Attempt(provider, "OK", "OK", List.of())), "test");
   }
 

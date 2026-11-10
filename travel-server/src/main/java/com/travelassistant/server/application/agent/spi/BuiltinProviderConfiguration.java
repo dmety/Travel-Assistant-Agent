@@ -12,8 +12,11 @@ import com.travelassistant.server.application.agent.PlanningRequest;
 import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.map.MapTools;
+import com.travelassistant.server.application.agent.vote.JudgeProviderConfiguration;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.domain.ticket.TicketAdvice;
+import com.travelassistant.server.domain.ticket.TicketChannel;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import com.travelassistant.server.domain.location.WeatherResult;
 import java.math.BigDecimal;
@@ -263,13 +266,47 @@ public class BuiltinProviderConfiguration {
     value.put("matchCount", matches);
     value.put("questionCount", questions.size());
     value.put("stockVerified", outcome.stockVerified());
-    Fact fact = new Fact("builtin.ticket:match-summary", "CONTENT", value,
+    List<Fact> extra = new ArrayList<>();
+    extra.add(new Fact("builtin.ticket:match-summary", "CONTENT", value,
         new Evidence("TICKET_RULE", "builtin.ticket", Evidence.UNVERIFIED,
-            Instant.now(), "购票规则匹配结果计数"));
+            Instant.now(), "购票规则匹配结果计数")));
+
+    // 票务子 Agent 的唯一职责是给官方入口与方法：URL 只能进 fact value，绝不能进 advice
+    // （契约 S-04 禁止 advice 出现链接）。没有经核验入口就如实不给，不生成猜测链接。
+    TicketAdvice guidance = outcome.channels();
+    if (guidance != null && !guidance.channels().isEmpty()) {
+      List<Map<String, Object>> channels = new ArrayList<>();
+      for (TicketChannel channel : guidance.channels()) {
+        if (!channel.usable()) {
+          continue;
+        }
+        Map<String, Object> one = new LinkedHashMap<>();
+        one.put("name", channel.channelName());
+        one.put("url", channel.officialUrl());
+        one.put("attraction", channel.attractionName());
+        one.put("rules", channel.rules());
+        one.put("note", channel.note());
+        one.put("verifiedAt", channel.verifiedAt() == null
+            ? null : channel.verifiedAt().toString());
+        channels.add(one);
+      }
+      if (!channels.isEmpty()) {
+        Map<String, Object> guidanceValue = new LinkedHashMap<>();
+        guidanceValue.put("category",
+            JudgeProviderConfiguration.TICKET_GUIDANCE_CATEGORY);
+        guidanceValue.put("method", JudgeProviderConfiguration.TICKET_METHOD);
+        guidanceValue.put("channels", List.copyOf(channels));
+        guidanceValue.put("stockVerified", false);
+        guidanceValue.put("notice", guidance.notice());
+        extra.add(new Fact("builtin.ticket:guidance", "CONTENT", guidanceValue,
+            new Evidence("TICKET_RULE", "builtin.ticket", Evidence.UNVERIFIED,
+                Instant.now(), "人工核验的官方购票入口快照")));
+      }
+    }
     String advice = questions.isEmpty()
         ? "已按当前条件整理购票建议，请核对结构化计数与既有购票接口"
         : null;
-    return result(context, advice, questions, notices, List.of(fact));
+    return result(context, advice, questions, notices, extra);
   }
 
   // ---------------------------------------------------------------- 天气
