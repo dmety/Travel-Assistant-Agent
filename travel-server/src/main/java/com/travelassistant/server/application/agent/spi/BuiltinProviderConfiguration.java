@@ -14,6 +14,8 @@ import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,10 +75,13 @@ public class BuiltinProviderConfiguration {
 
   private static AgentResult planning(PlanningService service, AgentContext context) {
     Map<String, Object> input = values(context);
+    // 八个字段全透传：日期丢了就会一直重复问「请填写出发日期」，
+    // 前端在补问卡片里点的日期等于白点。
     PlanningRequest request = new PlanningRequest(
         text(input.get("destination")), integer(input.get("days")),
         strings(input.get("preferences")), decimal(input.get("budget")),
-        text(input.get("currency")), integer(input.get("travelers")));
+        text(input.get("currency")), integer(input.get("travelers")),
+        date(input.get("departDate")), date(input.get("returnDate")));
     PlanDraft draft = service.plan(request);
     List<String> unknown = new ArrayList<>();
     for (DraftQuestion question : draft.questions()) {
@@ -252,6 +257,19 @@ public class BuiltinProviderConfiguration {
 
   private static String text(Object value) {
     return value instanceof String s ? s : null;
+  }
+
+  /** 日期按 {@code YYYY-MM-DD} 解析；格式不对按「未提供」处理，交给补问，不报 500。 */
+  private static LocalDate date(Object value) {
+    String s = text(value);
+    if (s == null || s.isBlank()) {
+      return null;
+    }
+    try {
+      return LocalDate.parse(s.strip());
+    } catch (DateTimeParseException e) {
+      return null;
+    }
   }
 
   private static Integer integer(Object value) {

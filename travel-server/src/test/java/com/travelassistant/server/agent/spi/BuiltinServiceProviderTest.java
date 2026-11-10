@@ -118,6 +118,32 @@ class BuiltinServiceProviderTest {
   }
 
   @Test
+  void planningPassesDatesThrough() {
+    when(planning.plan(any())).thenReturn(draft("已排好行程", List.of(), List.of()));
+    configuration.builtinPlanning(rules, planning).invoke(context(Map.of(
+        "destination", "十堰", "days", 2,
+        "departDate", "2026-11-20", "returnDate", "2026-11-21")), budget());
+
+    ArgumentCaptor<PlanningRequest> captor = ArgumentCaptor.forClass(PlanningRequest.class);
+    verify(planning).plan(captor.capture());
+    // 日期被吞掉就会一直重复问「请填写出发日期」，前端补问卡片等于白点
+    assertEquals(LocalDate.of(2026, 11, 20), captor.getValue().departDate());
+    assertEquals(LocalDate.of(2026, 11, 21), captor.getValue().returnDate());
+  }
+
+  @Test
+  void planningIgnoresMalformedDateInsteadOfFailing() {
+    when(planning.plan(any())).thenReturn(draft("已排好行程", List.of(), List.of()));
+    configuration.builtinPlanning(rules, planning).invoke(context(Map.of(
+        "destination", "十堰", "departDate", "2026/11/20", "returnDate", 12345)), budget());
+
+    ArgumentCaptor<PlanningRequest> captor = ArgumentCaptor.forClass(PlanningRequest.class);
+    verify(planning).plan(captor.capture());
+    assertNull(captor.getValue().departDate());
+    assertNull(captor.getValue().returnDate());
+  }
+
+  @Test
   void planningCarriesStructuredDraftAsOneContentFact() {
     PlanDraft full = new PlanDraft(
         new PlanningRequest("十堰", 2, List.of("自然"), new BigDecimal("1500"), "CNY", 2),

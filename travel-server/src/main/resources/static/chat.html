@@ -343,6 +343,16 @@ button{font-family:inherit;}
   background:var(--surface); border-color:var(--line-strong); color:var(--text-3); cursor:not-allowed;
 }
 .opts-tip{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+/* 日历选择器：日期用原生控件点，不用手打 YYYY-MM-DD */
+.opt-date{
+  padding:5px var(--sp-2); border:1px solid var(--line-strong);
+  border-radius:var(--r-ctl); background:var(--surface); color:var(--ink);
+  font-size:var(--fs-sm); font-family:inherit;
+}
+.opt-date:focus{outline:2px solid var(--primary-line); outline-offset:1px; border-color:var(--primary);}
+/* 卡片里混排的只读提示行（遇到没有对应控件的补问项时降级成文字） */
+.opts-body .qa-q{font-size:var(--fs-sm); color:var(--ink);}
+.opts-body .qa-h{font-size:var(--fs-xs); color:var(--text-2); margin-top:2px;}
 /* 不想选天数时的出口：只看候选景点 */
 .opt-skip{
   flex:0 0 auto; margin-left:auto;
@@ -690,7 +700,8 @@ button:focus:not(:focus-visible){outline:none;}
   /**
    * 前端静态表只是个快速路径，知识库才是唯一事实源：
    * 先按城市查，再按景点名查并取它所在的城市（「武当山」→ 十堰）。
-   * 两条都查不到才算识别不出，这时才如实追问，不猜城市。
+   * 两条都查不到再交给后端做第三级判断（模型在已知城市清单里归类，
+   * 「黄梅」→ 黄冈），最后才如实追问 —— 不猜城市，也不让用户重打字。
    */
   async function resolvePlace(text){
     var hit = pickPlaceStatic(text);
@@ -709,7 +720,35 @@ button:focus:not(:focus-visible){outline:none;}
         return { name: b.city || b.province || c, via: c };
       }
     }
-    return null;
+    var guess = await askPlace(text, cands);
+    if(guess && guess.resolved && guess.city){
+      return {
+        name: guess.city,
+        via: guess.spot || (cands[0] || String(text || '').trim()),
+        note: guess.note || '',
+        source: guess.source || 'llm'
+      };
+    }
+    return {
+      miss: true,
+      tried: cands,
+      alternatives: (guess && guess.alternatives) || [],
+      note: (guess && guess.note) || ''
+    };
+  }
+
+  /** 第三级：后端按「知识库 → 模型判断 → 字面相近」给结论。 */
+  function askPlace(text, cands){
+    return fetch('/api/places/resolve', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: String(text || '').slice(0, 120),
+        candidates: (cands || []).slice(0, 5)
+      })
+    }).then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
   }
 
   var CN_NUM = {'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
@@ -1035,23 +1074,240 @@ button:focus:not(:focus-visible){outline:none;}
     return box;
   }
 
-  function qaCard(questions){
-    var box = el('div','qa');
-    var head = el('div','qa-head');
-    head.textContent = '还需要补充这些信息';
+  /* ================================================================
+     补问卡片：缺什么就给什么控件
+     后端的 questions 自带 field（departDate / returnDate / days /
+     travelers / budget），按字段渲染成按钮与日历——日期用原生日期控件
+     点选，不要求用户手打「YYYY-MM-DD」。字段没覆盖到的补问项降级成文字，
+     不硬造控件。
+     ================================================================ */
+  var QA_KINDS = {
+    departDate:{ label:'出发日期', kind:'date' },
+    returnDate:{ label:'返回日期', kind:'date' },
+    days:{ label:'玩几天', kind:'choice', unit:' 天', options:[1, 2, 3, 5, 7] },
+    travelers:{ label:'同行人数', kind:'choice', unit:' 人', options:[1, 2, 3, 4] },
+    budget:{ label:'预算上限', kind:'choice', unit:' 元', options:[2000, 5000, 10000, 15000] }
+  };
+
+  function isoDate(d){
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+  }
+  function shortDate(d){
+    var m = d.getMonth() + 1, day = d.getDate();
+    return m + '-' + (day < 10 ? '0' + day : day);
+  }
+  function addDays(d, n){
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  }
+  /** 本周六（今天就到周六则取今天），用于「周末出发」这类高频选择。 */
+  function nextSaturday(d){
+    var delta = (6 - d.getDay() + 7) % 7;
+    return addDays(d, delta);
+  }
+  function parseISO(s){
+    var p = String(s || '').split('-');
+    if(p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function qaCard(questions, ctx){
+    var baseText = (ctx && ctx.baseText) || '';
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode('补上这几项，行程就能排到具体日期'));
+    var tag = el('span','plan-tag');
+    tag.textContent = '点选即可';
+    head.appendChild(tag);
     box.appendChild(head);
-    questions.forEach(function(q){
-      var row = el('div','qa-row');
-      var qq = el('div','qa-q');
-      qq.textContent = q.question || q.code;
-      row.appendChild(qq);
-      if(q.hint){
-        var h = el('div','qa-h');
-        h.textContent = q.hint;
-        row.appendChild(h);
+
+    var bodyBox = el('div','opts-body');
+    var picks = {};
+    // 上一轮已经说过的信息预填回来：用户在补问卡里点过的日期不该再问一次
+    var dateOut = String(baseText || '').match(/(\d{4}-\d{2}-\d{2})\s*出发/);
+    if(dateOut) picks.departDate = dateOut[1];
+    var dateBack = String(baseText || '').match(/(\d{4}-\d{2}-\d{2})\s*返回/);
+    if(dateBack) picks.returnDate = dateBack[1];
+    var budgetHit = String(baseText || '').match(/预算\s*(\d{2,6})/);
+    if(budgetHit) picks.budget = parseInt(budgetHit[1], 10);
+    var dateInputs = {};
+    var returnRow = null;
+
+    function refresh(){
+      // 统一按 data-field / data-v 回填选中态，重建行也不会留下失效引用
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){
+        var f = b.getAttribute('data-field');
+        if(!f) return;
+        var v = b.getAttribute('data-v');
+        b.setAttribute('aria-pressed', String(picks[f]) === v ? 'true' : 'false');
+      });
+      if(dateInputs.returnDate && picks.departDate){
+        dateInputs.returnDate.min = picks.departDate;
       }
-      box.appendChild(row);
+      if(go) go.disabled = busy;
+    }
+
+    function dateChips(field, row){
+      var today = new Date();
+      var chips;
+      if(field === 'returnDate'){
+        if(!picks.departDate) return;   // 没有出发日就不猜返程
+        var base = parseISO(picks.departDate);
+        chips = [
+          { t:'当天返程', d:base },
+          { t:'第 2 天返', d:addDays(base, 1) },
+          { t:'第 3 天返', d:addDays(base, 2) },
+          { t:'第 4 天返', d:addDays(base, 3) }
+        ];
+      } else {
+        var sat = nextSaturday(today);
+        chips = [
+          { t:'今天', d:today },
+          { t:'明天', d:addDays(today, 1) },
+          { t:'本周六', d:sat },
+          { t:'下周六', d:addDays(sat, 7) }
+        ];
+      }
+      chips.forEach(function(c){
+        var v = isoDate(c.d);
+        var b = el('button','opt');
+        b.type = 'button';
+        b.setAttribute('data-field', field);
+        b.setAttribute('data-v', v);
+        b.textContent = c.t + ' ' + shortDate(c.d);
+        b.addEventListener('click', function(){
+          picks[field] = (picks[field] === v) ? null : v;
+          if(field === 'departDate' && returnRow) fillDateRow('returnDate', returnRow);
+          refresh();
+        });
+        row.appendChild(b);
+      });
+    }
+
+    function fillDateRow(field, row){
+      row.innerHTML = '';
+      dateChips(field, row);
+      var input = document.createElement('input');
+      input.type = 'date';
+      input.className = 'opt-date';
+      input.title = '也可以直接在日历里选';
+      input.min = (field === 'returnDate' && picks.departDate) ? picks.departDate : isoDate(new Date());
+      input.value = picks[field] || '';
+      input.addEventListener('change', function(){
+        picks[field] = input.value || null;
+        if(field === 'departDate' && returnRow) fillDateRow('returnDate', returnRow);
+        refresh();
+      });
+      dateInputs[field] = input;
+      row.appendChild(input);
+      refresh();
+    }
+
+    questions.forEach(function(q){
+      var spec = QA_KINDS[q.field];
+      var wrap = el('div','opt-group');
+      if(!spec){
+        // 没有对应控件的补问项：保留原文与提示，不硬造选项
+        var title = el('div','qa-q');
+        title.textContent = q.question || q.code || '';
+        wrap.appendChild(title);
+        if(q.hint){
+          var hint = el('div','qa-h');
+          hint.textContent = q.hint;
+          wrap.appendChild(hint);
+        }
+        bodyBox.appendChild(wrap);
+        return;
+      }
+
+      var label = el('span','opt-label');
+      label.textContent = spec.label + (spec.unit && spec.kind === 'choice' ? '（' + spec.unit.trim() + '）' : '');
+      wrap.appendChild(label);
+
+      var row = el('div','opt-row');
+      if(spec.kind === 'date'){
+        if(q.field === 'returnDate') returnRow = row;
+        wrap.appendChild(row);
+        fillDateRow(q.field, row);
+      } else {
+        spec.options.forEach(function(o){
+          var b = el('button','opt');
+          b.type = 'button';
+          b.setAttribute('data-field', q.field);
+          b.setAttribute('data-v', String(o));
+          b.textContent = spec.unit ? o + spec.unit : String(o);
+          b.addEventListener('click', function(){
+            picks[q.field] = (picks[q.field] === o) ? null : o;
+            refresh();
+          });
+          row.appendChild(b);
+        });
+        wrap.appendChild(row);
+      }
+      bodyBox.appendChild(wrap);
     });
+    box.appendChild(bodyBox);
+
+    var foot = el('div','opts-foot');
+    var go = el('button','opt-go');
+    go.type = 'button';
+    go.textContent = '按这些重排';
+    var tip = el('span','opts-tip');
+    tip.textContent = '日期点日历就行，其余可以只选你清楚的。';
+    var close = el('button','opt-skip');
+    close.type = 'button';
+    close.textContent = '先不填';
+    foot.appendChild(go);
+    foot.appendChild(tip);
+    foot.appendChild(close);
+    box.appendChild(foot);
+
+    function compose(){
+      var bits = [];
+      var head0 = String(baseText || '').replace(/[，,。！？!?\s]+$/, '');
+      if(picks.days){
+        // 原话里已有天数时替换掉，避免「2 天…3 天」自相矛盾
+        if(/\d+\s*天/.test(head0)) head0 = head0.replace(/\d+\s*天/, picks.days + ' 天');
+        else bits.push(picks.days + ' 天');
+      }
+      if(picks.travelers) bits.push(picks.travelers + ' 人');
+      if(picks.departDate) bits.push(picks.departDate + ' 出发');
+      if(picks.returnDate) bits.push(picks.returnDate + ' 返回');
+      if(picks.budget) bits.push('预算 ' + picks.budget);
+      return head0 + (bits.length ? '，' + bits.join('，') : '');
+    }
+
+    function extraOf(){
+      var extra = {};
+      ['days','travelers','budget','departDate','returnDate'].forEach(function(k){
+        if(picks[k]) extra[k] = picks[k];
+      });
+      return extra;
+    }
+
+    go.addEventListener('click', function(){
+      if(busy) return;
+      if(picks.departDate && picks.returnDate && picks.returnDate < picks.departDate){
+        tip.textContent = '返回日期早于出发日期，改一下再排。';
+        return;
+      }
+      go.disabled = true;
+      go.textContent = '已提交';
+      tip.textContent = '正在按这些信息重排…';
+      close.disabled = true;
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){ b.disabled = true; });
+      Array.prototype.forEach.call(box.querySelectorAll('.opt-date'), function(b){ b.disabled = true; });
+      sendText(compose(), false, extraOf());
+    });
+
+    close.addEventListener('click', function(){
+      if(busy) return;
+      Array.prototype.forEach.call(box.querySelectorAll('button, input'), function(b){ b.disabled = true; });
+      tip.textContent = '已跳过，下一句话里补充也可以。';
+    });
+
+    refresh();
     return box;
   }
 
@@ -1169,6 +1425,38 @@ button:focus:not(:focus-visible){outline:none;}
     return box;
   }
 
+  /**
+   * 目的地候选：完全不认识这个地名时的出口。
+   * 城市来自后端的字面相近结果（库里有谁就推荐谁，没有写死清单），点一下就换过去，
+   * 不用用户把整句话重打一遍。
+   */
+  function destCard(cities, tried){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode('换成这些目的地试试'));
+    var tag = el('span','plan-tag');
+    tag.textContent = tried || '未识别';
+    head.appendChild(tag);
+    box.appendChild(head);
+
+    var bodyBox = el('div','opts-body');
+    var row = el('div','opt-row');
+    cities.forEach(function(city){
+      var b = el('button','opt');
+      b.type = 'button';
+      b.textContent = city;
+      b.addEventListener('click', function(){
+        if(busy) return;
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function(x){ x.disabled = true; });
+        sendText(city);
+      });
+      row.appendChild(b);
+    });
+    bodyBox.appendChild(row);
+    box.appendChild(bodyBox);
+    return box;
+  }
+
   function warnNodes(checks){
     return checks
       .filter(function(c){ return c.severity === 'HIGH' || c.severity === 'MEDIUM'; })
@@ -1267,10 +1555,17 @@ button:focus:not(:focus-visible){outline:none;}
   /* ================================================================
      四、调 L1 编排层 POST /api/agent/invoke（intent=PLAN_DRAFT）
      ================================================================ */
-  async function buildRequest(text){
+  async function buildRequest(text, extra){
     var place = await resolvePlace(text);
     // 解析不出地名时把猜到的片段带回去，好让追问说清是「哪个词没查到」
-    if(!place) return { missing:true, tried: placeCandidates(text) };
+    if(!place || place.miss){
+      return {
+        missing: true,
+        tried: (place && place.tried) || placeCandidates(text),
+        alternatives: (place && place.alternatives) || [],
+        note: (place && place.note) || ''
+      };
+    }
     var req = { destination: place.name };
     var days = parseDays(text);
     if(days) req.days = days;
@@ -1280,9 +1575,15 @@ button:focus:not(:focus-visible){outline:none;}
     if(budget) req.budget = budget;
     var prefs = parsePrefs(text);
     if(prefs.length) req.preferences = prefs;
+    // 点选补问卡片时带来的结构化字段，优先于从文本里解析的结果
+    if(extra){
+      ['days','travelers','budget','departDate','returnDate'].forEach(function(k){
+        if(extra[k] != null && extra[k] !== '') req[k] = extra[k];
+      });
+    }
     // 说景区名也能查：告诉用户实际按哪个城市检索，避免「我明明说了武当山」的困惑
     if(place.via && place.via !== place.name){
-      place.note = '按「' + place.via + '」所在城市 ' + place.name + ' 检索';
+      place.note = place.note || ('按「' + place.via + '」所在城市 ' + place.name + ' 检索');
     }
     return { request: req, place: place };
   }
@@ -1350,7 +1651,7 @@ button:focus:not(:focus-visible){outline:none;}
   }
 
   /** 助手富内容统一入口：实时回复与历史回放共用，避免两套渲染漂移。 */
-  function appendDraftBlocks(body, view){
+  function appendDraftBlocks(body, view, ctx){
     if(!view) return;
     // 有模型建议时不再重复列 notices：正文通常已覆盖同样的缺失项
     if(!view.advice){
@@ -1374,7 +1675,7 @@ button:focus:not(:focus-visible){outline:none;}
       body.appendChild(cands);
     }
     if(view.questions && view.questions.length){
-      var qa = qaCard(view.questions);
+      var qa = qaCard(view.questions, ctx);
       qa.style.marginTop = 'var(--sp-2)';
       body.appendChild(qa);
     }
@@ -1388,7 +1689,7 @@ button:focus:not(:focus-visible){outline:none;}
   }
 
   /* ---------- 生成回复 ---------- */
-  async function respond(session, text, skipChoice){
+  async function respond(session, text, skipChoice, extra){
     busy = true;
     refreshSend();
 
@@ -1396,19 +1697,34 @@ button:focus:not(:focus-visible){outline:none;}
     stream.appendChild(typing);
     scrollBottom();
 
-    var built = await buildRequest(text);
+    var built = await buildRequest(text, extra);
     if(!built || built.missing){
       typing.remove();
-      var tried = (built && built.tried && built.tried.length) ? built.tried[0] : '';
-      // 两种情况要分开说：真没认出词，还是这个词在知识库里没有景点
-      var ask = tried
-        ? '景区知识库里没有「' + tried + '」的景点条目。可以说它上一级的地名（比如景区说所在城市），或者换一个目的地，比如「十堰 3 天」「武汉两天怎么玩」。'
-        : '告诉我要去哪座城市或省份，比如「武汉两天怎么玩」「云南 5 天」；也可以直接说景区名，比如「武当山」。';
       var s0 = assistantShell();
       stream.appendChild(s0.wrap);
+      var tried = (built && built.tried && built.tried.length) ? built.tried[0] : '';
+      var alts = (built && built.alternatives) || [];
+      var note = (built && built.note) || '';
+      // 三种情况要说清：后端给了判断依据 / 能给出相近城市 / 完全没线索
+      var ask;
+      if(note){
+        ask = note + (alts.length ? '。也可以从下面选一个：' : '。');
+      }else if(alts.length){
+        ask = '没认出「' + tried + '」，你是不是想去下面某个地方？';
+      }else if(tried){
+        ask = '「' + tried + '」不在知识库的景点条目里。知识库还在扩充（目前覆盖部分城市），'
+            + '可以说它上一级的地名，或者直接选个城市。';
+      }else{
+        ask = '告诉我要去哪座城市或省份，比如「武汉两天怎么玩」「云南 5 天」；也可以直接说景区名，比如「武当山」。';
+      }
       s0.bubble.textContent = ask;
+      if(alts.length){
+        var dest = destCard(alts, tried);
+        dest.style.marginTop = 'var(--sp-2)';
+        s0.body.appendChild(dest);
+      }
       finishMeta(s0, '等待目的地');
-      addMessage(session, { role:'assistant', text:ask, at:nowTime() });
+      addMessage(session, { role:'assistant', text:ask, kind:'dest', at:nowTime(), alts:alts });
       busy = false;
       refreshSend();
       return;
@@ -1479,7 +1795,7 @@ button:focus:not(:focus-visible){outline:none;}
     await typeText(shell.bubble, plainText(head));
     // 打完再换成排版好的文本：模型输出带粗体与列表，直接展示会露出 ** 和 -
     shell.bubble.innerHTML = formatRich(head);
-    appendDraftBlocks(shell.body, view);
+    appendDraftBlocks(shell.body, view, { baseText: text });
     // 编排链路要能看到：谁处理的、有没有切兜底
     if(view.agent && view.agent.attempts.length > 1){
       var chain = el('div','warn');
@@ -1497,7 +1813,7 @@ button:focus:not(:focus-visible){outline:none;}
     }
     finishMeta(shell, src);
 
-    addMessage(session, { role:'assistant', text:head, draft:view, at:nowTime(),
+    addMessage(session, { role:'assistant', text:head, draft:view, at:nowTime(), baseText:text,
       agent: view.agent ? { providerId: view.agent.providerId, status: view.agent.status } : null });
     scrollBottom();
     busy = false;
@@ -1514,7 +1830,7 @@ button:focus:not(:focus-visible){outline:none;}
     input.style.height = Math.min(input.scrollHeight, 168) + 'px';
   }
   /** 统一入口：输入框发送、推荐卡、选项卡都走这里，行为不分叉。 */
-  async function sendText(text, skipChoice){
+  async function sendText(text, skipChoice, extra){
     text = String(text == null ? '' : text).trim();
     if(!text || busy) return;
     hideEmpty();
@@ -1527,7 +1843,7 @@ button:focus:not(:focus-visible){outline:none;}
     autoGrow();
     refreshSend();
     scrollBottom();
-    await respond(s, text, skipChoice);
+    await respond(s, text, skipChoice, extra);
   }
   function submit(){
     sendText(input.value);
@@ -1652,8 +1968,13 @@ button:focus:not(:focus-visible){outline:none;}
           var replayOpts = choiceCard(m.choice.base, m.choice.place, null);
           replayOpts.style.marginTop = 'var(--sp-2)';
           shell.body.appendChild(replayOpts);
+        } else if(m.kind === 'dest' && m.alts && m.alts.length){
+          // 未识别时的城市候选同样保留，历史里点一下就能换目的地
+          var replayDest = destCard(m.alts, '');
+          replayDest.style.marginTop = 'var(--sp-2)';
+          shell.body.appendChild(replayDest);
         } else {
-          appendDraftBlocks(shell.body, m.draft);
+          appendDraftBlocks(shell.body, m.draft, { baseText: m.baseText || m.text });
         }
         var meta = el('div','msg-meta');
         // 回放也标出当时是哪个 Provider 处理的，链路可追溯
