@@ -98,6 +98,52 @@ def main():
                 check(request(owner, base, '/api/account/register', credentials)[0] == 409, 'duplicate rejected')
                 check(request(owner, base, '/api/login', dict(credentials, password='WrongPassword'), form=True)[0] == 401, 'wrong password rejected')
                 check(request(owner, base, '/api/login', credentials, form=True)[0] == 200, 'login')
+                # A-2：模型购票建议会消耗配额，匿名请求必须在安全层被拒，不能进入控制器。
+                check(request(client(), base, '/api/agent/tickets/advice', {})[0] == 401,
+                    'anonymous model advice is rejected with 401')
+
+                # ---- #5 基础业务闭环：草案 -> 补问 -> 检查 -> 确认保存 -> 重启重读 ----
+                draft_req = {'destination': '杭州', 'departDate': '2026-11-21',
+                    'returnDate': '2026-11-22', 'days': 2, 'travelers': 2,
+                    'budget': 1000, 'currency': 'CNY', 'preferences': []}
+                before = len(request(owner, base, '/api/itineraries')[1])
+                code, draft = request(owner, base, '/api/agent/plan', draft_req)
+                check(code == 200 and bool(draft['dailySchedules']), 'plan returns a daily draft')
+                check(not draft['questions'], 'complete request has no follow-up questions')
+                check(all('attractionId' in item and 'source' in item
+                          for day in draft['dailySchedules'] for item in day['items']),
+                      'draft items carry attraction id and source')
+                check(len(request(owner, base, '/api/itineraries')[1]) == before,
+                      'generating a draft does not create an itinerary')
+                code, missing = request(owner, base, '/api/agent/plan', {'destination': '杭州'})
+                fields = {q['field'] for q in missing['questions']}
+                check(code == 200 and {'departDate', 'returnDate', 'days', 'travelers', 'budget'} <= fields,
+                      'missing fields produce structured follow-up questions')
+                code, inverted = request(owner, base, '/api/agent/plan',
+                    dict(draft_req, departDate='2026-11-25', returnDate='2026-11-21'))
+                check(any(c['code'] == 'RETURN_BEFORE_DEPART' for c in inverted['checks']),
+                      'inverted dates are reported in draft checks')
+                check(draft['budgetEstimate']['verdict'] in
+                      {'NO_BUDGET', 'EXCEEDS_LIMIT', 'CANNOT_DETERMINE', 'WITHIN_KNOWN_SCOPE'},
+                      'draft carries a budget verdict with an explicit verdict code')
+                code, payload = request(owner, base, '/api/agent/plan/materialize',
+                    {'title': '闭环验收-杭州二日游', 'request': draft_req, 'attractionIds': []})
+                check(code == 200 and bool(payload['dailySchedules']),
+                      'confirm produces a read-only itinerary payload')
+                check(len(request(owner, base, '/api/itineraries')[1]) == before,
+                      'materializing a payload still does not create an itinerary')
+                code, closure = request(owner, base, '/api/itineraries',
+                    {'title': payload['title'], 'plan': payload['plan']})
+                check(code == 201, 'confirmed draft creates an itinerary')
+                closure_path = '/api/itineraries/' + closure['id']
+                code, closure = request(owner, base,
+                    closure_path + '/daily?version=' + str(closure['version']),
+                    payload['dailySchedules'], method='PUT')
+                check(code == 200, 'daily schedules saved using the created version')
+                closure_note = payload['dailySchedules'][0]['activities'][0]['note']
+                check('attractionId=' in closure_note,
+                      'saved activity keeps a traceable attraction id')
+
                 def register_racer(password):
                     return request(client(), base, '/api/account/register',
                         {'username': 'same_concurrent', 'password': password})[0]
@@ -139,6 +185,13 @@ def main():
                 check(record['source'] == 'USER_REPORTED' and record['paidTotal'] == 70,
                     'ticket registration survives actual process restart without creating expenses')
                 check(not restored['expenses'], 'registration does not duplicate expenses')
+                restored_closure = request(owner, base, closure_path)[1]
+                check(restored_closure['title'] == '闭环验收-杭州二日游',
+                      'confirmed draft survives actual process restart')
+                check(restored_closure['plan']['departDate'] == '2026-11-21',
+                      'draft dates survive actual process restart')
+                check(restored_closure['dailySchedules'][0]['activities'][0]['note'] == closure_note,
+                      'daily draft content survives restart unchanged')
 
                 check(request(owner, base, path, method='DELETE')[0] == 200, 'delete persisted itinerary')
                 stop()

@@ -7,187 +7,497 @@
     <style>
       :root {
         color-scheme: light;
+
+        /* 色彩系统：沿用本页既有绿色主题（#246d58 / #18322e / #586c66），只补齐刻度；
+           没有套用测试台的蓝色系。§5.2 §1.5.3 */
         --ink: #18322e;
-        --green: #246d58;
         --muted: #586c66;
+        --green: #246d58;
+        --green-50: #f3f8f4;
+        --green-100: #e4f0e8;
+        --green-200: #cfe2d6;
+        --green-300: #a8c9b6;
+        --green-600: #246d58;
+        --green-700: #1b5545;
+        --green-800: #143f34;
         --line: #d7e3dc;
+        --border-strong: #6f8a7c; /* 白底 3.75:1，非文本对比度达 3:1 §5.6 */
+        --focus: #8a5300; /* 白底 6.33:1 / 页底 5.80:1 §5.6 */
+        --bg: #f3f6f0;
+        --surface: #ffffff;
+        --surface-subtle: #f3f8f4;
+        --surface-disabled: #e8efe9;
+        --warn-bg: #fff4e6;
+        --warn-ink: #854417; /* 6.82:1，原值合格，保留 */
+
+        /* 字级：项目无刻度，回退到书后默认（Tailwind）刻度，只取本页用到的档 §4.1 */
+        --fs-xs: 12px;
+        --fs-sm: 14px;
+        --fs-base: 16px;
+        --fs-md: 18px;
+        --fs-lg: 20px;
+        --fs-xl: 30px;
+
+        /* 间距：4/8/12/16/24/32/48，相邻档差 ≥25% §3.2.1 */
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --radius-pill: 999px;
+
+        /* 光自上而下；五级高程中本页只用三级，按 z 位置分配 §6.1.1 §6.2.1 */
+        --shadow-sm: 0 1px 2px rgba(24, 50, 46, 0.1);
+        --shadow-md:
+          0 1px 2px rgba(24, 50, 46, 0.06),
+          0 8px 20px -8px rgba(24, 50, 46, 0.16);
+        --shadow-lg: 0 24px 48px -12px rgba(16, 38, 32, 0.3);
+        --shadow-inset: inset 0 1px 2px rgba(24, 50, 46, 0.08);
       }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        background: #f3f6f0;
+        background: var(--bg);
         color: var(--ink);
-        font:
-          16px/1.6 system-ui,
-          sans-serif;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: var(--fs-base);
+        line-height: 1.65;
       }
       header,
       main {
         max-width: 1120px;
         margin: auto;
-        padding: 24px;
+        padding: var(--sp-5);
       }
       header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: var(--sp-4);
+        flex-wrap: wrap; /* §3.3.1 小屏顶栏换行而非挤压 */
         border-bottom: 1px solid var(--line);
       }
       a {
-        color: var(--green);
+        color: var(--green-600);
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        color: var(--green-700);
+      }
+      header a {
+        font-size: var(--fs-sm);
+        font-weight: 600;
       }
       h1 {
-        font-size: 30px;
-        margin: 8px 0;
+        font-size: var(--fs-xl);
+        line-height: 1.2; /* §4.5.2 大标题收紧行高 */
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: var(--sp-2) 0;
       }
       h2 {
-        font-size: 20px;
-        margin: 0 0 14px;
+        font-size: var(--fs-lg);
+        line-height: 1.35;
+        font-weight: 600;
+        margin: 0 0 var(--sp-4);
+      }
+      h3 {
+        font-size: var(--fs-md); /* §2.6 结果区 h3 不再继承浏览器默认值 */
+        line-height: 1.4;
+        font-weight: 600;
+        margin: var(--sp-4) 0 var(--sp-2);
       }
       p {
-        margin: 8px 0;
+        margin: var(--sp-2) 0;
       }
       .muted,
       small {
         color: var(--muted);
       }
+      main > p.muted {
+        max-width: 68ch; /* §4.3 行宽 */
+        line-height: 1.7;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        background: var(--green-100);
+        color: var(--ink);
+        padding: 6px var(--sp-3);
+        border-radius: var(--radius-pill);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+      }
+      .warning {
+        color: var(--warn-ink);
+        background: var(--warn-bg);
+        border-left: 3px solid var(--warn-ink); /* §8.2 警示加语义 accent */
+        padding: var(--sp-3) var(--sp-4);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+      }
       .grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 22px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--sp-6); /* 外 32 > 卡内 24 §3.6 */
+        align-items: start; /* 右侧短卡不再被拉到与左侧等高 §3.3 */
+        margin-top: var(--sp-5);
       }
       .card {
-        background: white;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 24px;
-        margin-bottom: 20px;
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: var(--sp-5);
+        box-shadow: var(--shadow-md); /* 用高程代替边框，避免 border+阴影+底色三重叠加 §8.5.1 */
+      }
+      .card.featured {
+        box-shadow:
+          inset 0 3px 0 var(--green-600),
+          var(--shadow-md); /* §8.2 主流程卡加顶部 accent */
+      }
+      .flowtag {
+        display: inline-block;
+        margin-left: var(--sp-2);
+        padding: 3px var(--sp-2);
+        border-radius: var(--radius-sm);
+        background: var(--green-100);
+        color: var(--green-700);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        vertical-align: middle;
       }
       .wide {
-        grid-column: 1/-1;
+        grid-column: 1 / -1;
       }
       label {
         display: block;
-        margin: 12px 0 5px;
+        margin: var(--sp-4) 0 var(--sp-1);
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      label small {
+        display: block;
+        margin-top: 2px;
+        font-size: var(--fs-xs);
+        font-weight: 400;
+        line-height: 1.5;
       }
       input,
       select,
       textarea,
       button {
         font: inherit;
-        border: 1px solid #b6c8be;
-        border-radius: 7px;
-        padding: 9px;
+        font-size: var(--fs-base);
+        border-radius: var(--radius-sm);
         max-width: 100%;
       }
       input,
       select,
       textarea {
         width: 100%;
-        background: white;
+        min-width: 0;
+        padding: 10px var(--sp-3);
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--border-strong); /* 3.75:1，边界可见 §5.6 */
+        box-shadow: var(--shadow-inset); /* 输入井：顶部内阴影 §6.1.3 */
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: var(--muted);
+        opacity: 1;
       }
       textarea {
-        min-height: 84px;
+        min-height: 120px; /* 容下窄屏占位提示的四行，不出现内滚动条 */
+        resize: vertical;
+        line-height: 1.6;
       }
       button {
         cursor: pointer;
-        background: var(--green);
-        color: white;
-        margin: 12px 6px 0 0;
+        padding: 10px var(--sp-4);
+        margin: var(--sp-4) var(--sp-2) 0 0;
+        background: var(--green-600);
+        color: #fff;
+        border: 1px solid var(--green-600);
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        transition:
+          background-color 0.15s,
+          transform 0.15s,
+          box-shadow 0.15s;
+      }
+      button:hover:not(:disabled) {
+        background: var(--green-700);
+        border-color: var(--green-700);
+      }
+      button:active:not(:disabled) {
+        transform: translateY(1px); /* §6.2.2 按压态 */
+        box-shadow: none;
       }
       button.secondary {
-        background: white;
-        color: var(--green);
+        background: var(--surface);
+        color: var(--green-600);
+        border-color: var(--green-600);
+        box-shadow: none;
+      }
+      button.secondary:hover:not(:disabled) {
+        background: var(--green-50);
       }
       button:disabled {
-        opacity: 0.5;
-        cursor: wait;
+        background: var(--surface-disabled);
+        color: var(--muted); /* 4.79:1，明确不可点而非半透明绿 */
+        border-color: transparent;
+        opacity: 1;
+        cursor: not-allowed;
+        box-shadow: none;
       }
       .row {
         display: flex;
-        gap: 12px;
+        gap: var(--sp-3);
       }
       .row > * {
-        flex: 1;
+        flex: 1 1 0;
         min-width: 0;
       }
+      /* 长选项文字的下拉列多分一点宽度，避免「普通入园／北京通史基本陈列」被截 §3.3.2 */
+      .row > .row-wide {
+        flex: 1.35 1 0;
+      }
+      /* 游客四字段由 4 列改 2×2，长中文标签不再折成四行 §3.6 §3.3.1 */
       .visitor {
-        border-bottom: 1px solid var(--line);
-        padding-bottom: 12px;
+        background: var(--surface-subtle); /* 一个游客 = 一个分组，靠底色而非分隔线 §8.5 */
+        border-radius: var(--radius-md);
+        padding: var(--sp-4);
+        margin-top: var(--sp-3);
       }
-      .badge {
-        background: #e4f0e8;
-        padding: 5px 10px;
-        border-radius: 6px;
-        display: inline-block;
-        font-size: 14px;
+      .visitor .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--sp-3);
       }
-      .warning {
-        color: #854417;
-        background: #fff4e6;
-        padding: 12px;
-        border-radius: 8px;
+      .visitor label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-1);
+        margin: 0;
+        font-size: var(--fs-sm);
+      }
+      .visitor button.secondary {
+        background: transparent;
+        color: var(--green-700);
+        border-color: transparent;
+        box-shadow: none;
+        font-size: var(--fs-sm);
+        padding: var(--sp-1) 0;
+        margin: var(--sp-2) 0 0;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .visitor button.secondary:hover:not(:disabled) {
+        background: transparent;
+        color: var(--green-800);
+      }
+      #visitors:empty {
+        display: none;
       }
       #status {
         white-space: pre-wrap;
       }
+      #status:empty,
+      #savedRecord:empty {
+        display: none; /* §8.4 空容器不占白 */
+      }
+      #status:not(:empty) {
+        margin: var(--sp-4) 0 0;
+        padding: var(--sp-3) var(--sp-4);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+      }
+      #savedRecord:not(:empty) {
+        margin: var(--sp-3) 0;
+        padding: var(--sp-2) var(--sp-3);
+        background: var(--green-50);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+      }
       #conversation {
-        max-height: 230px;
-        overflow: auto;
         white-space: pre-wrap;
       }
+      #conversation:not(:empty) {
+        max-height: 230px;
+        overflow: auto;
+        margin: var(--sp-2) 0 var(--sp-4);
+      }
+      #conversation:empty::before {
+        content: "还没有对话，提交购票问题后会显示在这里。"; /* §8.4 空状态 */
+        display: block;
+        margin-top: var(--sp-3);
+        padding: var(--sp-3) var(--sp-4);
+        background: var(--surface-subtle);
+        border-radius: var(--radius-sm);
+        color: var(--muted);
+        font-size: var(--fs-sm);
+      }
       .bubble {
-        border-left: 3px solid var(--line);
-        padding: 8px 12px;
-        margin: 8px 0;
+        background: var(--surface-subtle);
+        border-radius: var(--radius-sm);
+        padding: var(--sp-2) var(--sp-3);
+        margin: var(--sp-2) 0;
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      .empty {
+        background: var(--surface-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--sp-5) var(--sp-4);
+      }
+      .empty-title {
+        margin: 0 0 var(--sp-2);
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .empty p {
+        margin: 0;
+        max-width: 52ch;
+        font-size: var(--fs-sm);
+        line-height: 1.7;
+      }
+      #result h3:first-child {
+        margin-top: 0;
+        font-size: var(--fs-lg); /* §2.1 估算金额是结果区的扫描目标 */
+        color: var(--green-700);
+      }
+      #result p,
+      #result ul {
+        font-size: var(--fs-sm);
+      }
+      #result ul {
+        margin: var(--sp-3) 0;
+        padding-left: var(--sp-5);
+      }
+      #result li {
+        margin: var(--sp-1) 0;
+        line-height: 1.6;
+      }
+      #result a {
+        font-size: var(--fs-sm);
+        font-weight: 600;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: var(--fs-sm);
       }
       td,
       th {
         text-align: left;
         border-bottom: 1px solid var(--line);
-        padding: 10px;
+        padding: var(--sp-3);
         vertical-align: top;
         overflow-wrap: anywhere;
       }
       details {
-        margin: 15px 0;
+        margin: var(--sp-4) 0 0;
+        font-size: var(--fs-sm);
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        padding: var(--sp-1) 0;
+      }
+      details p {
+        line-height: 1.6;
+        overflow-wrap: anywhere;
       }
       dialog {
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        max-width: 560px;
+        border: none;
+        border-radius: var(--radius-lg);
+        max-width: min(560px, calc(100vw - var(--sp-6)));
+        padding: var(--sp-5);
+        box-shadow: var(--shadow-lg); /* 模态用最高一级高程 §6.2 */
+        color: var(--ink);
+      }
+      dialog::backdrop {
+        background: rgba(16, 38, 32, 0.42);
+      }
+      dialog h2 {
+        margin-bottom: var(--sp-3);
+      }
+      dialog pre {
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+        background: var(--surface-subtle);
+        padding: var(--sp-3);
+        border-radius: var(--radius-sm);
       }
       pre {
         white-space: pre-wrap;
+        overflow-wrap: anywhere;
       }
-      button:focus-visible,
+      [hidden] {
+        display: none !important;
+      }
       a:focus-visible,
-      input:focus-visible {
-        outline: 3px solid #e3b65d;
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      summary:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid var(--focus); /* 6.33:1；补齐 select/textarea/summary §15 */
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
       }
       @media (max-width: 760px) {
-        .grid {
-          display: block;
-        }
         header,
         main {
-          padding: 16px;
+          padding: var(--sp-4);
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--sp-5);
+        }
+        .wide {
+          grid-column: auto;
         }
         .card {
-          padding: 18px;
+          padding: var(--sp-4);
         }
-        .row {
-          flex-wrap: wrap;
+        /* 小屏每个字段独占一行：下拉选项不再被截断，游客分组也保持完整 §3.3.1 */
+        .row,
+        .visitor .row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--sp-3);
         }
         .row > * {
-          flex-basis: 40%;
+          min-width: 0;
+        }
+        dialog {
+          padding: var(--sp-4);
         }
       }
     </style>
@@ -207,8 +517,8 @@
       <p class="badge">余票未核验 · 在官方渠道完成购买</p>
       <p id="status" role="status" aria-live="polite"></p>
       <div class="grid">
-        <section class="card">
-          <h2>告诉我你的计划</h2>
+        <section class="card featured">
+          <h2>告诉我你的计划<span class="flowtag">主流程</span></h2>
           <div id="conversation" aria-live="polite"></div>
           <form id="adviceForm">
             <label for="message">购票问题</label
@@ -226,7 +536,7 @@
                 <label for="date">游览日期</label
                 ><input id="date" type="date" />
               </div>
-              <div>
+              <div class="row-wide">
                 <label for="product">参观产品</label
                 ><select id="product">
                   <option value="STANDARD">普通入园／北京通史基本陈列</option>
@@ -259,9 +569,12 @@
         <section class="card">
           <h2>购票建议</h2>
           <div id="result">
-            <p class="muted">
-              填写需求后，查看匹配票种、费用与行程提醒。未核实的项目不会按免费处理。
-            </p>
+            <div class="empty">
+              <p class="empty-title">还没有购票建议</p>
+              <p class="muted">
+                填好左侧需求后点「查看购票建议」，这里会显示匹配票种、费用与行程提醒。未核实的项目不会按免费处理。
+              </p>
+            </div>
           </div>
         </section>
         <section class="card wide">
@@ -308,7 +621,7 @@
                 ><input id="paid" type="number" min="0" step="0.01" />
               </div>
             </div>
-            <button id="preview">预览自报登记</button>
+            <button id="preview" class="secondary">预览自报登记</button>
           </div>
           <p class="warning">
             用户自报已购票／已预约，未经平台核验。这里只记录结果，不下单、不支付、不验证出票。

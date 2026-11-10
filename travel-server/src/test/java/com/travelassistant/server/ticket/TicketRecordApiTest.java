@@ -58,10 +58,12 @@ class TicketRecordApiTest extends V2ApiTestBase {
     mvc.perform(get("/ticket-assistant.html")).andExpect(status().isOk());
     mvc.perform(get("/api/tickets/catalog")).andExpect(status().isOk());
     mvc.perform(post("/api/agent/tickets/advice").contentType("application/json").content("{}"))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.stockVerified").value(false));
-    mvc.perform(post("/api/agent/tickets/advice").contentType("application/json").content("{\"message\":\"123456789012345678\"}"))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isUnauthorized());
     MockHttpSession owner=registerAndLogin(),stranger=registerAndLogin();
+    mvc.perform(post("/api/agent/tickets/advice").session(owner).contentType("application/json").content("{}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.stockVerified").value(false));
+    mvc.perform(post("/api/agent/tickets/advice").session(owner).contentType("application/json").content("{\"message\":\"123456789012345678\"}"))
+        .andExpect(status().isBadRequest());
     String id=createItinerary(owner,"私有行程","北京");
     String body=json.writeValueAsString(Map.of("itineraryId",id));
     mvc.perform(post("/api/agent/tickets/advice").session(stranger).contentType("application/json").content(body)).andExpect(status().isForbidden());

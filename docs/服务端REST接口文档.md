@@ -638,38 +638,78 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 
 ---
 
-### 3.16 规划草案（V2 §2）
+### 3.16 规划草案与确认保存（V2 §2，2026-11-08 补齐 #5 闭环）
 
 | 接口 | 方法 | 鉴权 | 说明 |
 |---|---|---|---|
-| `/api/agent/plan` | POST | 需登录 | 生成规划草案，**不落库** |
-| `/api/agent/status` | GET | 需登录 | 模型是否已配置 |
+| `/api/agent/plan` | POST | 需登录 | 生成规划草案（补问 / 逐日草案 / 检查），**不落库** |
+| `/api/agent/plan/materialize` | POST | 需登录 | 用户确认后生成行程载荷，**仍不落库** |
+| `/api/agent/status` | GET | 需登录 | 模型是否配置；规则能力始终列出 |
 
-**这条接口只生成草案，绝不写库。** 需求要求「用户确认后才将建议保存到正式方案」，
-保存必须由用户另行调用 §3.3 / §3.7 完成，两者之间隔着一次明确的人工确认。
+**两条草案接口都只读。** 需求要求「用户确认后才将建议保存到正式方案」，真正落库仍走
+§3.3 `POST /api/itineraries` 与 §3.8 `PUT /api/itineraries/{id}/daily?version=<创建版本号>`，
+两者之间隔着一次明确的人工确认。
+
+请求新增 `departDate` / `returnDate`（可空，缺失时进入结构化补问）：
 
 ```json
 POST /api/agent/plan
-{ "destination": "北京", "days": 2, "preferences": ["人文"], "budget": 1500, "travelers": 2 }
+{
+  "destination": "杭州",
+  "departDate": "2026-11-20",
+  "returnDate": "2026-11-21",
+  "days": 2,
+  "preferences": ["人文"],
+  "budget": 1000,
+  "currency": "CNY",
+  "travelers": 2
+}
 ```
+
+原有 `request / candidates / weather / tickets / advice / notices / sources / generatedAt`
+保持不变，新增四个字段（示例为节选）：
 
 ```json
 {
-  "request": { ... },
-  "candidates": [ { "id": "amap-B000A7IKWK", "name": "故宫博物院", "city": "北京市",
-                    "level": "5A景区", "rating": "4.9", "ticket": "60元",
-                    "openTime": "08:30-17:00（周一闭馆）", "sources": ["OpenStreetMap", "Amap"], ... } ],
-  "weather": null,
-  "tickets": [ ... ],
-  "advice": null,
-  "notices": [
-    "未接入实时天气（未配置高德密钥），本草案不含天气信息",
-    "未配置模型密钥（DEEPSEEK_API_KEY），本次仅提供检索到的景点，未生成文字建议"
+  "questions": [
+    { "code": "MISSING_BUDGET", "field": "budget", "question": "请填写预算上限",
+      "hint": "数字，单位由 currency 决定（默认 CNY）", "retryWith": "POST /api/agent/plan" }
   ],
-  "sources": ["本地景点知识库"],
-  "generatedAt": "2026-11-04T12:30:00Z"
+  "dailySchedules": [
+    { "dayIndex": 1, "date": "2026-11-20", "note": "第 1 天；时间待确认，景点信息来自本地知识库快照",
+      "items": [
+        { "attractionId": "t-hz-001", "name": "西湖", "city": "杭州",
+          "source": "OpenStreetMap + Amap", "ticket": "免费", "openTime": "全天开放",
+          "unknowns": [], "note": "attractionId=t-hz-001；来源=OpenStreetMap + Amap；未知项=无" }
+      ] }
+  ],
+  "checks": [
+    { "code": "UNKNOWN_TICKET_PRICE", "severity": "MEDIUM", "field": "budget",
+      "message": "有 2 个景点票价未知或未核验，未计入预算粗估",
+      "suggestion": "核实票价后再判断；未知不等于免费" }
+  ],
+  "budgetEstimate": {
+    "currency": "CNY", "budgetLimit": 1000, "travelers": 2,
+    "knownTicketSubtotal": 0, "totalForKnownTickets": 0, "unknownTicketCount": 2,
+    "verdict": "CANNOT_DETERMINE", "message": "仅门票口径，不含交通、住宿、餐饮"
+  }
 }
 ```
+
+**规则口径（全部确定性，与模型是否配置无关）**：
+
+- 缺 `departDate` / `returnDate` / `days` / `travelers` / `budget` 时逐条生成 `questions`；
+  只填日期未填天数时按含首尾区间换算天数，并在 `notices` 注明来源。
+- 逐日草案每天最多 2 个候选，按「等级 → 评分 → 名称」的排序结果等分；不编造游览时刻，
+  `time` 一律「待定」；超出旅行日期区间的天不给 `date`。
+- `unknowns` 明确列出票价 / 开放时间 / 来源 / ID 未知，占位值（「暂无」）与 `null` 同义，
+  展示为「未知」，不推断为免费或全天开放。
+- `checks` 覆盖 `RETURN_BEFORE_DEPART`、`DEPART_IN_PAST`、`DAYS_DATE_MISMATCH`、
+  `DRAFT_DAY_OUT_OF_RANGE`、`DATE_INCOMPLETE`、`BUDGET_EXCEEDS_LIMIT`、
+  `UNKNOWN_TICKET_PRICE`、`NO_BUDGET` 等，每条带 `severity` 与 `suggestion`。
+- 预算只统计 `verified` / `confirmed` 且能解析出金额的门票；`verdict` 为
+  `NO_BUDGET` / `EXCEEDS_LIMIT` / `CANNOT_DETERMINE` / `WITHIN_KNOWN_SCOPE` 之一。
+  不含交通、住宿、餐饮，票价未知时只说「无法判定」，不说「没超支」。
 
 **编排方式**：由 Java 决定调用哪些工具（景点 → 天气 → 票务），模型只负责组织语言。
 每条建议都能追溯到来源，不会出现「没查就答」。
@@ -687,6 +727,27 @@ POST /api/agent/plan
 
 - **400** `destination` 为空
 - 候选为空时先按 `preferences` 兜底检索，并提示「请确认目的地」
+
+#### 确认载荷与落库顺序
+
+```json
+POST /api/agent/plan/materialize
+{ "title": "杭州二日游", "request": { ...同上... }, "attractionIds": [] }
+```
+
+返回 `{ title, plan, dailySchedules, checks, notices, sources, generatedFrom }`。
+`attractionIds` 为空表示沿用草案已分配的景点；非空时按给出的顺序重新排到各天。
+服务端按 ID **重新从知识库读取**名称、票价、开放时间与来源，客户端回传不了结论；
+库里不存在的 ID、缺日期、日期倒置、天数超出日期区间一律 **400**。
+
+落库顺序（前端「① 生成草案 → ② 确认保存」与 `tools/acceptance.py` 一致）：
+
+1. `POST /api/itineraries` 带 `title` + `plan` → **201**，记下响应里的 `version`；
+2. `PUT /api/itineraries/{id}/daily?version=<version>` 带 `dailySchedules` → **200**；
+3. 重启服务后 `GET /api/itineraries/{id}` 仍能读到同一份逐日安排。
+
+每日安排不改领域模型：景点 ID、来源与未知项写在 `DailyActivity.note` 的结构化前缀
+`attractionId=...；来源=...；未知项=...` 里，避免为草案新增字段而改动历史数据与既有测试。
 
 ### 3.17 候选与投票（V3 §1）
 
@@ -1062,8 +1123,8 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
   文件缺失或解析失败时购票辅助以「无经核验入口」运行，程序不覆盖原文件。
 - 景点库：`data/attractions_index.json`（只读，Python 离线构建产物）。
 - 运行数据文件按需创建，**全部由 `.gitignore` 排除**（含 accounts / itineraries / invitations /
-  comments / changelog / candidates / votes）。仓库里只保留 `data/*.example.json` 空数组种子，
-  用于说明初始形态；各 `Store` 在文件缺失时自动创建空文件，新克隆无需手工拷贝即可启动。
+  comments / changelog / candidates / votes）。各 `Store` 在文件缺失时自动创建空文件，新克隆无需
+  手工初始化即可启动，仓库不再预置 `*.example.json` 空数组种子。
   运行态数据里是真实账号哈希与用户行程，提交等于把凭据散播到公开仓库，因此不跟踪。
 - `csrf` 已禁用：客户端为第一方控制台程序，且会话 Cookie 为 `HttpOnly + SameSite=Strict`；**生产务必启用 HTTPS**。
 
@@ -1079,10 +1140,15 @@ curl -b cookies.txt -X POST http://localhost:8080/api/logout
 | 项 | 说明 |
 |---|---|
 | 离线构建 | `python tools/build_attraction_index.py` → `data/attractions_index.json`（只读 `china_attractions.json`，输出路径与输入相同时拒绝执行） |
+| 分片编辑源 | `data/attractions/*.json`（按省切成 30 个小文件，一条记录一行）；`python -B tools/kb_shards.py --check` 要求分片合成结果与 `china_attractions.json` 逐字节一致 |
+| 一键同步 | `python -B tools/kb_shards.py --sync` 贯通「分片 → 主库 → 运行索引」；`tools/gate.sh` 第一步做分片一致性校验 |
+| 字段视图 | `tools/kb_modules.py --split` 可按需生成本地视图，目录不入库、不参与门禁，2026-11-08 的 data 目录优化已移除常驻副本 |
+| 数据目录 | `data/` 只保留编辑源、两份产物与购票配置；运行态 JSON 按需创建、不提交，仓库不预置空数组种子 |
 | 加载时机 | 服务端启动，`AttractionStore#load()` |
 | 库路径 | `ATTRACTION_KB_PATH`，默认 `${TRAVEL_DATA_DIR}/attractions_index.json` |
 | 索引 | 城市/省份（含别名）、名称、ID 三套内存索引 |
-| 当前规模 | 11,858 条，66 个城市，13MB → 5.7MB |
+| 当前规模 | 2026-11-08 实测：源库 7,745 条、6.30 MiB；索引 7,745 条、3.94 MiB；索引文件 `city_count` 81 个键。数字随知识库变化 |
+| 拆分边界 | 2026-11-08 的拆分与目录优化只改编辑源；主库字节、索引、Java 加载链与返回体不变 |
 
 ### 8.2 按城市查询
 
@@ -1125,7 +1191,9 @@ GET /api/attractions?city=杭州&limit=20
       "source": "Amap",
       "sources": ["Amap"],
       "ticketText": "旺季（1-6月、10月）100元/人，……",
-      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……"
+      "openTimeText": "全年 07:30–17:00开放 最晚进入16:30；……",
+      "ticketStatus": "unverified",
+      "openTimeStatus": "unverified"
     }
   ]
 }
@@ -1141,8 +1209,22 @@ GET /api/attractions?city=杭州&limit=20
 | `message` | 无结果或缺参时的提示；有结果时为 `null` |
 | `ticket` / `openTime` | 原始值，库中缺失时为 `null` |
 | `ticketText` / `openTimeText` | 展示值，缺失时固定为「未知」 |
+| `ticketStatus` / `openTimeStatus` | 核验状态：`verified` / `unverified` / `pending`（详见下表） |
 
 > 调用方**不得**把 `ticket = null` 解释为「免费」，也不得把 `openTime = null` 解释为「全天开放」。
+
+#### 核验状态契约
+
+| 取值 | 含义 | 展示要求 |
+|---|---|---|
+| `verified` | 有逐行来源与核验日期，可按官方信息展示 | 可正常展示 |
+| `unverified` | 有值但缺逐行证据 | **必须标注「未核验／仅供参考」，不得当作官方定价或官方开放时间** |
+| `pending` | 无值或尚未核验 | 按「未知」处理 |
+
+字段有值不等于已核验。`AttractionView` 会把历史词表 `confirmed` 归一为 `verified`，
+空值归一为 `pending`，其它未知取值保守按 `unverified` 处理。知识库重建时
+`tools/build_unified_kb.py` 只在同时存在 `*_source` 与 `*_checked_at` 逐行证据时
+继承 `verified`，否则一律 `unverified`——**没有证据不得凭历史标签复活核验结论**。
 
 ### 8.3 按名称查询
 
@@ -1178,7 +1260,7 @@ GET /api/attractions/status
 可用时：
 
 ```json
-{ "available": true, "count": 11858, "cityCount": 126, "loadedAt": "2026-11-04T11:28:28Z",
+{ "available": true, "count": 7745, "cityCount": 158, "loadedAt": "<启动加载时刻，ISO 8601>",
   "path": "./data/attractions_index.json" }
 ```
 
@@ -1189,7 +1271,7 @@ GET /api/attractions/status
   "path": "./data/attractions_index.json" }
 ```
 
-`cityCount` 为**含别名的索引条目数**（同一城市会有「杭州」「杭州市」两个键），不等于城市数。
+`cityCount` 为**含别名的索引条目数**（同一城市会有「杭州」「杭州市」两个键），不等于城市数。示例中 `count` 为 2026-11-08 实测值；`cityCount` 158 是按当前索引与 `cityAliases`/`regionAliases` 规则复算所得，未启动服务实测；`loadedAt` 每次启动都不同，用占位符表示。索引文件里的 `city_count` 是 81，两者口径不同。
 
 ### 8.6 库缺失或损坏时的降级
 
@@ -1205,14 +1287,14 @@ GET /api/attractions/status
 
 ### 8.7 已知限制
 
-- 票价、开放时间、等级、评分均为**离线快照**，不保证实时性；票价覆盖极低（11,858 条中仅 752 条有值）。
-- 坐标存在 WGS-84（OSM）与 GCJ-02（高德）混用，偏差约 50–500 米，未做统一转换。
+- 票价、开放时间、等级、评分均为**离线快照**，不保证实时性。2026-11-08 实测：7,745 条中有票价 874 条、有开放时间 4,346 条；票价状态为 verified 145 / unverified 729 / pending 6,871。只有 `verified` 可显示为确定值，未知不等于免费。
+- 源库逐条标注 `coordinateSystem`，2026-11-08 实测 WGS-84 3,350 条、GCJ-02 4,395 条，无 `mixed`、无坐标系缺失；仍有 1 条记录缺坐标值。**精简索引的 `KEEP_FIELDS` 不含该字段**，本接口不下发坐标系。跨源比对要在离线层按各条记录的坐标系换算，不能直接混用。
 - 只做 `limit` 截断，没有分页游标；超过 50 条需收窄查询条件。
 
 
 ## 9. 北京景区购票助手（首版）
 
-页面 `/ticket-assistant.html` 无需登录即可查看规则；带行程查询和登记要求登录及相应权限。
+页面 `/ticket-assistant.html` 无需登录即可打开，但 2026-11-08 起「任何购票建议请求都要求登录」：`/api/agent/tickets/advice` 已移出 `permitAll`，匿名返回 401；带行程查询和登记还需相应权限。
 现有 `GET /api/tickets` 与 `/channels` 保留；新增 `GET /api/tickets/catalog` 返回人工维护的三景点规则及字段来源。
 `TICKET_RULE_FILE` 指定规则文件，默认 `data/ticket_rules.json`，文件缺失或损坏时停止深度建议，原入口查询不受影响。
 每个字段保存 value、sourceUrl、verifiedAt、validFrom、validTo、note；未知值不视为免费。启动时读取快照，修改后重启生效。
@@ -1240,6 +1322,8 @@ GET /api/attractions/status
 
 响应：`needs` 为规范化需求，`questions` 为待补问项，`matches` 为逐人票种与价格，`estimatedTotal` 为估算总额（存在未知则 null），
 `stockVerified` 恒 false，`registrationSuggested` 表示是否建议登记，`channels` 为现有入口结果，`evidence` 为字段来源，`notices` 为限制和行程提醒。
+`registrationSuggested` 由场馆属性判定：STANDARD 产品且预约字段明确为「无需预约」、定价档位全部为 0 时返回 false，并给出「普通参观无需购票／预约」提示；
+该判定不依赖 `estimatedTotal`——游客未填、合计未知时免费场馆仍返回 false，收费场馆仍返回 true。
 费用仅为快照估算，不是订单报价。花期准确起止、联票开售、特殊身份、特展及未核实退改规则保留未知。
 首都博物馆采用馆方免预约及周二闭馆新公告，不沿用旅游网旧快照；规则适用日期以字段记录为准。
 带 `itineraryId` 时校验查看权限；带 `activityId` 时带入对应活动日期、景点与起止时间，未找到活动返回400，越权403。

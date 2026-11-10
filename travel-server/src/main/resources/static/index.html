@@ -5,79 +5,235 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>旅行助手 · 接口测试台</title>
   <style>
-    :root { --primary:#2563eb; --ok:#16a34a; --err:#dc2626; --bg:#f1f5f9; --line:#e2e8f0; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
-           background:var(--bg); color:#0f172a; }
+    /* ==================================================================
+       旅行助手 · 接口测试台
+       ------------------------------------------------------------------
+       Step 0：单文件原生 HTML + 内联 CSS，无框架 / 无 Tailwind / 无组件库 /
+       无暗色模式。主题色沿用项目原值，仅把页面已在用的 slate / blue 色值
+       收敛成 token；刻度回退到书后附的默认刻度（等同 Tailwind 默认）。
+       修复按审计 sweep 顺序组织，分区注释里的 § 编号为对应规则。
+       ================================================================== */
+    :root {
+      /* 主色沿用项目原值，补齐 hover / 浅底 / 边线（§5.2.2 §5.2.3） */
+      --primary:#2563eb; --primary-hover:#1d4ed8;
+      --primary-soft:#eff6ff; --primary-line:#bfdbfe;
+      --ok:#15803d; --ok-soft:#ecfdf5; --ok-line:#a7f3d0;
+      --err:#b91c1c; --err-soft:#fef2f2; --err-line:#fecaca;
 
-    /* 顶栏 */
-    .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
-              padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .brand { font-size:16px; font-weight:700; }
-    .brand .dot { color:#94a3b8; margin:0 6px; font-weight:400; }
-    .brand .lite { font-weight:400; color:#475569; font-size:14px; }
-    .who { display:flex; align-items:center; gap:10px; font-size:13px; color:#16a34a; font-weight:600; }
+      /* 中性色阶：沿用页面原有 slate 色值，统一命名（§5.2.1） */
+      --ink:#0f172a; --text-2:#475569; --text-3:#64748b;
+      --line:#e2e8f0; --line-strong:#cbd5e1;
+      --surface:#ffffff; --surface-2:#f8fafc; --bg:#f1f5f9;
 
-    .wrap { max-width:960px; margin:0 auto; padding:20px 16px 64px; }
-    .card { background:#fff; width:100%; border-radius:14px;
-            box-shadow:0 10px 30px rgba(15,23,42,.08); padding:24px; }
-    .card.auth { max-width:420px; margin:32px auto 0; }
-    h1 { font-size:20px; margin:0 0 4px; }
-    h2 { font-size:16px; margin:18px 0 10px; }
-    .sub { color:#64748b; font-size:13px; margin:0 0 16px; }
-    .muted { color:#94a3b8; font-size:12px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+      /* 字级 / 间距 / 圆角 / 阴影（§1.5 §3.2 §4.1 §6.2.1） */
+      --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
+      --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+      --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+      --r-sm:6px; --r-ctl:8px; --r-card:12px;
+      --shadow-1:0 1px 2px rgba(15,23,42,.06);
+      --shadow-2:0 1px 2px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.06);
+      --shadow-3:0 2px 4px rgba(15,23,42,.06), 0 16px 40px rgba(15,23,42,.10);
+      --inset:inset 0 1px 2px rgba(15,23,42,.06);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+           font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           font-size:var(--fs-sm); line-height:1.6; }
+
+    /* ---- Hierarchy（§2.1 §2.2 §2.4 §2.6）---- */
+    .topbar { position:sticky; top:0; z-index:20; background:var(--surface);
+              border-bottom:1px solid var(--line); box-shadow:var(--shadow-1);
+              padding:var(--sp-3) var(--sp-6); display:flex; align-items:center;
+              justify-content:space-between; gap:var(--sp-3); }
+    .brand { font-size:var(--fs-md); font-weight:600; }
+    .brand .dot { color:var(--line-strong); margin:0 var(--sp-1); font-weight:400; }
+    .brand .lite { font-weight:400; color:var(--text-2); font-size:var(--fs-sm); }
+    .who { display:flex; align-items:center; gap:var(--sp-2);
+           font-size:var(--fs-sm); color:var(--ok); font-weight:600; }
+
+    .wrap { max-width:960px; margin:0 auto; padding:var(--sp-6) var(--sp-4) var(--sp-16); }
+    /* 组外间距 32px > 组内 24px（§3.6）；阴影来自分级集合（§6.2.1） */
+    .card { background:var(--surface); width:100%; border-radius:var(--r-card);
+            box-shadow:var(--shadow-2); padding:var(--sp-6); }
+    .card + .card { margin-top:var(--sp-8); }
+    .card.auth { max-width:420px; margin:var(--sp-8) auto 0; }
+    .card.featured { box-shadow:inset 3px 0 0 var(--primary), var(--shadow-2); }
+    h1 { font-size:var(--fs-lg); font-weight:600; line-height:1.3; margin:0 0 var(--sp-1); }
+    h2 { font-size:var(--fs-md); font-weight:600; line-height:1.4;
+         margin:var(--sp-6) 0 var(--sp-2); }
+    .sub { color:var(--text-2); font-size:var(--fs-sm); line-height:1.65;
+           max-width:62ch; margin:0 0 var(--sp-4); }
+    .muted, .hint, .meta, .glabel { color:var(--text-3); }
+    .muted, .hint { font-size:var(--fs-xs); line-height:1.7; }
+    .hint { margin-top:var(--sp-2); max-width:68ch; overflow-wrap:anywhere; }
+    .meta { font-size:var(--fs-xs); }
+    .badge { display:inline-block; margin-left:var(--sp-2); padding:2px var(--sp-2);
+             border:1px solid var(--primary-line); border-radius:999px;
+             background:var(--primary-soft); color:var(--primary);
+             font-size:var(--fs-xs); font-weight:600; line-height:1.5;
+             vertical-align:2px; }
+    b, strong { font-weight:600; }
+
+    /* ---- Layout & spacing（§3.2 §3.6）---- */
+    .row { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; }
     .row.between { justify-content:space-between; }
-    input, textarea, select { padding:9px 11px; border:1px solid #cbd5e1; border-radius:8px;
-            font-size:14px; font-family:inherit; }
-    input:focus, textarea:focus, select:focus { outline:2px solid var(--primary); border-color:var(--primary); }
-    textarea { width:100%; font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; resize:vertical; }
-    button { padding:9px 14px; border:0; border-radius:8px; background:var(--primary); color:#fff;
-             font-size:14px; cursor:pointer; }
-    button:hover { filter:brightness(.95); }
-    button.secondary { background:#e2e8f0; color:#0f172a; }
-    button.danger { background:#fee2e2; color:#991b1b; }
-    button.sm { padding:5px 10px; font-size:13px; }
-    .status { margin-bottom:16px; padding:10px 12px; border-radius:8px; font-size:13px; white-space:pre-wrap;
-              word-break:break-all; display:none; }
-    .status.ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
-    .status.err { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
-    hr { border:0; border-top:1px solid var(--line); margin:20px 0; }
-    .list { display:flex; flex-direction:column; gap:8px; }
-    .item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
-            border:1px solid var(--line); border-radius:8px; gap:10px; }
-    .item .meta { color:#64748b; font-size:12px; }
-    .create { display:flex; flex-direction:column; gap:8px; margin-top:12px;
-              padding:12px; border:1px dashed var(--line); border-radius:8px; }
-    .panel { margin-top:16px; border:1px solid var(--line); border-radius:10px; padding:16px; }
-    .it-head { display:flex; justify-content:space-between; align-items:center; gap:10px;
-               margin-bottom:12px; flex-wrap:wrap; }
-    /* 页签：按「基础 / 协作 / 智能」分组 */
-    .tabs { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-    .tabgroup { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-    .tabgroup + .tabgroup { padding-left:12px; margin-left:4px; border-left:1px solid var(--line); }
-    .tabgroup .glabel { font-size:11px; color:#94a3b8; margin-right:2px; }
-    .tab { padding:7px 12px; border-radius:8px; cursor:pointer; background:#e2e8f0; font-size:13px; user-select:none; }
-    .tab.active { background:var(--primary); color:#fff; }
+    .list { display:flex; flex-direction:column; gap:var(--sp-2); }
+    .create { display:flex; flex-direction:column; gap:var(--sp-2); margin-top:var(--sp-3);
+              padding:var(--sp-4); background:var(--surface-2);
+              border:1px dashed var(--line-strong); border-radius:var(--r-ctl); }
+    .panel { margin-top:var(--sp-8); background:var(--surface);
+             border:1px solid var(--line); border-radius:var(--r-card);
+             padding:var(--sp-6); box-shadow:var(--shadow-1); }
+    .it-head { display:flex; justify-content:space-between; align-items:center;
+               gap:var(--sp-3); margin-bottom:var(--sp-4); padding-bottom:var(--sp-3);
+               border-bottom:1px solid var(--line); flex-wrap:wrap; }
+    .it-head b { font-size:var(--fs-md); }
+    .sec-actions { display:flex; gap:var(--sp-2); margin-top:var(--sp-3);
+                   align-items:center; flex-wrap:wrap; }
+    .checks { display:flex; gap:var(--sp-4); flex-wrap:wrap; margin:var(--sp-2) 0; }
+    .checks label { font-size:var(--fs-sm); color:var(--text-2);
+                    display:flex; align-items:center; gap:var(--sp-1); }
+    .checks input[type="checkbox"] { width:16px; height:16px; accent-color:var(--primary); }
+    hr { border:0; border-top:1px solid var(--line); margin:var(--sp-6) 0; }
+
+    /* 分组间距 12px > 组内 6px；组用细线而非竖线，换行不丢边界（§3.6） */
+    .tabs { display:flex; flex-direction:column; gap:var(--sp-3);
+            margin-bottom:var(--sp-6); }
+    .tabgroup { display:flex; gap:6px; flex-wrap:wrap; align-items:center; min-width:0; }
+    .tabgroup + .tabgroup { padding-top:var(--sp-3); border-top:1px solid var(--line); }
+    .tabgroup .glabel { flex:0 0 auto; min-width:32px; font-size:var(--fs-xs);
+                        font-weight:600; letter-spacing:.02em; }
+    .tab { padding:6px var(--sp-3); border:1px solid var(--line); border-radius:var(--r-ctl);
+           cursor:pointer; background:var(--surface-2); color:var(--text-2);
+           font-size:var(--fs-xs); line-height:1.5; user-select:none; white-space:nowrap; }
+    .tab.active { background:var(--primary); border-color:var(--primary);
+                  color:#fff; font-weight:600; box-shadow:var(--shadow-1); }
     .tabpane { display:none; }
     .tabpane.active { display:block; }
-    .sec-actions { display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap; }
-    .mem { display:flex; justify-content:space-between; align-items:center; padding:8px 10px;
-           border:1px solid var(--line); border-radius:8px; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
-    .mem .tags { font-size:12px; color:#2563eb; }
-    .checks { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
-    .checks label { font-size:13px; color:#475569; display:flex; align-items:center; gap:4px; }
-    .hint { font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.7; }
-    pre { margin:0; white-space:pre-wrap; word-break:break-all; font-size:12px; line-height:1.7; }
 
-    /* 登录 / 注册 */
-    .authtabs { display:flex; gap:8px; margin-bottom:16px; }
-    .authtab { flex:1; text-align:center; padding:8px; border-radius:8px; cursor:pointer;
-               background:#e2e8f0; font-size:14px; user-select:none; }
-    .authtab.active { background:var(--primary); color:#fff; }
-    .authform { display:none; flex-direction:column; gap:12px; }
+    /* ---- Controls & actions（§2.8 §2.8.1 §6.1.3 §6.2.2）---- */
+    input, textarea, select { padding:var(--sp-2) var(--sp-3);
+            border:1px solid var(--line-strong); border-radius:var(--r-ctl);
+            background:var(--surface); color:var(--ink); box-shadow:var(--inset);
+            font-size:var(--fs-sm); font-family:inherit; line-height:1.5; }
+    input::placeholder, textarea::placeholder { color:var(--text-3); }
+    input:focus, textarea:focus, select:focus {
+            outline:none; border-color:var(--primary); box-shadow:var(--inset); }
+    textarea { width:100%; font-family:"SFMono-Regular",Consolas,monospace;
+               font-size:var(--fs-sm); line-height:1.65; resize:vertical; }
+    select { appearance:none; padding-right:28px;
+             background-image:linear-gradient(45deg,transparent 50%,var(--text-3) 50%),
+                              linear-gradient(135deg,var(--text-3) 50%,transparent 50%);
+             background-position:calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+             background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+    button { display:inline-flex; align-items:center; justify-content:center;
+             min-height:36px; padding:var(--sp-2) var(--sp-4);
+             border:1px solid transparent; border-radius:var(--r-ctl);
+             background:var(--primary); color:#fff; font-family:inherit;
+             font-size:var(--fs-sm); font-weight:600; cursor:pointer;
+             box-shadow:var(--shadow-1);
+             transition:background .15s ease, border-color .15s ease, box-shadow .15s ease; }
+    button:hover:not(:disabled) { background:var(--primary-hover); }
+    button:active:not(:disabled) { box-shadow:var(--inset); transform:translateY(1px); }
+    button:disabled { background:var(--line); border-color:var(--line-strong);
+                      color:var(--text-2); cursor:not-allowed; box-shadow:none; }
+    button.secondary { background:var(--surface-2); border-color:var(--line-strong);
+                       color:var(--ink); box-shadow:none; }
+    button.secondary:hover:not(:disabled) { background:var(--line); }
+    button.quiet { background:transparent; color:var(--text-2); box-shadow:none; }
+    button.quiet:hover:not(:disabled) { background:var(--surface-2); }
+    button.danger { background:var(--err-soft); border-color:var(--err-line);
+                    color:var(--err); box-shadow:none; }
+    button.danger:hover:not(:disabled) { background:#fecaca; }
+    button.sm { min-height:28px; padding:var(--sp-1) var(--sp-2); font-size:var(--fs-xs); }
+
+    :focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+
+    /* ---- Status / list / output（§5.6 §5.7 §8.2 §8.5）---- */
+    .status { margin-bottom:var(--sp-4); padding:var(--sp-3) var(--sp-4);
+              border:1px solid transparent; border-left-width:3px;
+              border-radius:var(--r-ctl); font-size:var(--fs-sm);
+              white-space:pre-wrap; word-break:break-all; display:none; }
+    .status.ok { display:block; background:var(--ok-soft); color:var(--ok);
+                 border-color:var(--ok-line); border-left-color:var(--ok); }
+    .status.err { display:block; background:var(--err-soft); color:var(--err);
+                  border-color:var(--err-line); border-left-color:var(--err); }
+    .status.ok::before { content:"✓  "; font-weight:600; }
+    .status.err::before { content:"!  "; font-weight:600; }
+    .item, .mem { display:flex; justify-content:space-between; align-items:center;
+                  padding:var(--sp-3) var(--sp-4); gap:var(--sp-3);
+                  background:var(--surface-2); border:1px solid transparent;
+                  border-radius:var(--r-ctl); }
+    .item:hover, .mem:hover { border-color:var(--line); }
+    .mem { margin-bottom:var(--sp-2); flex-wrap:wrap; }
+    .mem .tags { font-size:var(--fs-xs); color:var(--primary); }
+    pre { margin:0; padding:var(--sp-3) var(--sp-4); max-height:360px; overflow:auto;
+          white-space:pre-wrap; word-break:break-all; overflow-wrap:anywhere;
+          background:var(--surface-2); border:1px solid var(--line);
+          border-radius:var(--r-ctl); box-shadow:var(--inset);
+          font-family:"SFMono-Regular",Consolas,monospace;
+          font-size:var(--fs-xs); line-height:1.7; }
+    code { padding:1px var(--sp-1); border-radius:var(--r-sm);
+           background:var(--surface-2); color:var(--text-2);
+           font-family:"SFMono-Regular",Consolas,monospace; font-size:var(--fs-xs); }
+    a { color:var(--primary); text-decoration:none;
+        border-bottom:1px solid var(--primary-line); }
+    a:hover { border-bottom-color:var(--primary); }
+    summary { cursor:pointer; color:var(--text-2); }
+    summary::marker { color:var(--text-3); }
+
+    /* JS 动态生成的按钮组允许换行，避免窄屏挤成一行（§3.3.1） */
+    div[style*="display: flex"], div[style*="display:flex"] { flex-wrap:wrap; }
+
+    /* 空状态：容器里唯一的占位文本即为空态（§8.4）。不改 JS 生成逻辑 */
+    :is(#itList, #dfOut, #cdList, #memList, #invList, #invMine,
+        #cmList, #clList, #adOut, #ticketActivityLinks) > .muted:first-child {
+      display:block; width:100%; text-align:center; color:var(--text-2);
+      padding:var(--sp-6); background:var(--surface-2);
+      border:1px dashed var(--line-strong); border-radius:var(--r-ctl);
+    }
+
+    /* ---- Login / register（§2.8）---- */
+    .authtabs { display:flex; gap:var(--sp-2); margin-bottom:var(--sp-4); }
+    .authtab { flex:1; text-align:center; padding:var(--sp-2);
+               border:1px solid var(--line); border-radius:var(--r-ctl);
+               cursor:pointer; background:var(--surface-2); color:var(--text-2);
+               font-size:var(--fs-sm); user-select:none; }
+    .authtab.active { background:var(--primary); border-color:var(--primary);
+                      color:#fff; font-weight:600; }
+    .authform { display:none; flex-direction:column; gap:var(--sp-3); }
     .authform.active { display:flex; }
-    .authform label { font-size:13px; color:#475569; }
+    .authform label { font-size:var(--fs-sm); color:var(--text-2); }
+    .authcard-title { font-size:var(--fs-xl); }
+
+    /* ---- 小屏：重新设计而非折叠桌面（§3.3.1 §3.4）---- */
+    @media (max-width:640px) {
+      .topbar { padding:var(--sp-3) var(--sp-4); flex-wrap:wrap; }
+      .brand { font-size:var(--fs-sm); }
+      .brand .lite { font-size:var(--fs-xs); }
+      .who { margin-left:auto; font-size:var(--fs-xs); gap:var(--sp-2); }
+      .wrap { padding:var(--sp-4) var(--sp-3) var(--sp-12); }
+      .card, .panel { padding:var(--sp-4); }
+      .card + .card, .panel { margin-top:var(--sp-6); }
+      .card.auth { margin-top:var(--sp-6); }
+      /* 覆盖 HTML 里遗留的内联定宽，消除横向溢出（§3.3.1） */
+      .row > [style*="width"] { width:100% !important; max-width:100% !important;
+                                flex:1 1 100%; }
+      .row > label { display:flex; align-items:center; gap:var(--sp-2); width:100%; }
+      .row > label input { flex:1 1 auto; min-width:0; }
+      .create .row { flex-direction:column; align-items:stretch; }
+      .create .row > * { width:100% !important; max-width:100% !important; }
+      /* 每组一行、组内横向滚动，分组标签吸左（§3.6） */
+      .tabgroup { flex-wrap:nowrap; overflow-x:auto; padding-bottom:var(--sp-1);
+                  scrollbar-width:thin; scrollbar-color:var(--line-strong) transparent; }
+      .glabel { position:sticky; left:0; background:var(--surface); }
+      .it-head { flex-direction:column; align-items:flex-start; }
+      .status { font-size:var(--fs-xs); }
+      pre { max-height:280px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      * { transition:none !important; animation:none !important; }
+    }
   </style>
 </head>
 <body>
@@ -94,7 +250,7 @@
 
     <!-- ===== 未登录：登录 / 注册 ===== -->
     <section id="authView" class="card auth">
-      <h1>旅行助手</h1>
+      <h1 class="authcard-title">旅行助手</h1>
       <p class="sub">本地联调用的测试前端。登录后进入接口测试台，会话基于 JSESSIONID。</p>
 
       <div class="authtabs">
@@ -127,18 +283,50 @@
       <div class="card">
         <div class="row between">
           <div>
-            <h1 style="margin:0;">我的行程</h1>
+            <h1>我的行程</h1>
             <p class="sub" style="margin:4px 0 0;">增改走乐观锁 version，冲突返回 409 并带 X-Version。</p>
           </div>
           <button id="refreshListBtn" class="secondary sm">刷新列表</button>
         </div>
-        <div id="itList" class="list" style="margin-top:12px;"><span class="muted">未加载</span></div>
+        <div id="itList" class="list" style="margin-top:12px;"><span class="muted">还没有行程，在下方创建第一个</span></div>
 
         <div class="create">
           <input id="newTitle" placeholder="新行程标题" style="max-width:280px;" />
-          <textarea id="newPlan" rows="2" placeholder='方案 JSON（可选），如 {"destination":"云南","summary":"昆大丽"}'></textarea>
+          <textarea id="newPlan" rows="2" placeholder='方案 JSON（可选），如 {"destination":"云南"}'></textarea>
           <div><button id="createBtn">创建行程</button></div>
         </div>
+      </div>
+
+      <!-- ===== 基础业务闭环：填需求 → 补问 → 逐日草案 → 检查 → 确认保存 ===== -->
+      <div class="card featured" id="draftCard">
+        <h1>规划草案 → 确认保存<span class="badge">主流程</span></h1>
+        <p class="sub" style="margin:4px 0 0;">
+          生成草案只检索、不写库；点「确认保存」才会走 /api/itineraries 创建行程。
+        </p>
+        <div class="create">
+          <div class="row">
+            <input id="dfDestination" placeholder="目的地，如 杭州" style="width:160px;" />
+            <label class="muted">出发 <input id="dfDepart" type="date" /></label>
+            <label class="muted">返回 <input id="dfReturn" type="date" /></label>
+            <input id="dfDays" type="number" min="1" max="30" placeholder="天数" style="width:88px;" />
+            <input id="dfTravelers" type="number" min="1" placeholder="人数" style="width:88px;" />
+            <input id="dfBudget" type="number" min="0" step="1" placeholder="预算上限" style="width:120px;" />
+            <input id="dfCurrency" value="CNY" placeholder="币种" style="width:80px;" />
+            <input id="dfPrefs" placeholder="偏好，逗号分隔（可选）" style="width:180px;" />
+          </div>
+          <div class="row">
+            <button id="dfPlanBtn" class="secondary">① 生成草案（不写库）</button>
+            <input id="dfTitle" placeholder="行程标题，如 杭州二日游" style="width:220px;" />
+            <button id="dfConfirmBtn" disabled>② 确认保存为行程</button>
+          </div>
+          <div class="hint">
+            流程：POST /api/agent/plan →（按补问补全后重试）→ POST /api/agent/plan/materialize
+            → POST /api/itineraries → PUT /api/itineraries/{id}/daily?version=&lt;创建版本号&gt;。
+            逐日草案带景点 ID、来源与未知项；票价或开放时间未知一律显示「未知」，不推断为免费。
+            预算粗估只含已核验门票，不含交通住宿餐饮。
+          </div>
+        </div>
+        <div id="dfOut" class="list" style="margin-top:12px;"><span class="muted">填好上方条件后点「生成草案」，这里会显示逐日安排</span></div>
       </div>
 
       <!-- 行程详情 -->
@@ -213,7 +401,7 @@
 
         <div class="tabpane" data-sec="members">
           <div id="memList"></div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">添加 / 更新成员</h2>
+          <h2>添加 / 更新成员</h2>
           <div class="row">
             <input id="memUser" placeholder="成员用户名" style="width:160px;" />
             <button id="memSaveBtn">保存成员</button>
@@ -235,7 +423,7 @@
         </div>
 
         <div class="tabpane" data-sec="invite">
-          <h2 style="font-size:14px;margin:0 0 6px;">发起邀请（仅创建者）</h2>
+          <h2>发起邀请（仅创建者）</h2>
           <div class="row">
             <input id="invUser" placeholder="受邀账号" style="width:160px;" />
             <button id="invSendBtn">发出邀请</button>
@@ -249,10 +437,10 @@
           </div>
           <div class="hint">发出邀请不改变行程版本号；受邀者需在「我收到的邀请」里接受，才会成为成员。</div>
 
-          <h2 style="font-size:14px;margin:16px 0 6px;">本行程的邀请记录</h2>
+          <h2>本行程的邀请记录</h2>
           <div id="invList"><span class="muted">打开行程后自动加载</span></div>
 
-          <h2 style="font-size:14px;margin:16px 0 6px;">我收到的邀请</h2>
+          <h2>我收到的邀请</h2>
           <div class="sec-actions">
             <button id="invRefreshMineBtn" class="secondary">刷新我的邀请</button>
           </div>
@@ -266,9 +454,9 @@
             <button id="cmRefreshBtn" class="secondary">刷新</button>
           </div>
           <div class="hint">留言与修改记录不改变版本号，因此不会引发版本冲突。修改记录只由服务端在写操作成功后产生。</div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">留言</h2>
+          <h2>留言</h2>
           <div id="cmList"><span class="muted">打开行程后点击刷新</span></div>
-          <h2 style="font-size:14px;margin:16px 0 6px;">修改记录</h2>
+          <h2>修改记录</h2>
           <div id="clList"><span class="muted">打开行程后点击刷新</span></div>
         </div>
 
@@ -294,13 +482,13 @@
         </div>
 
         <div class="tabpane" data-sec="geo">
-          <h2 style="font-size:14px;margin:0 0 6px;">地点检索（高德）</h2>
+          <h2>地点检索（高德）</h2>
           <div class="row">
             <input id="geoKeywords" placeholder="关键词，如 西湖" style="width:180px;" />
             <input id="geoCity" placeholder="城市（可选）" style="width:120px;" />
             <button id="geoPlaceBtn">查地点</button>
           </div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">天气预报（高德）</h2>
+          <h2>天气预报（高德）</h2>
           <div class="row">
             <input id="geoWeatherCity" placeholder="城市名或 adcode，如 杭州" style="width:180px;" />
             <button id="geoWeatherBtn">查天气</button>
@@ -390,7 +578,7 @@
       $('logoutBtn').style.display = 'none';
       state.id = null; state.version = 0;
       $('itineraryPanel').style.display = 'none';
-      $('itList').innerHTML = '<span class="muted">未加载</span>';
+      $('itList').innerHTML = '<span class="muted">还没有行程，在下方创建第一个</span>';
     }
 
     async function showMainView(username) {
@@ -460,6 +648,9 @@
       const res = await api('POST', '/api/logout');
       const d = await res.json().catch(() => ({}));
       showAuthView();
+      // 退出后不留上一份用户的草案在内存里，避免换账号误点「确认保存」。
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      $('dfOut').innerHTML = '<span class="muted">填好上方条件后点「生成草案」，这里会显示逐日安排</span>';
       show('已退出：' + (d.loggedOut ? '服务端会话已失效' : 'OK'), 'ok');
     };
 
@@ -468,7 +659,7 @@
       const res = await api('GET', '/api/itineraries');
       if (!res.ok) { $('itList').innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
       const list = await res.json();
-      if (!list.length) { $('itList').innerHTML = '<span class="muted">暂无行程</span>'; return; }
+      if (!list.length) { $('itList').innerHTML = '<span class="muted">暂无行程，在下方创建第一个</span>'; return; }
       $('itList').innerHTML = '';
       list.forEach(it => {
         const div = document.createElement('div'); div.className = 'item';
@@ -934,7 +1125,7 @@
           wrap.style.gap = '6px';
           wrap.style.marginTop = '6px';
           wrap.style.flexWrap = 'wrap';
-          wrap.appendChild(smallBtn('支持', '', () => castVote(c.id, 'SUPPORT')));
+          wrap.appendChild(smallBtn('支持', 'secondary', () => castVote(c.id, 'SUPPORT')));
           wrap.appendChild(smallBtn('反对', 'secondary', () => castVote(c.id, 'OPPOSE')));
           wrap.appendChild(smallBtn('弃权', 'secondary', () => castVote(c.id, 'ABSTAIN')));
           wrap.appendChild(smallBtn('撤票', 'secondary', () => withdrawVote(c.id)));
@@ -1118,6 +1309,158 @@
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
+
+    // ---- 基础业务闭环：草案 → 确认保存 ----
+    let currentDraft = null;
+    let currentDraftRequest = null;
+
+    function dfNum(id) {
+      const raw = $(id).value.trim();
+      return raw === '' ? null : Number(raw);
+    }
+
+    function draftRequestBody() {
+      const body = { destination: $('dfDestination').value.trim() };
+      if ($('dfDepart').value) body.departDate = $('dfDepart').value;
+      if ($('dfReturn').value) body.returnDate = $('dfReturn').value;
+      const days = dfNum('dfDays'); if (days !== null) body.days = days;
+      const travelers = dfNum('dfTravelers'); if (travelers !== null) body.travelers = travelers;
+      const budget = dfNum('dfBudget'); if (budget !== null) body.budget = budget;
+      body.currency = $('dfCurrency').value.trim() || 'CNY';
+      const prefs = $('dfPrefs').value.split(',').map(s => s.trim()).filter(Boolean);
+      if (prefs.length) body.preferences = prefs;
+      return body;
+    }
+
+    function dfUpdateConfirmButton() {
+      const questions = (currentDraft && currentDraft.questions) || [];
+      const blocking = questions.filter(q => q.field === 'departDate' || q.field === 'returnDate');
+      $('dfConfirmBtn').disabled = !currentDraft || blocking.length > 0;
+      $('dfConfirmBtn').title = blocking.length ? '请先补全出发/返回日期再确认保存' : '';
+    }
+
+    function renderDraft(d) {
+      const parts = [];
+      const questions = d.questions || [];
+      if (questions.length) {
+        parts.push('<div class="item" style="display:block;"><div><b>缺项补问（' + questions.length
+          + '）</b><div class="hint">在上方补全后重新点「生成草案」；补全前不能确认保存日期缺失的草案。</div></div></div>');
+        questions.forEach(q => parts.push('<div class="item" style="display:block;"><div><b>'
+          + escapeHtml(q.question) + '</b><div class="meta">字段 ' + escapeHtml(q.field)
+          + ' · ' + escapeHtml(q.hint) + ' · ' + escapeHtml(q.retryWith) + '</div></div></div>'));
+      } else {
+        parts.push('<div class="item"><div><b>需求已填全</b><span class="meta"> 无补问项</span></div></div>');
+      }
+
+      (d.checks || []).forEach(c => parts.push('<div class="item" style="display:block;"><div><b>['
+        + escapeHtml(c.severity) + '] ' + escapeHtml(c.code) + '</b><div class="meta">'
+        + escapeHtml(c.message) + (c.suggestion ? ' · 建议：' + escapeHtml(c.suggestion) : '')
+        + '</div></div></div>'));
+
+      const b = d.budgetEstimate;
+      if (b) {
+        parts.push('<div class="item" style="display:block;"><div><b>预算粗估：'
+          + escapeHtml(b.verdict) + '</b><div class="meta">已核验门票小计 '
+          + escapeHtml(b.totalForKnownTickets) + ' ' + escapeHtml(b.currency)
+          + '，上限 ' + escapeHtml(b.budgetLimit === null ? '未填写' : b.budgetLimit)
+          + '，票价未知 ' + escapeHtml(b.unknownTicketCount) + ' 项</div><div class="hint">'
+          + escapeHtml(b.message) + '</div></div></div>');
+      }
+
+      (d.dailySchedules || []).forEach(day => {
+        const items = (day.items || []).map(i => '<div class="meta">· '
+          + escapeHtml(i.name) + ' <code>' + escapeHtml(i.attractionId) + '</code> · 来源 '
+          + escapeHtml(i.source) + ' · 票价 ' + escapeHtml(i.ticket || '未知')
+          + ' · 开放时间 ' + escapeHtml(i.openTime || '未知') + ' · 未知项 '
+          + escapeHtml((i.unknowns || []).length ? i.unknowns.join('、') : '无') + '</div>').join('');
+        parts.push('<div class="item" style="display:block;"><div><b>第 '
+          + escapeHtml(day.dayIndex) + ' 天 ' + escapeHtml(day.date || '（日期待补）')
+          + '</b></div>' + (items || '<div class="meta">· 本日暂无可用候选景点</div>')
+          + '<div class="hint">' + escapeHtml(day.note) + '</div></div>');
+      });
+      if (!(d.dailySchedules || []).length) {
+        parts.push('<div class="item"><span class="muted">未生成逐日草案：请先填写天数或出发/返回日期</span></div>');
+      }
+
+      if (d.advice) parts.push('<div class="item" style="display:block;"><div><b>文字建议（模型润色）</b></div><pre>'
+        + escapeHtml(d.advice) + '</pre></div>');
+      (d.notices || []).forEach(n => parts.push('<div class="item"><span class="muted">'
+        + escapeHtml(n) + '</span></div>'));
+      parts.push('<div class="item"><span class="muted">来源：'
+        + escapeHtml((d.sources || []).join('、') || '无') + ' · 生成时间 '
+        + escapeHtml(d.generatedAt) + '</span></div>');
+      parts.push('<details><summary class="hint">查看原始草案 JSON</summary><pre>'
+        + escapeHtml(JSON.stringify(d, null, 2)) + '</pre></details>');
+      $('dfOut').innerHTML = parts.join('');
+    }
+
+    $('dfPlanBtn').onclick = async () => {
+      const body = draftRequestBody();
+      if (!body.destination) { show('请填写目的地', 'err'); return; }
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      $('dfOut').innerHTML = '<span class="muted">生成中…</span>';
+      const res = await api('POST', '/api/agent/plan', body, true);
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        $('dfOut').innerHTML = '<span class="muted">生成失败</span>';
+        show('生成草案失败(' + res.status + ')：' + (d.error || ''), 'err');
+        return;
+      }
+      currentDraft = d; currentDraftRequest = body;
+      renderDraft(d); dfUpdateConfirmButton();
+      show((d.questions || []).length
+        ? '草案已生成，还有 ' + d.questions.length + ' 项待补全；尚未写库'
+        : '草案已生成，需求已填全；尚未写库', 'ok');
+    };
+
+    $('dfConfirmBtn').onclick = async () => {
+      if (!currentDraft || !currentDraftRequest) return;
+      const title = $('dfTitle').value.trim() || (currentDraftRequest.destination + '行程');
+      const high = (currentDraft.checks || []).filter(c => c.severity === 'HIGH');
+      if (high.length && !confirm('草案有 ' + high.length + ' 条高风险提示：\n'
+        + high.map(c => c.message).join('\n') + '\n仍要保存吗？')) return;
+
+      // 载荷由服务端按景点 ID 重新从知识库装配，客户端不回传票价/来源结论。
+      const mr = await api('POST', '/api/agent/plan/materialize',
+        { title, request: currentDraftRequest, attractionIds: [] }, true);
+      const payload = await mr.json().catch(() => ({}));
+      if (!mr.ok) {
+        show('确认载荷失败(' + mr.status + ')：' + (payload.error || ''), 'err');
+        return;
+      }
+
+      const cr = await api('POST', '/api/itineraries',
+        { title: payload.title, plan: payload.plan }, true);
+      const it = await cr.json().catch(() => ({}));
+      if (cr.status !== 201) {
+        show('创建行程失败(' + cr.status + ')：' + (it.error || ''), 'err');
+        return;
+      }
+
+      if ((payload.dailySchedules || []).length) {
+        const dr = await api('PUT', '/api/itineraries/' + it.id + '/daily?version=' + it.version,
+          payload.dailySchedules, true);
+        if (!dr.ok) {
+          const e = await dr.json().catch(() => ({}));
+          show('行程已创建，但每日安排保存失败(' + dr.status + ')：' + (e.error || '')
+            + '。请在「每日安排」页签手动重试。', 'err');
+          await refreshList(); await openItinerary(it.id);
+          return;
+        }
+      }
+
+      show('已确认保存：' + it.title + '。重启服务后重新登录仍可读取该行程与逐日安排。', 'ok');
+      currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
+      await refreshList(); await openItinerary(it.id);
+    };
+
+    // 页签是 div，补键盘可达（不改变任何切换逻辑）
+    document.querySelectorAll('.tab, .authtab').forEach(t => {
+      t.tabIndex = 0;
+      t.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); }
+      });
+    });
 
     // ---- 初始化：先判断会话，再决定显示登录卡还是测试台 ----
     refreshMe();

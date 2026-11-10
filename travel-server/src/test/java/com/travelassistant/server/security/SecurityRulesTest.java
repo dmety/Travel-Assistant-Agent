@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,6 +75,33 @@ class SecurityRulesTest extends ApiTestBase {
           .andExpect(status().is3xxRedirection())
           .andExpect(redirectedUrl("/"));
     }
+  }
+
+  @Test
+  @DisplayName("三个能力状态接口匿名可读，且未配置模型时不宣称文字建议")
+  void capabilityStatusEndpointsArePublic() throws Exception {
+    // 状态接口只返回布尔、统计与能力描述，不含用户数据；未登录时也必须能观察降级原因。
+    mvc.perform(get("/api/attractions/status")).andExpect(status().isOk());
+    mvc.perform(get("/api/location/status")).andExpect(status().isOk());
+    mvc.perform(get("/api/agent/status"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.modelConfigured").value(false))
+        .andExpect(jsonPath("$.capabilities", not(hasItem("文字建议"))));
+  }
+
+  @Test
+  @DisplayName("模型购票建议接口匿名 401，登录后才可调用")
+  void modelAdviceRequiresAuthentication() throws Exception {
+    // 这条接口会触发模型调用，匿名放行等于把模型配额开放给任意请求。
+    mvc.perform(post("/api/agent/tickets/advice")
+            .contentType("application/json").content("{}"))
+        .andExpect(status().isUnauthorized());
+
+    MockHttpSession owner = registerAndLogin();
+    mvc.perform(post("/api/agent/tickets/advice")
+            .session(owner).contentType("application/json").content("{}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stockVerified").value(false));
   }
 
   @Test
