@@ -10,6 +10,7 @@ import com.travelassistant.server.application.agent.vote.PlanVoteTally;
 import com.travelassistant.server.application.agent.vote.VoteOrchestrator;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
+import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.util.ArrayList;
@@ -56,14 +57,17 @@ public class ChatTools {
   private final AgentOrchestrator orchestrator;
   private final VoteOrchestrator votes;
   private final ObjectMapper mapper;
+  private final MapTools maps;
 
   public ChatTools(PlaceResolver places, AttractionStore store,
-      AgentOrchestrator orchestrator, VoteOrchestrator votes, ObjectMapper mapper) {
+      AgentOrchestrator orchestrator, VoteOrchestrator votes, ObjectMapper mapper,
+      MapTools maps) {
     this.places = places;
     this.store = store;
     this.orchestrator = orchestrator;
     this.votes = votes;
     this.mapper = mapper;
+    this.maps = maps;
   }
 
   /**
@@ -152,7 +156,8 @@ public class ChatTools {
       String alts = place.alternatives().isEmpty() ? ""
           : "；相近城市：" + String.join("、", place.alternatives());
       return new Outcome(false, "没认出「" + name + "」属于哪座城市" + alts
-          + "。不要臆测归属，如实告诉用户这个地名没查到。", null);
+          + "。不要让用户重说一遍——直接把「" + name + "」原名传给 get_inspiration 或"
+          + " draft_itinerary，未收录的地名会自动实时检索本地景点。", null);
     }
     String summary = "「" + name + "」→ 城市 " + place.city()
         + (place.spot() == null || place.spot().isBlank() ? "" : "，景点 " + place.spot())
@@ -172,8 +177,29 @@ public class ChatTools {
     int limit = Math.min(Math.max(number(args, "limit", MAX_PLACES), 1), 12);
     List<Attraction> found = store.findByCity(city);
     if (found.isEmpty()) {
-      return new Outcome(false, "没查到「" + city + "」的景点。不要编造景点名；"
-          + "想看真实景点可以改调 get_inspiration（未收录的地名会自动实时检索）。", null);
+      // 用户口径：先查知识库，没有就自动调地图工具，不要让用户换个说法再试一遍
+      try {
+        MapTools.ScenicResult live = maps.findScenicSpots(city, limit);
+        List<Map<String, Object>> liveRows = new ArrayList<>();
+        for (MapTools.ScenicSpot s : live.spots()) {
+          Map<String, Object> row = new LinkedHashMap<>();
+          row.put("name", s.name());
+          row.put("type", s.type());
+          row.put("address", s.address());
+          row.put("district", s.district());
+          row.put("tel", s.tel());
+          row.put("city", s.district() != null && !s.district().isBlank() ? s.district() : city);
+          liveRows.add(row);
+        }
+        if (!liveRows.isEmpty()) {
+          return new Outcome(true, cut(city + " 的实时检索景点：" + namesFromRows(liveRows)
+                  + "。候选未经核验，票价与开放时间地图未提供，以景区官方信息为准。"),
+              new Card("places", null, liveRows));
+        }
+      } catch (RuntimeException ignored) {
+        // 实时检索不可用就走统一的查不到话术
+      }
+      return new Outcome(false, "没查到「" + city + "」的景点。不要编造景点名，如实告诉用户没查到。", null);
     }
     List<Attraction> shown = found.stream().limit(limit).toList();
     List<Map<String, Object>> rows = new ArrayList<>();

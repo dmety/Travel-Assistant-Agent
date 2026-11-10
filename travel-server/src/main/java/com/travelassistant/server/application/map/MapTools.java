@@ -161,13 +161,30 @@ public class MapTools {
   /**
    * POI 是否落在目标地名内：优先看区县名与城市名；地址匹配只在区县缺失时兜底——
    * 否则「黄梅公司大厦」这种名字里带地名的异地企业会混进候选。
+   *
+   * <p>另一条通道是「名称命中 + 风景类类型」：西岳华山在渭南市华阴市，区县/城市/地址
+   * 都不含「华山」二字，没有这条会漏掉最负盛名的目标本体；而同名企业因类型不是
+   * 风景类仍会被拦住。
    */
   private static boolean mentions(Place poi, String name) {
     if (contains(poi.district(), name) || contains(poi.city(), name)) {
       return true;
     }
-    return (poi.district() == null || poi.district().isBlank())
-        && contains(poi.address(), name);
+    if ((poi.district() == null || poi.district().isBlank())
+        && contains(poi.address(), name)) {
+      return true;
+    }
+    return contains(poi.name(), name) && isScenicType(poi.type());
+  }
+
+  /** 风景类类型词：名称命中目标地名时，靠类型确认它是景区而不是同名企业。 */
+  private static boolean isScenicType(String type) {
+    if (type == null || type.isBlank()) {
+      return false;
+    }
+    return type.contains("风景名胜") || type.contains("旅游区") || type.contains("景区")
+        || type.contains("景点") || type.contains("公园") || type.contains("世界遗产")
+        || type.contains("寺庙") || type.contains("古迹") || type.contains("国家级");
   }
 
   private static boolean contains(String text, String name) {

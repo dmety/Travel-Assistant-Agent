@@ -42,6 +42,7 @@ class ChatToolsTest {
   private AttractionStore store;
   private AgentOrchestrator orchestrator;
   private VoteOrchestrator votes;
+  private com.travelassistant.server.application.map.MapTools maps;
   private ChatTools tools;
 
   @BeforeEach
@@ -50,7 +51,8 @@ class ChatToolsTest {
     store = mock(AttractionStore.class);
     orchestrator = mock(AgentOrchestrator.class);
     votes = mock(VoteOrchestrator.class);
-    tools = new ChatTools(places, store, orchestrator, votes, new ObjectMapper());
+    maps = mock(com.travelassistant.server.application.map.MapTools.class);
+    tools = new ChatTools(places, store, orchestrator, votes, new ObjectMapper(), maps);
   }
 
   private static Attraction attraction(String id, String name, Double lat) {
@@ -73,7 +75,8 @@ class ChatToolsTest {
     assertThat(hit.ok()).isTrue();
     assertThat(hit.summary()).contains("十堰");
     assertThat(miss.ok()).isFalse();
-    assertThat(miss.summary()).contains("没查到").doesNotContain("知识库");
+    assertThat(miss.summary()).contains("没认出").doesNotContain("知识库")
+        .contains("get_inspiration");
   }
 
   @Test
@@ -82,6 +85,9 @@ class ChatToolsTest {
     when(store.findByCity("武汉")).thenReturn(List.of(
         attraction("a1", "黄鹤楼", 30.5), attraction("a2", "东湖", null)));
     when(store.findByCity("婺源")).thenReturn(List.of());
+    when(maps.findScenicSpots(eq("婺源"), org.mockito.ArgumentMatchers.anyInt()))
+        .thenReturn(new com.travelassistant.server.application.map.MapTools.ScenicResult(
+            "婺源", List.of(), List.of()));
 
     ChatTools.Outcome found = tools.execute("list_attractions", "{\"city\":\"武汉\"}");
     ChatTools.Outcome empty = tools.execute("list_attractions", "{\"city\":\"婺源\"}");
@@ -91,6 +97,25 @@ class ChatToolsTest {
     assertThat(found.card().type()).isEqualTo("places");
     assertThat(empty.ok()).isFalse();
     assertThat(empty.summary()).contains("不要编造");
+  }
+
+  @Test
+  @DisplayName("列景点：知识库没收录就自动改用地图工具实时检索，不让用户换个说法再试")
+  void listAttractionsFallsBackToMap() {
+    when(store.findByCity("华山")).thenReturn(List.of());
+    when(maps.findScenicSpots(eq("华山"), org.mockito.ArgumentMatchers.anyInt()))
+        .thenReturn(new com.travelassistant.server.application.map.MapTools.ScenicResult(
+            "华山",
+            List.of(new com.travelassistant.server.application.map.MapTools.ScenicSpot(
+                "华山风景名胜区", "风景名胜;风景名胜", "华阴市玉泉路", "华阴市", null,
+                34.48, 110.08, "GCJ-02", "高德")),
+            List.of()));
+
+    ChatTools.Outcome outcome = tools.execute("list_attractions", "{\"city\":\"华山\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("华山风景名胜区").contains("未经核验");
+    assertThat(outcome.card().type()).isEqualTo("places");
   }
 
   @Test

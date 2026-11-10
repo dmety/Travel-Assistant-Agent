@@ -116,6 +116,21 @@ class MapToolsTest {
         .containsExactly("黄梅文化广场", "五祖寺", "黄梅戏艺术剧院");
   }
 
+  @Test
+  @DisplayName("名称命中 + 风景类类型：华阴市的西岳华山不被区县过滤漏掉，同名医院仍剔除")
+  void keepsNameHitScenicPoi() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(false);
+    // 西岳华山位于渭南市华阴市：区县/城市/地址都不含「华山」，靠名称+类型保留
+    when(amap.searchScenicSpots("华山", null, 25)).thenReturn(List.of(
+        namedPlace("华山风景名胜区", "风景名胜;风景名胜;国家级风景名胜", "华阴市", 34.48, 110.08),
+        namedPlace("华山医院", "医疗保健;综合医院", "华阴市", 34.50, 110.10)));
+    MapTools.ScenicResult result = mapTools.findScenicSpots("华山", 8);
+
+    assertThat(result.spots()).extracting(MapTools.ScenicSpot::name)
+        .containsExactly("华山风景名胜区");
+  }
+
   private static Place place(String name, String address, String city, String district) {
     return place(name, address, city, district, 30.116, 115.934);
   }
