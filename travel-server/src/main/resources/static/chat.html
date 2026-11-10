@@ -1103,7 +1103,7 @@ button:focus:not(:focus-visible){outline:none;}
   function candCard(cands){
     var box = el('div','cands');
     var head = el('div','cands-head');
-    head.textContent = '候选景点 · 来自景区知识库';
+    head.textContent = '候选景点';
     box.appendChild(head);
     cands.forEach(function(a){
       var row = el('div','cand');
@@ -1822,7 +1822,7 @@ button:focus:not(:focus-visible){outline:none;}
   /** 景点小表：只列名字、等级、票价原文，详情让用户点开行程看。 */
   function placesBlock(rows){
     var box = el('div','wx');
-    box.appendChild(el('div','wx-h','景点 · 来自景区知识库（票价与开放时间是原文快照，可能过期）'));
+    box.appendChild(el('div','wx-h','景点（票价与开放时间以景区公告为准）'));
     (rows || []).forEach(function(r){
       var row = el('div','wx-row');
       row.appendChild(el('div','d', escapeHtml(brief(r.name || '', 8))));

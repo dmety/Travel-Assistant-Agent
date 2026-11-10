@@ -83,32 +83,22 @@ public class PlanningService {
       notices.add(byCity.error());
     }
 
-    // 城市查不到时，用偏好关键词兜底检索，避免「换个说法就完全没结果」
-    if (candidates.isEmpty() && !request.preferences().isEmpty()) {
-      for (String preference : request.preferences()) {
-        if (preference == null || preference.isBlank()) {
-          continue;
-        }
-        ToolOutcome<List<Attraction>> byName = tools.searchByName(preference, 5);
-        if (byName.ok()) {
-          for (Attraction a : byName.value()) {
-            if (!candidates.contains(a)) {
-              candidates.add(a);
-            }
-          }
-        }
-        if (candidates.size() >= PlanningTools.MAX_CANDIDATES) {
-          break;
-        }
-      }
-      if (!candidates.isEmpty()) {
-        sources.add("本地景点知识库");
-        notices.add("本地库中没有「" + city + "」的景点，以下候选是按偏好关键词检索的结果，请确认目的地");
+    // 城市查不到时改用地图实时检索该地名本地的真实景点。
+    // 早期版本曾用偏好关键词全库模糊匹配兜底，结果「人文」会命中全国任何带这俩字的
+    // 名字（桂林/兰州/南宁的文化宫），候选全跑到省外——已废弃，宁可实时检索也不凑数。
+    if (candidates.isEmpty()) {
+      ToolOutcome<List<Attraction>> live = tools.searchLive(city, PlanningTools.MAX_CANDIDATES);
+      if (live.ok() && !live.value().isEmpty()) {
+        candidates.addAll(live.value());
+        sources.add("地图实时检索");
+        notices.add("候选来自地图实时检索，票价与开放时间未知，以景区官方信息为准");
+      } else if (!live.ok()) {
+        notices.add(live.error());
       }
     }
 
-    if (candidates.isEmpty() && byCity.ok()) {
-      notices.add("本地知识库未收录「" + city + "」的景点。可以换用省份名、城市名全称，或补充偏好关键词再试");
+    if (candidates.isEmpty()) {
+      notices.add("没查到「" + city + "」的景点，可以换个地名或补充偏好关键词再试");
     }
 
     // 2. 天气（仅在高德可用时）
@@ -204,9 +194,9 @@ public class PlanningService {
     sb.append("- 偏好：").append(request.preferences().isEmpty()
         ? "未提供" : String.join("、", request.preferences())).append('\n');
 
-    sb.append("\n候选景点（来自本地知识库，只能从这里选）：\n");
+    sb.append("\n候选景点（只能从这里选）：\n");
     if (candidates.isEmpty()) {
-      sb.append("- 无（本地库未收录该城市）\n");
+      sb.append("- 无\n");
     } else {
       for (Attraction a : candidates) {
         sb.append("- ").append(a.name());

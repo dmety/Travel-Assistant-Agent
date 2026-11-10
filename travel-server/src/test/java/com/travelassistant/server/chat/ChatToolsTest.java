@@ -60,7 +60,7 @@ class ChatToolsTest {
   }
 
   @Test
-  @DisplayName("核实地名：命中时给出城市，未命中时明确说知识库没有")
+  @DisplayName("核实地名：命中时给出城市，未命中时如实说没查到")
   void resolvePlace() {
     when(places.resolve(eq("武当山"), anyList())).thenReturn(
         PlaceResolution.hit("武当山", "十堰", "武当山", "湖北省", "spot", "kb", "按十堰检索"));
@@ -73,7 +73,7 @@ class ChatToolsTest {
     assertThat(hit.ok()).isTrue();
     assertThat(hit.summary()).contains("十堰");
     assertThat(miss.ok()).isFalse();
-    assertThat(miss.summary()).contains("知识库");
+    assertThat(miss.summary()).contains("没查到").doesNotContain("知识库");
   }
 
   @Test
@@ -159,7 +159,7 @@ class ChatToolsTest {
     ChatTools.Outcome outcome = tools.execute("get_inspiration", "{\"city\":\"杭州\"}");
 
     assertThat(outcome.ok()).isTrue();
-    assertThat(outcome.summary()).contains("西湖").contains("可能过期");
+    assertThat(outcome.summary()).contains("西湖").contains("以景区公告为准");
     assertThat(outcome.card().type()).isEqualTo("places");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
