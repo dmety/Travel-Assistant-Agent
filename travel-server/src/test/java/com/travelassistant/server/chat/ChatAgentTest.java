@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -86,6 +87,33 @@ class ChatAgentTest {
     assertThat(reply.trace().get(0).label()).isEqualTo("找餐馆");
     assertThat(reply.cards()).hasSize(1);
     assertThat(reply.state().city()).isEqualTo("武汉");
+  }
+
+  @Test
+  @DisplayName("旧会话存着错城市：第二轮给天数人数也按景点原名排，不跨省")
+  void staleCityDoesNotLeakIntoToolCalls() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("c1", "draft_itinerary",
+            "{\"city\":\"济南\",\"days\":4,\"travelers\":3}"))
+        .thenReturn(say("华山4天3人的草案排好了。"));
+    when(tools.execute(any(), any())).thenReturn(
+        new ChatTools.Outcome(true, "华山 的景点：华山风景名胜区", null));
+    ConversationState stale = new ConversationState("济南", null, null, null, List.of());
+
+    ChatReply reply = agent.chat("4天3个人，帮我排一下",
+        List.of(new ConversationTurn(ConversationTurn.USER, "华山")), stale);
+
+    // 系统提示里不再有「城市=济南」，且明确指定按华山查
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<Map<String, Object>>> captor =
+        (ArgumentCaptor<List<Map<String, Object>>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(List.class);
+    verify(model, times(2)).chat(captor.capture(), anyList(), anyInt());
+    String system = String.valueOf(captor.getAllValues().get(0).get(0).get("content"));
+    assertThat(system).doesNotContain("城市=济南").contains("本次聊的是「华山」");
+    // 模型即便仍写 city=济南，工具参数也被改回华山；状态同步纠正
+    verify(tools).execute(eq("draft_itinerary"),
+        argThat(args -> args.contains("华山") && !args.contains("济南")));
+    assertThat(reply.state().city()).isEqualTo("华山");
   }
 
   @Test

@@ -292,6 +292,21 @@ class ChatToolsTest {
   }
 
   @Test
+  @DisplayName("排行程摘要带上逐日景点：模型不会误以为工具只给了空壳")
+  void planSummaryIncludesDailyItems() {
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("PLAN_DRAFT",
+        "builtin.planning", planFactWithDays()));
+    when(orchestrator.contractBody(any())).thenReturn(Map.of("facts", List.of()));
+
+    ChatTools.Outcome outcome = tools.execute("draft_itinerary",
+        "{\"city\":\"九寨沟\",\"days\":2,\"travelers\":3}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("D1").contains("九寨沟-盆景滩")
+        .contains("D2").contains("长海").contains("候选共 4 个");
+  }
+
+  @Test
   @DisplayName("编排失败：如实说明没有结果，不伪造草案")
   void planRefused() {
     when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(new DispatchOutcome(
@@ -349,6 +364,20 @@ class ChatToolsTest {
     value.put("destination", "武汉");
     return new Fact("f2", "CONTENT", value,
         new Evidence("KB", "kb", Evidence.UNVERIFIED, Instant.now(), "快照"));
+  }
+
+  private static Fact planFactWithDays() {
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "PLAN_DRAFT");
+    value.put("destination", "九寨沟");
+    value.put("candidates", List.of("a", "b", "c", "d"));
+    value.put("dailySchedules", List.of(
+        Map.of("dayIndex", 1, "items", List.of(Map.of("name", "九寨沟"),
+            Map.of("name", "九寨沟-盆景滩"))),
+        Map.of("dayIndex", 2, "items", List.of(Map.of("name", "长海"),
+            Map.of("name", "五花海")))));
+    return new Fact("f2", "CONTENT", value,
+        new Evidence("AMAP", "builtin.planning", Evidence.UNVERIFIED, Instant.now(), "快照"));
   }
 
   private static Fact weatherFact() {

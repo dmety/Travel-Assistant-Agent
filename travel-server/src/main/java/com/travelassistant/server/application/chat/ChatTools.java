@@ -165,6 +165,9 @@ public class ChatTools {
     if ("county".equals(place.level()) && place.city() != null) {
       // 县级地名不在按地级市建的索引里：不提示的话模型会拿地级市排程，给的景点全在别的县区
       summary += "。排「" + name + "」本地的行程时把原名传给 draft_itinerary，不要换成上级市";
+    } else if ("alias".equals(place.source()) && name.equals(place.city())) {
+      // 著名景区在库里没有可核验条目，按原名实时检索；别拿归属城市去查库里的同名冷门点
+      summary += "。排本地行程把原名「" + name + "」传给 draft_itinerary 或 get_inspiration";
     }
     return new Outcome(true, summary, null);
   }
@@ -324,7 +327,43 @@ public class ChatTools {
     }
     DispatchOutcome outcome = orchestrator.dispatch(
         new DispatchRequest("PLAN_DRAFT", context, Map.of()));
-    return envelopeOutcome(outcome, "PLAN_DRAFT", namesOf(outcome, "PLAN_DRAFT", "destination"));
+    return envelopeOutcome(outcome, "PLAN_DRAFT", planHighlight(outcome));
+  }
+
+  /**
+   * 草案摘要必须带逐日安排：只给目的地的话模型会以为「工具没排出来」，
+   * 转而凭记忆补景点、或回一句「只返回了空壳」。逐日条目全在 fact 里，摘要摊开即可。
+   */
+  private String planHighlight(DispatchOutcome outcome) {
+    for (Object value : factsOf(outcome, "PLAN_DRAFT")) {
+      if (!(value instanceof Map<?, ?> m)) {
+        continue;
+      }
+      StringBuilder sb = new StringBuilder(String.valueOf(
+          m.get("destination") == null ? "目的地" : m.get("destination")));
+      if (m.get("dailySchedules") instanceof List<?> days) {
+        for (Object day : days) {
+          if (!(day instanceof Map<?, ?> d)) {
+            continue;
+          }
+          List<String> names = new ArrayList<>();
+          if (d.get("items") instanceof List<?> items) {
+            for (Object item : items) {
+              if (item instanceof Map<?, ?> im && im.get("name") != null) {
+                names.add(String.valueOf(im.get("name")));
+              }
+            }
+          }
+          sb.append("；D").append(d.get("dayIndex") == null ? "?" : d.get("dayIndex"))
+              .append(names.isEmpty() ? " 暂无候选景点" : " " + String.join("、", names));
+        }
+      }
+      if (m.get("candidates") instanceof List<?> candidates) {
+        sb.append("；候选共 ").append(candidates.size()).append(" 个");
+      }
+      return sb.toString();
+    }
+    return "无";
   }
 
   /**
