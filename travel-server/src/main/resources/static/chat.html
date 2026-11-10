@@ -266,6 +266,18 @@ button{font-family:inherit;}
   padding:var(--sp-2) var(--sp-4) var(--sp-3);
   font-size:var(--fs-xs); color:var(--text-3); background:var(--surface-2);
 }
+/* 编排层收敛：次要候选、检查项、投票明细默认折叠，点开才占屏 */
+.fold-btn{
+  display:block; width:100%; text-align:left; cursor:pointer;
+  border:0; border-top:1px solid var(--line); background:var(--surface-2);
+  color:var(--primary); font-size:var(--fs-xs); font-weight:600;
+  padding:var(--sp-2) var(--sp-4);
+}
+.fold-btn:hover{background:var(--primary-soft);}
+.fold-btn:focus-visible{outline:2px solid var(--primary); outline-offset:-2px;}
+.fold-body[hidden]{display:none;}
+.plan-empty{padding:var(--sp-3) var(--sp-4); font-size:var(--fs-xs); color:var(--text-2);}
+.day-meta{color:var(--text-3);}
 
 /* ---------- 候选景点（真实知识库结果）---------- */
 .cands{
@@ -1029,6 +1041,8 @@ button:focus:not(:focus-visible){outline:none;}
     if(!d) return null;
     return {
       advice: d.advice || null,
+      // 请求天数 / 实际排出天数 / 收敛掉的天数：只用来显示一条说明，不铺空天
+      dayScope: d.dayScope || null,
       notices: (d.notices || []).slice(0, 5),
       sources: d.sources || [],
       questions: (d.questions || []).map(function(q){
@@ -1067,28 +1081,62 @@ button:focus:not(:focus-visible){outline:none;}
       parts.push('知识库里没有检索到「' + place + '」的景点记录。');
     }
     if(view.dailySchedules.length){
-      parts.push('按 ' + view.dailySchedules.length + ' 天给出逐日草案，每天最多 2 个候选；' +
+      parts.push('按 ' + view.dailySchedules.length + ' 天给出逐日草案，只排有可查景点的天；' +
                  '具体游览时刻没有依据，留给你确认。');
+      var trimmed = ((view.dayScope || {}).trimmedDays) || 0;
+      if(trimmed) parts.push('还有 ' + trimmed + ' 天没有可查景点，没有硬凑空天。');
     } else {
-      parts.push('告诉我玩几天，我再把候选排进每一天。');
+      parts.push('这轮没有可排的候选，告诉我玩几天、或换个目的地再试。');
     }
     var warn = view.checks.filter(function(c){ return c.severity === 'HIGH'; });
     if(warn.length) parts.push('有 ' + warn.length + ' 项需要先处理（见下方提示）。');
     return parts.join('');
   }
 
-  function planCard(days){
+  /** 通用折叠：次要信息不默认占屏，点开才显示（DOM 已建好，只是 hidden）。 */
+  function foldBlock(box, label, render){
+    var body = el('div','fold-body');
+    body.hidden = true;
+    render(body);
+    var btn = el('button','fold-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-expanded','false');
+    btn.textContent = label + ' ▾';
+    btn.addEventListener('click', function(){
+      var open = body.hidden;
+      body.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = label + (open ? ' ▴' : ' ▾');
+    });
+    box.appendChild(btn);
+    box.appendChild(body);
+  }
+
+  /**
+   * 逐日草案：编排层已只给有候选的天，这里再兜一层（历史消息可能仍带空天）。
+   * 票价与开放时间压成一行小字，长篇 note 不逐天重复；收敛掉的天合并成一条说明。
+   */
+  function planCard(days, view){
+    var all = days || [];
+    var filled = all.filter(function(d){ return d && d.items && d.items.length; });
+    var emptyDays = all.length - filled.length;
+    var trimmed = Number(((view && view.dayScope) || {}).trimmedDays || 0);
     var box = el('div','plan');
     var head = el('div','plan-head');
     var title = el('span','plan-title');
     title.textContent = '逐日草案';
     var tag = el('span','plan-tag');
-    tag.textContent = days.length + ' 天';
+    tag.textContent = filled.length + ' 天';
     head.appendChild(title);
     head.appendChild(tag);
     box.appendChild(head);
 
-    days.forEach(function(d){
+    if(!filled.length){
+      var none = el('div','plan-empty');
+      none.textContent = '本轮没有可排的候选景点，未生成空天。';
+      box.appendChild(none);
+    }
+    filled.forEach(function(d){
       var row = el('div','day');
       var no = el('span','day-no');
       no.textContent = 'D' + d.dayIndex;
@@ -1096,41 +1144,40 @@ button:focus:not(:focus-visible){outline:none;}
 
       var txt = el('div','day-txt');
       var b = el('b');
-      b.textContent = d.items.length
-        ? d.items.map(function(i){ return i.name; }).join(' · ')
-        : '暂无候选';
+      b.textContent = d.items.map(function(i){ return i.name; }).join(' · ');
       txt.appendChild(b);
 
-      if(d.items.length){
-        // 一个景点一行：窄屏下把两个景点挤在「；」分隔的一行里很难读
-        d.items.forEach(function(i){
-          var line = el('span');
-          line.textContent = i.name + '：票价 ' + brief(fmt(i.ticket), 18) +
-                             '，开放 ' + brief(fmt(i.openTime), 20);
-          txt.appendChild(line);
-        });
-        if(d.date){
-          var dd = el('span');
-          dd.textContent = d.date;
-          txt.appendChild(dd);
-        }
-      } else {
-        var sub = el('span');
-        sub.textContent = d.note || '当天没有匹配到候选景点';
-        txt.appendChild(sub);
-      }
+      var bits = d.items.map(function(i){
+        var t = brief(fmt(i.ticket), 14);
+        var o = brief(fmt(i.openTime), 16);
+        var parts = [t === '未知' ? '票价未核验' : '票价 ' + t];
+        if(o !== '未知') parts.push('开放 ' + o);
+        return i.name + '：' + parts.join('，');
+      });
+      if(d.date) bits.push(d.date);
+      var meta = el('span','day-meta');
+      meta.textContent = bits.join('；');
+      txt.appendChild(meta);
       row.appendChild(txt);
       box.appendChild(row);
     });
+    var left = trimmed + emptyDays;
+    if(left > 0){
+      var foot = el('div','plan-foot');
+      foot.textContent = '另有 ' + left + ' 天没有可查景点，未硬凑空天；'
+        + '可以把天数缩短到 ' + filled.length + ' 天，或补一个周边城市再排。';
+      box.appendChild(foot);
+    }
     return box;
   }
 
+  /** 候选景点默认只列排序最前的 3 个，其余折叠，避免一次刷一长串。 */
   function candCard(cands){
     var box = el('div','cands');
     var head = el('div','cands-head');
-    head.textContent = '候选景点';
+    head.textContent = '候选景点 · 共 ' + cands.length + ' 个';
     box.appendChild(head);
-    cands.forEach(function(a){
+    function addRow(target, a){
       var row = el('div','cand');
       var name = el('b');
       name.textContent = a.name;
@@ -1139,12 +1186,20 @@ button:focus:not(:focus-visible){outline:none;}
       if(a.city) bits.push(a.city);
       if(a.level) bits.push(a.level);
       if(a.rating) bits.push('评分 ' + a.rating);
-      bits.push('票价 ' + brief(fmt(a.ticket), 16));
+      bits.push(a.ticket == null || a.ticket === '' ? '票价未核验'
+        : '票价 ' + brief(fmt(a.ticket), 16));
       meta.textContent = bits.join(' · ');
       row.appendChild(name);
       row.appendChild(meta);
-      box.appendChild(row);
-    });
+      target.appendChild(row);
+    }
+    var shown = cands.slice(0, 3);
+    shown.forEach(function(a){ addRow(box, a); });
+    if(cands.length > shown.length){
+      foldBlock(box, '展开其余 ' + (cands.length - shown.length) + ' 个候选', function(body){
+        cands.slice(shown.length).forEach(function(a){ addRow(body, a); });
+      });
+    }
     return box;
   }
 
@@ -1811,16 +1866,17 @@ button:focus:not(:focus-visible){outline:none;}
   }
 
   /**
-   * 投票卡片：三位评委 Agent 两轮投票的结论。只展示评委与主 Agent 确认过的内容——
-   * 候选方案、加权得分与胜出者全部来自投票计票，不在这里补任何形容词。
+   * 投票卡片：默认只给「胜出 + 一句口径」，候选评分、主 Agent 草案、购票入口全部折叠。
+   * 用户不想一屏里同时看到多套待候选和重复草案；想核对细节再点开，数据本身不删、不改写。
    */
   function voteBlock(data){
     data = data || {};
     var box = el('div','vote');
     var plans = data.plans || [];
     var ranking = data.ranking || [];
+    var notices = data.notices || [];
     var head = el('div','vote-h');
-    head.textContent = '评委投票 · ' + plans.length + ' 套候选 · ' + ranking.length + ' 套方案计分';
+    head.textContent = '评委投票 · 共 ' + plans.length + ' 套候选';
     box.appendChild(head);
     if(data.winner){
       var win = el('div','vote-win');
@@ -1829,35 +1885,44 @@ button:focus:not(:focus-visible){outline:none;}
         + (winnerPlan && winnerPlan.title ? ' · ' + winnerPlan.title : '')
         + (winnerPlan && winnerPlan.focus ? '（侧重' + ({COST:'省钱',FOOD:'美食',WALK:'少走路',BALANCED:'均衡'}[winnerPlan.focus] || winnerPlan.focus) + '）' : '');
       box.appendChild(win);
+      var tip = el('div','vote-tip');
+      tip.textContent = '评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。';
+      box.appendChild(tip);
+    } else if(notices.length){
+      box.appendChild(el('div','vote-tip', escapeHtml(notices[0] || '本轮没有产生推荐')));
     }
-    ranking.forEach(function(r){
-      var row = el('div','vote-row');
-      row.appendChild(el('div','d', escapeHtml(r.planId || '')));
-      row.appendChild(el('div','', escapeHtml('加权 ' + (r.score || '-') + ' · ' + (r.voterCount || 0) + ' 票有效')));
-      box.appendChild(row);
-    });
-    if(!data.winner && (data.notices || []).length){
-      box.appendChild(el('div','vote-tip', escapeHtml(data.notices[0] || '本轮没有产生推荐')));
-    } else {
-      box.appendChild(el('div','vote-tip','评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。'));
-    }
-    var draft = data.draft || null;
-    if(draft){
-      var dbox = el('div','');
-      dbox.style.marginTop = 'var(--sp-2)';
-      dbox.appendChild(el('div','wx-h', '主 Agent 汇总 ' + (data.collectedFactCount || 0)
-        + ' 条子 Agent 事实整理的草案'));
-      (draft.dailySchedules || []).forEach(function(d){
-        var names = (d.items || []).join('、') || '本轮未收集到景点候选';
-        dbox.appendChild(el('div','vote-tip', escapeHtml('D' + d.day + '：' + names)));
+
+    foldBlock(box, '展开 ' + plans.length + ' 套候选评分与主 Agent 草案', function(fbody){
+      ranking.forEach(function(r){
+        var row = el('div','vote-row');
+        row.appendChild(el('div','d', escapeHtml(r.planId || '')));
+        row.appendChild(el('div','', escapeHtml('加权 ' + (r.score || '-') + ' · ' + (r.voterCount || 0) + ' 票有效')));
+        fbody.appendChild(row);
       });
-      var guidanceBox = ticketGuidanceBlock(draft.ticketGuidance);
-      if(guidanceBox){
-        guidanceBox.style.marginTop = 'var(--sp-2)';
-        dbox.appendChild(guidanceBox);
+      var draft = data.draft || null;
+      if(draft){
+        var dbox = el('div','');
+        dbox.style.marginTop = 'var(--sp-2)';
+        dbox.appendChild(el('div','wx-h', '主 Agent 汇总 ' + (data.collectedFactCount || 0)
+          + ' 条子 Agent 事实整理的草案'));
+        (draft.dailySchedules || []).forEach(function(d){
+          if(!d.items || !d.items.length) return;  // 不重复渲染「暂无候选」
+          dbox.appendChild(el('div','vote-tip', escapeHtml('D' + d.day + '：' + d.items.join('、'))));
+        });
+        var trimmed = Number((draft.dayScope || {}).trimmedDays || 0);
+        if(trimmed){
+          var folded = el('div','vote-tip');
+          folded.textContent = '另有 ' + trimmed + ' 天没有可查景点，未硬凑空天。';
+          dbox.appendChild(folded);
+        }
+        var guidanceBox = ticketGuidanceBlock(draft.ticketGuidance);
+        if(guidanceBox){
+          guidanceBox.style.marginTop = 'var(--sp-2)';
+          dbox.appendChild(guidanceBox);
+        }
+        fbody.appendChild(dbox);
       }
-      box.appendChild(dbox);
-    }
+    });
     return box;
   }
 
@@ -1912,7 +1977,9 @@ button:focus:not(:focus-visible){outline:none;}
     var box = el('div','wx places');
     box.appendChild(el('div','wx-h','景点（好评高的在前，点评价看评论入口 · 票价以景区公告为准）'));
     var links = [], seen = {};
-    (rows || []).forEach(function(r){
+    var list = rows || [];
+    var shown = list.slice(0, 4);
+    function addRow(target, r){
       var row = el('div','wx-row');
       var nameBox = el('div','d', escapeHtml(r.name || ''));
       var hasCount = !(r.commentCount == null || String(r.commentCount) === '');
@@ -1938,7 +2005,7 @@ button:focus:not(:focus-visible){outline:none;}
         seen[url] = 1;
         links.push({name: String(c.name || '官方购票入口'), url: url, note: String(c.note || '')});
       });
-      box.appendChild(row);
+      target.appendChild(row);
 
       // 展开面板只陈述真实评分与来源：地图 API 不返回评论正文，本系统不存储也不生成评论
       var url = officialReviewUrl(r.reviewUrl);
@@ -1964,14 +2031,21 @@ button:focus:not(:focus-visible){outline:none;}
       } else {
         panel.appendChild(el('div','rp-note','当前没有可用的官方评论入口，可自行在地图 App 搜索景点名查看。'));
       }
-      box.appendChild(panel);
+      target.appendChild(panel);
       toggle.addEventListener('click', function(){
         var open = panel.hidden;
         panel.hidden = !open;
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         toggle.textContent = reviewLabel + (open ? ' ▴' : ' ▾');
       });
-    });
+    }
+    // 一次列十几个景点没人看：好评最高的前 4 个直接给，其余折叠
+    shown.forEach(function(r){ addRow(box, r); });
+    if(list.length > shown.length){
+      foldBlock(box, '展开其余 ' + (list.length - shown.length) + ' 个景点', function(body){
+        list.slice(shown.length).forEach(function(r){ addRow(body, r); });
+      });
+    }
     links.slice(0, 4).forEach(function(c){
       var line = el('div','wx-link');
       var a = document.createElement('a');
@@ -1984,8 +2058,8 @@ button:focus:not(:focus-visible){outline:none;}
       box.appendChild(line);
     });
     box.appendChild(el('div','wx-tip', links.length
-      ? '票价是知识库原文或人工核验快照，可能已变更；地图检索不提供票价，未核验的不补数字。上方为人工核验的官方入口，余票未核验，本系统不代下单、不查库存。点评价数看评分来源与官方评论入口，评论正文不在本系统。'
-      : '票价与开放时间以景区公告为准；地图检索和多数知识库条目没有票价，未核验的不补数字。购票请到景区官方公众号/官网或现场售票窗口，本系统不代下单、不查余票、不生成猜测链接。点评价数看评分来源与官方评论入口，评论正文不在本系统。'));
+      ? '票价为原文快照，未核验不补数字；余票未核验、不代下单。点评价数看官方评论入口。'
+      : '票价未核验就不补数字；购票请到景区官方公众号/官网或现场窗口，余票未核验、不代下单。'));
     return box;
   }
 
@@ -2187,15 +2261,27 @@ button:focus:not(:focus-visible){outline:none;}
         body.appendChild(n);
       });
     }
-    if(view.dailySchedules && view.dailySchedules.length){
-      var card = planCard(view.dailySchedules);
+    // 收敛到 0 天时也要交代一句，否则用户只看到正文、不知道卡片去哪了
+    var trimmedDays = Number(((view.dayScope || {}).trimmedDays) || 0);
+    if((view.dailySchedules && view.dailySchedules.length) || trimmedDays){
+      var card = planCard(view.dailySchedules || [], view);
       card.style.marginTop = 'var(--sp-2)';
       body.appendChild(card);
     }
-    warnNodes(view.checks || []).forEach(function(n){
+    // 检查项也可能堆五六条：先给最要紧的两条，其余折叠，不把卡片顶成一屏警告
+    var warns = warnNodes(view.checks || []);
+    warns.slice(0, 2).forEach(function(n){
       n.style.marginTop = 'var(--sp-2)';
       body.appendChild(n);
     });
+    if(warns.length > 2){
+      var moreChecks = el('div','plan');
+      moreChecks.style.marginTop = 'var(--sp-2)';
+      foldBlock(moreChecks, '展开其余 ' + (warns.length - 2) + ' 项检查提示', function(fbody){
+        warns.slice(2).forEach(function(n){ fbody.appendChild(n); });
+      });
+      body.appendChild(moreChecks);
+    }
     if(view.candidates && view.candidates.length){
       var cands = candCard(view.candidates);
       cands.style.marginTop = 'var(--sp-2)';

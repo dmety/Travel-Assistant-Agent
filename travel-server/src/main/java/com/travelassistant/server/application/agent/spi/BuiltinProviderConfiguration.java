@@ -3,6 +3,7 @@ package com.travelassistant.server.application.agent.spi;
 import com.travelassistant.server.application.agent.DecisionReport;
 import com.travelassistant.server.application.agent.DecisionRequest;
 import com.travelassistant.server.application.agent.DecisionService;
+import com.travelassistant.server.application.agent.DraftAssembler;
 import com.travelassistant.server.application.agent.DraftBudgetEstimate;
 import com.travelassistant.server.application.agent.DraftCheck;
 import com.travelassistant.server.application.agent.DraftDay;
@@ -147,6 +148,15 @@ public class BuiltinProviderConfiguration {
     value.put("category", "PLAN_DRAFT");
     value.put("destination", draft.request().destination());
     value.put("days", draft.request().days());
+    // 编排层收敛口径：请求天数与真正排出天数分开给，前端只需一条说明，不铺空天。
+    Integer effective = draft.request().effectiveDays();
+    int requested = effective == null ? 0 : Math.min(effective, DraftAssembler.MAX_DAYS);
+    int rendered = draft.dailySchedules().size();
+    Map<String, Object> dayScope = new LinkedHashMap<>();
+    dayScope.put("requestedDays", requested);
+    dayScope.put("renderedDays", rendered);
+    dayScope.put("trimmedDays", Math.max(0, requested - rendered));
+    value.put("dayScope", dayScope);
     value.put("advice", draft.advice());
     value.put("notices", List.copyOf(draft.notices()));
     value.put("sources", List.copyOf(draft.sources()));

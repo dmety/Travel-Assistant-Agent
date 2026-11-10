@@ -250,6 +250,11 @@ def main():
                       'draft exposes the official purchase link, not an order action')
                 check(code2 == 200 and vote2['draft']['ticketGuidance']['stockVerified'] is False,
                       'draft states that ticket stock is not verified')
+                check(code2 == 200 and len(vote2['draft']['dailySchedules']) == 1
+                      and vote2['draft']['dayScope']['trimmedDays'] == 1,
+                      'vote draft trims unsupported days, no empty placeholder rows')
+                check(code2 == 200 and len(vote2['plans']) <= 3,
+                      'vote shows at most three candidate plans')
 
                 # ---- #5 基础业务闭环：草案 -> 补问 -> 检查 -> 确认保存 -> 重启重读 ----
                 draft_req = {'destination': '杭州', 'departDate': '2026-11-21',
@@ -272,6 +277,15 @@ def main():
                     dict(draft_req, departDate='2026-11-25', returnDate='2026-11-21'))
                 check(any(c['code'] == 'RETURN_BEFORE_DEPART' for c in inverted['checks']),
                       'inverted dates are reported in draft checks')
+                # 编排层收敛：十堰知识库只有 4 个景点，10 天请求不再刷八行「暂无候选」
+                code, long_draft = request(owner, base, '/api/agent/plan',
+                    dict(draft_req, destination='十堰', days=10, returnDate='2026-11-30'))
+                check(code == 200 and len(long_draft['dailySchedules']) == 2
+                      and all(day['items'] for day in long_draft['dailySchedules']),
+                      '10-day request renders only the 2 days with real candidates')
+                check(code == 200 and any(c['code'] == 'DRAFT_DAYS_TRIMMED'
+                                          for c in long_draft['checks']),
+                      'trimmed days are explained once, not repeated per empty day')
                 check(draft['budgetEstimate']['verdict'] in
                       {'NO_BUDGET', 'EXCEEDS_LIMIT', 'CANNOT_DETERMINE', 'WITHIN_KNOWN_SCOPE'},
                       'draft carries a budget verdict with an explicit verdict code')

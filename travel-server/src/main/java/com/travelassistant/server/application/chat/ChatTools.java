@@ -437,6 +437,8 @@ public class ChatTools {
   /**
    * 草案摘要必须带逐日安排：只给目的地的话模型会以为「工具没排出来」，
    * 转而凭记忆补景点、或回一句「只返回了空壳」。逐日条目全在 fact 里，摘要摊开即可。
+   * 编排层已把空天收敛掉，这里还要明确告诉模型「没排的天不要补」，否则模型会凭常识
+   * 把 D3~D10 又填回用户面前。
    */
   private String planHighlight(DispatchOutcome outcome) {
     for (Object value : factsOf(outcome, "PLAN_DRAFT")) {
@@ -464,6 +466,11 @@ public class ChatTools {
       }
       if (m.get("candidates") instanceof List<?> candidates) {
         sb.append("；候选共 ").append(candidates.size()).append(" 个");
+      }
+      if (m.get("dayScope") instanceof Map<?, ?> scope
+          && scope.get("trimmedDays") instanceof Number trimmed && trimmed.intValue() > 0) {
+        sb.append("；另有 ").append(trimmed.intValue())
+            .append(" 天没有可查景点，草案未硬凑空天，不要替用户补景点或天数");
       }
       return sb.toString();
     }
@@ -660,17 +667,22 @@ public class ChatTools {
     return new Outcome(ok, cut(sb.toString()), new Card("vote", "DECISION_ADVICE", card));
   }
 
-  /** 摘要里明确带出逐日安排与购票方式，模型不必凭记忆补草案。 */
+  /** 摘要里只带有内容的天与购票方式，收敛掉的天一句话交代，模型不必凭记忆补草案。 */
   private static void appendDraftSummary(StringBuilder sb, Map<String, Object> draft) {
     if (draft.get("dailySchedules") instanceof List<?> days) {
       for (Object raw : days) {
-        if (!(raw instanceof Map<?, ?> day)) {
+        if (!(raw instanceof Map<?, ?> day)
+            || !(day.get("items") instanceof List<?> list) || list.isEmpty()) {
           continue;
         }
-        String items = day.get("items") instanceof List<?> list
-            ? String.join("、", list.stream().limit(3).map(String::valueOf).toList()) : "无";
+        String items = String.join("、", list.stream().limit(3).map(String::valueOf).toList());
         sb.append("D").append(day.get("day")).append(" ").append(items).append("；");
       }
+    }
+    if (draft.get("dayScope") instanceof Map<?, ?> scope
+        && scope.get("trimmedDays") instanceof Number trimmed && trimmed.intValue() > 0) {
+      sb.append("另有 ").append(trimmed.intValue())
+          .append(" 天没有可查景点，未硬凑空天，不要补景点；");
     }
     if (draft.get("ticketGuidance") instanceof Map<?, ?> guidance
         && guidance.get("channels") instanceof List<?> channels && !channels.isEmpty()) {

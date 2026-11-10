@@ -115,12 +115,20 @@ class VoteDraftFlowTest {
     assertThat(draft.get("destination")).isEqualTo("武汉");
     assertThat(draft.get("days")).isEqualTo(2);
 
+    // 只查到 2 个景点时，第 2 天不再以「暂无候选」占位：收敛成 1 天 + 一条说明
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> daily =
         (List<Map<String, Object>>) draft.get("dailySchedules");
-    assertThat(daily).hasSize(2);
+    assertThat(daily).hasSize(1);
     assertThat(daily.get(0).get("items")).isEqualTo(List.of("黄鹤楼", "东湖"));
-    assertThat((List<?>) daily.get(1).get("items")).isEmpty();
+    @SuppressWarnings("unchecked")
+    Map<String, Object> scope = (Map<String, Object>) draft.get("dayScope");
+    assertThat(scope).containsEntry("requestedDays", 2)
+        .containsEntry("renderedDays", 1).containsEntry("trimmedDays", 1);
+    @SuppressWarnings("unchecked")
+    List<String> trimmedUnknowns = (List<String>) draft.get("unknowns");
+    assertThat(trimmedUnknowns).anyMatch(u -> u.contains("未硬凑空天"));
+    assertThat(run.plans()).hasSizeLessThanOrEqualTo(3);
 
     @SuppressWarnings("unchecked")
     List<String> food = (List<String>) draft.get("food");
@@ -156,11 +164,12 @@ class VoteDraftFlowTest {
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> daily =
         (List<Map<String, Object>>) draft.get("dailySchedules");
-    assertThat(daily).allSatisfy(day -> assertThat(day.get("items")).isEqualTo(List.of()));
+    assertThat(daily).isEmpty();  // 一个候选都没有，就不再排空天
     @SuppressWarnings("unchecked")
     List<String> unknowns = (List<String>) draft.get("unknowns");
     assertThat(unknowns).contains("景点候选未提供", "餐饮候选与忌口信息未提供",
-        "未提供经核验的官方购票入口");
+        "未提供经核验的官方购票入口")
+        .anyMatch(u -> u.contains("未硬凑空天"));
     @SuppressWarnings("unchecked")
     Map<String, Object> guidance =
         (Map<String, Object>) draft.get("ticketGuidance");
