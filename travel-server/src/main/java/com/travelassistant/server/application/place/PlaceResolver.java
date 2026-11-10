@@ -96,6 +96,52 @@ public class PlaceResolver {
     return names;
   }
 
+  /**
+   * 知识库覆盖范围内景点最多的几个城市。
+   *
+   * <p>用在「完全没线索」的时候（用户只说了「想找个安静的地方」）：给几个真实存在的
+   * 城市按钮，比回一句「请说出目的地」让人重打字好得多。列表来自知识库统计，不是写死的常量。
+   *
+   * <p>省份必须排除：索引里既有「广东」也有「广东省」，景点总数又是按省聚合的，
+   * 不筛的话前几个选项全是省名，用户点了还得再选一次城市。
+   */
+  public List<String> popularCities(int limit) {
+    if (limit <= 0) {
+      return List.of();
+    }
+    Map<String, Integer> counts = cityCounts();
+    Set<String> provinces = new LinkedHashSet<>();
+    for (String name : counts.keySet()) {
+      for (String suffix : List.of("省", "自治区", "特别行政区")) {
+        if (name.length() > suffix.length() && name.endsWith(suffix)) {
+          provinces.add(name.substring(0, name.length() - suffix.length()));
+        }
+      }
+    }
+    List<Map.Entry<String, Integer>> entries = new ArrayList<>(counts.entrySet());
+    entries.sort((a, b) -> b.getValue().equals(a.getValue())
+        ? a.getKey().compareTo(b.getKey())
+        : b.getValue() - a.getValue());
+    List<String> out = new ArrayList<>();
+    for (Map.Entry<String, Integer> entry : entries) {
+      String name = entry.getKey();
+      // 省份全称（广东省）与省名（广东）都不适合当「去哪儿」的选项；
+      // 直辖市的索引里同时有「上海」和「上海市」，只保留短的那个，避免同一城市占两格
+      boolean duplicatedSuffix = name.endsWith("市")
+          && counts.containsKey(name.substring(0, name.length() - 1));
+      if (name.length() < 2 || name.length() > 4 || provinces.contains(name)
+          || name.endsWith("省") || name.endsWith("自治区") || name.endsWith("特别行政区")
+          || duplicatedSuffix) {
+        continue;
+      }
+      out.add(name);
+      if (out.size() >= limit) {
+        break;
+      }
+    }
+    return out;
+  }
+
   private PlaceResolution lookup(List<String> candidates) {
     for (String candidate : candidates) {
       PlaceResolution hit = fromKnowledgeBase(candidate);

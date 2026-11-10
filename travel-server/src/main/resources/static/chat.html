@@ -698,6 +698,16 @@ button:focus:not(:focus-visible){outline:none;}
   }
 
   /**
+   * 美食推荐需要一个带坐标的锚点（Provider 不按城市中心兜底）。
+   * 取该城市景点库第一条的 id 交给编排层，由后端从索引里取坐标；
+   * 拿不到就返回 null，界面会如实说「没有可用锚点」，不编地址。
+   */
+  async function foodAnchor(city){
+    var r = await fetchAttractions('city', city);
+    return (r && r.items && r.items.length && r.items[0].id) ? r.items[0].id : null;
+  }
+
+  /**
    * 前端静态表只是个快速路径，知识库才是唯一事实源：
    * 先按城市查，再按景点名查并取它所在的城市（「武当山」→ 十堰）。
    * 两条都查不到再交给后端做第三级判断（模型在已知城市清单里归类，
@@ -819,10 +829,8 @@ button:focus:not(:focus-visible){outline:none;}
   var PREF_TEXT = { '自然':'自然风光','人文':'人文古迹','美食':'本地美食',
                     '慢节奏':'节奏慢一点','亲子':'带娃出游','摄影':'拍照出片' };
 
-  /** 缺天数就拦下来问：没有天数排不出逐日行程。有天数直接规划。 */
-  function needsChoice(text){
-    return !parseDays(text);
-  }
+  /* 是否要先弹选项卡，由后端解析出的 days 决定（见 respond），不再用正则判断：
+     「玩四天」「下周六出发」这类说法正则认不出来。 */
 
   /* ================================================================
      二、会话存储（localStorage）
@@ -1071,6 +1079,94 @@ button:focus:not(:focus-visible){outline:none;}
       row.appendChild(meta);
       box.appendChild(row);
     });
+    return box;
+  }
+
+  /* ================================================================
+     美食推荐：意图是「吃什么」时走 FOOD_RECOMMEND，渲染餐馆而不是行程。
+     fact 的 value 里只有已查到的字段（名称、人均、距离、评分），
+     没有门店详情与点评链接，因此这里只展示这些，不编造。
+     ================================================================ */
+  function foodFromEnvelope(env){
+    var payload = (env && env.result) ? env.result : null;
+    if(!payload) return null;
+    var items = [];
+    (payload.facts || []).forEach(function(f){
+      if(!f || f.type !== 'CONTENT' || !f.value || f.value.category !== 'FOOD') return;
+      var v = f.value;
+      items.push({
+        name: v.name || '',
+        slot: v.mealSlot || '',
+        price: v.pricePerPersonCny,
+        distance: v.distanceMeters,
+        rating: v.rating,
+        tags: (v.tags || []).slice(0, 3)
+      });
+    });
+    return {
+      items: items,
+      advice: payload.advice || null,
+      notices: (payload.notices || []).slice(0, 5),
+      agent: {
+        providerId: env.providerId || payload.providerId || '',
+        status: env.status || payload.status || '',
+        attempts: env.attempts || []
+      }
+    };
+  }
+
+  function foodCard(items, total){
+    var box = el('div','cands');
+    var head = el('div','cands-head');
+    head.textContent = '可以去的餐馆 · 来自地图 POI';
+    box.appendChild(head);
+    // 一次列三十家没人看：只展开离得最近的前几家，其余在末尾说明
+    var shown = items.slice(0, 8);
+    shown.forEach(function(it){
+      var row = el('div','cand');
+      var name = el('b');
+      name.textContent = it.name;
+      var meta = el('span');
+      var bits = [];
+      if(it.slot) bits.push(it.slot);
+      if(it.price) bits.push('人均 ' + it.price + ' 元');
+      if(it.distance) bits.push(Math.round(it.distance) + ' 米');
+      if(it.rating) bits.push('评分 ' + it.rating);
+      if(it.tags.length) bits.push(it.tags.join('/'));
+      meta.textContent = bits.length ? bits.join(' · ') : '暂无更多信息';
+      row.appendChild(name);
+      row.appendChild(meta);
+      box.appendChild(row);
+    });
+    if(total > shown.length){
+      var more = el('div','cand');
+      more.textContent = '另有 ' + (total - shown.length) + ' 家未展开，可以缩小范围再问，比如「东湖附近有什么好吃的」';
+      box.appendChild(more);
+    }
+    return box;
+  }
+
+  /** 通用可点卡片：标题 + 一排按钮，点一下就把那句话发出去（闲聊开场、换目的地都用它）。 */
+  function chipCard(title, items){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode(title));
+    box.appendChild(head);
+    var bodyBox = el('div','opts-body');
+    var row = el('div','opt-row');
+    items.forEach(function(it){
+      var b = el('button','opt');
+      b.type = 'button';
+      b.textContent = it.text;
+      b.addEventListener('click', function(){
+        if(busy) return;
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function(x){ x.disabled = true; });
+        sendText(it.send || it.text);
+      });
+      row.appendChild(b);
+    });
+    bodyBox.appendChild(row);
+    box.appendChild(bodyBox);
     return box;
   }
 
@@ -1406,7 +1502,8 @@ button:focus:not(:focus-visible){outline:none;}
       tip.textContent = '正在按你的选择生成行程…';
       skip.disabled = true;
       Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){ b.disabled = true; });
-      sendText(compose());
+      // 结构化值跟着一起带上：偏好词表比选项卡大（购物/夜游/温泉…），只靠拼文字会丢
+      sendText(compose(), false, { days: state.days, travelers: state.travelers, prefs: state.prefs });
     });
 
     // 不排日程、只看候选：绕过补充信息，直接按原话检索
@@ -1435,7 +1532,8 @@ button:focus:not(:focus-visible){outline:none;}
     var head = el('div','opts-head');
     head.appendChild(document.createTextNode('换成这些目的地试试'));
     var tag = el('span','plan-tag');
-    tag.textContent = tried || '未识别';
+    // 未识别时 tried 可能是整句话，标签只放短词，别把整段塞进小角标
+    tag.textContent = brief(tried || '未识别', 6);
     head.appendChild(tag);
     box.appendChild(head);
 
@@ -1553,8 +1651,64 @@ button:focus:not(:focus-visible){outline:none;}
   }
 
   /* ================================================================
-     四、调 L1 编排层 POST /api/agent/invoke（intent=PLAN_DRAFT）
+     四、调 L1 编排层 POST /api/agent/invoke（intent=PLAN_DRAFT / FOOD_RECOMMEND）
      ================================================================ */
+
+  /**
+   * 先把整句话交给后端解析：意图、目的地、天数、人数、预算、日期、偏好一次拿全。
+   * 后端用模型理解语言、用 Java 校验范围，前端不再自己猜「几个字算天数」。
+   * 接口不可用（老版本后端、网络异常）时返回 null，由 buildRequest 走降级路径。
+   */
+  function understand(text){
+    return fetch('/api/intent/parse', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: String(text || '').slice(0, 300) })
+    }).then(function(r){
+      if(r.status === 401){
+        location.replace('/?next=' + encodeURIComponent('/chat.html'));
+        return null;
+      }
+      return r.ok ? r.json() : null;
+    }).catch(function(){ return null; });
+  }
+
+  /** 解析结果 → 规划请求。字段全部来自后端，前端只做透传与覆盖。 */
+  function requestFromIntent(u, extra){
+    if(!u.resolved){
+      return {
+        missing: true,
+        // 只有模型真的给出了地名才当作「没认出的词」，否则别把整句话拿去当标签
+        tried: u.destination ? [u.destination] : [],
+        alternatives: u.alternatives || [],
+        note: u.note || '',
+        intent: u.intent
+      };
+    }
+    var req = { destination: u.city };
+    if(u.days) req.days = u.days;
+    if(u.travelers) req.travelers = u.travelers;
+    if(u.budget) req.budget = u.budget;
+    if(u.departDate) req.departDate = u.departDate;
+    if(u.returnDate) req.returnDate = u.returnDate;
+    if(u.preferences && u.preferences.length) req.preferences = u.preferences;
+    // 点选补问卡片 / 选项卡时带来的结构化字段优先于解析结果
+    if(extra) applyExtra(req, extra);
+    var place = { name: u.city, via: u.spot || u.destination || '', note: u.note || '' };
+    // 说景区名也能查：告诉用户实际按哪个城市检索，避免「我明明说了武当山」的困惑
+    if(place.via && place.via !== place.name){
+      place.note = place.note || ('按「' + place.via + '」所在城市 ' + place.name + ' 检索');
+    }
+    return { request: req, place: place, intent: u.intent, parsed: u };
+  }
+
+  function applyExtra(req, extra){    ['days','travelers','budget','departDate','returnDate'].forEach(function(k){
+      if(extra[k] != null && extra[k] !== '') req[k] = extra[k];
+    });
+    if(extra.prefs && extra.prefs.length) req.preferences = extra.prefs;
+  }
+
   async function buildRequest(text, extra){
     var place = await resolvePlace(text);
     // 解析不出地名时把猜到的片段带回去，好让追问说清是「哪个词没查到」
@@ -1576,11 +1730,7 @@ button:focus:not(:focus-visible){outline:none;}
     var prefs = parsePrefs(text);
     if(prefs.length) req.preferences = prefs;
     // 点选补问卡片时带来的结构化字段，优先于从文本里解析的结果
-    if(extra){
-      ['days','travelers','budget','departDate','returnDate'].forEach(function(k){
-        if(extra[k] != null && extra[k] !== '') req[k] = extra[k];
-      });
-    }
+    if(extra) applyExtra(req, extra);
     // 说景区名也能查：告诉用户实际按哪个城市检索，避免「我明明说了武当山」的困惑
     if(place.via && place.via !== place.name){
       place.note = place.note || ('按「' + place.via + '」所在城市 ' + place.name + ' 检索');
@@ -1697,7 +1847,34 @@ button:focus:not(:focus-visible){outline:none;}
     stream.appendChild(typing);
     scrollBottom();
 
-    var built = await buildRequest(text, extra);
+    // 先让后端把话听懂：意图、目的地、天数、人数、预算、日期、偏好一次给全
+    var parsed = await understand(text);
+
+    // 闲聊：不查知识库也不调编排层，本地回一句 + 给几个能直接点的开场
+    if(parsed && parsed.intent === 'CHAT'){
+      typing.remove();
+      var chatShell = assistantShell();
+      stream.appendChild(chatShell.wrap);
+      var hello = '我在。说个目的地和大概几天就能排行程，也可以问我某地有什么好吃的、有哪些景点。';
+      await typeText(chatShell.bubble, plainText(hello));
+      chatShell.bubble.innerHTML = formatRich(hello);
+      var starters = chipCard('也可以直接点这些', [
+        { text:'武汉 3 天', send:'武汉 3 天，2 个人，预算 3000' },
+        { text:'武当山 2 天', send:'武当山 2 天' },
+        { text:'武汉有什么好吃的', send:'武汉有什么好吃的' }
+      ]);
+      starters.style.marginTop = 'var(--sp-2)';
+      chatShell.body.appendChild(starters);
+      finishMeta(chatShell, '闲聊');
+      addMessage(session, { role:'assistant', text:hello, at:nowTime() });
+      scrollBottom();
+      busy = false;
+      refreshSend();
+      return;
+    }
+
+    // 解析接口不可用（老后端 / 网络异常）时退回原来的正则解析，不至于整页不可用
+    var built = parsed ? requestFromIntent(parsed, extra) : await buildRequest(text, extra);
     if(!built || built.missing){
       typing.remove();
       var s0 = assistantShell();
@@ -1730,8 +1907,19 @@ button:focus:not(:focus-visible){outline:none;}
       return;
     }
 
-    // 只有地名、没说天数：先给选项，选完再排行程（用户点「先看看景点」则不拦）
-    if(!skipChoice && needsChoice(text)){
+    // 意图决定走哪条链路：找吃的去美食 Provider，其余排行程
+    var capability = built.intent === 'FOOD_RECOMMEND' ? 'FOOD_RECOMMEND' : 'PLAN_DRAFT';
+
+    // 美食 Provider 只按坐标找周边餐馆，不接受「按城市中心」兜底：
+    // 先拿该城市景点库第一条当锚点，拿不到就明确说明找不到，不编地址。
+    if(capability === 'FOOD_RECOMMEND'){
+      built.request.city = built.place.name;
+      var anchorId = await foodAnchor(built.place.name);
+      if(anchorId) built.request.attractionIds = [anchorId];
+    }
+
+    // 排行程但没说天数：先给选项，选完再排（点「先看看景点」则不拦）
+    if(capability === 'PLAN_DRAFT' && !skipChoice && !built.request.days){
       typing.remove();
       var cs = assistantShell();
       stream.appendChild(cs.wrap);
@@ -1742,8 +1930,9 @@ button:focus:not(:focus-visible){outline:none;}
       await typeText(cs.bubble, plainText(intro));
       cs.bubble.innerHTML = formatRich(intro);
       var opts = choiceCard(text, built.place, {
-        travelers: parseTravelers(text),
-        prefs: parsePrefs(text)
+        // 已经说过的信息预选回来，不重复问
+        travelers: built.request.travelers,
+        prefs: built.request.preferences
       });
       opts.style.marginTop = 'var(--sp-2)';
       cs.body.appendChild(opts);
@@ -1759,7 +1948,8 @@ button:focus:not(:focus-visible){outline:none;}
     var view = null;
     var failure = null;
     try{
-      view = draftFromEnvelope(await callAgent(built.request, 'PLAN_DRAFT'));
+      var envelope = await callAgent(built.request, capability);
+      view = capability === 'FOOD_RECOMMEND' ? foodFromEnvelope(envelope) : draftFromEnvelope(envelope);
     }catch(e){
       failure = e.message || '请求失败';
     }
@@ -1771,10 +1961,41 @@ button:focus:not(:focus-visible){outline:none;}
     scrollBottom();
 
     if(failure || !view){
-      var failText = '这次没拿到规划结果：' + (failure || '编排层没有返回结果') + '。可以稍后再问一次。';
+      var failText = '这次没拿到结果：' + (failure || '编排层没有返回结果') + '。可以稍后再问一次。';
       shell.bubble.textContent = failText;
       finishMeta(shell, '请求失败');
       addMessage(session, { role:'assistant', text:failText, at:nowTime() });
+      busy = false;
+      refreshSend();
+      return;
+    }
+
+    // 美食：只渲染真实查到的餐馆，没有候选就如实说没找到
+    if(capability === 'FOOD_RECOMMEND'){
+      var foodHead = view.items.length
+        ? '在 ' + built.place.name + ' 找到 ' + view.items.length + ' 家可以去的餐馆。'
+        : '这次没有拿到 ' + built.place.name + ' 的餐馆候选。';
+      await typeText(shell.bubble, plainText(foodHead));
+      shell.bubble.innerHTML = formatRich(foodHead);
+      if(view.advice){
+        var ad = el('div','warn');
+        ad.textContent = view.advice;
+        ad.style.marginTop = 'var(--sp-2)';
+        shell.body.appendChild(ad);
+      }
+      noticeNodes(view.notices).forEach(function(n){
+        n.style.marginTop = 'var(--sp-2)';
+        shell.body.appendChild(n);
+      });
+      if(view.items.length){
+        var fc = foodCard(view.items, view.items.length);
+        fc.style.marginTop = 'var(--sp-2)';
+        shell.body.appendChild(fc);
+      }
+      finishMeta(shell, '美食推荐 · Agent ' + (view.agent.providerId || 'builtin.food'));
+      addMessage(session, { role:'assistant', text:foodHead, at:nowTime(),
+        agent: { providerId: view.agent.providerId, status: view.agent.status } });
+      scrollBottom();
       busy = false;
       refreshSend();
       return;

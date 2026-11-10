@@ -142,6 +142,22 @@ flowchart TB
 
 依赖方向单向向下。`domain` 不依赖 Spring、HTTP 或 AI 库。Provider 不读写文件，不指定操作身份。
 
+### 意图解析在编排层之前（2026-11-10）
+
+对话页不再自己用正则抠天数人数，而是先调 `POST /api/intent/parse`（`application/intent/IntentParser`）
+把整句话解析成「意图 + 槽位 + 已核实的目的地」，再按意图调 `/api/agent/invoke`。它有三个刻意的边界：
+
+- **不属于 L1**：这是编排层之前的预处理，不参与路由、不占 `RunBudget`、不写 `Attempt` 记录；
+- **不进契约**：只开放 `PLAN_DRAFT` / `FOOD_RECOMMEND` / `CHAT` 三个意图，不新增 capability、
+  不改 `contractVersion`、不改 Provider 的输入输出形状；契约里的 `TICKET_ADVICE` 等能力仍由
+  其它入口使用；
+- **模型只给值、Java 给边界**：天数 1~30、人数 1~30、预算上限、日期落在今天起一年内、
+  偏好收敛到固定词表，越界一律截断或丢弃并写进 `notes`；目的地仍复用 `PlaceResolver`
+  的三级判断，模型说的地方库里没有就不当确定事实。
+
+模型不可用、超时或返回非 JSON 时降级为句式规则（`IntentRules`），接口永远 200——
+理解能力可以退化，对话不能中断。
+
 ## L1 编排层（2026-11-09 已落地，含两轮投票 2026-11-09 晚）
 
 `application/agent/orchestration/AgentOrchestrator.java` 是 SPI 基座第一次被业务调用的落点，入口是 `POST /api/agent/invoke`（需登录）。它只做四件事：按 intent 调 `AgentRegistry.resolve` 取 `primary + fallback` 链、逐个 `invoke`、用 `ContractValidator.validateResult` 校验每个响应、失败切下一个；全失败时走 `builtin.rules` 的「只有事实、没有建议」。它也负责把离线索引里的景点锚点转成带坐标系标签与证据的 `ATTRACTION` fact（`AnchorFactService`），Provider 不读仓库文件。

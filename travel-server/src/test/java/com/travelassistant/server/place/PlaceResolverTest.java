@@ -224,4 +224,17 @@ class PlaceResolverTest {
     assertThat(r.resolved()).isTrue();
     assertThat(r.city()).isEqualTo("十堰");
   }
+
+  @Test
+  @DisplayName("热门城市：排除省份与直辖市的重名写法，按景点数量排序")
+  void popularCitiesSkipProvinces() {
+    // 索引里省名（广东/广东省）的聚合数量最高，但它们不该作为「去哪儿」的选项；
+    // 直辖市同时有「北京」和「北京市」，只保留一条
+    when(store.knownCities()).thenReturn(Map.of(
+        "广东省", 300, "广东", 300, "北京", 120, "北京市", 120, "杭州", 90, "西安", 60));
+
+    List<String> cities = resolver.popularCities(3);
+
+    assertThat(cities).containsExactly("北京", "杭州", "西安");
+  }
 }
