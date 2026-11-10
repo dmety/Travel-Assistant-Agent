@@ -393,6 +393,22 @@ button{font-family:inherit;}
 .places .wx-row .rate{color:var(--primary); font-size:var(--fs-xs); white-space:nowrap; padding-top:2px;}
 .places .wx-row .t{white-space:normal; word-break:break-word; line-height:1.45;}
 .places .wx-row .t.unknown{color:var(--text-3);}
+/* 评价数可点开：说明评分来源，并给地图官方评论页入口（评论正文不在本系统） */
+.places .wx-row .d .sub .review-toggle{
+  border:0; background:none; padding:0; margin:0; cursor:pointer;
+  color:var(--primary); font:inherit; text-decoration:underline; text-underline-offset:2px;
+}
+.places .review-panel{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;
+}
+.places .review-panel[hidden]{display:none;}
+.places .review-panel .rp-line{color:var(--text);}
+.places .review-panel .rp-note{color:var(--text-3);}
+.places .review-panel a{
+  display:inline-block; margin-top:var(--sp-1); color:var(--primary);
+  text-decoration:underline; text-underline-offset:2px;
+}
 .places .wx-link{padding:var(--sp-1) var(--sp-3); font-size:var(--fs-xs); color:var(--primary);}
 .places .wx-link a{color:inherit; text-decoration:underline; text-underline-offset:2px;}
 .wx-tip{
@@ -1879,17 +1895,35 @@ button:focus:not(:focus-visible){outline:none;}
    * 景点小表：候选已按真实评分排序；票价只显示数据源原文，缺票价就明说「未核验」
    * 并给出购票方法。人工核验过的官方入口才渲染成链接，绝不拼一个猜测网址。
    */
+  /** 只允许地图官方域名，避免卡片数据里混进任意外链。 */
+  function officialReviewUrl(u){
+    var raw = String(u || '');
+    if(!/^https:\/\//i.test(raw)) return '';
+    try{
+      var host = new URL(raw).hostname.toLowerCase();
+      var allowed = ['www.amap.com','ditu.amap.com','uri.amap.com',
+                     'map.baidu.com','api.map.baidu.com'];
+      return allowed.indexOf(host) >= 0 ? raw : '';
+    }catch(e){ return ''; }
+  }
+
+  /** 景点小表：名字、评价数（可点开说明）、★评分、票价原文；评论正文只在地图官方页。 */
   function placesBlock(rows){
     var box = el('div','wx places');
-    box.appendChild(el('div','wx-h','景点（好评高的在前，同分按评价数 · 票价以景区公告为准）'));
+    box.appendChild(el('div','wx-h','景点（好评高的在前，点评价看评论入口 · 票价以景区公告为准）'));
     var links = [], seen = {};
     (rows || []).forEach(function(r){
       var row = el('div','wx-row');
       var nameBox = el('div','d', escapeHtml(r.name || ''));
-      var sub = (r.commentCount == null || String(r.commentCount) === '')
-          ? '' : String(r.commentCount) + ' 条评价';
-      if(r.level) sub += (sub ? ' · ' : '') + String(r.level);
-      if(sub) nameBox.appendChild(el('div','sub', escapeHtml(sub)));
+      var hasCount = !(r.commentCount == null || String(r.commentCount) === '');
+      var reviewLabel = hasCount ? String(r.commentCount) + ' 条评价' : '查看评价';
+      var sub = el('div','sub');
+      var toggle = el('button','review-toggle', escapeHtml(reviewLabel) + ' ▾');
+      toggle.setAttribute('type','button');
+      toggle.setAttribute('aria-expanded','false');
+      sub.appendChild(toggle);
+      if(r.level) sub.appendChild(document.createTextNode(' · ' + String(r.level)));
+      nameBox.appendChild(sub);
       row.appendChild(nameBox);
       var rate = (r.rating == null || String(r.rating) === '') ? '' : '★ ' + String(r.rating);
       row.appendChild(el('div','rate', escapeHtml(rate || '暂无评分')));
@@ -1905,6 +1939,38 @@ button:focus:not(:focus-visible){outline:none;}
         links.push({name: String(c.name || '官方购票入口'), url: url, note: String(c.note || '')});
       });
       box.appendChild(row);
+
+      // 展开面板只陈述真实评分与来源：地图 API 不返回评论正文，本系统不存储也不生成评论
+      var url = officialReviewUrl(r.reviewUrl);
+      var source = String(r.reviewSource || '地图平台');
+      var panel = el('div','review-panel');
+      panel.hidden = true;
+      var ratingLine = (rate || '暂无评分')
+          + (hasCount ? ' · ' + String(r.commentCount) + ' 条评价' : '')
+          + ' · 评分来自 ' + source;
+      panel.appendChild(el('div','rp-line', escapeHtml(ratingLine)));
+      panel.appendChild(el('div','rp-note',
+          r.reviewViaSearch
+            ? '评论正文由地图平台提供，本系统没有取得评论数据、也不会生成评论。下面是官方地图搜索页，进入后点开该景点即可看真实评价。'
+            : '评论正文由地图平台提供，本系统没有取得评论数据、也不会生成评论。点下方按钮到地图官方页面查看其他游客的真实评价。'));
+      if(url){
+        var a = document.createElement('a');
+        a.textContent = r.reviewViaSearch
+            ? '在高德地图搜索该景点 ↗' : '查看' + source + '真实评论 ↗';
+        a.setAttribute('href', url);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        panel.appendChild(a);
+      } else {
+        panel.appendChild(el('div','rp-note','当前没有可用的官方评论入口，可自行在地图 App 搜索景点名查看。'));
+      }
+      box.appendChild(panel);
+      toggle.addEventListener('click', function(){
+        var open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.textContent = reviewLabel + (open ? ' ▴' : ' ▾');
+      });
     });
     links.slice(0, 4).forEach(function(c){
       var line = el('div','wx-link');
@@ -1918,8 +1984,8 @@ button:focus:not(:focus-visible){outline:none;}
       box.appendChild(line);
     });
     box.appendChild(el('div','wx-tip', links.length
-      ? '票价是知识库原文或人工核验快照，可能已变更；地图检索不提供票价，未核验的不补数字。上方为人工核验的官方入口，余票未核验，本系统不代下单、不查库存。'
-      : '票价与开放时间以景区公告为准；地图检索和多数知识库条目没有票价，未核验的不补数字。购票请到景区官方公众号/官网或现场售票窗口，本系统不代下单、不查余票、不生成猜测链接。'));
+      ? '票价是知识库原文或人工核验快照，可能已变更；地图检索不提供票价，未核验的不补数字。上方为人工核验的官方入口，余票未核验，本系统不代下单、不查库存。点评价数看评分来源与官方评论入口，评论正文不在本系统。'
+      : '票价与开放时间以景区公告为准；地图检索和多数知识库条目没有票价，未核验的不补数字。购票请到景区官方公众号/官网或现场售票窗口，本系统不代下单、不查余票、不生成猜测链接。点评价数看评分来源与官方评论入口，评论正文不在本系统。'));
     return box;
   }
 

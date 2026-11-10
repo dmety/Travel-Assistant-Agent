@@ -73,9 +73,11 @@ class BaiduPlaceClientTest {
             .contains("scope=2").contains("tag="))
         .andRespond(withSuccess("""
             {"status":0,"message":"ok","results":[
-              {"name":"五祖寺","location":{"lat":30.116,"lng":115.934},"city":"黄冈市",
+              {"name":"五祖寺","uid":"35debf292fc0c444a6da3922",
+               "location":{"lat":30.116,"lng":115.934},"city":"黄冈市",
                "area":"黄梅县","detail_info":{"tag":"风景名胜;寺庙","overall_rating":"4.6",
-                 "comment_num":"53","price":"80"}},
+                 "comment_num":"53","price":"80",
+                 "detail_url":"http://api.map.baidu.com/place/detail?uid=35debf292fc0c444a6da3922&output=html&source=placeapi_v3"}},
               {"name":"四祖寺","location":{"lat":30.152,"lng":115.912},"city":"黄冈市",
                "area":"黄梅县","detail_info":{"tag":"风景名胜","overall_rating":"[]",
                  "comment_num":"[]"}}
@@ -90,6 +92,12 @@ class BaiduPlaceClientTest {
     assertThat(places.get(0).coordinateSystem()).isEqualTo("GCJ-02");
     assertThat(places.get(1).rating()).isNull();
     assertThat(places.get(1).commentCount()).isNull();
+    // uid 与 detail_url 都是 API 原文：后者是官方 POI 详情/评论页，前端不按景区名猜网址
+    assertThat(places.get(0).poiId()).isEqualTo("35debf292fc0c444a6da3922");
+    assertThat(places.get(0).detailUrl())
+        .isEqualTo("http://api.map.baidu.com/place/detail?uid=35debf292fc0c444a6da3922"
+            + "&output=html&source=placeapi_v3");
+    assertThat(places.get(1).detailUrl()).isNull();
   }
 
   @Test

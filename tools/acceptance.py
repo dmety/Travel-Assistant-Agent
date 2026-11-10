@@ -160,6 +160,28 @@ def main():
                 check('票价未核验' in chat_page and 'r.channels' in chat_page
                       and '好评高的在前' in chat_page,
                       'chat page renders rating order, unverified tickets and official links')
+                review_hosts = ('www.amap.com', 'ditu.amap.com', 'uri.amap.com',
+                                'map.baidu.com', 'api.map.baidu.com')
+                review_urls = [x.get('reviewUrl') for x in picks if x.get('reviewUrl')]
+                check(review_urls and all(
+                          u.startswith('https://') and
+                          any(u.startswith('https://' + h + '/')
+                              or u.startswith('https://' + h + '?') for h in review_hosts)
+                          for u in review_urls),
+                      'review links are https and only on official map hosts')
+                check(all(x.get('reviewViaSearch') is True for x in picks),
+                      'KB candidates link to map search pages, not fabricated review pages')
+                picks_json = json.dumps(picks, ensure_ascii=False)
+                check('reviewText' not in picks_json and '游客说' not in picks_json
+                      and '用户评论' not in picks_json,
+                      'service returns no fabricated user review text')
+                check('review-toggle' in chat_page and 'officialReviewUrl' in chat_page
+                      and 'review-panel' in chat_page
+                      and '评论正文由地图平台提供' in chat_page,
+                      'chat page opens a review panel with official comment links')
+                check('www.amap.com' in chat_page and 'map.baidu.com' in chat_page
+                      and 'new URL(raw)' in chat_page,
+                      'chat page validates review link hosts against an allowlist')
                 code, caps = request(client(), base, '/api/agent/capabilities')
                 check(code == 200 and any(p['id'] == 'builtin.food'
                                          and p['status'] == 'ACTIVE'

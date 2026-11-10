@@ -13,6 +13,7 @@ import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.application.place.RatingOrder;
+import com.travelassistant.server.application.place.ReviewLinks;
 import com.travelassistant.server.application.agent.vote.JudgeProviderConfiguration;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
@@ -401,6 +402,10 @@ public class BuiltinProviderConfiguration {
         item.put("ticketStatus", a.ticketStatus());
         item.put("openTime", a.openTime());
         item.put("reason", reasonOf(a));
+        // 知识库条目没有地图 POI id，只能给官方地图搜索页；UI 须标注「搜索页」而非评论页。
+        item.put("reviewUrl", ReviewLinks.amapSearch(a.name(), a.city()));
+        item.put("reviewSource", "高德地图搜索");
+        item.put("reviewViaSearch", true);
         items.add(item);
       }
       value.put("items", items);
@@ -443,6 +448,10 @@ public class BuiltinProviderConfiguration {
       item.put("tel", spot.tel());
       item.put("source", spot.source());
       item.put("reason", liveReason(spot));
+      // 地图 API 不给评论正文，只给官方 POI 详情页入口；没有入口时前端如实说明。
+      item.put("reviewUrl", spot.reviewUrl());
+      item.put("reviewSource", spot.reviewSource());
+      item.put("reviewViaSearch", false);
       items.add(item);
     }
     value.put("items", items);

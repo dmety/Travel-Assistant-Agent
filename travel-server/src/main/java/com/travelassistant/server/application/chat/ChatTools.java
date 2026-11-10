@@ -13,6 +13,7 @@ import com.travelassistant.server.application.agent.vote.VoteOrchestrator;
 import com.travelassistant.server.application.place.PlaceResolution;
 import com.travelassistant.server.application.place.PlaceResolver;
 import com.travelassistant.server.application.place.RatingOrder;
+import com.travelassistant.server.application.place.ReviewLinks;
 import com.travelassistant.server.application.ticket.TicketService;
 import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.domain.attraction.Attraction;
@@ -221,6 +222,10 @@ public class ChatTools {
           row.put("tel", s.tel());
           row.put("city", s.district() != null && !s.district().isBlank() ? s.district() : city);
           row.put("channels", channelsFor(s.name()));
+          // 评论正文地图 API 不返回：只透出官方 POI 详情页入口，卡片点击后跳过去看真实评论
+          row.put("reviewUrl", s.reviewUrl());
+          row.put("reviewSource", s.reviewSource());
+          row.put("reviewViaSearch", false);
           liveRows.add(row);
         }
         if (!liveRows.isEmpty()) {
@@ -248,6 +253,10 @@ public class ChatTools {
       row.put("openTime", a.openTime());
       row.put("city", a.city());
       row.put("channels", channelsFor(a.name()));
+      // 知识库没有 POI id，给官方地图搜索页，让用户在地图里找到该景点再看评论
+      row.put("reviewUrl", ReviewLinks.amapSearch(a.name(), a.city()));
+      row.put("reviewSource", "高德地图搜索");
+      row.put("reviewViaSearch", true);
       rows.add(row);
     }
     String summary = city + " 的景点（共 " + found.size() + " 条，按评分列出 "
@@ -559,7 +568,7 @@ public class ChatTools {
           row.put("channels", name == null ? List.of() : channelsFor(String.valueOf(name)));
           // 实时检索候选才有这些字段（等级票价地图拿不到，是 null 不是 0）
           for (String field : new String[] {"type", "address", "district", "tel",
-              "source", "commentCount"}) {
+              "source", "commentCount", "reviewUrl", "reviewSource", "reviewViaSearch"}) {
             if (m.get(field) != null) {
               row.put(field, m.get(field));
             }
