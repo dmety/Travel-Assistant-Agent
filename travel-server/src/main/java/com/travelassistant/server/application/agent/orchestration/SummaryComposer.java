@@ -46,8 +46,11 @@ public class SummaryComposer {
       2. 不要出现任何具体商家名称。
       3. 不要出现数字，除非该数字在候选特征里原样出现；拿不准就用「多数」「少数」「步行几分钟」这类说法。
       4. 输出一到两句中文，不超过 80 字，不用列表、不用感叹号、不用营销词。
-      5. 如果候选特征不足以下结论，就直说信息有限。
-      6. 候选特征里标「未知」的项目，不得对它作任何评价、比较或推测（例如人均未知就不要说价格高低）。
+      5. 候选特征不足以下结论时，直说信息有限。但「只有一条路线」「只有一个预报」不算不足，
+         那本身就是这次要归纳的对象，照实说清即可。
+      6. 意图是 ROUTE_ADVICE 时，特征是两点之间的出行方式、距离米与耗时秒：
+         说清「多远、大概多久、怎么去」就好，不要因为只有一条路线就说信息有限。
+      7. 候选特征里标「未知」的项目，不得对它作任何评价、比较或推测（例如人均未知就不要说价格高低）。
       """;
 
   private final DeepSeekClient model;
@@ -147,6 +150,10 @@ public class SummaryComposer {
 
   /**
    * 只喂数值与标签，不喂店名。模型看不到名字，就不存在「复述错名字」这条失败路径。
+   *
+   * <p>字段按事实类别挑。原先只按餐饮字段取，路线、天气、灵感、草案的事实到了模型那里
+   * 全是「未知」——七个字段里六个未知，模型只能按规则回一句「信息有限」，
+   * 于是「问什么都回到信息有限」这个现象跟超时无关，是这段选字段的逻辑造成的。
    */
   private static String digest(List<Fact> facts) {
     List<String> lines = new ArrayList<>();
@@ -154,17 +161,93 @@ public class SummaryComposer {
     for (Fact fact : facts) {
       index++;
       Map<?, ?> value = fact.value() instanceof Map<?, ?> map ? map : Map.of();
-      List<String> parts = new ArrayList<>();
-      parts.add("距离 " + describe(value.get("distanceMeters")));
-      parts.add("人均 " + describe(value.get("pricePerPersonCny")));
-      parts.add("评分 " + describe(value.get("rating")));
-      parts.add("标签 " + describe(value.get("tags")));
-      parts.add("餐次 " + describe(value.get("mealSlot")));
-      parts.add("限制 " + describe(value.get("constraintNotes")));
-      parts.add("本地特色 " + describe(value.get("locality")));
-      lines.add(index + ". " + String.join("；", parts));
+      String category = value.get("category") instanceof String s ? s : "";
+      lines.add(index + ". " + String.join("；", partsOf(category, value)));
     }
     return String.join("\n", lines);
+  }
+
+  private static List<String> partsOf(String category, Map<?, ?> value) {
+    if ("ROUTE".equals(category)) {
+      return List.of(
+          "出行方式 " + describe(value.get("modeLabel")),
+          "距离米 " + describe(value.get("distanceMeters")),
+          "耗时秒 " + describe(value.get("durationSeconds")),
+          "途经路段数 " + countOf(value.get("steps")));
+    }
+    if ("WEATHER".equals(category)) {
+      return List.of(
+          "预报天数 " + countOf(value.get("days")),
+          "白天气温 " + joinField(value.get("days"), "dayTemp"),
+          "夜间气温 " + joinField(value.get("days"), "nightTemp"));
+    }
+    if ("INSPIRATION".equals(category)) {
+      return List.of(
+          "候选条数 " + countOf(value.get("items")),
+          "该城市总数 " + describe(value.get("total")),
+          "有票价的条数 " + countHasField(value.get("items"), "ticket"));
+    }
+    if ("PLAN_DRAFT".equals(category)) {
+      return List.of(
+          "逐日安排天数 " + countOf(value.get("dailySchedules")),
+          "候选景点数 " + countOf(value.get("candidates")),
+          "待补问题数 " + countOf(value.get("questions")),
+          "提示条数 " + countOf(value.get("notices")));
+    }
+    // 餐饮与未知类别按原有口径
+    return List.of(
+        "距离 " + describe(value.get("distanceMeters")),
+        "人均 " + describe(value.get("pricePerPersonCny")),
+        "评分 " + describe(value.get("rating")),
+        "标签 " + describe(value.get("tags")),
+        "餐次 " + describe(value.get("mealSlot")),
+        "限制 " + describe(value.get("constraintNotes")),
+        "本地特色 " + describe(value.get("locality")));
+  }
+
+  private static String countOf(Object value) {
+    if (value instanceof Iterable<?> items) {
+      int n = 0;
+      for (Object ignored : items) {
+        n++;
+      }
+      return String.valueOf(n);
+    }
+    return "未知";
+  }
+
+  /** 取列表里某个字段的全部取值，逗号连接；只用于气温这类纯数值字段。 */
+  private static String joinField(Object list, String field) {
+    if (!(list instanceof Iterable<?> items)) {
+      return "未知";
+    }
+    List<String> texts = new ArrayList<>();
+    for (Object item : items) {
+      if (item instanceof Map<?, ?> map) {
+        Object raw = map.get(field);
+        if (raw != null && !String.valueOf(raw).isBlank()) {
+          texts.add(String.valueOf(raw));
+        }
+      }
+    }
+    return texts.isEmpty() ? "未知" : String.join("/", texts);
+  }
+
+  /** 列表里有多少条某一字段非空。灵感事实用它说明「有票价的占几条」。 */
+  private static String countHasField(Object list, String field) {
+    if (!(list instanceof Iterable<?> items)) {
+      return "未知";
+    }
+    int n = 0;
+    for (Object item : items) {
+      if (item instanceof Map<?, ?> map) {
+        Object raw = map.get(field);
+        if (raw != null && !String.valueOf(raw).isBlank()) {
+          n++;
+        }
+      }
+    }
+    return String.valueOf(n);
   }
 
   private static String describe(Object value) {
