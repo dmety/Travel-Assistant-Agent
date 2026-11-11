@@ -24,10 +24,10 @@
     "source": "OpenStreetMap Overpass (ODbL) + 高德 Amap Web服务(商业免费额度)",
     "note": "Travel-Assistant-Agent 的中国景点统一知识库；OSM 作开源基底，高德补强等级/评分/开放时间/票价/电话/图片",
     "osm_count": 4073,
-    "count": 7745,
+    "count": 7757,
     "with_level": 1321,
-    "with_rating": 4480,
-    "with_open_time": 4346,
+    "with_rating": 4492,
+    "with_open_time": 4353,
     "with_ticket": 874,
     "with_image": 4630,
     "amap_stats": {
@@ -40,12 +40,12 @@
     "ticket_status_counts": {
       "verified": 145,
       "unverified": 729,
-      "pending": 6871
+      "pending": 6883
     },
     "open_time_status_counts": {
       "verified": 104,
-      "unverified": 4242,
-      "pending": 3399
+      "unverified": 4249,
+      "pending": 3404
     }
   },
   "cityIntroductions": {
@@ -214,7 +214,7 @@
     {
       "file": "湖北省.json",
       "province": "湖北省",
-      "count": 424
+      "count": 436
     },
     {
       "file": "湖南省.json",

@@ -24,15 +24,6 @@
       "reviewBy": "2026-11-15"
     },
     {
-      "metric": "missing_coordinates",
-      "observed": 1,
-      "maxAllowed": 1,
-      "reason": "kb-hb-yichang-06「百里荒生态旅游区」为湖北人工补全记录，录入时没有可靠坐标。按既有纪律不猜测坐标、不填近似值。",
-      "evidence": "data/china_attractions.json 中该记录 lat/lon 不可解析；tools/kb/quality_report.py 的 missing_coordinates 计数为 1",
-      "plan": "用官方或地图 POI 查证坐标并做 WGS-84 / GCJ-02 换算后回填；未查证前保持缺失。",
-      "reviewBy": "2026-11-15"
-    },
-    {
       "metric": "records_missing_source_ids",
       "observed": 69,
       "maxAllowed": 69,
