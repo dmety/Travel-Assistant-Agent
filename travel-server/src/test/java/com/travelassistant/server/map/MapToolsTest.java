@@ -194,6 +194,49 @@ class MapToolsTest {
     return namedPlace(name, type, district, 30.116, 115.934);
   }
 
+  @Test
+  @DisplayName("评论入口随整条 POI 原文走：跨源合并保留评分更高的那条及其官方链接")
+  void reviewUrlFollowsKeptPoi() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(true);
+    when(amap.searchScenicSpots("黄梅", null, 25)).thenReturn(List.of(
+        linkedPlace("五祖寺", 4.4, 64, "B02C900F7B", null)));
+    when(baidu.searchScenicSpots("黄梅", 25)).thenReturn(List.of(
+        linkedPlace("五祖寺", 4.6, 53, "35debf292fc0c444a6da3922",
+            "http://api.map.baidu.com/place/detail?uid=35debf292fc0c444a6da3922"
+                + "&output=html&source=placeapi_v3")));
+
+    MapTools.ScenicResult result = mapTools.findScenicSpots("黄梅", 8);
+
+    assertThat(result.spots()).hasSize(1);
+    // 百度这条评分可信度更高，整条记录换成百度原文，链接随之更换，不拼「高德 id + 百度评分」
+    assertThat(result.spots().get(0).source()).isEqualTo("百度");
+    assertThat(result.spots().get(0).reviewUrl())
+        .isEqualTo("https://api.map.baidu.com/place/detail?uid=35debf292fc0c444a6da3922"
+            + "&output=html&source=placeapi_v3");
+    assertThat(result.spots().get(0).reviewSource()).isEqualTo("百度地图");
+  }
+
+  @Test
+  @DisplayName("高德候选按真实 POI id 给官方详情页；没有 id 就不编网址")
+  void reviewUrlForAmapAndMissing() {
+    when(amap.configured()).thenReturn(true);
+    when(baidu.configured()).thenReturn(false);
+    when(amap.searchScenicSpots("黄梅", null, 25)).thenReturn(List.of(
+        linkedPlace("五祖寺", 4.4, 64, "B02C900F7B", null),
+        linkedPlace("四祖寺", 4.2, 30, null, null)));
+
+    MapTools.ScenicResult result = mapTools.findScenicSpots("黄梅", 8);
+
+    MapTools.ScenicSpot first = result.spots().stream()
+        .filter(s -> "五祖寺".equals(s.name())).findFirst().orElseThrow();
+    MapTools.ScenicSpot second = result.spots().stream()
+        .filter(s -> "四祖寺".equals(s.name())).findFirst().orElseThrow();
+    assertThat(first.reviewUrl()).isEqualTo("https://www.amap.com/place/B02C900F7B");
+    assertThat(first.reviewSource()).isEqualTo("高德地图");
+    assertThat(second.reviewUrl()).isNull();
+  }
+
   private static Place ratedPlace(String name, String type, String district, double rating) {
     return ratedPlace(name, type, district, rating, 30.116, 115.934);
   }
@@ -202,18 +245,25 @@ class MapToolsTest {
   private static Place ratedPlace(String name, String type, String district,
       double rating, int comments) {
     return new Place(name, type, district, "黄冈市", district, null,
-        30.116, 115.934, "GCJ-02", null, rating, comments);
+        30.116, 115.934, "GCJ-02", null, rating, comments, null, null);
   }
 
   private static Place ratedPlace(String name, String type, String district,
       double rating, double lat, double lon) {
     return new Place(name, type, district, "黄冈市", district, null,
-        lat, lon, "GCJ-02", null, rating, null);
+        lat, lon, "GCJ-02", null, rating, null, null, null);
   }
 
   private static Place namedPlace(String name, String type, String district,
       double lat, double lon) {
     return new Place(name, type, district, "黄冈市", district, null,
-        lat, lon, "GCJ-02", null, null, null);
+        lat, lon, "GCJ-02", null, null, null, null, null);
+  }
+
+  /** 带官方评论入口的 POI：高德给 id，百度给 detail_url（都是 API 原文）。 */
+  private static Place linkedPlace(String name, double rating, int comments,
+      String poiId, String detailUrl) {
+    return new Place(name, "风景名胜;寺庙", "黄梅县", "黄冈市", "黄梅县", null,
+        30.116, 115.934, "GCJ-02", null, rating, comments, poiId, detailUrl);
   }
 }

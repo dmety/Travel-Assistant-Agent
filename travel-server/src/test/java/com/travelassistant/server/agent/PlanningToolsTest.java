@@ -21,7 +21,7 @@ class PlanningToolsTest {
 
   private static MapTools.ScenicSpot spot(String name, String type) {
     return new MapTools.ScenicSpot(name, type, "黄梅县某路1号", "黄梅县", "0713-1234567",
-        30.07, 115.94, "GCJ-02", "amap", null, null);
+        30.07, 115.94, "GCJ-02", "amap", null, null, null, null);
   }
 
   @Test

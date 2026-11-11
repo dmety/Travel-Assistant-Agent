@@ -219,7 +219,11 @@ public class BaiduPlaceClient {
           // scope=2 的 detail_info.overall_rating 是地图用户评分，
           // comment_num 是评价数（评分可信度，不是好评数）；price 是人均消费，不是门票价。
           number(detail.path("overall_rating").asText("")),
-          integer(detail.path("comment_num").asText(""))));
+          integer(detail.path("comment_num").asText("")),
+          // uid 与 detail_url 都是 API 原文；后者实测会 302 到 map.baidu.com/poi 的 UGC 评论页，
+          // 是官方给出的评论入口。Web 服务不返回评论正文，绝不内联或编造。
+          text(poi, "uid"),
+          text(detail, "detail_url")));
     }
     return places;
   }

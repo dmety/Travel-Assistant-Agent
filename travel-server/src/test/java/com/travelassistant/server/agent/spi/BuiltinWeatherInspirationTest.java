@@ -137,9 +137,11 @@ class BuiltinWeatherInspirationTest {
     when(mapTools.findScenicSpots("黄梅", 8)).thenReturn(new MapTools.ScenicResult(
         "黄梅",
         List.of(new MapTools.ScenicSpot("五祖寺", "风景名胜;寺庙", "黄梅县五祖镇", "黄梅县",
-            "0713-3361111", 30.116, 115.934, "GCJ-02", MapTools.SOURCE_AMAP, 4.7, 53),
+            "0713-3361111", 30.116, 115.934, "GCJ-02", MapTools.SOURCE_AMAP, 4.7, 53,
+            "https://www.amap.com/place/B02C900F7B", "高德地图"),
             new MapTools.ScenicSpot("四祖寺", "风景名胜;寺庙", "黄梅县大河镇", "黄梅县",
-                null, 30.152, 115.912, "GCJ-02", MapTools.SOURCE_BAIDU, null, null)),
+                null, 30.152, 115.912, "GCJ-02", MapTools.SOURCE_BAIDU, null, null,
+                null, "百度地图")),
         List.of("百度密钥未配置")));
     AgentProvider provider = configuration.builtinInspiration(rules, store, mapTools);
 
@@ -168,6 +170,11 @@ class BuiltinWeatherInspirationTest {
     assertThat(items.get(0)).containsKeys("level", "ticket", "openTime");
     assertThat(items.get(0).get("level")).isNull();
     assertThat(items.get(0).get("ticket")).isNull();
+    // 评论正文不进 fact：只给官方 POI 详情页入口，没有入口的条目保持 null
+    assertThat(items.get(0)).containsEntry("reviewUrl", "https://www.amap.com/place/B02C900F7B")
+        .containsEntry("reviewSource", "高德地图")
+        .containsEntry("reviewViaSearch", false);
+    assertThat(items.get(1).get("reviewUrl")).isNull();
     assertThat(items.get(0).get("openTime")).isNull();
     assertThat(items.get(1).get("rating")).isNull();
     assertThat(result.notices()).anyMatch(n -> n.contains("未经核验"));

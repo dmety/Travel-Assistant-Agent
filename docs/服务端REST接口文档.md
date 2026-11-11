@@ -579,7 +579,8 @@ GET /api/location/places?keywords=西湖&city=杭州&limit=5
     { "name": "西湖", "type": "风景名胜", "address": "龙井路1号",
       "city": "杭州市", "district": "西湖区", "tel": "0571-1234",
       "lat": 30.259, "lon": 120.13, "coordinateSystem": "GCJ-02",
-      "distanceMeters": "0", "rating": 4.7, "commentCount": 53 }
+      "distanceMeters": "0", "rating": 4.7, "commentCount": null,
+      "poiId": "B00155MN8E", "detailUrl": null }
   ],
   "source": "高德地图 Web 服务 · 地点检索",
   "queriedAt": "2026-11-04T12:30:00Z",
@@ -591,6 +592,7 @@ GET /api/location/places?keywords=西湖&city=杭州&limit=5
 - 结果为空时 `notice` 给出可操作提示，而不是干巴巴的空数组
 - 地点检索改用 `extensions=all` 才带 `biz_ext.rating` 地图用户评分；没有评分时 `rating` 为 `null`，不补默认分。`commentCount` 是百度 `detail_info.comment_num` 的评价数，高德 place/text 不提供该字段时为 `null`；**`biz_ext.cost` 是人均消费、不是门票价**，不下发、也不展示成票价
 - 对话里的景点候选按真实评分降序展示（无评分的排后），评分只用于排序与展示，不代表官方评级；地图实时检索额外用评价数做可信度加权，避免「6 条评价的 5.0」压过「53 条评价的 4.6」
+- `poiId` / `detailUrl` 只用于打开**地图官方详情页看真实评论**：高德返回 POI `id`，百度区域检索返回 `uid` 与 `detail_info.detail_url`（官方 POI 详情 / UGC 评论页）。两家的 Web 服务 API **都不返回评论正文**（实测 75 条 POI，高德 `featured_reviews` 全为空数组），平台条款也禁止抓取 UGC，因此对话景点卡的「N 条评价」点击后展开说明面板并跳官方页面，不内联、不生成评论文字。链接统一过 `ReviewLinks` 的官方域名白名单（`www.amap.com`、`ditu.amap.com`、`uri.amap.com`、`map.baidu.com`、`api.map.baidu.com`）并强制 https；知识库条目没有 POI id 时只给 `uri.amap.com` 官方搜索页，并明确标注是搜索页而非评论页
 
 **天气预报**
 
