@@ -111,16 +111,20 @@ java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar http://localhost
 | `ATTRACTION_KB_PATH` | 数据目录下的 `attractions_index.json` | 只读景点运行索引路径 |
 | `TICKET_RULE_FILE` | 数据目录下的 `ticket_rules.json` | 三景点规则与字段级来源，人工核验快照 |
 | `TICKET_CHANNEL_FILE` | 数据目录下的 `ticket_channels.json` | 人工维护的官方购票入口文件路径 |
-| `AMAP_KEY` | 空 | 高德 Web 服务密钥，用于地点、天气和路线查询；也接受 `AMAP_API_KEY` |
+| `AMAP_KEY` | 空 | **高德地图开放平台**的 Web 服务密钥，用于地点、天气和路线查询；也接受 `AMAP_API_KEY`。属于地图数据接口，不是模型 |
 | `AMAP_TIMEOUT_MS` | `4000` | 高德查询超时（毫秒） |
-| `BAIDU_AK` | 空 | 百度地图 AK，第二数据源（餐饮 POI）；缺失时该链路降级，不编造结果 |
+| `BAIDU_AK` | 空 | **百度地图开放平台**的 AK，第二数据源（餐饮 POI）；缺失时该链路降级，不编造结果。同样属于地图数据接口 |
 | `BAIDU_TIMEOUT_MS` | `4000` | 百度查询超时（毫秒）。`BAIDU_SK` 只供 Python 侧 SN 签名用，Java 服务不读取 |
-| `DEEPSEEK_API_KEY` | 空 | 启用模型文字建议 |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | 模型服务地址 |
-| `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名称 |
-| `DEEPSEEK_TIMEOUT_MS` | `20000` | 模型调用超时（毫秒） |
+| `DEEPSEEK_API_KEY` | 空 | 模型密钥，启用文字建议。三个密钥里只有这一个产生 token 计费 |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | 模型服务地址。用硅基流动时填 `https://api.siliconflow.cn/v1` |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名称。硅基流动的模型名带厂商前缀，如 `deepseek-ai/DeepSeek-V3.2` |
+| `DEEPSEEK_TIMEOUT_MS` | `60000` | 模型调用超时（毫秒）。低于 45 秒会与对话 Agent 的总预算冲突 |
 | `TRAVEL_AGENT_PROVIDERS_ENABLED` | `true` | 是否读取 `数据目录/agent_providers.json` 的外部 Agent Provider 配置；`false` 时只用内置 Provider |
 | `SESSION_COOKIE_SECURE` | `false` | 会话 Cookie 是否只允许 HTTPS 传输；**对外部署时设为 `true`** |
+
+三个密钥分属两类服务，别混：`AMAP_KEY` 与 `BAIDU_AK` 是**地图数据 API**，返回 POI、天气、路线这类结构化数据，按调用次数计配额；`DEEPSEEK_API_KEY` 是**大模型 API**，返回生成的文本，按 token 计费。高德和百度各自也有自己的大模型平台（如百度的千帆），那是另一个开放平台、另一套密钥，本项目没有使用。
+
+运行时的模型用量可在 `GET /api/agent/status` 的 `usage` 字段查看：本进程的调用次数、输入输出 token 与最近一次是谁调的。**只有用量没有余量**——硅基流动的余额接口 `/v1/user/info` 已下线（返回 410），程序侧查不到账户余额，只能到控制台看。
 
 PowerShell 7 示例：按需替换占位值，仅设置在当前终端会话中。
 
