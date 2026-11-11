@@ -45,13 +45,15 @@ import org.springframework.stereotype.Service;
 public class VoteOrchestrator {
 
   private static final String INTENT = "DECISION_ADVICE";
-  private static final int MAX_PLANS = 5;
+  /** 候选方案只留三套侧重：五套并列对用户是噪音，评委也判不出更细的差异。 */
+  private static final int MAX_PLANS = 3;
   private static final int MAX_COLLECTED_CARDS = 12;
   private static final int MAX_NAME_SCAN = 12;
   private static final Set<String> FOCUS = Set.of("COST", "FOOD", "WALK", "BALANCED");
   private static final String MODEL_SYSTEM =
-      "你是旅行方案草案生成器。只返回 JSON 数组，每个元素含 planId（A 到 E 的大写字母）、"
-          + "title、focus（COST / FOOD / WALK / BALANCED 之一）、groundingFactIds（字符串数组）。"
+      "你是旅行方案草案生成器。只返回 JSON 数组，最多 3 个元素，每个元素含 planId"
+          + "（A、B、C 之一，不重复）、title、focus（COST / FOOD / WALK / BALANCED 之一）、"
+          + "groundingFactIds（字符串数组）。"
           + "groundingFactIds 只能从给定的事实 ID 列表里选，不得编造。标题要反映下面汇集事实里"
           + "真实出现的地名与内容，不要输出解释、Markdown 或代码块，不要输出价格、网址或"
           + "事实之外的内容。";
@@ -318,25 +320,33 @@ public class VoteOrchestrator {
       }
     }
 
-    int days = context.get("days") instanceof Number number
+    int requestedDays = context.get("days") instanceof Number number
         ? Math.max(1, Math.min(5, number.intValue())) : 3;
+    // 与 /api/agent/plan 同一收敛口径：只排有事实支撑的天，不把「暂无候选」重复刷屏。
+    int perDay = 3;
+    int supported = (spots.size() + perDay - 1) / perDay;
+    int renderedDays = Math.min(requestedDays, supported);
+    int trimmedDays = requestedDays - renderedDays;
     List<Map<String, Object>> daily = new ArrayList<>();
-    for (int day = 1; day <= days; day++) {
+    for (int day = 1; day <= renderedDays; day++) {
       List<String> items = new ArrayList<>();
-      for (int i = (day - 1) * 3; i < Math.min(day * 3, spots.size()); i++) {
+      for (int i = (day - 1) * perDay; i < Math.min(day * perDay, spots.size()); i++) {
         items.add(spots.get(i));
       }
       Map<String, Object> row = new LinkedHashMap<>();
       row.put("day", day);
       row.put("items", List.copyOf(items));
-      row.put("note", items.isEmpty()
-          ? "本轮未收集到景点候选，留空不编造" : "来自子 Agent 汇集事实");
+      row.put("note", "来自子 Agent 汇集事实");
       daily.add(row);
     }
 
     List<String> unknowns = new ArrayList<>();
     if (spots.isEmpty()) {
       unknowns.add("景点候选未提供");
+    }
+    if (trimmedDays > 0) {
+      unknowns.add("其余 " + trimmedDays + " 天没有可查景点，未硬凑空天；"
+          + "可缩短天数或补充周边城市");
     }
     if (food.isEmpty()) {
       unknowns.add("餐饮候选与忌口信息未提供");
@@ -356,9 +366,15 @@ public class VoteOrchestrator {
         ? "未找到经核验的官方购票入口，请自行进入景区官方网站或官方公众号，本系统不生成猜测链接"
         : "余票未核验，购票前以官方页面显示为准");
 
+    Map<String, Object> dayScope = new LinkedHashMap<>();
+    dayScope.put("requestedDays", requestedDays);
+    dayScope.put("renderedDays", renderedDays);
+    dayScope.put("trimmedDays", trimmedDays);
+
     Map<String, Object> draft = new LinkedHashMap<>();
     draft.put("destination", context.getOrDefault("city", "未提供"));
-    draft.put("days", days);
+    draft.put("days", requestedDays);
+    draft.put("dayScope", dayScope);
     draft.put("dailySchedules", List.copyOf(daily));
     draft.put("food", List.copyOf(food));
     draft.put("weather", List.copyOf(weather));
@@ -497,7 +513,7 @@ public class VoteOrchestrator {
       for (JsonNode node : root) {
         String planId = node.path("planId").asText("");
         String focus = node.path("focus").asText("");
-        if (!planId.matches("[A-E]") || !seen.add(planId) || !FOCUS.contains(focus)) {
+        if (!planId.matches("[A-C]") || !seen.add(planId) || !FOCUS.contains(focus)) {
           throw new IllegalStateException("模型输出的方案 ID 或侧重非法");
         }
         List<String> grounding = new ArrayList<>();

@@ -94,6 +94,9 @@ class AmapClientTest {
     // biz_ext.cost 是人均消费，Place 里没有票价字段，不会被误当门票展示
     assertThat(places.get(1).rating()).isNull();
     assertThat(places.get(0).commentCount()).isNull();
+    // POI id 是官方详情页入口的唯一依据；Web 服务不返回评论正文，featured_reviews 实测为空
+    assertThat(places.get(0).poiId()).isEqualTo("B001");
+    assertThat(places.get(1).detailUrl()).isNull();
   }
 
   @Test

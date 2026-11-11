@@ -148,6 +148,10 @@ public class AmapClient {
           text(poi, "distance"),
           number(biz.path("rating").asText("")),
           // place/text 的 biz_ext 不提供评价数；不拿 cost 或其它字段凑数
+          null,
+          // POI id 是 API 原文，用于跳高德官方详情页看真实评论；featured_reviews 实测为空，
+          // Web 服务不提供评论正文，所以这里只存链接入口，不存也不编评论文本。
+          text(poi, "id"),
           null));
     }
     log.debug("高德地点检索「{}」命中 {} 条", kw, places.size());

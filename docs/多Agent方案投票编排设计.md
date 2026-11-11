@@ -108,7 +108,7 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 
 评委一次调用返回对所有 N 套方案的评分，所以评审阶段是 M 次调用，不是 N 乘 M 次。两轮合计约 2M 次，M 是评委数。原型里 M 为 5，合计 10 次。
 
-主 Agent 生成方案另算一次模型调用。候选方案数要设上限，方案越多，评分票越长，会逼近 `facts` 的 50 条上限和响应体大小限制。超过上限时按 `planId` 截断，不悄悄丢弃，并在 `notices` 写明。
+主 Agent 生成方案另算一次模型调用。候选方案数要设上限，方案越多，评分票越长，会逼近 `facts` 的 50 条上限和响应体大小限制。落地实现比原设计更严格：上限直接定为 **3 套**（`MAX_PLANS=3`，模型只准给不重复的 A/B/C），用户实测反馈「待候选太多、信息太杂」。超出上限或出现非法 `planId` 时不悄悄截断，而是整批候选判不可用、降级到确定性规则草案并把原因写进 `notices`；前端投票卡默认只显示胜出方案，其余评分与草案折叠。
 
 评分票算 `facts`，与领域事实共用 50 条配额。M 个评委、N 套方案时，单个评委返回 N 张评分票。若还要回传领域事实，总条数是两者之和，落地时按这个数校核上限。
 
@@ -170,6 +170,15 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 - **投票**：评委 COLLECT 不再回同一个常量模板，各自上报真实视角事实（票务声明「只给入口与方法、余票未核验」，停车声明无专属数据源）；SCORE 读取草案真实字段调整分数，**只有草案里确实存在本领域数据时才调整**——「没查到」不等于表现差，也不能凭空加分；`SCORE_TABLE` 作为无草案时的确定性基准，保证既有计票结论可复现。
 - **票务出口**：`builtin.ticket` 从 `TicketAssistantService.Result.channels()` 提取人工核验的官方入口，新增 `builtin.ticket:guidance` fact（`value.category=TICKET_GUIDANCE`，含 `officialUrl` / `rules` / `method` / `stockVerified=false`）。链接只能进 fact value：契约 S-04 禁止 `advice` 出现 URL。`ChatTools.book_ticket` 摘要与前端 `envelope` 卡片把入口与方法列给用户，明确不代下单、不查余票、不生成猜测链接。
 - **边界**：没有订单、支付、出票、退款、实时库存；评委不是完整功能 Agent，投票只产出建议；官方购票入口目前只有人工核验的 3 条配置，查不到就如实说没有。
+
+### 输出收敛（2026-11-10 晚）
+
+用户截图反馈「待候选太多、信息太杂，作为用户我不太想看」。本轮在编排层而不是模型提示词里解决：
+
+- `buildDraft` 只排有事实支撑的天（每天最多 3 个名字，`renderedDays = min(请求天数, ceil(名字数 / 3))`），**不再生成「本轮未收集到景点候选」的空天**；差额写进 `draft.dayScope{requestedDays,renderedDays,trimmedDays}` 与 `unknowns` 一条说明。
+- `ChatTools.appendDraftSummary` 只列有内容的天，并明确告诉模型收敛掉的天「不要补景点」，防止模型把空天重新填回对话。
+- 候选方案上限从 5 套收窄到 3 套；`chat.html` 的投票卡默认只给胜出方案与一句口径，排名、主 Agent 草案、官方购票入口点开才看（数据仍在响应里，不删字段）。
+- 与 `/api/agent/plan` 共用同一套收敛口径与 `dayScope` 字段，详见《Agent 运行时架构设计》「编排层输出收敛」。回归：`VoteDraftFlowTest`、`DraftCondenseTest`、`acceptance.py`。
 
 ## 复核命令
 

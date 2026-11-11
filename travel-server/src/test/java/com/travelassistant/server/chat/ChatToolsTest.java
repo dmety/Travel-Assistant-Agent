@@ -118,7 +118,8 @@ class ChatToolsTest {
             "华山",
             List.of(new com.travelassistant.server.application.map.MapTools.ScenicSpot(
                 "华山风景名胜区", "风景名胜;风景名胜", "华阴市玉泉路", "华阴市", null,
-                34.48, 110.08, "GCJ-02", "高德", 4.7, null)),
+                34.48, 110.08, "GCJ-02", "高德", 4.7, null,
+                "https://www.amap.com/place/B02C900F7B", "高德地图")),
             List.of()));
 
     ChatTools.Outcome outcome = tools.execute("list_attractions", "{\"city\":\"华山\"}");
@@ -131,6 +132,10 @@ class ChatToolsTest {
     List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
     assertThat(rows.get(0)).containsEntry("rating", 4.7).containsKey("channels");
     assertThat(rows.get(0).get("ticket")).isNull();
+    // 实时候选带官方 POI 详情页入口，不内联任何评论正文
+    assertThat(rows.get(0)).containsEntry("reviewUrl", "https://www.amap.com/place/B02C900F7B")
+        .containsEntry("reviewSource", "高德地图")
+        .containsEntry("reviewViaSearch", false);
   }
 
   @Test
@@ -157,6 +162,10 @@ class ChatToolsTest {
         .containsExactly("故宫博物院", "南锣鼓巷");
     assertThat(rows.get(0)).containsEntry("ticket", "旺季60元/淡季40元")
         .containsEntry("ticketStatus", "unverified").containsEntry("rating", "4.9");
+    // 知识库条目没有地图 POI id：只给官方搜索页，明确标成「搜索页」而不是评论页
+    assertThat(String.valueOf(rows.get(0).get("reviewUrl")))
+        .startsWith("https://uri.amap.com/search?keyword=");
+    assertThat(rows.get(0)).containsEntry("reviewViaSearch", true);
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> links = (List<Map<String, Object>>) rows.get(0).get("channels");
     assertThat(links).hasSize(1);
@@ -299,6 +308,11 @@ class ChatToolsTest {
     assertThat(rows.get(0)).containsEntry("name", "西湖").containsEntry("reason", "5A，评分 4.9")
         .containsEntry("ticket", "免费").containsEntry("ticketStatus", "verified")
         .containsEntry("rating", "4.9").containsKey("channels");
+    // 评价入口从子 Agent fact 透到卡片；知识库条目标成官方搜索页，不冒充评论页
+    assertThat(String.valueOf(rows.get(0).get("reviewUrl")))
+        .startsWith("https://uri.amap.com/search?keyword=");
+    assertThat(rows.get(0)).containsEntry("reviewSource", "高德地图搜索")
+        .containsEntry("reviewViaSearch", true);
   }
 
   @Test
@@ -580,6 +594,9 @@ class ChatToolsTest {
     item.put("ticket", "免费");
     item.put("ticketStatus", "verified");
     item.put("reason", "5A，评分 4.9");
+    item.put("reviewUrl", "https://uri.amap.com/search?keyword=%E8%A5%BF%E6%B9%96&city=%E6%9D%AD%E5%B7%9E%E5%B8%82");
+    item.put("reviewSource", "高德地图搜索");
+    item.put("reviewViaSearch", true);
     Map<String, Object> value = new LinkedHashMap<>();
     value.put("category", "INSPIRATION");
     value.put("city", "杭州");

@@ -248,8 +248,23 @@ primary/fallback 切换语义。
 - **两轮投票已落地（2026-11-09 晚）**：独立 `VoteOrchestrator` 承担范式 B 两轮协议，不动 `AgentOrchestrator`。第一轮 `COLLECT` 征集事实，候选「模型优先 + 规则兜底」；第二轮 `SCORE` 一次性收票后交 `PlanVoteTally` 确定性计票（VETO 硬剔除、弃票不进分母、加权、三步平局、同构检测）。三位评委 `judge.ticket` / `judge.food` / `judge.parking` 复用 `DECISION_ADVICE` 能力，各自声明独立 `Rubric`，不新增 capability 枚举。三条 `E_VOTE_*` 已进 Java 运行时的 `rejections` 与 `notices`，不再只在离线原型里。
 - **信息流定案（2026-11-10）**：用户明确「所有 Agent 收集到的信息全部给主 Agent，由主 Agent 整理生成草案，其他子 Agent 投票；票务只把购票链接或方法告诉用户，不替用户购票」。`ChatAgent` 在调 `vote_plan` 时把本轮所有工具卡片注入请求，`VoteOrchestrator` 把它们连同评委事实全量合成 `allFacts`，主 Agent 据此确定性整理一份草案（逐日 / 餐饮 / 天气 / 购票方式 / 未提供项），模型 prompt 也改为带事实内容而不是只有 ID；评委第二轮按草案真实字段评分。购票入口由 `builtin.ticket` 以 `TICKET_GUIDANCE` fact 输出 `officialUrl` 与方法，链接只进 fact value（契约 S-04 禁止 `advice` 含 URL），前端列成可点入口，明确不代下单、不查余票。契约仍是 1.0，不新增 capability / factType。详见《多 Agent 方案投票编排设计》「实现状态（2026-11-10）」。
 - **不重复计数**：外部 Provider 的运行期违规由 `HttpAgentAdapter` 的 `runtimeSink` 上报准入控制器，编排层只记录尝试结果，不改注册表状态、不生成第二份违规回执。
+- **输出收敛（2026-11-10 晚）**：编排层不再把「候选不足」和「多套待候选」原样倒给用户，规则见下一节。
 
 `DispatchOutcome.Attempt.reason` 是编排层自己的标签（`NOT_FOUND` / `CONTRACT_VIOLATION` / `EXCEPTION` / `REFUSED` / `OK`），不是准入原因码，不进 `AdmissionReport`、不计违规、不加熔断。响应是信封加契约形状的 `result`，不含 endpoint、authRef 或任何凭据。
+
+### 编排层输出收敛（2026-11-10 晚）
+
+用户实测反馈：问「十堰 10 天怎么安排」，库里只查到 4 个景点，正文已经说「硬凑十天会太空」，结构化卡片却照样铺 10 行，其中 8 行是重复的「暂无候选 + 缺少有效的出发/返回日期…」；投票卡又同时铺多套候选、逐条排名、草案与购票入口。信息全，但用户不想看。**收敛是编排层的职责，不是让模型少说两句**，因此规则落在纯函数与响应字段上：
+
+| 规则 | 落地位置 | 口径 |
+| --- | --- | --- |
+| 只排有候选的天 | `DraftAssembler.arrange` / `VoteOrchestrator.buildDraft` | `renderedDays = min(请求天数, ceil(候选数 / 每天上限))`；PLAN_DRAFT 每天 2 个、投票草案每天 3 个，**空天一律不生成**。确认保存的 `PlanMaterializer` 复用同一个 `arrange`，正式行程里也不会写进空天。 |
+| 差额只说一次 | `DRAFT_DAYS_TRIMMED` check + `dayScope{requestedDays,renderedDays,trimmedDays}` + 一条 notice | 10 天请求只排 2 天，就在卡片底部写一句「另有 8 天没有可查景点，未硬凑空天；可缩短天数或加周边城市」，不生成 8 行占位。 |
+| 全局提示不逐天重复 | `DraftAssembler` 的逐日 `note` | 日期缺失 / 区间越界由 `questions`、`checks` 表达一次；逐日 note 只保留来源与「游览时刻待确认」，不再每天抄一遍补问文案。 |
+| 模型不许把空天填回去 | `ChatTools.planHighlight` / `appendDraftSummary` | 工具摘要明确带「另有 N 天没有可查景点，草案未硬凑空天，不要替用户补景点或天数」，避免模型凭常识补 D3～D10。 |
+| 候选与次要信息折叠 | `chat.html` | 投票候选上限 3 套（`planId` A～C）；景点卡默认 4 条、候选卡默认 3 条、检查项默认 2 条，其余点开才显示；投票卡默认只给胜出方案与一句口径，评分 / 主 Agent 草案 / 官方购票入口放进折叠区。逐日卡的票价与开放时间压成一行小字。 |
+
+三条边界：**不删数据**（折叠只是 DOM `hidden`，fact、checks、响应字段全保留）、**不改结论**（评分票、计票、票价原文、未核验标记都不动）、**不编造**（没有候选就明说没有，不补景点、不补天数）。回归证据：`DraftCondenseTest`、`VoteDraftFlowTest`、`acceptance.py` 的「10-day request renders only days with real candidates」与「vote draft trims unsupported days」。
 
 ## 稳定契约
 

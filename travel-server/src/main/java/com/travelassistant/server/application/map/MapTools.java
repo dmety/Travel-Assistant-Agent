@@ -1,5 +1,6 @@
 package com.travelassistant.server.application.map;
 
+import com.travelassistant.server.application.place.ReviewLinks;
 import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.infrastructure.amap.AmapClient;
 import com.travelassistant.server.infrastructure.baidu.BaiduPlaceClient;
@@ -40,7 +41,7 @@ public class MapTools {
    */
   public record ScenicSpot(String name, String type, String address, String district,
       String tel, Double lat, Double lon, String coordinateSystem, String source,
-      Double rating, Integer commentCount) {
+      Double rating, Integer commentCount, String reviewUrl, String reviewSource) {
   }
 
   /** 一次检索的结果：候选 + 给人看的 notice（含降级原因），候选可能为空。 */
@@ -218,9 +219,15 @@ public class MapTools {
   }
 
   private static ScenicSpot toSpot(Place poi, String source) {
+    // 评论正文地图 API 不返回，只给官方详情页入口；链接随整条 POI 原文走，
+    // 跨源去重换记录时不会出现「百度的评分 + 高德的链接」这种拼接事实。
+    String reviewUrl = SOURCE_AMAP.equals(source)
+        ? ReviewLinks.amapPlace(poi.poiId())
+        : ReviewLinks.baiduDetail(poi.detailUrl());
     return new ScenicSpot(poi.name(), poi.type(), poi.address(), poi.district(),
         poi.tel(), poi.lat(), poi.lon(), poi.coordinateSystem(), source,
-        poi.rating(), poi.commentCount());
+        poi.rating(), poi.commentCount(), reviewUrl,
+        source == null ? null : source + "地图");
   }
 
   /** 同来源按名称去重；跨来源「同名且 50 米内」视为同一实体，保留评分更高的那条原文。 */

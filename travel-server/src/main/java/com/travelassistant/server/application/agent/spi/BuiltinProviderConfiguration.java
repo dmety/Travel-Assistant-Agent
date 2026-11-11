@@ -3,6 +3,7 @@ package com.travelassistant.server.application.agent.spi;
 import com.travelassistant.server.application.agent.DecisionReport;
 import com.travelassistant.server.application.agent.DecisionRequest;
 import com.travelassistant.server.application.agent.DecisionService;
+import com.travelassistant.server.application.agent.DraftAssembler;
 import com.travelassistant.server.application.agent.DraftBudgetEstimate;
 import com.travelassistant.server.application.agent.DraftCheck;
 import com.travelassistant.server.application.agent.DraftDay;
@@ -13,6 +14,7 @@ import com.travelassistant.server.application.agent.PlanningService;
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.application.place.RatingOrder;
+import com.travelassistant.server.application.place.ReviewLinks;
 import com.travelassistant.server.application.agent.vote.JudgeProviderConfiguration;
 import com.travelassistant.server.application.ticket.TicketAssistantService;
 import com.travelassistant.server.domain.attraction.Attraction;
@@ -169,6 +171,15 @@ public class BuiltinProviderConfiguration {
     value.put("category", "PLAN_DRAFT");
     value.put("destination", draft.request().destination());
     value.put("days", draft.request().days());
+    // 编排层收敛口径：请求天数与真正排出天数分开给，前端只需一条说明，不铺空天。
+    Integer effective = draft.request().effectiveDays();
+    int requested = effective == null ? 0 : Math.min(effective, DraftAssembler.MAX_DAYS);
+    int rendered = draft.dailySchedules().size();
+    Map<String, Object> dayScope = new LinkedHashMap<>();
+    dayScope.put("requestedDays", requested);
+    dayScope.put("renderedDays", rendered);
+    dayScope.put("trimmedDays", Math.max(0, requested - rendered));
+    value.put("dayScope", dayScope);
     value.put("advice", draft.advice());
     value.put("notices", List.copyOf(draft.notices()));
     value.put("sources", List.copyOf(draft.sources()));
@@ -577,6 +588,10 @@ public class BuiltinProviderConfiguration {
         item.put("ticketStatus", a.ticketStatus());
         item.put("openTime", a.openTime());
         item.put("reason", reasonOf(a));
+        // 知识库条目没有地图 POI id，只能给官方地图搜索页；UI 须标注「搜索页」而非评论页。
+        item.put("reviewUrl", ReviewLinks.amapSearch(a.name(), a.city()));
+        item.put("reviewSource", "高德地图搜索");
+        item.put("reviewViaSearch", true);
         items.add(item);
       }
       value.put("items", items);
@@ -619,6 +634,10 @@ public class BuiltinProviderConfiguration {
       item.put("tel", spot.tel());
       item.put("source", spot.source());
       item.put("reason", liveReason(spot));
+      // 地图 API 不给评论正文，只给官方 POI 详情页入口；没有入口时前端如实说明。
+      item.put("reviewUrl", spot.reviewUrl());
+      item.put("reviewSource", spot.reviewSource());
+      item.put("reviewViaSearch", false);
       items.add(item);
     }
     value.put("items", items);
