@@ -2775,8 +2775,14 @@ button:focus:not(:focus-visible){outline:none;}
     empty = null;
     stream.innerHTML = '';
 
+    // 回放补充条件卡时要用「用户当时说的那句话」作为原话底稿。
+    // 不能拿 m.text 顶替：那是 AI 自己的回复，一旦拿它当 baseText，
+    // 点「按这些重排」就会把整段 AI 回答当成用户消息再发一遍，
+    // 模型收到后只会以为用户在复述它刚才说的话。
+    var lastUserText = '';
     s.messages.forEach(function(m){
       if(m.role === 'user'){
+        lastUserText = String(m.text || '');
         var um = userMsg(m.text);
         um.style.animation = 'none';
         stream.appendChild(um);
@@ -2795,15 +2801,18 @@ button:focus:not(:focus-visible){outline:none;}
           replayDest.style.marginTop = 'var(--sp-2)';
           shell.body.appendChild(replayDest);
         } else {
+          // 旧消息可能没有 baseText 字段：退回这条回复之前最近的一句用户原话，
+          // 都取不到就留空，让补充条件卡只带新选的条件，绝不把 AI 正文当原话。
+          var replayBase = m.baseText || lastUserText;
           // Agent 回复里的天气/景点卡可以原样重建，行程卡走精简草案
           (m.cards || []).forEach(function(card){
-            var node = paintCard(card, m.baseText || m.text);
+            var node = paintCard(card, replayBase);
             if(node){
               node.style.marginTop = 'var(--sp-2)';
               shell.body.appendChild(node);
             }
           });
-          appendDraftBlocks(shell.body, m.draft, { baseText: m.baseText || m.text });
+          appendDraftBlocks(shell.body, m.draft, { baseText: replayBase });
         }
         var meta = el('div','msg-meta');
         // 回放也标出当时是哪个 Provider 处理的，链路可追溯
