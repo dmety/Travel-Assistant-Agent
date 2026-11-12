@@ -1164,11 +1164,12 @@ POST /api/agent/vote
 
 ## 5. 前端页面
 
-服务端内置**三个**静态页（仅用于本地联调与展示，非生产 UI）：
+服务端内置**四个**静态页（仅用于本地联调与展示，非生产 UI）：
 
 - `static/index.html`：首页 / 登录与注册页，`GET /`、`/login`、`/app` 均转发到此；
 - `static/chat.html`：AI 对话页，登录后的落地页；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/chat.html`；
-- `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换。
+- `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换；
+- `static/ticket-assistant.html`：景区购票助手页，围绕「一条已保存的行程活动」查官方购票入口，不写正式方案（交互见 §5.2）。
 
 接口测试台按会话自动切换两种形态，不需要跳转：
 
@@ -1185,6 +1186,7 @@ POST /api/agent/vote
 | `GET /index.html` | 登录页直连 |
 | `GET /chat.html` | AI 对话页直连（页面公开，数据仍由 `/api/**` 拦截） |
 | `GET /api-console.html` | 接口测试台直连 |
+| `GET /ticket-assistant.html` | 景区购票助手页直连（页面公开，其调用的接口仍需登录） |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
 
 页面用左侧竖排栏区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 美食推荐 / Agent 投票 / 归档导出）。
@@ -1221,6 +1223,23 @@ POST /api/agent/vote
 点一次「按这些重排」即提交。结构化字段通过请求体直接传回（`days`/`travelers`/`budget`/
 `departDate`/`returnDate`），不依赖模型从文本里再解析一遍；`builtin.planning` 会把八个
 字段全量透传给 `PlanningRequest`。
+
+### 5.2 购票助手页的交互约定
+
+页面以「一条已保存的行程活动」为操作对象，先选行程再选活动；不带参数直接打开时只加载
+`GET /api/tickets/catalog` 的核验目录，不主动读用户数据。支持 `?itineraryId=` 与
+`?activityId=` 深链，从行程详情跳过来时预选对应活动。
+
+| 动作 | 调用 | 说明 |
+|---|---|---|
+| 打开页面 | `GET /api/tickets/catalog` | 只取人工核验过的景区目录，用于用户手输景点名时定位 |
+| 选行程 | `GET /api/itineraries` → `GET /api/itineraries/{id}` | 活动下拉按「日期 · 标题」列出全部逐日活动 |
+| 求建议 | `POST /api/agent/tickets/advice` | 提交 `message`、`needs`、`itineraryId`、`activityId`；返回的 `questions` 直接显示在对话区，右侧只展示核验依据 |
+| 登记结果 | `PUT /api/itineraries/{id}/activities/{activityId}/ticket-record?version=` | 携带当前 `version`，409 时提示「行程已变化或归档，请重新加载并核对，未保存登记」 |
+
+页面上的三条边界必须保持：官方入口一律 `target="_blank"` + `rel="noopener noreferrer"`，
+不拼接猜测链接；登记的只是**用户自报结果**，文案明写「未经平台核验，费用板块未自动变更」；
+未登录时统一提示「请先返回主页登录，再加载行程」，不静默失败。
 
 ---
 
