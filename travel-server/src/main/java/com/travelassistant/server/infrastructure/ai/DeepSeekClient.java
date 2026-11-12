@@ -41,6 +41,19 @@ public class DeepSeekClient {
   private final String baseUrl;
   private final String model;
 
+  /**
+   * 进程级用量累计。此前响应里的 {@code usage} 被整个丢掉，只能按代码常量反推消耗，
+   * 改完提示也不知道到底省了多少。这里只累加、不上报外部，用于日志与本地核对。
+   */
+  private final java.util.concurrent.atomic.AtomicLong promptTokens =
+      new java.util.concurrent.atomic.AtomicLong();
+  private final java.util.concurrent.atomic.AtomicLong completionTokens =
+      new java.util.concurrent.atomic.AtomicLong();
+  private final java.util.concurrent.atomic.AtomicLong cachedTokens =
+      new java.util.concurrent.atomic.AtomicLong();
+  private final java.util.concurrent.atomic.AtomicLong runs =
+      new java.util.concurrent.atomic.AtomicLong();
+
   @org.springframework.beans.factory.annotation.Autowired
   public DeepSeekClient(RestTemplateBuilder builder,
       @Value("${travel.ai.api-key:}") String apiKey,
@@ -171,12 +184,41 @@ public class DeepSeekClient {
       if (root == null) {
         throw new AgentUnavailableException("模型返回空响应");
       }
+      recordUsage(root);
       return root;
     } catch (HttpStatusCodeException e) {
       throw new AgentUnavailableException(explain(e), e);
     } catch (RestClientException e) {
       throw new AgentUnavailableException("模型服务请求失败：" + brief(e.getMessage()), e);
     }
+  }
+
+  /**
+   * 记一次用量。DeepSeek 在响应里回 {@code usage.prompt_tokens / completion_tokens /
+   * prompt_cache_hit_tokens}，缓存命中部分按约五十分之一的单价计费，所以缓存命中数
+   * 也要单独记——只看 prompt_tokens 会高估成本。
+   */
+  private void recordUsage(JsonNode root) {
+    JsonNode usage = root.path("usage");
+    if (usage.isMissingNode()) {
+      return;
+    }
+    long prompt = usage.path("prompt_tokens").asLong(0);
+    long completion = usage.path("completion_tokens").asLong(0);
+    long cached = usage.path("prompt_cache_hit_tokens").asLong(0);
+    promptTokens.addAndGet(prompt);
+    completionTokens.addAndGet(completion);
+    cachedTokens.addAndGet(cached);
+    runs.incrementAndGet();
+    log.info("模型用量 prompt={}完成={}缓存命中={}累计(prompt={} completion={} cacheHit={} runs={})",
+        prompt, completion, cached, promptTokens.get(), completionTokens.get(),
+        cachedTokens.get(), runs.get());
+  }
+
+  /** 累计用量快照，供自测与本地核对；不含任何请求内容。 */
+  public String usageSnapshot() {
+    return "runs=" + runs.get() + ", prompt=" + promptTokens.get()
+        + ", completion=" + completionTokens.get() + ", cacheHit=" + cachedTokens.get();
   }
 
   /** 把常见 HTTP 状态翻成可操作的中文，密钥原文不进日志和异常。 */

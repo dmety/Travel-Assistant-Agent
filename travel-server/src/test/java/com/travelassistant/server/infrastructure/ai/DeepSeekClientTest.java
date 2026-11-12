@@ -48,6 +48,40 @@ class DeepSeekClientTest {
   }
 
   @Test
+  @DisplayName("成功路径：把响应里的 usage 累加进用量快照，含缓存命中数")
+  void recordsUsageCounters() {
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andRespond(withSuccess("""
+            {"choices":[{"message":{"role":"assistant","content":"ok"}}],
+             "usage":{"prompt_tokens":1200,"completion_tokens":80,
+                      "prompt_cache_hit_tokens":960}}
+            """, MediaType.APPLICATION_JSON));
+
+    DeepSeekClient client = client("test-key");
+    assertThat(client.usageSnapshot()).contains("runs=0");
+    client.complete("system", "user");
+    // 只看 prompt_tokens 会高估成本，缓存命中部分单价约为五十分之一，必须单独记
+    assertThat(client.usageSnapshot())
+        .contains("runs=1").contains("prompt=1200").contains("completion=80")
+        .contains("cacheHit=960");
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("响应没有 usage 字段：照常返回文本，不记用量也不抛错")
+  void missingUsageIsTolerated() {
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andRespond(withSuccess("""
+            {"choices":[{"message":{"role":"assistant","content":"ok"}}]}
+            """, MediaType.APPLICATION_JSON));
+
+    DeepSeekClient client = client("test-key");
+    assertThat(client.complete("system", "user")).isEqualTo("ok");
+    assertThat(client.usageSnapshot()).contains("runs=0").contains("prompt=0");
+    server.verify();
+  }
+
+  @Test
   @DisplayName("未配置密钥：不发出请求并说明原因")
   void unconfiguredDoesNotCallOut() {
     assertThat(client("").configured()).isFalse();
