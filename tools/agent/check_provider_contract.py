@@ -19,6 +19,7 @@ import argparse
 import copy
 import ipaddress
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -87,6 +88,15 @@ def _check_endpoint(endpoint, contract: dict, field: str) -> list[dict]:
         parts = urlsplit(raw)
     except ValueError as exc:
         return [_failure(contract, "M-08", field, raw, "可解析的 https URL", str(exc))]
+    try:
+        port = parts.port
+    except ValueError:
+        return [_failure(contract, "M-08", field, raw, "合法端口")]
+    if (raw == os.environ.get("TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT", "")
+            and parts.scheme == "http" and parts.netloc == "127.0.0.1:" + str(port)
+            and port is not None and 1024 <= port <= 65535
+            and not parts.username and not parts.password and "?" not in raw and "#" not in raw):
+        return []
     problems = []
     if parts.scheme != "https":
         problems.append(_failure(contract, "M-08", field, parts.scheme, "https"))
@@ -446,7 +456,25 @@ def self_test(contract: dict) -> int:
         else:
             print(f"  FAIL {name}: expect_error={expect_error} found={found}", file=sys.stderr)
 
-    total = len(cases) + 1 + len(gold_scenarios)
+    original = os.environ.get("TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT")
+    endpoint = "http://127.0.0.1:18090/v1/invoke"
+    local_cases = [endpoint, "http://127.0.0.1:18091/v1/invoke",
+                   "http://localhost:18090/v1/invoke", "http://10.0.0.1:18090/v1/invoke",
+                   endpoint + "?x=1", endpoint + "#fragment", endpoint + "?", endpoint + "#"]
+    try:
+        os.environ["TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT"] = endpoint
+        for candidate in local_cases:
+            allowed = not _check_endpoint(candidate, contract, "endpoint")
+            if allowed == (candidate == endpoint):
+                passed += 1
+            else:
+                print("FAIL local mock endpoint boundary", file=sys.stderr)
+    finally:
+        if original is None:
+            os.environ.pop("TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT", None)
+        else:
+            os.environ["TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT"] = original
+    total = len(cases) + 1 + len(gold_scenarios) + len(local_cases)
     print(f"G0 self-test: {passed}/{total} passed")
     return 0 if passed == total else 1
 

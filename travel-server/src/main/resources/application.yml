@@ -16,6 +16,8 @@ spring:
   application:
     name: travel-assistant
 travel:
+  # 仅供本地模拟助手联调；精确授权一个 http://127.0.0.1:端口/路径，默认关闭。
+  agent-local-mock-endpoint: ${TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT:}
   data-directory: ${TRAVEL_DATA_DIR:./data}
   # 景点精简索引库（Python 离线构建产物，Java 只读加载，不覆盖）
   attraction-kb-path: ${ATTRACTION_KB_PATH:${travel.data-directory}/attractions_index.json}

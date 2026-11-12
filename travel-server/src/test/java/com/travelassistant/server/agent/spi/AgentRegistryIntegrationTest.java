@@ -453,4 +453,57 @@ class AgentRegistryIntegrationTest {
     assertNotNull(doc.error());
     assertTrue(doc.providers().isEmpty());
   }
+  @Test
+  void configuredLocalHttpProviderPassesRealGatesRoutesAndFallsBackOnFailure() throws Exception {
+    var failing = new java.util.concurrent.atomic.AtomicBoolean(false);
+    var requests = new java.util.concurrent.atomic.AtomicInteger();
+    var http = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+    http.createContext("/v1/invoke", exchange -> {
+      requests.incrementAndGet();
+      var body = json.readTree(exchange.getRequestBody().readAllBytes());
+      String runId = body.path("runId").asText();
+      String advice = "gc03-run-0001".equals(runId) ? "票价未知，请以现场公示为准" : "已按已核实事实整理建议";
+      var result = new AgentResult("OK", List.of(), advice,
+          "gc02-run-0001".equals(runId) ? List.of("destination", "budget") : List.of(),
+          List.of("本地模拟助手，不是真实推荐"), new com.travelassistant.server.application.agent.spi.Usage(0L, 0));
+      byte[] out = json.writeValueAsBytes(validator.toResponseMap("food.recommender", result));
+      exchange.sendResponseHeaders(failing.get() ? 503 : 200, out.length);
+      exchange.getResponseBody().write(out);
+      exchange.close();
+    });
+    http.start();
+    try {
+      String endpoint = "http://127.0.0.1:" + http.getAddress().getPort() + "/v1/invoke";
+      write(COMPLIANT.replace("https://agent.example.com/v1/invoke", endpoint));
+      var loader = new AgentProviderConfigLoader(json, configFile.toString(), true);
+      var defaultAdmission = new DefaultAdmissionController(validator, rules, new GoldCaseSet(json), loader, json);
+      assertTrue(defaultAdmission.probe("food.recommender", null).blocked());
+      assertEquals(0, requests.get(), "G0-rejected config must never trigger a network probe");
+      var local = new ContractValidator(rules, endpoint);
+      var gates = new DefaultAdmissionController(local, rules, new GoldCaseSet(json), loader, json);
+      assertFalse(gates.probe("food.recommender", null).blocked());
+      assertFalse(gates.shadow("food.recommender", 20, null).blocked());
+      assertFalse(gates.activate("food.recommender").blocked());
+      var registry = new AgentRegistryImpl(beans, local, rules, loader, json, gates);
+      assertEquals("food.recommender", registry.resolve("FOOD_RECOMMEND", null).primary());
+      var anchors = mock(com.travelassistant.server.application.agent.orchestration.AnchorFactService.class);
+      when(anchors.build(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+          org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+      var runtime = new com.travelassistant.server.application.agent.orchestration.AgentOrchestrator(
+          registry, local, rules, anchors,
+          mock(com.travelassistant.server.application.agent.orchestration.SummaryComposer.class));
+      var request = new com.travelassistant.server.application.agent.orchestration.DispatchRequest(
+          "FOOD_RECOMMEND", Map.of("city", "杭州"), Map.of());
+      assertEquals("food.recommender", runtime.dispatch(request).providerId());
+      failing.set(true);
+      var degraded = runtime.dispatch(request);
+      assertEquals("builtin.rules", degraded.providerId());
+      assertEquals("REFUSED", degraded.status());
+      assertEquals(2, degraded.attempts().size());
+      assertTrue(requests.get() >= 22);
+    } finally {
+      http.stop(0);
+    }
+  }
+
 }
