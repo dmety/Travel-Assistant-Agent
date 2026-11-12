@@ -30,6 +30,8 @@ public final class DraftAssembler {
   public static final int MAX_PER_DAY = 2;
   /** 天数上限，防止 days=99999 生成一份几万天的响应。 */
   public static final int MAX_DAYS = 30;
+  /** 候选撑不满请求天数时给出的收敛检查码；前端据此解释「为什么只有几天」。 */
+  public static final String TRIMMED_CHECK = "DRAFT_DAYS_TRIMMED";
 
   private static final Pattern AMOUNT = Pattern.compile("(\\d+(?:\\.\\d+)?)");
   private static final String RETRY = "POST /api/agent/plan";
@@ -75,6 +77,16 @@ public final class DraftAssembler {
     if (selected.isEmpty() && !safe.isEmpty()) {
       notices.add("候选景点未进入逐日草案：请先填写游玩天数");
     }
+    if (daily.size() < plannedDays) {
+      int trimmed = plannedDays - daily.size();
+      // 编排层收敛：宁可少给几天，也不把「暂无候选」重复刷成十行。差额只说一次。
+      checks.add(new DraftCheck(TRIMMED_CHECK, "INFO", "date",
+          "本轮可查景点 " + safe.size() + " 个，只排出 " + daily.size() + " 天逐日草案；"
+              + "其余 " + trimmed + " 天未列空天，不硬凑行程",
+          "把天数缩短到 " + daily.size() + " 天，或补充周边城市后再排"));
+      notices.add("可查景点只够排 " + daily.size() + " 天，其余 " + trimmed
+          + " 天没有可查景点，逐日草案没有硬凑空天；可缩短天数或加周边城市");
+    }
 
     DraftBudgetEstimate estimate = estimate(request, selected, checks);
     return new Draft(List.copyOf(questions), List.copyOf(daily), List.copyOf(checks),
@@ -82,22 +94,30 @@ public final class DraftAssembler {
   }
 
   /**
-   * 按候选顺序把景点分配到每一天，最多 {@link #MAX_PER_DAY} 个/天。
+   * 按候选顺序把景点分配到每一天，最多 {@link #MAX_PER_DAY} 个/天，**只输出排得到
+   * 候选的天**。
    *
    * <p>这是确定性排序的延续：{@code PlanningTools} 已按「等级 → 评分 → 名称」排好序，
    * 这里只做等分，不引入新的推荐判断。日期由出发日期顺序推算，超出返回日期的那些天
    * 只留 dayIndex、不给 date，避免把行程写到旅行区间之外。
+   *
+   * <p>编排层收敛口径：用户要 10 天、本地只查到 4 个景点时，只给 2 天有内容的草案，
+   * 剩下 8 天由 {@link #assemble} 汇总成一条 {@link #TRIMMED_CHECK} 说明，不再生成
+   * 八行一模一样的「暂无候选」。日期缺失、区间倒置这类全局提示也只在补问 / checks 里
+   * 出现一次，不逐天重复。确认保存走同一个方法，因此正式行程里也不会写进空天。
    */
   public static List<DraftDay> arrange(PlanningRequest request, List<Attraction> selected) {
     List<Attraction> safe = selected == null ? List.of() : selected;
     Integer effective = request.effectiveDays();
-    if (effective == null || effective <= 0) {
+    if (effective == null || effective <= 0 || safe.isEmpty()) {
       return List.of();
     }
-    int count = Math.min(effective, MAX_DAYS);
+    int supported = (safe.size() + MAX_PER_DAY - 1) / MAX_PER_DAY;
+    int count = Math.min(Math.min(effective, MAX_DAYS), supported);
     LocalDate depart = request.departDate();
     LocalDate ret = request.returnDate();
     boolean validRange = depart != null && ret != null && !ret.isBefore(depart);
+    String baseNote = "游览时刻待确认，景点信息来自本地知识库快照";
 
     List<DraftDay> days = new ArrayList<>();
     for (int i = 0; i < count; i++) {
@@ -107,24 +127,19 @@ public final class DraftAssembler {
       for (int j = from; j < to; j++) {
         items.add(itemOf(safe.get(j)));
       }
+      if (items.isEmpty()) {
+        continue;  // 不生成「暂无候选」空行
+      }
 
       LocalDate date = null;
-      String note;
+      String note = "第 " + (i + 1) + " 天；" + baseNote;
       if (validRange) {
         LocalDate candidate = depart.plusDays(i);
         if (!candidate.isAfter(ret)) {
           date = candidate;
-          note = "第 " + (i + 1) + " 天；时间待确认，景点信息来自本地知识库快照";
         } else {
-          note = "第 " + (i + 1) + " 天超出「" + depart + " ~ " + ret
-              + "」区间，未分配具体日期；请缩短天数或延长返回日期";
+          note = "第 " + (i + 1) + " 天超出出发/返回区间，未分配具体日期";
         }
-      } else {
-        note = "第 " + (i + 1)
-            + " 天；缺少有效的出发/返回日期，未编造具体日期，补全日期后重新生成草案";
-      }
-      if (items.isEmpty()) {
-        note += "；本日暂无可用候选景点";
       }
       days.add(new DraftDay(i + 1, date, note, items));
     }

@@ -49,6 +49,9 @@ KEEP_FIELDS = [
     "rating", "open_time", "ticket", "address", "tel", "website",
     "image", "description", "lat", "lon", "source", "sources",
     "ticket_status", "open_time_status",
+    # 坐标系标签是餐饮等「附近推荐」的硬前置：WGS-84 / GCJ-02 混用会让锚点偏几百米。
+    # 索引不带这个字段，Java 侧就无法正确把锚点换算到 GCJ-02。
+    "coordinateSystem",
 ]
 
 

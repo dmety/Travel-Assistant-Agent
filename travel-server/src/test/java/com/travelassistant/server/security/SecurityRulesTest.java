@@ -53,11 +53,24 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("测试前端单页无需登录：/、/login、/app、/index.html 都指向同一页")
+  @DisplayName("首页（登录页）、对话页与接口测试台均无需登录即可打开")
   void staticPagesArePublic() throws Exception {
     // 页面本身的响应体用结构标记断言（不用中文文案：MockMvc 按 ISO-8859-1 解码静态资源，
     // 中文断言会因解码方式误报，与页面是否正确无关）。
+    // 首页是登录页：未登录时必须可达，否则登录卡自己就被拦住。
     mvc.perform(get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"loginForm\"")))
+        .andExpect(content().string(containsString("id=\"registerForm\"")));
+
+    // 对话页是登录后的落地页。页面静态资源必须公开（页内 JS 读到 401 再跳回登录页），
+    // 真正的数据仍由 /api/** 拦截。
+    mvc.perform(get("/chat.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"messages\"")));
+
+    // 接口测试台独立成页，仍无需登录即可打开（登录卡就在页面里）。
+    mvc.perform(get("/api-console.html"))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("id=\"authView\"")))
         .andExpect(content().string(containsString("id=\"secTabs\"")));

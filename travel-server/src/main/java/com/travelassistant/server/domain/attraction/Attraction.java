@@ -32,7 +32,9 @@ public record Attraction(
     @JsonProperty("source") String source,
     @JsonProperty("sources") List<String> sources,
     @JsonProperty("ticket_status") String ticketStatus,
-    @JsonProperty("open_time_status") String openTimeStatus) {
+    @JsonProperty("open_time_status") String openTimeStatus,
+    // 坐标系标签来自离线索引：WGS-84 / GCJ-02。缺失时调用方不得自行假设。
+    @JsonProperty("coordinateSystem") String coordinateSystem) {
 
   public Attraction {
     sources = sources == null ? List.of() : List.copyOf(sources);

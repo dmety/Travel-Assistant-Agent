@@ -103,12 +103,12 @@ class PlanningApiTest extends V2ApiTestBase {
         .andExpect(jsonPath("$.candidates.length()").value(0))
         .andReturn();
 
-    assertThat(notices(read(result))).anyMatch(n -> n.contains("未收录"));
+    assertThat(notices(read(result))).anyMatch(n -> n.contains("没查到"));
   }
 
   @Test
-  @DisplayName("城市查不到时用偏好关键词兜底，并提示确认目的地")
-  void preferenceFallback() throws Exception {
+  @DisplayName("城市查不到时不做全国模糊匹配：偏好关键词不再拉来省外候选")
+  void noCrossProvinceFuzzyFallback() throws Exception {
     MockHttpSession session = registerAndLogin();
     ObjectNode body = request("火星", null, null, null);
     ArrayNode prefs = body.putArray("preferences");
@@ -119,12 +119,11 @@ class PlanningApiTest extends V2ApiTestBase {
             .contentType("application/json")
             .content(json.writeValueAsString(body)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.candidates.length()").value(1))
+        .andExpect(jsonPath("$.candidates.length()").value(0))
         .andReturn();
 
-    JsonNode response = read(result);
-    assertThat(response.get("candidates").get(0).get("name").asText()).isEqualTo("西湖");
-    assertThat(notices(response)).anyMatch(n -> n.contains("请确认目的地"));
+    // 实时检索也帮不上「火星」，如实提示，而不是拿别省同名景点凑数
+    assertThat(notices(read(result))).anyMatch(n -> n.contains("没查到"));
   }
 
   @Test

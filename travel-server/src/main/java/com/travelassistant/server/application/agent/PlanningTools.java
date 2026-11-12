@@ -3,6 +3,7 @@ package com.travelassistant.server.application.agent;
 import com.travelassistant.server.application.attraction.AttractionService;
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.location.LocationService;
+import com.travelassistant.server.application.map.MapTools;
 import com.travelassistant.server.application.ticket.TicketService;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.domain.location.WeatherResult;
@@ -32,12 +33,14 @@ public class PlanningTools {
   private final AttractionService attractions;
   private final LocationService locations;
   private final TicketService tickets;
+  private final MapTools maps;
 
   public PlanningTools(AttractionService attractions, LocationService locations,
-      TicketService tickets) {
+      TicketService tickets, MapTools maps) {
     this.attractions = attractions;
     this.locations = locations;
     this.tickets = tickets;
+    this.maps = maps;
   }
 
   /**
@@ -65,6 +68,28 @@ public class PlanningTools {
       return ToolOutcome.ok(rank(all).stream().limit(limit).toList());
     } catch (RuntimeException e) {
       return ToolOutcome.failed("景点检索不可用：" + e.getMessage());
+    }
+  }
+
+  /**
+   * 地名未收录时改用地图实时检索该地名本地的真实景点。
+   *
+   * <p>返回值转换成 {@link Attraction}：等级/票价/开放时间地图不提供，一律 null，
+   * 展示层按「未知」处理，不编造；id 用 {@code map:} 前缀与知识库条目区分。
+   */
+  public ToolOutcome<List<Attraction>> searchLive(String place, int limit) {
+    try {
+      MapTools.ScenicResult result = maps.findScenicSpots(place, limit);
+      List<Attraction> converted = result.spots().stream()
+          .limit(limit)
+          .map(s -> new Attraction("map:" + s.name(), s.name(), place, null, s.type(),
+              null, null, null, null, s.address(), s.tel(), null, null, null,
+              s.lat(), s.lon(), s.source(), List.of(s.source()), null, null,
+              s.coordinateSystem()))
+          .toList();
+      return ToolOutcome.ok(converted);
+    } catch (RuntimeException e) {
+      return ToolOutcome.failed("实时景点检索不可用：" + e.getMessage());
     }
   }
 

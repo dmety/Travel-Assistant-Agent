@@ -39,9 +39,9 @@
 <text x="791" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">04</text>
 <text x="818" y="84" font-size="13" font-weight="600" fill="#0f172a">看哪些候选</text>
 <path d="M778 98 L942 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
-<text x="778" y="122" font-size="11" fill="#64748b">全部候选与理由</text>
+<text x="778" y="122" font-size="11" fill="#64748b">上限内的全部候选</text>
 <text x="778" y="144" font-size="11" fill="#64748b">软条件只标注</text>
-<text x="778" y="166" font-size="11" fill="#64748b">不预选不截断</text>
+<text x="778" y="166" font-size="11" fill="#64748b">不替用户挑前 N 条</text>
 <text x="778" y="190" font-size="11" font-weight="600" fill="#2563eb">value 三个字段</text>
 
 <rect x="40" y="214" width="300" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>

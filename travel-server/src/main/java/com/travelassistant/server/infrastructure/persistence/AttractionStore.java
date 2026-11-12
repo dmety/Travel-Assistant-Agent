@@ -185,7 +185,8 @@ public class AttractionStore {
         PlaceholderValues.clean(a.source()),
         sources,
         PlaceholderValues.clean(a.ticketStatus()),
-        PlaceholderValues.clean(a.openTimeStatus()));
+        PlaceholderValues.clean(a.openTimeStatus()),
+        PlaceholderValues.clean(a.coordinateSystem()));
   }
 
   /** 地址等于城市/省份或其简单拼接（如"北京市北京"）时视为无效。 */

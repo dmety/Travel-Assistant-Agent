@@ -1,6 +1,6 @@
 # Agent 运行时架构设计
 
-> 设计稿。事实数字为 2026-11-08 实测，基准提交 `66f00fa`。文中所有拟新增类型、接口与配置键都未落地，模型成功路径至今没有真实密钥实测。
+> 设计稿。事实数字为 2026-11-08 实测，基准提交 `66f00fa`。P0 运行基座已于 2026-11-09 落地，本文“稳定契约”一节的类型与 G0 至 G4 闸门已有实现，P1 至 P3 仍为待办。模型成功路径已于 2026-11-09 用真实密钥实测，证据见 `reports/current/模型与地图接口联调-2026-11-09.md`。
 
 ## 这份设计要解决什么
 
@@ -12,7 +12,7 @@
 
 有一条边界要先讲清楚：接口化的是能力供给，不是控制权。Java 运行时仍然决定何时调用、给什么事实、允许什么副作用、如何降级。新 Agent 只提供符合契约的实现。
 
-本期的唯一主操作是 P0：把契约、注册表、配置加载、HTTP 适配器、契约校验器一次建好，把现有 3 个能力包装成内置 Provider，并同批落地《Agent接入规范》里的 `provider-contract.json` 与 G0 静态闸门。P0 做完，「加配置接新 Agent 且不合规就拒绝」才成立。
+本期的唯一主操作是 P0：把契约、注册表、配置加载、HTTP 适配器、契约校验器一次建好，把现有 3 个能力包装成内置 Provider，并同批落地《Agent接入规范》里的 `provider-contract.json` 与 G0 静态闸门。P0 已于 2026-11-09 落地，并补齐 G1 至 G4。现在“加配置接新 Agent 且不合规就拒绝”成立，但合规配置还需走完闸门才会参与路由。
 
 ## 现在的代码长什么样
 
@@ -22,7 +22,7 @@
 | 模型接入 | OpenAI 兼容 HTTP 直连；两个 POM 已无 `spring-ai` | `DeepSeekClient.java:22-34`、`pom.xml`、`travel-server/pom.xml` |
 | 调用预算 | 原 `max-tool-calls` 是死配置，2026-11-08 已从 `application.yml` 删除；当前配置与源码都不含调用预算 | `application.yml`（已无该键） |
 | Agent 接口 | `POST /api/agent/plan`、`POST /api/agent/itineraries/{id}/advice`、`GET /api/agent/status`、`POST /api/agent/tickets/advice` | `AgentController.java`、`TicketAssistantController.java` |
-| 前端入口 | 首页已接通 `/api/agent/plan` 与 `/api/agent/plan/materialize`；静态页共直接调用 4 个 Agent 接口 | `index.html`、`ticket-assistant.html` |
+| 前端入口 | 对话页 `chat.html` 走 `POST /api/agent/invoke`（intent=`PLAN_DRAFT`），按信封里的 Provider、attempts 与 facts 渲染；接口测试台仍直连 `/api/agent/plan` 与 `/api/agent/plan/materialize` | `chat.html`、`api-console.html`、`ticket-assistant.html` |
 | 工具层 | `PlanningTools` 提供 3 个确定性工具，失败统一转 `ToolOutcome`，不向上抛 | `PlanningTools.java:51-130` |
 | 结果契约 | `PlanDraft` 把事实与模型说的话分开 | `PlanDraft.java:26-41` |
 | 保存流程 | 草案不自动写库；用户确认后由前端走既有行程接口与 `X-Version` | `AgentController.java`、`reports/current/基础业务闭环-逐环节验收-2026-11-08.md` |
@@ -93,20 +93,22 @@ D-6 是本版要解决的头号问题。
 flowchart TB
   U["浏览器 / 控制台"] --> L0
   subgraph L0["L0 接口层 interfaces/rest"]
-    C1["AgentController 旧别名"]
-    C2["AgentRunController 拟新增"]
-    C3["AgentCapabilityController 拟新增"]
+    C1["AgentController 旧链路 直连 PlanningService"]
+    C2["AgentInvokeController 编排入口 已落地"]
+    C3["AgentCapabilityController 已落地"]
+    C4["AgentVoteController 两轮投票入口 已落地"]
   end
   L0 --> L1
   subgraph L1["L1 编排层 只依赖接口"]
-    O["AgentRuntime 状态机"]
+    O["AgentOrchestrator 链与降级 已落地"]
     R["AgentRegistry 注册表快照"]
     V["ContractValidator 契约校验"]
     B["RunBudget 计数与超时"]
+    S["SummaryComposer 归纳层 已落地"]
   end
   R --> L2
   subgraph L2["L2 能力层 可插拔 Provider"]
-    P1["内置 Bean Provider x3"]
+    P1["内置 Bean Provider x5"]
     P2["HttpAgentAdapter 通用适配器"]
     P3["外部 Agent 服务 配置接入"]
   end
@@ -140,9 +142,133 @@ flowchart TB
 
 依赖方向单向向下。`domain` 不依赖 Spring、HTTP 或 AI 库。Provider 不读写文件，不指定操作身份。
 
+### 意图解析在编排层之前（2026-11-10）
+
+对话页不再自己用正则抠天数人数，而是先调 `POST /api/intent/parse`（`application/intent/IntentParser`）
+把整句话解析成「意图 + 槽位 + 已核实的目的地」，再按意图调 `/api/agent/invoke`。它有三个刻意的边界：
+
+- **不属于 L1**：这是编排层之前的预处理，不参与路由、不占 `RunBudget`、不写 `Attempt` 记录；
+- **不进契约**：只开放 `PLAN_DRAFT` / `FOOD_RECOMMEND` / `WEATHER` / `CHAT` 四个意图，不新增 capability、
+  不改 `contractVersion`、不改 Provider 的输入输出形状；契约里的 `TICKET_ADVICE` 等能力仍由
+  其它入口使用；
+- **模型只给值、Java 给边界**：天数 1~30、人数 1~30、预算上限、日期落在今天起一年内、
+  偏好收敛到固定词表，越界一律截断或丢弃并写进 `notes`；目的地仍复用 `PlaceResolver`
+  的三级判断，模型说的地方库里没有就不当确定事实。
+- **天气直连既有 REST**：`WEATHER` 不查景点知识库，把地名交给 `GET /api/location/weather`
+  （高德能按城市名换 adcode），也不经过编排层——`WEATHER_ADVICE` 这个能力目前没有 Provider，
+  硬接只会落到 `builtin.rules` 的 REFUSED。
+
+模型不可用、超时或返回非 JSON 时降级为句式规则（`IntentRules`），接口永远 200——
+理解能力可以退化，对话不能中断。
+
+### 对话 Agent：让模型自己决定查什么（2026-11-10）
+
+上面的意图解析还有一处结构性毛病：**分支写在 Java 里**。意图只有三种，用户说一句
+「有没有那种很小众的馆子」「你家是哪的」「那明天呢」，就只能落进兜底话术——
+每加一种问法就要加一个 `if`，而人的问法是加不完的。
+
+所以对话入口加了 L1 之上的一层：`POST /api/chat`（`application/chat/ChatAgent`），
+把「选择」交给模型，把「边界」留在 Java：
+
+| 位置 | 谁负责 | 具体是什么 |
+|---|---|---|
+| 选什么工具、查几次、按什么顺序 | 模型 | 看着八个工具的说明自己决定，可以查完天气发现要下雨再建议改室内 |
+| 事实从哪来 | Java | `ChatTools` 只调既有服务与子 Agent：`PlaceResolver`、`AttractionStore`、`AgentOrchestrator`（五个 builtin Provider）、`VoteOrchestrator` |
+| 最多查几次、最多几轮、多少秒 | Java | 6 次工具、5 轮、45 秒；用尽后强制一次不带工具的收尾 |
+| 能不能编 | 规则 | 数字/地名/票价/餐馆/天气全部来自工具；回复里的网址一律剥掉 |
+| 行程、餐馆、票务的结论长什么样 | 契约 | 直接复用 `orchestrator.dispatch` 与 `AgentEnvelope`，与 `/api/agent/invoke` 同一形状 |
+
+工具清单（`ChatTools.SPECS`，2026-11-10 起八个）：`resolve_place` / `list_attractions` /
+`get_weather` / `find_food` / `draft_itinerary` / `book_ticket` / `get_inspiration` / `vote_plan`。
+
+**主 Agent 调子 Agent（2026-11-10）**：票务、天气、灵感不再有绕过编排层的直连路径——
+
+- 新增 `builtin.weather`（`WEATHER_ADVICE`）包装 `LocationService`、
+  `builtin.inspiration`（`CONTENT_INSPIRATION`）包装知识库评分挑选；连同既有的
+  `builtin.planning` / `builtin.food` / `builtin.ticket`，五个子 Agent 全部经由
+  `orchestrator.dispatch` 调用：同一入口、同一套契约校验、同一信封。契约 capability
+  枚举本来就含这两项，**不升契约版本**；
+- `builtin.weather` 的 fact value 字段名与 `WeatherResult` 的 JSON 序列化一致，
+  前端天气渲染器零改动；`builtin.inspiration` 的推荐理由由条目字段确定性拼出，
+  不调模型不编造标签；查不到一律 DEGRADED 并如实标注「未编造」；
+- `vote_plan` 接 `VoteOrchestrator` 两轮投票：三位评委 Agent（`judge.ticket` /
+  `judge.food` / `judge.parking`）先各自上报领域事实，主 Agent 生成最多五套侧重不同的
+  候选（模型失败自动降级规则草案），第二轮按 rubric 评分、`PlanVoteTally` 计票，
+  胜出方案随 `vote` 卡片回给用户。系统提示明确：只在用户想比较省钱/美食/少走路
+  等侧重时调用，普通排行程仍走 `draft_itinerary`。
+
+当前主 Agent → 子 Agent 的完整调用结构（2026-11-10）：
+
+```text
+用户一句话 → POST /api/chat（主 Agent，模型自主决策）
+                │ 按需调用（工具即子 Agent）
+                ├─ draft_itinerary → builtin.planning   (PLAN_DRAFT)
+                ├─ find_food       → builtin.food       (FOOD_RECOMMEND)
+                ├─ book_ticket     → builtin.ticket     (TICKET_ADVICE)  ← 新接入
+                ├─ get_weather     → builtin.weather    (WEATHER_ADVICE) ← 新建 Provider
+                ├─ get_inspiration → builtin.inspiration(CONTENT_INSPIRATION) ← 新建 Provider
+                └─ vote_plan       → VoteOrchestrator   ← 新接入投票
+                                        ├─ 汇集：本轮所有子 Agent 卡片 + 三评委事实 → 全量给主 Agent
+                                        ├─ 主 Agent：整理成一份结构化草案 + N 套侧重候选
+                                        └─ 第二轮：评委按草案真实内容评分计票 → 胜出方案
+```
+
+要点：五个子 Agent 全部经 `orchestrator.dispatch` 走同一条契约校验链，工具只是
+模型的「手」；`vote_plan` 是唯一旁路 `AgentOrchestrator` 的工具（直连
+`VoteOrchestrator`），因为两轮投票有自己的协议与计票器，不属于单一 intent 的
+primary/fallback 切换语义。
+
+**地图工具层（2026-11-10）**：高德与百度不再由各 Provider 直连，统一封装为
+`application/map/MapTools`（Spring `@Service`），任何 agent Provider 都可注入调用。
+这层消化四件事：坐标系换算（百度 BD-09LL 统一转 GCJ-02）、跨源去重（同名且
+50 米内视为同一实体）、区县过滤（关键字检索命中其他省市，且地址匹配只在区县
+缺失时兜底，防「黄梅公司大厦」式误配）、降级姿态（缺密钥或接口失败只记 notice，
+零候选不编造）。首个消费者是 `builtin.inspiration` 的库外景点发现：知识库没收录的
+地名（区县「黄梅」「婺源」）不再被迫归位到地级市，改用高德主源（`/v3/place/text`，
+`types=110000|140000`）+ 百度第二源（`tag=景点`）实时检索，候选按「风景名胜优先、
+科教文化殿后」稳定排序，学校/职教类噪音按类型与名称关键词剔除；候选标注
+「未经核验」，没有等级票价开放时间就不给这三个字段。契约不升版本：能力仍是
+`CONTENT_INSPIRATION`，证据 sourceKind 仍走 `AMAP`/`EXTERNAL` 白名单。
+
+**著名景点归属（2026-11-10 下午）**：`application/place/FamousPlaces.java` 是一张只记「省份 / 地级市 / 景区本名 / 检索名」的权威归属表，优先级高于知识库直查与模型判断。起因是库里只有同名冷门条目（华山=济南、黄山=广州黄山鲁森林公园、老君山=成都），导致「华山」被认成济南；库里有可核验条目的景区（故宫、兵马俑、鼓浪屿、西湖）按城市检索，只有同名噪音的按景区原名走 `MapTools` 实时检索。用户显式写「济南华山」时该表主动让位。`ChatAgent` 同时用这张表纠正跨轮遗留的错城市（旧会话 `state.city=济南/成都`），并在模型仍把旧城市写进工具参数时改回景点检索名；`draft_itinerary` 的工具摘要改为带出逐日景点，避免模型误判「只拿到空壳」而凭记忆补内容。
+
+失败姿态：模型未配密钥、余额不足、超时一律返回 `source=unavailable` 且 `reply=null`，
+对话页回落到「意图解析 + 编排」那条确定性链路。**这层是增强，不是单点依赖**。
+
+## L1 编排层（2026-11-09 已落地，含两轮投票 2026-11-09 晚）
+
+`application/agent/orchestration/AgentOrchestrator.java` 是 SPI 基座第一次被业务调用的落点，入口是 `POST /api/agent/invoke`（需登录）。它只做四件事：按 intent 调 `AgentRegistry.resolve` 取 `primary + fallback` 链、逐个 `invoke`、用 `ContractValidator.validateResult` 校验每个响应、失败切下一个；全失败时走 `builtin.rules` 的「只有事实、没有建议」。它也负责把离线索引里的景点锚点转成带坐标系标签与证据的 `ATTRACTION` fact（`AnchorFactService`），Provider 不读仓库文件。
+
+注册表在没有配置路由时，会把声明对应能力的内置 Bean 自动设为默认 primary；配置了外部 primary 时，内置 Bean 自动留在该 intent 的 fallback 链上。`builtin.rules` 声明全部能力，已从默认 primary 候选中排除。
+
+三条边界写死在这里，避免和后续功能混淆：
+
+- **不改旧链路**：`/api/agent/plan` 仍直连 `PlanningService`，本层是新增入口，不迁移旧接口。
+- **归纳层不造事实（2026-11-09 晚已落地）**：`SummaryComposer` 在 `success()` 里把 facts 归纳成一句人话顶替 Provider 模板 `advice`。它只喂距离、人均、评分、标签等数值字段，**不喂店名**；输出里每个数字都必须在 facts 中找到同值（候选条数也算），否则整条丢弃回退原 `advice`；未配密钥、无 facts、调用异常、超长同样静默回退。它不改状态码、不改 facts 条数、不参与排序过滤。
+- **两轮投票已落地（2026-11-09 晚）**：独立 `VoteOrchestrator` 承担范式 B 两轮协议，不动 `AgentOrchestrator`。第一轮 `COLLECT` 征集事实，候选「模型优先 + 规则兜底」；第二轮 `SCORE` 一次性收票后交 `PlanVoteTally` 确定性计票（VETO 硬剔除、弃票不进分母、加权、三步平局、同构检测）。三位评委 `judge.ticket` / `judge.food` / `judge.parking` 复用 `DECISION_ADVICE` 能力，各自声明独立 `Rubric`，不新增 capability 枚举。三条 `E_VOTE_*` 已进 Java 运行时的 `rejections` 与 `notices`，不再只在离线原型里。
+- **信息流定案（2026-11-10）**：用户明确「所有 Agent 收集到的信息全部给主 Agent，由主 Agent 整理生成草案，其他子 Agent 投票；票务只把购票链接或方法告诉用户，不替用户购票」。`ChatAgent` 在调 `vote_plan` 时把本轮所有工具卡片注入请求，`VoteOrchestrator` 把它们连同评委事实全量合成 `allFacts`，主 Agent 据此确定性整理一份草案（逐日 / 餐饮 / 天气 / 购票方式 / 未提供项），模型 prompt 也改为带事实内容而不是只有 ID；评委第二轮按草案真实字段评分。购票入口由 `builtin.ticket` 以 `TICKET_GUIDANCE` fact 输出 `officialUrl` 与方法，链接只进 fact value（契约 S-04 禁止 `advice` 含 URL），前端列成可点入口，明确不代下单、不查余票。契约仍是 1.0，不新增 capability / factType。详见《多 Agent 方案投票编排设计》「实现状态（2026-11-10）」。
+- **不重复计数**：外部 Provider 的运行期违规由 `HttpAgentAdapter` 的 `runtimeSink` 上报准入控制器，编排层只记录尝试结果，不改注册表状态、不生成第二份违规回执。
+- **输出收敛（2026-11-10 晚）**：编排层不再把「候选不足」和「多套待候选」原样倒给用户，规则见下一节。
+
+`DispatchOutcome.Attempt.reason` 是编排层自己的标签（`NOT_FOUND` / `CONTRACT_VIOLATION` / `EXCEPTION` / `REFUSED` / `OK`），不是准入原因码，不进 `AdmissionReport`、不计违规、不加熔断。响应是信封加契约形状的 `result`，不含 endpoint、authRef 或任何凭据。
+
+### 编排层输出收敛（2026-11-10 晚）
+
+用户实测反馈：问「十堰 10 天怎么安排」，库里只查到 4 个景点，正文已经说「硬凑十天会太空」，结构化卡片却照样铺 10 行，其中 8 行是重复的「暂无候选 + 缺少有效的出发/返回日期…」；投票卡又同时铺多套候选、逐条排名、草案与购票入口。信息全，但用户不想看。**收敛是编排层的职责，不是让模型少说两句**，因此规则落在纯函数与响应字段上：
+
+| 规则 | 落地位置 | 口径 |
+| --- | --- | --- |
+| 只排有候选的天 | `DraftAssembler.arrange` / `VoteOrchestrator.buildDraft` | `renderedDays = min(请求天数, ceil(候选数 / 每天上限))`；PLAN_DRAFT 每天 2 个、投票草案每天 3 个，**空天一律不生成**。确认保存的 `PlanMaterializer` 复用同一个 `arrange`，正式行程里也不会写进空天。 |
+| 差额只说一次 | `DRAFT_DAYS_TRIMMED` check + `dayScope{requestedDays,renderedDays,trimmedDays}` + 一条 notice | 10 天请求只排 2 天，就在卡片底部写一句「另有 8 天没有可查景点，未硬凑空天；可缩短天数或加周边城市」，不生成 8 行占位。 |
+| 全局提示不逐天重复 | `DraftAssembler` 的逐日 `note` | 日期缺失 / 区间越界由 `questions`、`checks` 表达一次；逐日 note 只保留来源与「游览时刻待确认」，不再每天抄一遍补问文案。 |
+| 模型不许把空天填回去 | `ChatTools.planHighlight` / `appendDraftSummary` | 工具摘要明确带「另有 N 天没有可查景点，草案未硬凑空天，不要替用户补景点或天数」，避免模型凭常识补 D3～D10。 |
+| 候选与次要信息折叠 | `chat.html` | 投票候选上限 3 套（`planId` A～C）；景点卡默认 4 条、候选卡默认 3 条、检查项默认 2 条，其余点开才显示；投票卡默认只给胜出方案与一句口径，评分 / 主 Agent 草案 / 官方购票入口放进折叠区。逐日卡的票价与开放时间压成一行小字。 |
+
+三条边界：**不删数据**（折叠只是 DOM `hidden`，fact、checks、响应字段全保留）、**不改结论**（评分票、计票、票价原文、未核验标记都不动）、**不编造**（没有候选就明说没有，不补景点、不补天数）。回归证据：`DraftCondenseTest`、`VoteDraftFlowTest`、`acceptance.py` 的「10-day request renders only days with real candidates」与「vote draft trims unsupported days」。
+
 ## 稳定契约
 
-以下是拟新增类型，尚未落地。
+以下类型已于 2026-11-09 落地在 `application/agent/spi/`。实现与拟定稿有两处差异：`status` 用字符串而非枚举，另加 `AdmissionController` 与 `GoldCaseSet` 承担 G1 至 G4 准入。
 
 ```java
 // application/agent/spi/AgentProvider.java —— 唯一扩展点
@@ -206,6 +332,27 @@ public interface AgentRegistry {
 
 运行期违规时，整体丢弃该响应，走 fallback 链并在 `notices` 留痕，违规计数加 1。连续 3 次转 `SUSPENDED`，需重新走准入。每次拒绝都产出带原因码的 `AdmissionReport`，接入方可自助修复。
 
+## 编排层局部原因码
+
+《Agent 接入规范》的原因码只管单个 Provider 的一次响应。`ContractValidator` 按这些码判定，每次拒绝都写 `AdmissionReport`。多 Agent 方案投票另有三条码，判定对象是本轮的候选清单、评委声明和聚合后的票。这些状态由编排层持有，Provider 自己核不了，也修不了。
+
+| 原因码 | 判定 | 判定依据 |
+| --- | --- | --- |
+| `E_VOTE_UNKNOWNPLAN` | `planId` 不在本轮候选清单里 | 编排层生成的候选清单 |
+| `E_VOTE_DUPLICATE` | 同一评委对同一方案交了两张票 | 聚合后的票集合 |
+| `E_VOTE_RUBRIC` | 用了未声明的评分项、别人的 `rubric`，或者越权 `VETO` | 评委声明 |
+
+三条码定案为编排层局部码，边界如下：
+
+- 不进《Agent 接入规范》的原因码表，也不进 `provider-contract.json` 和 `gold_cases.json`。
+- 不参与 `contractVersion`。契约仍是 1.0，改动不升主版本，也不触发全量重新准入。
+- 不写进 `AdmissionReport`，不计 Provider 违规，不加熔断计数。
+- 不在 G0 至 G4 闸门里判定，不改 Provider 的准入状态。
+
+校验不通过时，编排层整体丢弃这张票，把原因码写进投票结果的 `rejections` 和 `notices`。接入方拿不到这些码，也不用按它们改实现。
+
+到 2026-11-09 晚，这三条校验已进 Java 运行时：离线原型 `tools/agent/plan_vote.py` 的 22 个自测仍保留并在 `gate.sh` 复跑；Java 侧 `PlanVoteTally` 等价移植了全部 22 条规则（22 个单测逐例等价），`VoteOrchestrator` 实现两轮协议，`AgentVoteController` 暴露 `POST /api/agent/vote`。评委 `judge.ticket` / `judge.food` / `judge.parking` 三位 Bean 已通过 Spring `List<AgentProvider>` 自动收集进注册表，复用 `DECISION_ADVICE` 能力但各自声明独立 `Rubric`，不新增 capability 枚举、不新增 `RESTAURANT` / `PLAN_SCORE` factType（评分票沿用 `CONTENT` + `value.category=PLAN_SCORE`）。Java 侧 V3 的 `CandidateService` 和 `VoteTally` 是成员对候选方案投人票，与这套评分投票不共用表，也不共用算法。
+
 ## 注册与发现
 
 三种来源按固定优先级合并。`id` 重复即 fail fast 拒绝启动，并打印冲突 id，不静默覆盖。
@@ -214,13 +361,13 @@ public interface AgentRegistry {
 | --- | --- | --- |
 | 1 | 环境变量覆盖 | 只用于开关与 endpoint 覆盖，便于临时灰度 |
 | 2 | `data/agent_providers.json` | 主要配置入口，运行态文件，不入库 |
-| 3 | Spring Bean 自动发现 | 启动时注入 `List<AgentProvider>`，内置 3 个能力在此注册 |
+| 3 | Spring Bean 自动发现 | 启动时注入 `List<AgentProvider>`，内置 5 个 Bean（含 rules 兜底）在此注册 |
 
 注册表只接受 `ACTIVE` Provider。每个候选先过 `AdmissionController` 的 G0 至 G4 闸门：静态规则、契约探针、安全探针、影子运行、启用。任一 `BLOCK` 规则失败即 `REJECTED`，不进注册表、不发用户流量。规则、原因码与 gold cases 见《Agent接入规范》的「规则集」「行为探针用例」「接入流程总览」三节。内置 Provider 同样过 G0，只是 G1 / G2 用内存桩执行。`capabilities` 接口暴露状态与最近一次拒绝原因码。
 
 注册表用 `AtomicReference<RegistrySnapshot>` 保存不可变快照。配置变更走文件 mtime 轮询，默认 10 s，全量校验后一次性替换。进行中的 run 绑定创建时的快照，不会跑到一半换实现。失败的配置不替换，保留上一版并在日志与 `capabilities` 里标 `LAST_KNOWN_GOOD`。
 
-`data/agent_providers.json` 默认被 `.gitignore` 的 `/data/*` 黑名单挡住，这符合项目「运行态不入库」的约定。应提供 `data/agent_providers.example.json` 种子文件，`*.example.json` 已在白名单内，本机复制后填写 endpoint。密钥不写文件，用 `authRef` 指向环境变量名。
+`data/agent_providers.json` 默认被 `.gitignore` 的 `/data/*` 黑名单挡住，这符合项目「运行态不入库」的约定。`data/agent_providers.example.json` 脱敏种子已入库并受 G0 校验，`*.example.json` 在白名单内，本机复制后填写 endpoint。密钥不写文件，用 `authRef` 指向环境变量名。
 
 内置 Provider 包装现有能力，行为完全不变。
 
@@ -229,7 +376,28 @@ public interface AgentRegistry {
 | `builtin.planning` | `PlanningService` | `PLAN_DRAFT` |
 | `builtin.decision` | `DecisionService` | `DECISION_ADVICE` |
 | `builtin.ticket` | `TicketAssistantService` | `TICKET_ADVICE` |
+| `builtin.food` | `FoodRecommendationService` | `FOOD_RECOMMEND` |
 | `builtin.rules` | 无模型纯规则 | 所有 intent 的兜底 |
+
+`builtin.planning` 额外把草案装成一条 `CONTENT` fact（`builtin.planning:draft-summary`，
+`value.category=PLAN_DRAFT`），信封 `advice` 只留无数字、无断言的摘要 —— 与美食 Provider 同口径。
+原因很具体：模型常把知识库里的「免费」「全天开放」照抄进正文，一旦进了信封 `advice`，
+S-03 会把整条响应判为 `CONTRACT_VIOLATION`，编排层随即切兜底、用户什么也拿不到。
+正文与明细放进 `value` 由前端渲染，数字 grounding（S-05）也就只作用于摘要。
+
+`builtin.food` 是 2026-11-09 新增的内置美食能力，与外部 `py.food.recommender` 用同一套契约。配置式外部 Provider 仍是「候选」，只有走完 G1 至 G4 才进入路由；本机环回服务被 G0 的 M-08 拒绝，见《美食 Agent 架构设计》「实现状态」。
+
+### 评委 Provider（2026-11-09 晚新增）
+
+三位评委是投票编排的「独立视角」来源，复用 `DECISION_ADVICE` 能力，但各自声明独立 `Rubric`（评分项 + 权重 + 否决权），通过 Spring `List<AgentProvider>` 自动收集进注册表，不新增 capability 枚举。它们不是业务 Agent，只参与 `POST /api/agent/vote` 的两轮评分，不接 `/api/agent/invoke` 常规路由。
+
+| Provider id | 视角侧重 | 权重 | 可否决 | 评分项权重表（`COST` / `FOOD` / `WALK`） |
+| --- | --- | --- | --- | --- |
+| `judge.ticket` | 购票成本与预约风险 | 1.2 | 是 | 5/3, 3/3, 2/3 |
+| `judge.food` | 餐饮体验 | 1.0 | 否 | 3/2, 5/4, 3/4 |
+| `judge.parking` | 停车与步行 | 0.8 | 否 | 2/3, 3/3, 5/4 |
+
+评分表含义：`judge.ticket` 把成本项列为 5 分权重、餐饮 3、步行 2；其余评委同理。`parking` 评委无专属数据源，在 `notices` 写「停车视角暂无专属数据源，未编造停车 POI」，不影响计票。三位评委与 `builtin.decision` 共用 `DECISION_ADVICE` 能力，但 `buildRoutes()` 用 `TreeSet` 字典序，`builtin.decision` 先于 `judge.*`，故 `DECISION_ADVICE` 的默认 primary 仍是 `builtin.decision`，评委只在投票编排里被显式点名调用。
 
 ## 配置式 HTTP Provider
 
@@ -432,6 +600,7 @@ stateDiagram-v2
 | `GET` | `/api/agent/providers` | 注册表快照，脱敏，不含凭据 |
 | `POST` | `/api/agent/providers/reload` | 手动重载配置，管理员；P1 后由热加载替代 |
 | `GET` | `/api/agent/status` | 保留匿名；补 `registryVersion`、`providerCount`、`budgetDefaults` |
+| `POST` | `/api/agent/vote` | 两轮投票入口：匿名 401、缺 intent 400，信封脱敏不含 endpoint / authRef / 凭据 |
 
 现有 4 个接口保留为只读别名。内部转成「创建 run → 按路由解析 Provider → 同步跑完 → 返回旧结构」，保证现有前端与此前记录的 41 条端到端回归不破。别名层不做一次性替换。
 
@@ -451,14 +620,16 @@ stateDiagram-v2
 | 端到端 | 现有回归加「只加配置接新 Provider」全流程，以及确认到保存 CAS / `X-Version` 冲突 / 越权 apply | 现有端到端套件 |
 | 故障注入 | 缺密钥、KB 缺库、索引损坏、高德超时、外部熔断、配置损坏热加载、契约版本不兼容、并发 apply | 部分已有 |
 
-需显式标注：截至 2026-11-08，`/api/agent/plan` 的模型成功路径已用本地 OpenAI 兼容桩走通（`tools/model_success_probe.py`，记录 HTTP 200、耗时、桩请求摘要与输出样例），但**没有真实 `DEEPSEEK_API_KEY` 实测记录**；自然语言提取与按天编排仍由规则完成，模型只产出一段文字建议。真实密钥实测仍属「未实测」，不得写进通过项。
+需显式标注：`/api/agent/plan` 的模型成功路径先用本地 OpenAI 兼容桩走通（`tools/model_success_probe.py`），2026-11-09 又用真实 `DEEPSEEK_API_KEY` 完成端到端联调，证据见 `reports/current/模型与地图接口联调-2026-11-09.md`。自然语言提取与按天编排仍由规则完成，模型只产出一段文字建议，这一点没有变化。
 
 | 阶段 | 主要改动 | 退出条件，可核验 |
 | --- | --- | --- |
-| P0，唯一主操作 | 建 `AgentProvider` 契约、`ContractValidator`、`AgentRegistry`、配置加载、`HttpAgentAdapter`；同批落地 `tools/agent/provider-contract.json` 与 G0 静态准入并纳入 `gate.sh`；把 3 个现有服务包成内置 Provider；抽模型网关、按契约引入调用预算；修 S-1 | 只加一条 `agent_providers.json` 配置、不改任何 Java，合规者即可让 `/api/agent/capabilities` 出现新 id 且能路由；写入 `token` 内联字段或 `schemaVersion: 2.0` 的违规配置被 G0 判 `REJECTED` 且带原因码；关掉配置自动回退内置；此前记录的 41 条回归全绿 |
+| P0，唯一主操作 | 建 `AgentProvider` 契约、`ContractValidator`、`AgentRegistry`、配置加载、`HttpAgentAdapter`；同批落地 `tools/agent/provider-contract.json`、`gold_cases.json` 与 G0 静态准入并纳入 `gate.sh`；把 3 个现有服务包成内置 Provider；补齐 G1 至 G4 状态机与运行期熔断；抽模型网关、按契约引入调用预算；修 S-1 | 只加一条 `agent_providers.json` 配置、不改任何 Java，合规者即可让 `/api/agent/capabilities` 出现新 id；显式跑完 G1 至 G4 且管理员把 `enabled` 置 `true` 后才参与路由；写入 `token` 内联字段或 `schemaVersion: 2.0` 的违规配置被 G0 判 `REJECTED` 且带原因码；关掉配置自动回退内置；`tools/gate.sh` 全绿 |
 | P1 | 路由规则、灰度权重、能力协商接口、前端动态入口、配置热加载 | 改配置文件不必重启即生效；配置写坏时保留上一版并告警 |
 | P2 | `AgentRun` 状态机、补问流程、`proposalId/baselineHash` 确认到保存 | 过期草案 apply 返回 `CONFLICT` 且不写库；成功 apply 行程版本加 1 |
 | P3 | 外部 Provider 熔断与 A/B 对照实验 | 量化：约束满足率、无依据事实数、P95 响应时间、外部调用成功率 |
+
+P0 的基座、G0 至 G4 闸门与内置 Bean 委托（含 `rules` 兜底）已于 2026-11-09 落地；同日晚又落地两轮投票编排（`PlanVoteTally` + `VoteOrchestrator` + `AgentVoteController` + 三位评委 Bean），门禁全绿，详见《多 Agent 方案投票编排设计》「实现状态」。表中“抽模型网关、按契约引入调用预算、修 S-1”仍属遗留：`RunBudget` 只有类型定义，模型调用点尚未统一收口，S-1 未修。另有两条简化：准入状态保存在内存，重启需重跑 G1 至 G4；G3 影子样本取自固定 gold case 输入，不是线上真实流量。这三项都不写进通过项。
 
 P0 验收命令，可直接复制，离线构建：
 
@@ -473,7 +644,7 @@ PYTHONPATH="F:/pythons/pkgs" "C:/Users/zipei/.workbuddy/binaries/python/versions
 | --- | --- | --- | --- |
 | R-1 | 《需求文档》把 2026-11-02 的三角色目标态列为「最高口径」，与本文的 Provider SPI 落地稿并存 | 读者不确定按哪份实施 | 已于 2026-11-08 更正：《需求文档》「版本口径」删除该表述；《多Agent与票务能力方案》《架构设计》《业务功能技术实现方案》均补口径更正说明，三角色拆分降为 P3 对照实验 |
 | R-2 | 三份设计文档的事实数字必须同源；改动事实层后若只更新其中一份，会出现互相矛盾的容量估算 | 评审依据失实 | 以《知识库架构与周更工作流》「事实层现状」一节为唯一基线，改动时同步三份 |
-| R-3 | `POST /api/agent/plan` 前端无直接入口 | 新运行时可能只有测试在跑 | P1 由 `capabilities` 动态生成入口，不再手写按钮 |
+| R-3 | `POST /api/agent/plan` 前端无直接入口 | 新运行时可能只有测试在跑 | 已部分销项：对话页 `chat.html` 走 `/api/agent/invoke`（L1 编排 + 契约校验），Provider 与 attempts 直接显示在回复脚注；接口测试台仍用 plan 接口 |
 | R-4 | 事实层质量门禁未纳入 `tools/gate.sh` | 带病知识库会让 Agent 输出看似有据的错误结论 | 检索前校验 `quality_report --strict` 结果快照 |
 | R-5 | 模型成功路径无真实密钥实测 | 网关重构可能引入未覆盖回归 | 拿到密钥后补 4 条真实联调，之前标注「未实测」 |
 | R-6 | 契约腐化：为接新 Agent 不断加字段，最终契约变成大杂烩 | 零代码承诺失效 | `hints` / `extensions` 预留位、语义化主版本、契约评审；改契约必须升主版本 |
