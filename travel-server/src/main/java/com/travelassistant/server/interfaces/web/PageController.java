@@ -11,8 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 接口测试台在 {@code static/api-console.html}，自带登录卡，登录后同一页面切换为测试台。
  *
  * <p>{@code /login} 与 {@code /app} 是历史链接，保留转发以免旧书签失效。
- * {@code /planner} 是新版行程工作台（整幅地图 + AI 规划面板），转发到
- * {@code static/planner.html}；四个旧页面保持原样，登录入口仍指向 {@code chat.html}。
+ * 所有业务界面已收敛到 {@code static/planner.html}：{@code /planner} 转发过去，
+ * 旧的 {@code /chat.html} 与 {@code /ticket-assistant.html} 302 过去。
+ * 接口测试台仍是开发者工具，留在 {@code static/api-console.html}，不进用户导航。
  * 仅用于本地/测试演示，生产环境可移除或替换为正式前端。
  */
 @Controller
@@ -30,6 +31,15 @@ public class PageController {
   @GetMapping({"/login.html", "/app.html"})
   public String legacyPages() {
     return "redirect:/";
+  }
+
+  /**
+   * 旧的对话页与购票页已并入行程工作台，页面文件不再保留。
+   * 旧书签与文档里的链接统一 302 到工作台，别让它们撞上 404 再被安全链拦成 401。
+   */
+  @GetMapping({"/chat.html", "/ticket-assistant.html"})
+  public String legacyAppPages() {
+    return "redirect:/planner.html";
   }
 
   /** 新版行程工作台入口：静态页本身公开，数据接口仍需登录。 */

@@ -64,6 +64,15 @@
   --green:      var(--ok);
   --green-soft: var(--ok-soft);
 
+  /* 行动色：浅色下与主色同值；深色下主色被提亮成「能当文字看」的绿，
+     白字压不住，所以按钮底色单独走这一组，见深色块 */
+  --action-bg:       var(--pine);
+  --action-bg-hover: var(--pine-hover);
+  --action-fg:       #FFFFFF;
+
+  /* 浮在地图上的半透明底板 */
+  --glass: rgba(252, 250, 245, .95);
+
   /* 字号 5 级 / 字重只有两档（与 travel-mobile T 一致） */
   --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 25px;
   --w-body: 400; --w-strong: 600;
@@ -83,6 +92,80 @@
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
           "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Cascadia Mono", monospace;
+}
+
+/* ==========================================================================
+   深色主题
+   --------------------------------------------------------------------------
+   这里只给「显式声明」的深色：页面在 <html> 上写 data-theme="dark" 才生效。
+   刻意不写 @media (prefers-color-scheme: dark) 那一条 —— 本文件的使用者
+   （design/*.html 三张规范稿）是含浅色示意底图与浅色卡片的静态稿，
+   跟随系统变深会把稿子里的浅底文字压成白字，反而更差。
+   需要「跟随系统」的应用页（planner.html / index.html）各自内联同一份
+   令牌，并自行加上媒体查询那一条。
+
+   约定：应用页主题三态为
+     · 无 data-theme        → 跟随系统
+     · data-theme="light"   → 强制浅色
+     · data-theme="dark"    → 强制深色
+   开关状态存 localStorage 的 travel.theme，页面在 <head> 里先读一次，
+   避免首帧闪白。
+   ========================================================================== */
+html[data-theme="dark"] {
+  /* 纸换成夜里的墨 */
+  --paper:        #171A16;
+  --paper-2:      #1F231D;
+  --paper-3:      #262B23;
+  --surface-warm: #1C2019;
+
+  --ink-warm:     #E8E4D8;
+  --ink-2:        #C6C1B2;
+  --muted:        #9A9484;
+  --muted-2:      #7E7969;
+
+  --line-warm:        #333A31;
+  --line-strong-warm: #47503F;
+  --field-line:       #5A6455;
+
+  /* 绿与陶土各提亮一档，压住深色底 */
+  --pine:       #4E8C72;
+  --pine-hover: #5C9C81;
+  --pine-soft:  #22332C;
+  --pine-line:  #3E5C4F;
+  /* --pine-text 专给「绿色当文字用」的场景：--pine 直接做前景对比不足 */
+  --pine-text:  #9ACDB4;
+
+  --clay:       #D9805A;
+  --clay-hover: #E08F6B;
+  --clay-soft:  #33231B;
+  --clay-line:  #4E3628;
+
+  --gold:      #C9A458;
+  --ok:        #6FAF93;
+  --ok-soft:   #1F2E27;
+  --ok-line:   #3E5C4F;
+  --warn:      #D8A85C;
+  --warn-soft: #2E2519;
+  --warn-line: #4A3A22;
+  --err:       #E08C7C;
+  --err-soft:  #33201C;
+  --err-line:  #4E302A;
+
+  /* 语义层：跟随上面自动变的不必重写，字面量必须重写 */
+  --surface:   #212620;
+  --surface-2: #242A23;
+  --bg:        var(--paper);
+
+  /* 绿色当按钮底色时不能直接用 --pine（深底浅绿、白字压不住），走这一组 */
+  --action-bg:       #2F6B57;
+  --action-bg-hover: #38795F;
+  --action-fg:       #F2F7F3;
+  --glass: rgba(28, 32, 25, .94);
+
+  /* 深色下阴影改用纯黑，带绿褐会发灰 */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .42), 0 1px 3px rgba(0, 0, 0, .34);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, .46), 0 2px 4px rgba(0, 0, 0, .30);
+  --shadow-3: 0 18px 48px rgba(0, 0, 0, .56), 0 6px 12px rgba(0, 0, 0, .36);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -125,13 +208,13 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   border-radius: var(--r-ctl); font-size: var(--fs-sm); font-weight: var(--w-strong);
   border: 1px solid transparent; white-space: nowrap;
 }
-.btn-primary { background: var(--pine); color: #fff; }
-.btn-primary:hover { background: var(--pine-hover); }
+.btn-primary { background: var(--action-bg); color: var(--action-fg); }
+.btn-primary:hover { background: var(--action-bg-hover); }
 .btn-outline { border-color: var(--line-strong); color: var(--text-2); background: var(--surface); }
 .btn-outline:hover { border-color: var(--pine); color: var(--pine); }
 .btn-quiet { color: var(--text-3); }
 .btn-quiet:hover { color: var(--pine); background: var(--pine-soft); }
-.btn-green { background: var(--ok); color: #fff; }
+.btn-green { background: var(--action-bg); color: var(--action-fg); }
 .btn-sm { min-height: 28px; padding: 0 10px; font-size: var(--fs-xs); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -194,7 +277,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .st-suggested{ background: var(--surface); color: var(--text-3); border: 1px dashed var(--line-strong); }
 .st-verified { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
-.st-booked   { background: var(--ok); color: #fff; }
+.st-booked   { background: var(--action-bg); color: var(--action-fg); }
 .st-unknown  { background: var(--bg); color: var(--text-3); border-color: var(--line-strong); }
 /* 赤陶只落在「要人决断」上 */
 .st-pending  { background: var(--clay-soft); color: var(--clay); border-color: var(--clay-line); }
@@ -226,7 +309,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .day-badge {
   width: 24px; height: 24px; flex: 0 0 auto;
   display: grid; place-items: center; border-radius: var(--r-sm);
-  background: var(--pine); color: #fff;
+  background: var(--action-bg); color: var(--action-fg);
   font-size: var(--fs-xs); font-weight: var(--w-strong);
 }
 .day-badge.muted { background: var(--surface); color: var(--text-3); border: 1px solid var(--line-strong); }
@@ -267,13 +350,13 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   cursor: pointer; box-shadow: var(--shadow-2);
 }
 .pin > span { transform: rotate(45deg); }
-.pin:hover, .pin.is-active { background: var(--pine); color: #fff; }
+.pin:hover, .pin.is-active { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-fg); }
 .pin.is-verified { border-color: var(--ok); color: var(--ok); }
-.pin.is-verified.is-active { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pin.is-verified.is-active { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-fg); }
 .map-legend {
   position: absolute; z-index: 4; left: 12px; bottom: 12px;
   display: flex; align-items: center; gap: 12px;
-  padding: 6px 10px; background: rgba(252, 250, 245, .95);
+  padding: 6px 10px; background: var(--glass);
   border: 1px solid var(--line); border-radius: var(--r-ctl);
   font-size: var(--fs-xs); color: var(--text-3);
 }

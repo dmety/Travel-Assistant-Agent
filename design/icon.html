@@ -149,8 +149,8 @@ p.note { color: var(--text-2); max-width: 46em; margin: 0 0 30px; }
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed="true"] { background: var(--pine); color: #fff; }
 
-/* 25 个图标用 5 列，整除后不会露出网格背景形成空底块 */
-.grid-ico { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+/* 28 个图标用 4 列，整除后不会露出网格背景形成空底块 */
+.grid-ico { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .ico-cell { background: var(--bg); padding: 22px 12px 16px; text-align: center; position: relative; }
 .ico-cell::after {
   content: ""; position: absolute; left: 24%; right: 24%; bottom: 0; height: 2px;
@@ -187,7 +187,7 @@ footer code { font-family: ui-monospace, Consolas, monospace; }
   .hero-mark { width: 250px; height: 250px; right: -20px; top: 92px; opacity: .9; }
   .hero-note { display: none; }
   .marks { grid-template-columns: repeat(2, 1fr); }
-  .grid-ico { grid-template-columns: repeat(5, 1fr); }
+  .grid-ico { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 640px) {
   .wrap { padding: 0 20px 80px; }
@@ -425,6 +425,21 @@ footer code { font-family: ui-monospace, Consolas, monospace; }
     <path d="M8 18.5 C8 13 10 9.5 13 9.5"/>
     <circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
   </symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 4 H16.5 A2 2 0 0 1 18.5 6 V8.6 A2.8 2.8 0 0 0 18.5 14.4 V16 L13 21 H6.5 A2 2 0 0 1 4.5 19 V6 A2 2 0 0 1 5.5 4 Z"/>
+    <path d="M6.5 9 H9.5 M6.5 12.5 H9"/>
+    <path d="M12.5 7.5 V10 M12.5 12.5 V15 M12.5 17 V18.5" opacity=".65"/>
+  </symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
+    <circle cx="12" cy="12" r="3.4"/>
+    <path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22"/>
+    <path d="M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/>
+  </symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/>
+    <circle cx="16.4" cy="8.2" r="1.1" fill="currentColor" stroke="none" opacity=".7"/>
+  </symbol>
 </svg>
 
 <div class="wrap">
@@ -535,6 +550,9 @@ footer code { font-family: ui-monospace, Consolas, monospace; }
       <div class="ico-cell"><svg class="ico"><use href="#i-search"/></svg><b>搜索地点</b><small>i-search</small></div>
       <div class="ico-cell"><svg class="ico"><use href="#i-edit"/></svg><b>编辑备注</b><small>i-edit</small></div>
       <div class="ico-cell"><svg class="ico"><use href="#i-warning"/></svg><b>降级提示</b><small>i-warning</small></div>
+      <div class="ico-cell"><svg class="ico"><use href="#i-ticket"/></svg><b>票务查询</b><small>i-ticket</small></div>
+      <div class="ico-cell"><svg class="ico"><use href="#i-sun"/></svg><b>浅色外观</b><small>i-sun</small></div>
+      <div class="ico-cell"><svg class="ico"><use href="#i-moon"/></svg><b>深色外观</b><small>i-moon</small></div>
     </div>
     <p class="note" style="margin-top:22px">统一语言：外框右下 45 度斜切；位置用实心落点加纸色内点，不用水滴针；路径一律折线，与等高线山径同源。图标继承 <code>color</code>，状态色由外层变量决定。</p>
   </section>

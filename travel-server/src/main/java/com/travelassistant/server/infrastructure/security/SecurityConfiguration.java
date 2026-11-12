@@ -42,20 +42,18 @@ public class SecurityConfiguration {
                 // /api/agent/capabilities 同理：只含 id / 状态 / 能力标签 / 最近拒绝原因码，
                 // 不含 endpoint、authRef 或任何凭据，前端登录前就能动态渲染可用入口。
                 "/api/location/status", "/api/agent/status", "/api/agent/capabilities",
-                // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）；
-                // 登录后的对话页是 /chat.html，接口测试台是 /api-console.html（自带登录卡），
-                // 三个页面本身都必须在未登录时可达，数据仍由 /api/** 拦截。
-                // 对话页的登录态由页内 JS 读 /api/account/me 判断：401 时跳回 /?next=/chat.html。
-                // /login.html、/app.html 是旧链接，302 到 /。
+                // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）。
+                // 业务界面统一在 /planner.html：页面公开，页内读 /api/account/me 判断登录态，
+                // 401 时跳回 /?next=/planner.html；真正的数据与模型配额仍由 /api/** 拦截。
+                // /chat.html、/ticket-assistant.html 已并入工作台，现在只做 302，
+                // 仍要放行：否则旧书签会先撞 401、连跳转都看不到。
+                // /api-console.html 是开发者用的接口测试台，自带登录卡，不进用户导航。
                 // 页面本身公开，但 /api/agent/tickets/advice 会触发模型调用，必须登录后才能访问：
                 // 匿名放行等于把模型配额暴露给任意请求。前端 api() 收到 401 会提示登录。
-                // /api/agent/invoke 是 L1 编排入口，会触发地图 API 配额，同样必须登录后
-                // 才能访问；它不在白名单里，由 .anyRequest().authenticated() 拦截。
-                "/ticket-assistant.html", "/api-console.html", "/chat.html",
+                // /api/agent/invoke 与 /api/chat 是 L1 编排与对话入口，会触发模型与地图配额，
+                // 同样必须登录后才能访问；它们不在白名单里，由 .anyRequest().authenticated() 拦截。
+                "/chat.html", "/ticket-assistant.html", "/api-console.html",
                 "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico",
-                // 新版行程工作台：/planner 由 PageController 转发，/planner.html 是静态页。
-                // 与 chat.html 同口径：页面公开，页内读 /api/account/me 判断登录态，
-                // 真正的数据与模型配额仍由 /api/** 拦截。
                 "/planner.html", "/planner")
             .permitAll()
             .anyRequest().authenticated())

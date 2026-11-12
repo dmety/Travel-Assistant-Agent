@@ -1,11 +1,13 @@
 # 旅行助手 · 界面设计稿
 
 移动端与网页端的 UI 设计稿，以及品牌与功能图标系统。展示板只放在 `design/` 目录：
-`chat.html` / `api-console.html` / `ticket-assistant.html` 保持原样，`index.html` 只加了
-一个工作台入口链接，因此不影响 `acceptance.py` 的静态页文本断言。
+`api-console.html` 是开发者用的接口测试台，保持原样；`index.html` 与 `planner.html`
+已按本稿重写，旧的 `chat.html` / `ticket-assistant.html` 已删除，原地址 302 到工作台。
+`acceptance.py` 的静态页文本断言同批改到 `planner.html` 上。
 
-真正跑在项目里的是落地页 `travel-server/src/main/resources/static/planner.html`，
-另有 `favicon.ico` 放在 static 根目录。白名单、页面路由与同批测试见第 11 节。
+真正跑在项目里的是 `travel-server/src/main/resources/static/` 下的两个页面：
+`index.html`（登录/注册）与 `planner.html`（三个视图的工作台），另有 `favicon.ico`
+放在 static 根目录。白名单、页面路由与同批测试见第 11 节。
 
 项目里原有的蓝色静态页是早期随手生成的，本稿不以它为基准，重新设计。
 
@@ -23,12 +25,12 @@
 
 | 文件 | 用途 |
 |---|---|
-| `tokens.css` | 唯一色板与设计令牌；组件语义变量映射到第一版色板 |
+| `tokens.css` | 唯一色板与设计令牌；组件语义变量映射到第一版色板，并给出 `[data-theme="dark"]` 的深色取值 |
 | `mobile.html` | 手机端 6 屏并排展示板（375 × 812 每屏） |
 | `desktop.html` | 网页端单页（1440 × 900 基准） |
 | `axure-kit.svg` | Axure 可导入的矢量元件库，7 节 |
 | `brand-mark.svg` | 品牌主标唯一导出源，字面色值供 data-URI 独立渲染 |
-| `icons.svg` | 25 个功能图标的 `symbol` 精灵图，`currentColor` 继承文字色 |
+| `icons.svg` | 28 个功能图标的 `symbol` 精灵图，`currentColor` 继承文字色 |
 | `icon.html` | 图标规范页：四态主标、尺寸矩阵、图标全览、自检表 |
 | `export/` | 9 张 PNG 与 5 个 Android mipmap 密度目录 |
 | `tools/design_icons.py` | 项目根下的图标资产构建工具，见第 9 节 |
@@ -103,6 +105,36 @@
 | 警示 / 错误 | `--warn` / `--err` | `#8A6212` / `#A03A2C` |
 
 赤陶只给“待投票 / 待定 / 需要决断”，不做通用装饰；墨绿承担主行动与选中态。
+
+### 深色主题
+
+`tokens.css` 末尾给出 `html[data-theme="dark"]` 的整套取值，纸换成夜里的墨
+（`--paper #171A16` / `--surface #212620`），绿与陶土各提亮一档
+（`--pine #4E8C72` / `--clay #D9805A`），阴影改用纯黑。
+
+三条约束，改深色时逐条对一遍：
+
+| 约束 | 为什么 |
+|---|---|
+| 绿色当**文字**用走 `--pine-text`（`#9ACDB4`），不走 `--pine` | `--pine` 提亮后作前景仍偏暗，压在 `--surface` 上不足 4.5:1 |
+| 绿色当**按钮底色**走 `--action-bg`（`#2F6B57`）+ `--action-fg`（`#F2F7F3`） | 反向问题：细绿底配白字，白字压不住 |
+| `--surface` 是字面量（浅色下写死 `#FFFFFF`），深色块必须重写 | 其余语义变量是 `var(--palette)`，会自动跟随 |
+
+`tokens.css` **只提供显式深色**，不写 `prefers-color-scheme` 媒体查询：
+本文件的使用者是 `design/*.html` 三张规范稿，含浅色示意底图与浅色卡片，
+跟随系统变深会把稿里的浅底文字压成白字。需要“跟随系统”的应用页
+（`planner.html` / `index.html`）各自内联同一份令牌并自行补上媒体查询。
+
+应用页的主题三态：
+
+| `<html>` 上 | 行为 |
+|---|---|
+| 无 `data-theme` | 跟随系统 |
+| `data-theme="light"` | 强制浅色 |
+| `data-theme="dark"` | 强制深色 |
+
+开关状态存 `localStorage` 的 `travel.theme`，`<head>` 里先用一段同步脚本读一次，
+避免首帧闪白；按钮在浅/深之间切换 `#i-moon` / `#i-sun`。
 
 ### 字阶 / 间距 / 圆角 / 阴影
 
@@ -189,12 +221,15 @@ window.BAIDU_MAP_AK = '你的 AK';   // 方式一：在页面里注入
 | HTML 结构 | 三份页面均无重复 id、无未闭合 / 错配标签，`getElementById` 与 `<use>` 目标全部存在 |
 | 内联 JS | `node --check` 三份脚本均通过 |
 | SVG 素材 | `axure-kit.svg` XML 解析通过，273 个元素，32 段注释无非法双连字符，坐标均在 1600×1600 内 |
-| 图标渲染 | 三份页面共 69 个 `svg.ico`，零宽度 0 个；顶栏主标 32px；25 个图标格齐全 |
+| 图标渲染 | 五份页面内联的 `symbol` 合计 323 个（icon 42 / desktop 60 / mobile 70 / planner 106 / index 45），重复 id 0、悬空引用 0；顶栏主标 32px；28 个图标格齐全 |
 | 图标页视口 | 375 / 768 / 1440 三档 `scrollWidth = clientWidth`，溢出元素 0 |
 | 手机展示板窄屏 | 375 视口下 `scrollWidth = clientWidth = 360`，6 屏横向 / 纵向溢出仍全为 0 |
 | 图标资源 | `favicon.ico` 含 16 / 32 / 48 三尺寸，Pillow 回读正确；9 张 PNG 与 5 个 mipmap 均非空白 |
 | 构建工具 | `design_icons.py all` 全流程通过，`wire` 重复运行结果不变 |
-| favicon 落地 | 重新打包后匿名 `GET /favicon.ico` = 200，5424 字节与源文件一致；`/index.html` / `/chat.html` / `/api/health` 仍为 200 |
+| 工作台三视图 | 三视图共用一页，`location.hash` 切换；DOM 探针 `docH = clientH = 805`，`overflow: hidden` 生效，横向 / 纵向溢出均 0 |
+| 工作台双主题 | 浅色 / 深色各测一遍，`scrollWidth = clientWidth`、`scrollHeight = clientHeight`；深色下重算对比度，票务主按钮 5.59:1、次按钮 6.04:1 |
+| 工作台真实窄屏 | 504 CSS px 视口（无头 Edge 的 `--window-size` 给外框尺寸）下布局完整，无横向溢出 |
+| favicon 落地 | 重新打包后匿名 `GET /favicon.ico` = 200，5424 字节与源文件一致；`/index.html` / `/planner.html` / `/api/health` 仍为 200；`/chat.html` / `/ticket-assistant.html` 为 302 到 `/planner.html` |
 
 未做像素级自动比对。图标与三份页面另做了无头 Edge 截图目测（含 16px 放大预览），
 结论来自 DOM 数值测量、静态校验与截图观察。间距节奏、色彩观感请在浏览器里再过一眼。
@@ -298,15 +333,17 @@ python tools/design_icons.py check   # 只校验，不写文件
 
 ## 10. 已知限制
 
-1. 只做了浅色基线，未提供暗色模式。`tokens.css` 的语义变量可支持 `[data-theme="dark"]` 覆盖，但没做，不做无验证的承诺。
+1. `design/` 三张规范稿仍只有浅色基线；暗色只在落地页 `planner.html` 与 `index.html` 里验证过。
+   `tokens.css` 已给出 `[data-theme="dark"]` 整套取值（见第 3 节），但没写自动跟随系统的媒体查询——
+   稿里含浅色示意底图，跟随系统变深会把浅底文字压成白字。
 2. 地图降级底图是 SVG 手绘示意，不含地理数据，只用于视觉占位与断网演示。
 3. 展示板里的页面数据是设计样例（武当山四日 / 3 人 / 6 个候选），不写任何 Store，不产生真实业务；
    对话回复是预设文本。落地页 `planner.html` 已接真实接口，见第 11 节。
 4. 语音按钮是演示占位，未接 ASR。
 5. 手机端画板是 6 屏并排的展示板（900px / 600px 两档断点收窄外边距并把手机框压到视口宽），
    不是可直接装机的移动端页面；要上真机需按 `tokens.css` 切到单屏布局。
-6. `favicon.ico` 已落在 static 根目录，浏览器自动请求即可生效；落地页 `planner.html` 另有显式 `link` 标签，
-   四个旧静态页没有。
+6. `favicon.ico` 已落在 static 根目录，浏览器自动请求即可生效；`planner.html` 与 `index.html`
+   另有显式 `link` 标签，`api-console.html` 没有。
 7. Android mipmap 只是导出包，未接入 `travel-mobile` 工程；PWA manifest 也未配置。
 
 ---
@@ -314,44 +351,68 @@ python tools/design_icons.py check   # 只校验，不写文件
 ## 11. 落地为可运行页面
 
 `design/` 里的两份 HTML 是多屏展示板，用来定视觉与交互；真正跑在项目里的是
-`travel-server/src/main/resources/static/planner.html`。它把桌面稿的“整幅地图加浮动 AI 面板”
-与手机稿的“上半地图加下半对话面板”合成一份响应式页面，900px 与 600px 两档断点切换，
-共用同一份行程数据。
+`travel-server/src/main/resources/static/` 下的两个页面。`planner.html` 把桌面稿的
+“整幅地图加浮动 AI 面板”与手机稿的“上半地图加下半对话面板”合成一份响应式页面，
+900px 与 600px 两档断点切换，共用同一份行程数据；`index.html` 是登录/注册页。
+
+### 一份页面三个视图
+
+工作台不再是“一个页面一件事”，而是外壳 + 三个视图，靠 `location.hash` 切换：
+
+| 视图 | hash | 内容 |
+|---|---|---|
+| 规划 | `#plan` | 地图 + AI 面板（原 `chat.html` 的对话、卡片、投票全在这里） |
+| 票务 | `#ticket` | 购票需求 → 建议（原 `ticket-assistant.html` 整块搬入） |
+| 行程 | `#trips` | 我的行程、逐日安排、保存与版本 |
+
+搬入的票务样式全部加 `#viewTicket` 前缀作用域，脚本整段包在 IIFE 里，
+`$` / `api` / `el` 不与外壳冲突。外壳是“整页不滚动、滚动只在视图内部”，
+所以 `html, body` 都写了 `overflow: hidden`。
 
 ### 入口与安全
 
 | 地址 | 说明 |
 |---|---|
 | `/planner` | `PageController` 转发到 `/planner.html` |
-| `/planner.html` | 静态页，匿名可达；页内读 `/api/account/me`，401 时跳 `/?next=/planner.html` |
-| `/` | 登录页，底部加了“新版行程工作台”入口 |
-| `/chat.html` | 旧版对话页，仍是登录后的默认落地页 |
+| `/planner.html` | 工作台静态页，匿名可达；页内读 `/api/account/me`，401 时跳 `/?next=/planner.html` |
+| `/` | 登录/注册页，已按本稿重写，登录后默认落到 `/planner.html` |
+| `/chat.html`、`/ticket-assistant.html` | 旧页已删除，`PageController` 302 到 `/planner.html`（保留放行，否则连 302 都看不到） |
+| `/api-console.html` | 开发者用的接口测试台，保持原样 |
 
-`SecurityConfiguration` 白名单加了 `/planner.html` 与 `/planner`，口径与 `chat.html` 一致：
-页面公开，数据和模型配额仍由 `/api/**` 拦截。`SecurityRulesTest` 同批补了
-`plannerPageIsPublic`，断言页面 200、结构标记存在、`/planner` 转发目标正确。
+`SecurityConfiguration` 白名单收敛为一段：`/chat.html`、`/ticket-assistant.html`、
+`/api-console.html`、`/`、`/login`、`/app`、`/login.html`、`/app.html`、`/index.html`、
+`/favicon.ico`、`/planner.html`、`/planner`。页面公开，数据和模型配额仍由 `/api/**` 拦截。
+`SecurityRulesTest` 同批改了三处断言：`/chat.html` 改为断言 302 到 `/planner.html`，
+`plannerPageIsPublic` 增加 `id="viewTicket"` 结构标记，`TicketRecordApiTest` 的
+`/ticket-assistant.html` 改为断言 3xx。`tools/acceptance.py` 里读旧对话页的十处
+文本断言整体改到 `planner.html` 上。
 
 ### 接了哪些真实接口
 
 | 界面动作 | 接口 |
 |---|---|
 | 登录态与退出 | `GET /api/account/me`、`POST /api/logout` |
-| 理解一句话需求 | `POST /api/intent/parse` |
-| 生成草案 | `POST /api/agent/invoke`（`intent=PLAN_DRAFT`） |
+| 一句话对话（首选链路） | `POST /api/chat`，返回 `{reply, cards[], trace, state, note}` |
+| 理解一句话需求（模型不可用时回退） | `POST /api/intent/parse` |
+| 生成草案 | `POST /api/agent/invoke`（`intent=PLAN_DRAFT` 或 `FOOD_RECOMMEND`） |
 | 编排层降级兜底 | `POST /api/agent/plan` |
 | 确认前重新装配载荷 | `POST /api/agent/plan/materialize` |
 | 写入行程与逐日安排 | `POST /api/itineraries`、`PUT /api/itineraries/{id}/daily?version=N` |
+| 我的行程：列表 / 详情 / 删除 | `GET /api/itineraries`、`GET /api/itineraries/{id}`、`DELETE /api/itineraries/{id}` |
 | 导出行程单 | `GET /api/itineraries/{id}/export` |
+| 购票建议与票种 | `POST /api/agent/tickets/advice`、`GET /api/tickets/catalog` |
 | 百度地图真实坐标 | `GET /api/attractions?city=`（仅在注入 AK 时取用） |
 
-草案取自契约信封 `result.facts` 里 `category=PLAN_DRAFT` 的 `CONTENT` fact；
-编排层落到 `builtin.rules` 没有结构化草案时，回退调 `/api/agent/plan`，
-保证最差情况也有逐日安排与检查项。补问按 `questions[].field` 落回请求再重排；
-候选不足的天留空，不补景点、不编造游览时刻。
+主链路是「先问 `/api/chat`，失败再走解析 + 编排」：`/api/chat` 一次就能拿回
+`reply` 与结构化 `cards`（景点卡、候选卡、投票卡、票务卡都由同一套 `paintCard` 渲染）；
+它不可用时退到 `/api/intent/parse` → `/api/agent/invoke`。草案取自契约信封
+`result.facts` 里 `category=PLAN_DRAFT` 的 `CONTENT` fact；编排层落到 `builtin.rules`
+没有结构化草案时，回退调 `/api/agent/plan`，保证最差情况也有逐日安排与检查项。
+补问按 `questions[].field` 落回请求再重排；候选不足的天留空，不补景点、不编造游览时刻。
 
 ### 仍是占位
 
-语音按钮只提示未接 ASR；投票、成员协作、预算体检这三块抽屉没有搬进落地页，
+语音按钮只提示未接 ASR；成员协作与预算体检两块抽屉没有搬进落地页，
 仍在 `design/desktop.html` 里做交互演示。地图未注入 AK 时是 SVG 示意底图，
 点位按草案顺序沿示意路线分布，页面明确标注“示意底图 · 非导航用”；
 注入 `window.BAIDU_MAP_AK` 或 `?ak=` 后才启用 BMapGL 并按知识库经纬度打点。
@@ -359,7 +420,9 @@ python tools/design_icons.py check   # 只校验，不写文件
 ### 构建与同步
 
 图标定义由 `tools/design_icons.py wire` 从 `design/icons.svg` 与
-`design/brand-mark.svg` 派生注入 `planner.html` 的 `glyphDefs` 区块，不要手改。
-色板在本页内联一份，改动以 `design/tokens.css` 为准。
+`design/brand-mark.svg` 派生注入 `planner.html` 与 `index.html` 的 `glyphDefs` 区块，
+不要手改；`check` 会把五份页面一起校验（重复 id、悬空 `<use>`）。
+色板在两个页面内联各一份，改动以 `design/tokens.css` 为准，深色的三态与两条对比度
+约束见第 3 节。
 新增静态资源需要重新 `mvn -pl travel-server -am package` 才会进 jar，
 否则请求会落到 404 再被认证规则拦成 401。

@@ -155,11 +155,12 @@ def main():
                               and not any(k in (x.get('name') or '') for k in keep_words)
                               for x in picks),
                       'high-rated non-tourism POIs are filtered out')
-                chat_page = (ROOT / 'travel-server/src/main/resources/static/chat.html'
-                             ).read_text(encoding='utf-8')
-                check('票价未核验' in chat_page and 'r.channels' in chat_page
-                      and '好评高的在前' in chat_page,
-                      'chat page renders rating order, unverified tickets and official links')
+                # 对话页与购票页已并入工作台，渲染断言改读 planner.html
+                app_page = (ROOT / 'travel-server/src/main/resources/static/planner.html'
+                            ).read_text(encoding='utf-8')
+                check('票价未核验' in app_page and 'r.channels' in app_page
+                      and '好评高的在前' in app_page,
+                      'workbench renders rating order, unverified tickets and official links')
                 review_hosts = ('www.amap.com', 'ditu.amap.com', 'uri.amap.com',
                                 'map.baidu.com', 'api.map.baidu.com')
                 review_urls = [x.get('reviewUrl') for x in picks if x.get('reviewUrl')]
@@ -175,13 +176,13 @@ def main():
                 check('reviewText' not in picks_json and '游客说' not in picks_json
                       and '用户评论' not in picks_json,
                       'service returns no fabricated user review text')
-                check('review-toggle' in chat_page and 'officialReviewUrl' in chat_page
-                      and 'review-panel' in chat_page
-                      and '评论正文由地图平台提供' in chat_page,
-                      'chat page opens a review panel with official comment links')
-                check('www.amap.com' in chat_page and 'map.baidu.com' in chat_page
-                      and 'new URL(raw)' in chat_page,
-                      'chat page validates review link hosts against an allowlist')
+                check('review-toggle' in app_page and 'officialReviewUrl' in app_page
+                      and 'review-panel' in app_page
+                      and '评论正文由地图平台提供' in app_page,
+                      'workbench opens a review panel with official comment links')
+                check('www.amap.com' in app_page and 'map.baidu.com' in app_page
+                      and 'new URL(raw)' in app_page,
+                      'workbench validates review link hosts against an allowlist')
                 code, caps = request(client(), base, '/api/agent/capabilities')
                 check(code == 200 and any(p['id'] == 'builtin.food'
                                          and p['status'] == 'ACTIVE'

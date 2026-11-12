@@ -3,10 +3,10 @@
 
 唯一源
   design/brand-mark.svg   品牌主标（字面色值，供 data-URI 独立渲染）
-  design/icons.svg        25 个功能图标 symbol（currentColor）
+  design/icons.svg        28 个功能图标 symbol（currentColor）
 
 派生目标
-  design/icon.html        4 个主标变体 + 25 个功能图标的内联定义
+  design/icon.html        4 个主标变体 + 28 个功能图标的内联定义
   design/desktop.html     顶栏主标 + AI 面板功能图标
   design/mobile.html      返回 / 发送 / 语音 / 底部导航等图标
   static/planner.html     落地工作台的图标定义（已写成 use，只刷新定义）
@@ -43,7 +43,7 @@ EDGE = os.environ.get("TRAVEL_EDGE", r"C:\Program Files (x86)\Microsoft\Edge\App
 STATIC = ROOT / "travel-server" / "src" / "main" / "resources" / "static"
 
 PAPER, PINE, CLAY = "#F7F4EE", "#1E4A3E", "#B4542A"
-ICON_COUNT = 25
+ICON_COUNT = 28
 
 
 def read(p: Path) -> str:
@@ -216,10 +216,11 @@ def cmd_wire() -> None:
 
     targets = [(DESIGN / "desktop.html", DESKTOP_TABLE),
                (DESIGN / "mobile.html", MOBILE_TABLE)]
-    planner = STATIC / "planner.html"
-    if planner.exists():
-        # 落地页已经写成 <use href="#...">，只需刷新定义，不做占位符替换。
-        targets.append((planner, ()))
+    # 落地页已经写成 <use href="#...">，只需刷新定义，不做占位符替换。
+    for name in ("planner.html", "index.html"):
+        p = STATIC / name
+        if p.exists():
+            targets.append((p, ()))
     for p, table in targets:
         s = read(p)
         s = re.sub(r'<svg id="glyphDefs".*?</svg>\n?', "", s, count=1, flags=re.S)
@@ -385,9 +386,10 @@ def cmd_check() -> None:
     assert_xml(DESIGN / "brand-mark.svg")
     assert_xml(DESIGN / "icons.svg")
     pages = [DESIGN / "icon.html", DESIGN / "desktop.html", DESIGN / "mobile.html"]
-    planner = STATIC / "planner.html"
-    if planner.exists():
-        pages.append(planner)
+    for name in ("planner.html", "index.html"):
+        page = STATIC / name
+        if page.exists():
+            pages.append(page)
     for p in pages:
         s = read(p)
         ids = re.findall(r'\bid="([^"]+)"', s)

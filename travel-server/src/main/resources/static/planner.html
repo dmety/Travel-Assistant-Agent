@@ -4,40 +4,100 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>旅行助手 · 行程工作台</title>
-<meta name="description" content="旅行助手：以地图为主屏，用对话规划行程，草案与地图共用同一份数据。" />
+<meta name="description" content="旅行助手：以地图为主屏，用对话规划行程，票务与行程在同一处管理。" />
 <link rel="icon" href="/favicon.ico" />
+<script>
+/* 主题先定后绘：本地已选过就立刻打上 data-theme，避免首屏闪一下白底 */
+(function () {
+  try {
+    var t = localStorage.getItem('travel.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* 隐私模式下读不到就走系统偏好 */ }
+})();
+</script>
 <!--
-  行程工作台 · 由 design/desktop.html 与 design/mobile.html 落地而来。
+  统一入口 · 由 design/desktop.html 与 design/mobile.html 落地而来。
   视觉令牌唯一源是 design/tokens.css，此处内联一份以便静态资源独立部署；
   图标符号由 tools/design_icons.py wire 从 design/icons.svg 派生注入，勿手改 glyphDefs。
-  真实接口：/api/account/me、/api/intent/parse、/api/agent/invoke、
-            /api/agent/plan、/api/agent/plan/materialize、/api/itineraries。
+  票务视图的标记、样式、脚本搬自原 ticket-assistant.html（脚本包 IIFE，样式加作用域）。
+  真实接口：/api/chat、/api/intent/parse、/api/agent/invoke、/api/agent/plan/materialize、
+            /api/itineraries、/api/tickets/**。
 -->
 <style>
 :root {
+  color-scheme: light;
   --paper:#F7F4EE; --paper-2:#EFEAE0; --paper-3:#E7E0D2; --surface-warm:#FCFAF5;
-  --ink:#20241E; --text-2:#4A4F46; --text-3:#6E6A5E; --muted-2:#8A8577;
+  --ink:#20241E; --text:#20241E; --text-2:#4A4F46; --text-3:#6E6A5E; --muted-2:#8A8577;
   --line:#DED7C9; --line-strong:#C4BAA6; --field-line:#9C9282;
   --pine:#1E4A3E; --pine-hover:#163A30; --pine-soft:#E4EDE7; --pine-line:#BBD0C4;
+  --pine-text:#1E4A3E;
   --clay:#B4542A; --clay-soft:#F6E8DF; --clay-line:#E3C4B1;
   --ok:#2E6B52; --ok-soft:#E7F0EA; --warn:#8A6212; --warn-soft:#F8EFDC;
   --warn-line:#E8D6AE; --err:#A03A2C; --err-soft:#F8E7E3; --err-line:#E8C6BE;
-  --surface:#FFFFFF; --bg:var(--paper);
+  --surface:#FFFFFF; --surface-2:#EFEAE0; --bg:var(--paper);
+  --glass:rgba(252,250,245,.96);
+  --action-bg:var(--pine); --action-fg:#FFFFFF; --action-bg-hover:var(--pine-hover);
+  /* blocks 搬来的样式用 --primary 命名，这里做一层别名，避免两套命名并存 */
+  --primary:var(--pine); --primary-hover:var(--pine-hover);
+  --primary-soft:var(--pine-soft); --primary-line:var(--pine-line);
   --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
-  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px;
   --r-sm:3px; --r-ctl:6px; --r-card:10px; --r-lg:16px; --r-pill:999px;
   --shadow-1:0 1px 2px rgba(46,42,32,.06),0 1px 3px rgba(46,42,32,.05);
   --shadow-2:0 4px 14px rgba(46,42,32,.08),0 2px 4px rgba(46,42,32,.04);
   --shadow-3:0 18px 48px rgba(46,42,32,.12),0 6px 12px rgba(46,42,32,.05);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
 }
+
+/* ---------- 深色：纸换成夜里的墨，绿与陶土提亮一档保住对比度 ---------- */
+html[data-theme="dark"] {
+    --paper:#171A16; --paper-2:#1F231D; --paper-3:#262B23; --surface-warm:#1C2019;
+    --ink:#E8E4D8; --text:#E8E4D8; --text-2:#C6C1B2; --text-3:#9A9484; --muted-2:#7E7969;
+    --line:#333A31; --line-strong:#47503F; --field-line:#5A6455;
+    --pine:#4E8C72; --pine-hover:#5C9C81; --pine-soft:#22332C; --pine-line:#3E5C4F;
+    --pine-text:#9ACDB4;
+    --clay:#D9805A; --clay-soft:#33231B; --clay-line:#4E3628;
+    --ok:#6FAF93; --ok-soft:#1F2E27; --warn:#D8A85C; --warn-soft:#2E2519;
+    --warn-line:#4A3A22; --err:#E08C7C; --err-soft:#33201C; --err-line:#4E302A;
+    --surface:#212620; --surface-2:#242A23; --bg:var(--paper);
+    --glass:rgba(28,32,25,.94);
+    --action-bg:#2F6B57; --action-fg:#F2F7F3; --action-bg-hover:#38795F;
+    --primary:var(--pine); --primary-hover:var(--pine-hover);
+    --primary-soft:var(--pine-soft); --primary-line:var(--pine-line);
+    --shadow-1:0 1px 2px rgba(0,0,0,.42),0 1px 3px rgba(0,0,0,.34);
+    --shadow-2:0 4px 14px rgba(0,0,0,.46),0 2px 4px rgba(0,0,0,.30);
+    --shadow-3:0 18px 48px rgba(0,0,0,.56),0 6px 12px rgba(0,0,0,.36);
+}
+@media (prefers-color-scheme:dark) {
+  html:not([data-theme="light"]) {
+    --paper:#171A16; --paper-2:#1F231D; --paper-3:#262B23; --surface-warm:#1C2019;
+    --ink:#E8E4D8; --text:#E8E4D8; --text-2:#C6C1B2; --text-3:#9A9484; --muted-2:#7E7969;
+    --line:#333A31; --line-strong:#47503F; --field-line:#5A6455;
+    --pine:#4E8C72; --pine-hover:#5C9C81; --pine-soft:#22332C; --pine-line:#3E5C4F;
+    --pine-text:#9ACDB4;
+    --clay:#D9805A; --clay-soft:#33231B; --clay-line:#4E3628;
+    --ok:#6FAF93; --ok-soft:#1F2E27; --warn:#D8A85C; --warn-soft:#2E2519;
+    --warn-line:#4A3A22; --err:#E08C7C; --err-soft:#33201C; --err-line:#4E302A;
+    --surface:#212620; --surface-2:#242A23; --bg:var(--paper);
+    --glass:rgba(28,32,25,.94);
+    --action-bg:#2F6B57; --action-fg:#F2F7F3; --action-bg-hover:#38795F;
+    --primary:var(--pine); --primary-hover:var(--pine-hover);
+    --primary-soft:var(--pine-soft); --primary-line:var(--pine-line);
+    --shadow-1:0 1px 2px rgba(0,0,0,.42),0 1px 3px rgba(0,0,0,.34);
+    --shadow-2:0 4px 14px rgba(0,0,0,.46),0 2px 4px rgba(0,0,0,.30);
+    --shadow-3:0 18px 48px rgba(0,0,0,.56),0 6px 12px rgba(0,0,0,.36);
+  }
+}
+
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
+/* 应用壳：整页不滚动，滚动只发生在内部视图（票务与行程各自 overflow:auto） */
+html,body{height:100%;overflow:hidden}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
   font-size:var(--fs-sm);line-height:1.7;-webkit-font-smoothing:antialiased}
 h1,h2,h3,h4{margin:0;font-weight:600;line-height:1.4;letter-spacing:-.015em}
 p{margin:0} ul,ol{margin:0;padding:0;list-style:none}
-a{color:var(--pine);text-decoration:none} a:hover{color:var(--pine-hover)}
+a{color:var(--pine-text);text-decoration:none} a:hover{color:var(--pine-hover)}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
 :focus-visible{outline:2px solid var(--clay);outline-offset:2px}
@@ -47,32 +107,49 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip-path:inset(50%);white-space:nowrap}
 
-/* ---------- 顶栏：只有品牌与当前行程，不做菜单栏 ---------- */
+/* ---------- 顶栏：品牌 + 视图切换 + 身份，不做菜单栏 ---------- */
 .topbar{height:60px;display:flex;align-items:center;gap:14px;padding:0 24px;
-  background:var(--surface-warm);border-bottom:1px solid var(--line)}
+  background:var(--surface-warm);border-bottom:1px solid var(--line);position:relative;z-index:10}
 .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .seal{width:32px;height:32px;flex:0 0 auto}
 .seal svg{width:100%;height:100%}
 .brand b{font-size:var(--fs-md);font-weight:600;letter-spacing:.02em}
 .brand small{display:block;font-size:var(--fs-xs);color:var(--text-3);line-height:1.2}
 .top-sep{width:1px;height:24px;background:var(--line);flex:0 0 auto}
+.vtabs{display:flex;gap:2px;padding:3px;background:var(--paper-2);
+  border:1px solid var(--line);border-radius:var(--r-pill);flex:0 0 auto}
+.vtabs button{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 12px;
+  border-radius:var(--r-pill);font-size:var(--fs-xs);color:var(--text-3)}
+.vtabs button:hover{color:var(--ink)}
+.vtabs button[aria-selected="true"]{background:var(--surface);color:var(--pine-text);
+  font-weight:600;box-shadow:var(--shadow-1)}
 .trip-name{font-size:var(--fs-sm);font-weight:600;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;max-width:280px}
+  overflow:hidden;text-overflow:ellipsis;max-width:240px}
 .trip-meta{font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap}
 .top-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .who{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--text-2)}
 .who .dot{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;
-  background:var(--pine-soft);color:var(--pine);font-weight:600}
+  background:var(--pine-soft);color:var(--pine-text);font-weight:600}
 .tbtn{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;
   border:1px solid var(--line-strong);border-radius:var(--r-ctl);
   font-size:var(--fs-xs);color:var(--text-2);background:var(--surface)}
-.tbtn:hover{border-color:var(--pine);color:var(--pine)}
-.tbtn.primary{background:var(--pine);border-color:var(--pine);color:#fff}
-.tbtn.primary:hover{background:var(--pine-hover)}
+.tbtn:hover{border-color:var(--pine);color:var(--pine-text)}
+.tbtn.primary{background:var(--action-bg);border-color:var(--action-bg);color:var(--action-fg)}
+.tbtn.primary:hover{background:var(--action-bg-hover);border-color:var(--action-bg-hover)}
 .tbtn:disabled{opacity:.5;cursor:not-allowed}
+.iconbtn{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r-ctl);
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font-size:14px}
+.iconbtn:hover{border-color:var(--pine);color:var(--pine-text)}
 
-/* ---------- 主屏：整幅地图铺满，AI 面板浮在左侧 ---------- */
+/* ---------- 视图容器 ---------- */
 .workspace{position:relative;height:calc(100vh - 60px);overflow:hidden}
+.view{position:absolute;inset:0}
+.view[hidden]{display:none}
+#viewPlan{overflow:hidden}
+#viewTicket{overflow:auto;background:var(--bg)}
+#viewTrips{overflow:auto;padding:22px 24px 40px}
+
+/* ---------- 规划视图：整幅地图铺满，AI 面板浮在左侧 ---------- */
 .map-stage{position:absolute;inset:0;overflow:hidden;background:var(--paper-2)}
 .map-svg{position:absolute;inset:0;width:100%;height:100%;z-index:1}
 #bmap{position:absolute;inset:0;z-index:2;display:none}
@@ -82,23 +159,23 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);
   display:flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;
   background:var(--surface-warm);border:1px solid var(--pine-line);border-radius:var(--r-pill);
-  box-shadow:var(--shadow-2);font-size:var(--fs-xs);color:var(--pine);
+  box-shadow:var(--shadow-2);font-size:var(--fs-xs);color:var(--pine-text);
   white-space:nowrap;cursor:pointer}
 .pin i{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;
-  background:var(--pine);color:#fff;font-size:11px;font-style:normal;font-weight:600}
-.pin:hover,.pin.is-active{background:var(--pine);color:#fff;border-color:var(--pine)}
-.pin:hover i,.pin.is-active i{background:var(--surface-warm);color:var(--pine)}
+  background:var(--action-bg);color:var(--action-fg);font-size:11px;font-style:normal;font-weight:600}
+.pin:hover,.pin.is-active{background:var(--action-bg);color:var(--action-fg);border-color:var(--action-bg)}
+.pin:hover i,.pin.is-active i{background:var(--surface-warm);color:var(--pine-text)}
 .map-pill{position:absolute;z-index:4;left:50%;top:18px;transform:translateX(-50%);
   display:flex;align-items:center;gap:8px;padding:7px 14px;
-  background:rgba(252,250,245,.96);border:1px solid var(--line);
+  background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r-pill);box-shadow:var(--shadow-2);font-size:var(--fs-xs)}
-.map-pill b{font-weight:600;color:var(--pine)}
+.map-pill b{font-weight:600;color:var(--pine-text)}
 .map-pill span{color:var(--text-3)}
 .map-note{position:absolute;z-index:4;right:24px;top:18px;padding:5px 11px;
-  background:rgba(252,250,245,.94);border:1px solid var(--line);
+  background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
 .map-legend{position:absolute;z-index:4;right:24px;bottom:22px;display:flex;gap:12px;
-  padding:6px 11px;background:rgba(252,250,245,.95);border:1px solid var(--line);
+  padding:6px 11px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
 .map-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .spot-card{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:86px;
@@ -111,19 +188,19 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .spot-card .x{position:absolute;right:8px;top:8px;color:var(--text-3);font-size:18px;line-height:1}
 
 /* ---------- AI 面板 ---------- */
-.ai-panel{position:absolute;z-index:6;left:24px;top:24px;bottom:24px;width:366px;
+.ai-panel{position:absolute;z-index:6;left:24px;top:24px;bottom:24px;width:392px;
   display:flex;flex-direction:column;min-height:0;background:var(--surface-warm);
   border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-3)}
 .ai-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex:0 0 auto}
 .ai-head .ai-ico{width:26px;height:26px;display:grid;place-items:center;border-radius:var(--r-ctl);
-  background:var(--pine-soft);color:var(--pine);font-size:15px}
+  background:var(--pine-soft);color:var(--pine-text);font-size:15px}
 .ai-head b{font-size:var(--fs-sm)}
 .ai-head .st{margin-left:auto;font-size:11px;padding:1px 7px;border-radius:var(--r-sm);
   background:var(--surface);color:var(--text-3);border:1px dashed var(--line-strong)}
 .query-bar{display:flex;align-items:center;gap:8px;margin:0 14px 10px;padding:8px 10px;
   background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-pill);
   flex:0 0 auto;font-size:var(--fs-xs)}
-.query-bar .q-ico{color:var(--pine);font-size:13px;flex:0 0 auto}
+.query-bar .q-ico{color:var(--pine-text);font-size:13px;flex:0 0 auto}
 .query-bar .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   color:var(--text-2)}
 .query-bar .x{width:20px;height:20px;display:grid;place-items:center;flex:0 0 auto;
@@ -134,38 +211,41 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .thread::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
 .msg{margin-bottom:12px}
 .msg.user{display:flex;justify-content:flex-end}
-.msg.user .bubble{max-width:88%;padding:8px 12px;background:var(--pine);color:#fff;
+.msg.user .bubble{max-width:88%;padding:8px 12px;background:var(--action-bg);color:var(--action-fg);
   border-radius:12px 12px 3px 12px;font-size:var(--fs-sm);line-height:1.6}
 .ai-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
   padding:12px;font-size:var(--fs-sm);color:var(--text-2);line-height:1.75}
 .ai-block + .ai-block{margin-top:8px}
 .ai-block p + p{margin-top:8px}
+.ai-block ul{list-style:disc;padding-left:18px;margin-top:6px}
+.ai-block li{margin:2px 0}
+.ai-block b{color:var(--ink)}
 .think{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:var(--fs-xs);
   color:var(--text-3)}
-.think .ico{color:var(--pine);font-size:13px}
+.think .ico{color:var(--pine-text);font-size:13px}
+.typing{display:inline-flex;align-items:center;gap:5px;padding:6px 2px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--text-3);font-style:normal;
+  animation:blink 1.2s infinite ease-in-out}
+.typing i:nth-child(2){animation-delay:.18s}
+.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+.source{margin-top:8px}
+.source>button{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-3)}
+.source>button:hover{color:var(--pine-text)}
+.source .body{display:none;margin-top:6px;padding:8px 10px;background:var(--surface-2);
+  border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3);line-height:1.65}
+.source.open .body{display:block}
+.source .body a{word-break:break-all}
 .remind{border-left:3px solid var(--clay);background:var(--clay-soft);
   border-radius:0 var(--r-ctl) var(--r-ctl) 0;padding:10px 12px;font-size:var(--fs-sm)}
 .remind b{display:block;color:var(--clay);font-size:var(--fs-xs);margin-bottom:5px}
 .remind ol{list-style:decimal;padding-left:18px;color:var(--text-2)}
 .remind li{margin:3px 0}
-.source{margin-top:8px}
-.source>button{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-3)}
-.source>button:hover{color:var(--pine)}
-.source .body{display:none;margin-top:6px;padding:8px 10px;background:var(--surface-2);
-  border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3);line-height:1.65}
-.source.open .body{display:block}
-.source .body a{word-break:break-all}
-.draft-mini{margin-top:8px;border:1px solid var(--pine-line);border-radius:var(--r-ctl);
-  background:var(--pine-soft);padding:9px 11px;font-size:var(--fs-xs);color:var(--text-2)}
-.draft-mini b{color:var(--pine)}
-.day-line{display:flex;gap:7px;align-items:baseline;margin-top:5px}
-.day-line .d{font-weight:600;color:var(--pine);white-space:nowrap}
-.day-line .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .checks{margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .check{padding:8px 10px;border-radius:var(--r-ctl);font-size:var(--fs-xs);line-height:1.6;
   background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn)}
 .check.high{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
-.check.low{background:var(--pine-soft);border-color:var(--pine-line);color:var(--pine-hover)}
+.check.low{background:var(--pine-soft);border-color:var(--pine-line);color:var(--pine-text)}
 .check b{display:block;font-size:11px;letter-spacing:.04em;margin-bottom:2px}
 .check span{display:block;color:var(--text-3);margin-top:2px}
 .qa{margin-top:10px}
@@ -173,17 +253,17 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{min-height:28px;padding:0 10px;border:1px solid var(--line-strong);
   border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-xs);color:var(--text-2)}
-.chip:hover{border-color:var(--pine);color:var(--pine);background:var(--pine-soft)}
+.chip:hover{border-color:var(--pine);color:var(--pine-text);background:var(--pine-soft)}
 .notice{margin-top:8px;padding:8px 10px;border-radius:var(--r-ctl);
   background:var(--surface-2);border:1px solid var(--line);font-size:var(--fs-xs);color:var(--text-3)}
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;
   padding:0 12px;border-radius:var(--r-ctl);font-size:var(--fs-xs);font-weight:600;
   border:1px solid transparent;white-space:nowrap}
-.btn-primary{background:var(--pine);color:#fff}
-.btn-primary:hover{background:var(--pine-hover)}
+.btn-primary{background:var(--action-bg);color:var(--action-fg)}
+.btn-primary:hover{background:var(--action-bg-hover)}
 .btn-outline{border-color:var(--line-strong);color:var(--text-2);background:var(--surface)}
-.btn-outline:hover{border-color:var(--pine);color:var(--pine)}
+.btn-outline:hover{border-color:var(--pine);color:var(--pine-text)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .composer{display:flex;align-items:center;gap:8px;padding:10px 14px 12px;
   border-top:1px solid var(--line);flex:0 0 auto;background:var(--surface-warm);
@@ -194,13 +274,14 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .composer input::placeholder{color:var(--muted-2)}
 .round{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;
   border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font-size:16px}
-.round:hover{border-color:var(--pine);color:var(--pine)}
-.round.send{background:var(--pine);border-color:var(--pine);color:#fff}
-.round.send:hover{background:var(--pine-hover)}
+.round:hover{border-color:var(--pine);color:var(--pine-text)}
+.round.send{background:var(--action-bg);border-color:var(--action-bg);color:var(--action-fg)}
+.round.send:hover{background:var(--action-bg-hover)}
 .round:disabled{opacity:.5;cursor:not-allowed}
 .hint{padding:0 14px 8px;font-size:11px;color:var(--text-3);flex:0 0 auto}
+
 /* ---------- 底部横向日程卡 ---------- */
-.daystrip{position:absolute;z-index:5;left:414px;right:24px;bottom:22px;
+.daystrip{position:absolute;z-index:5;left:440px;right:24px;bottom:22px;
   display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
 .daystrip:empty{display:none}
 .daystrip::-webkit-scrollbar{height:6px}
@@ -209,7 +290,7 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   border-radius:var(--r-card);box-shadow:var(--shadow-2);overflow:hidden}
 .day-card .h{display:flex;align-items:center;gap:8px;padding:8px 11px;
   background:var(--pine-soft);border-bottom:1px solid var(--pine-line)}
-.day-card .h b{font-size:var(--fs-xs);color:var(--pine)}
+.day-card .h b{font-size:var(--fs-xs);color:var(--pine-text)}
 .day-card .h span{font-size:11px;color:var(--text-3);margin-left:auto}
 .day-card ul{padding:4px 0}
 .day-card li{display:flex;gap:7px;align-items:baseline;padding:5px 11px;
@@ -219,8 +300,22 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .day-card li em{font-style:normal;color:var(--text-3);font-size:11px;margin-left:auto;white-space:nowrap}
 .day-card .empty{padding:9px 11px;font-size:var(--fs-xs);color:var(--text-3)}
 
+/* ---------- 行程视图 ---------- */
+.trips-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.trips-head h1{font-size:var(--fs-lg)}
+.trips-head .sub{font-size:var(--fs-xs);color:var(--text-3)}
+.trips-head .btn{margin-left:auto}
+.trip-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;max-width:1180px}
+.trip-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:14px 16px;box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:8px}
+.trip-card h3{font-size:var(--fs-sm)}
+.trip-card .m{font-size:var(--fs-xs);color:var(--text-3)}
+.trip-card .acts{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+.trip-empty{max-width:520px;padding:28px 0;color:var(--text-3);font-size:var(--fs-sm)}
+.trip-empty b{display:block;color:var(--ink);font-size:var(--fs-md);margin-bottom:6px}
+
 /* ---------- 保存对话框 ---------- */
-.mask{position:fixed;inset:0;z-index:20;background:rgba(32,36,30,.38);display:none}
+.mask{position:fixed;inset:0;z-index:20;background:rgba(32,36,30,.42);display:none}
 .mask.open{display:block}
 .dialog{position:fixed;z-index:21;left:50%;top:50%;transform:translate(-50%,-50%);
   width:min(420px,calc(100vw - 32px));background:var(--surface-warm);
@@ -251,12 +346,771 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
 
+/* ---------- 富内容卡片（搬自 chat.html 的结构化行程卡 / 候选 / 补问 / 天气 / 景点 / 投票） ---------- */
+/* ---------- 结构化行程卡（助手富内容）---------- */
+.plan{
+  border:1px solid var(--line); border-radius:var(--r-card);
+  background:var(--surface); box-shadow:var(--shadow-1); overflow:hidden;
+}
+.plan-head{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2);
+  padding:var(--sp-3) var(--sp-4); background:var(--surface-2);
+  border-bottom:1px solid var(--line);
+}
+.plan-title{font-size:var(--fs-sm); font-weight:600;}
+.plan-tag{
+  font-size:var(--fs-xs); font-weight:600; color:var(--primary);
+  background:var(--primary-soft); border:1px solid var(--primary-line);
+  border-radius:var(--r-pill); padding:1px var(--sp-2);
+}
+.day{
+  display:flex; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4);
+  border-bottom:1px solid var(--line);
+}
+.day:last-child{border-bottom:0;}
+.day-no{
+  flex:0 0 auto; width:34px; height:22px; border-radius:var(--r-sm);
+  display:grid; place-items:center; background:var(--primary-soft);
+  color:var(--primary); font-size:var(--fs-xs); font-weight:700;
+}
+.day-txt{min-width:0;}
+.day-txt b{display:block; font-size:var(--fs-sm); font-weight:600; line-height:1.5;}
+.day-txt span{display:block; font-size:var(--fs-xs); color:var(--text-2); line-height:1.6; margin-top:1px;}
+.plan-foot{
+  padding:var(--sp-2) var(--sp-4) var(--sp-3);
+  font-size:var(--fs-xs); color:var(--text-3); background:var(--surface-2);
+}
+/* 编排层收敛：次要候选、检查项、投票明细默认折叠，点开才占屏 */
+.fold-btn{
+  display:block; width:100%; text-align:left; cursor:pointer;
+  border:0; border-top:1px solid var(--line); background:var(--surface-2);
+  color:var(--primary); font-size:var(--fs-xs); font-weight:600;
+  padding:var(--sp-2) var(--sp-4);
+}
+.fold-btn:hover{background:var(--primary-soft);}
+.fold-btn:focus-visible{outline:2px solid var(--primary); outline-offset:-2px;}
+.fold-body[hidden]{display:none;}
+.plan-empty{padding:var(--sp-3) var(--sp-4); font-size:var(--fs-xs); color:var(--text-2);}
+.day-meta{color:var(--text-3);}
+
+/* ---------- 候选景点（真实知识库结果）---------- */
+.cands{
+  border:1px solid var(--line); border-radius:var(--r-card);
+  background:var(--surface); box-shadow:var(--shadow-1); overflow:hidden;
+}
+.cands-head{
+  padding:var(--sp-2) var(--sp-4); background:var(--surface-2);
+  border-bottom:1px solid var(--line);
+  font-size:var(--fs-xs); font-weight:600; color:var(--text-2);
+}
+.cand{
+  display:flex; align-items:baseline; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-4); border-bottom:1px solid var(--line);
+}
+.cand:last-child{border-bottom:0;}
+.cand b{font-size:var(--fs-sm); font-weight:600; flex:0 0 auto; max-width:46%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cand span{font-size:var(--fs-xs); color:var(--text-2); line-height:1.5; min-width:0;}
+
+/* ---------- 待补信息（结构化补问）---------- */
+.qacard{
+  border:1px solid var(--primary-line); border-radius:var(--r-card);
+  background:var(--primary-soft); overflow:hidden;
+}
+.qacard-head{
+  padding:var(--sp-2) var(--sp-4); border-bottom:1px solid var(--primary-line);
+  font-size:var(--fs-xs); font-weight:600; color:var(--primary);
+}
+.qacard-row{padding:var(--sp-2) var(--sp-4); border-bottom:1px solid var(--primary-line);}
+.qacard-row:last-child{border-bottom:0;}
+.qacard-q{font-size:var(--fs-sm); color:var(--ink); line-height:1.6;}
+.qacard-h{font-size:var(--fs-xs); color:var(--text-2); line-height:1.6; margin-top:1px;}
+
+/* ---------- 只说了一个地名时的补充选项（点一次提交，不逐条追问）---------- */
+.opts{
+  border:1px solid var(--line); border-radius:var(--r-card);
+  background:var(--surface); box-shadow:var(--shadow-1); overflow:hidden;
+}
+.opts-head{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-4); background:var(--surface-2);
+  border-bottom:1px solid var(--line);
+  font-size:var(--fs-xs); font-weight:600; color:var(--text-2);
+}
+.opts-body{padding:var(--sp-3) var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-3);}
+.opt-label{
+  display:block; margin-bottom:6px;
+  font-size:var(--fs-xs); font-weight:600; color:var(--text-2);
+}
+.opt-label .req{color:var(--err);}
+.opt-row{display:flex; flex-wrap:wrap; gap:var(--sp-2);}
+.opt{
+  padding:6px var(--sp-3); border:1px solid var(--line-strong); border-radius:var(--r-pill);
+  background:var(--surface); color:var(--ink);
+  font-size:var(--fs-sm); line-height:1.5; cursor:pointer;
+  transition:border-color .15s, background .15s, color .15s;
+}
+.opt:hover{border-color:var(--primary-line); background:var(--primary-soft); color:var(--primary);}
+.opt[aria-pressed="true"]{
+  border-color:var(--action-bg); background:var(--action-bg); color:var(--action-fg); font-weight:600;
+}
+.opts-foot{
+  display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap;
+  padding:var(--sp-3) var(--sp-4); border-top:1px solid var(--line); background:var(--surface-2);
+}
+.opt-go{
+  flex:0 0 auto; padding:6px var(--sp-4);
+  border:1px solid var(--action-bg); border-radius:var(--r-ctl);
+  background:var(--action-bg); color:var(--action-fg); font-size:var(--fs-sm); font-weight:600; cursor:pointer;
+  transition:background .15s, border-color .15s;
+}
+.opt-go:hover{background:var(--primary-hover); border-color:var(--primary-hover);}
+.opt-go:disabled{
+  background:var(--surface); border-color:var(--line-strong); color:var(--text-3); cursor:not-allowed;
+}
+.opts-tip{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+/* 日历选择器：日期用原生控件点，不用手打 YYYY-MM-DD */
+.opt-date{
+  padding:5px var(--sp-2); border:1px solid var(--line-strong);
+  border-radius:var(--r-ctl); background:var(--surface); color:var(--ink);
+  font-size:var(--fs-sm); font-family:inherit;
+}
+.opt-date:focus{outline:2px solid var(--primary-line); outline-offset:1px; border-color:var(--action-bg);}
+/* 卡片里混排的只读提示行（遇到没有对应控件的补问项时降级成文字） */
+.opts-body .qacard-q{font-size:var(--fs-sm); color:var(--ink);}
+.opts-body .qacard-h{font-size:var(--fs-xs); color:var(--text-2); margin-top:2px;}
+/* 不想选天数时的出口：只看候选景点 */
+.opt-skip{
+  flex:0 0 auto; margin-left:auto;
+  border:0; border-bottom:1px solid var(--line-strong); background:transparent;
+  color:var(--text-2); font-size:var(--fs-xs); line-height:1.5;
+  padding:2px 0; cursor:pointer;
+}
+.opt-skip:hover{color:var(--primary); border-bottom-color:var(--primary-line);}
+.opt-skip:disabled{color:var(--text-3); border-bottom-color:var(--line); cursor:not-allowed;}
+
+/* ---------- 草案检查：高危提示用边框与文字双重信号 ---------- */
+.warn{
+  padding:var(--sp-2) var(--sp-3); border-radius:var(--r-ctl);
+  font-size:var(--fs-xs); line-height:1.6;
+  border-left:3px solid var(--line-strong); background:var(--surface-2); color:var(--text-2);
+}
+.warn.high{border-left-color:var(--err); background:#fef2f2; color:#991b1b;}
+.warn.med{border-left-color:#b45309; background:#fffbeb; color:#92400e;}
+
+/* ---------- 天气 / 景点这类小表格：数据是查回来的，排版只求一眼读完 ---------- */
+.wx{border:1px solid var(--line); border-radius:var(--r-card); overflow:hidden; background:var(--surface);}
+.wx-h{
+  padding:var(--sp-2) var(--sp-3); background:var(--surface-2);
+  border-bottom:1px solid var(--line); font-size:var(--fs-xs); color:var(--text-2);
+}
+.wx-row{
+  display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:var(--sp-2);
+  align-items:center; padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  font-size:var(--fs-sm);
+}
+.wx-row:first-of-type{border-top:0;}
+.wx-row .d{color:var(--text-2); font-size:var(--fs-xs); font-variant-numeric:tabular-nums;}
+.wx-row .t{color:var(--text-2); font-size:var(--fs-xs); text-align:right; font-variant-numeric:tabular-nums;}
+/* 景点卡专用：名字占主列，评分与票价各一列；票价原文可 hover 查看全文 */
+.places .wx-row{grid-template-columns:minmax(0,1fr) auto minmax(0,38%); align-items:start;}
+.places .wx-row .d{color:var(--text); font-size:var(--fs-sm); font-variant-numeric:normal; line-height:1.45;}
+.places .wx-row .d .sub{display:block; margin-top:2px; color:var(--text-3); font-size:var(--fs-xs);}
+.places .wx-row .rate{color:var(--primary); font-size:var(--fs-xs); white-space:nowrap; padding-top:2px;}
+.places .wx-row .t{white-space:normal; word-break:break-word; line-height:1.45;}
+.places .wx-row .t.unknown{color:var(--text-3);}
+/* 评价数可点开：说明评分来源，并给地图官方评论页入口（评论正文不在本系统） */
+.places .wx-row .d .sub .review-toggle{
+  border:0; background:none; padding:0; margin:0; cursor:pointer;
+  color:var(--primary); font:inherit; text-decoration:underline; text-underline-offset:2px;
+}
+.places .review-panel{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-2); line-height:1.6;
+}
+.places .review-panel[hidden]{display:none;}
+.places .review-panel .rp-line{color:var(--text);}
+.places .review-panel .rp-note{color:var(--text-3);}
+.places .review-panel a{
+  display:inline-block; margin-top:var(--sp-1); color:var(--primary);
+  text-decoration:underline; text-underline-offset:2px;
+}
+.places .wx-link{padding:var(--sp-1) var(--sp-3); font-size:var(--fs-xs); color:var(--primary);}
+.places .wx-link a{color:inherit; text-decoration:underline; text-underline-offset:2px;}
+.wx-tip{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
+}
+
+/* ---------- 评委投票 ---------- */
+.vote{border:1px solid var(--line); border-radius:var(--r-card); overflow:hidden; background:var(--surface);}
+.vote-h{
+  padding:var(--sp-2) var(--sp-3); background:var(--surface-2);
+  border-bottom:1px solid var(--line); font-size:var(--fs-xs); color:var(--text-2);
+}
+.vote-win{
+  padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm); font-weight:600;
+  color:var(--primary); background:var(--primary-soft);
+}
+.vote-row{
+  display:grid; grid-template-columns:56px minmax(0,1fr); gap:var(--sp-2);
+  align-items:center; padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  font-size:var(--fs-sm);
+}
+.vote-row:first-of-type{border-top:0;}
+.vote-row .d{color:var(--text-2); font-size:var(--fs-xs); font-variant-numeric:tabular-nums;}
+.vote-tip{
+  padding:var(--sp-2) var(--sp-3); border-top:1px solid var(--line);
+  background:var(--surface-2); font-size:var(--fs-xs); color:var(--text-3);
+}
+
+
+/* 票务视图样式：搬自原 ticket-assistant.html，选择器统一加 #viewTicket 作用域。原文件注释已摘除，避免被拼进选择器 */
+      #viewTicket{
+        color-scheme: light;
+
+        
+        --ink: #18322e;
+        --muted: #586c66;
+        --green: #246d58;
+        --green-50: #f3f8f4;
+        --green-100: #e4f0e8;
+        --green-200: #cfe2d6;
+        --green-300: #a8c9b6;
+        --green-600: #246d58;
+        --green-700: #1b5545;
+        --green-800: #143f34;
+        --line: #d7e3dc;
+        --border-strong: #6f8a7c; 
+        --focus: #8a5300; 
+        --bg: #f3f6f0;
+        --surface: #ffffff;
+        --surface-subtle: #f3f8f4;
+        --surface-disabled: #e8efe9;
+        --warn-bg: #fff4e6;
+        --warn-ink: #854417; 
+
+        
+        --fs-xs: 12px;
+        --fs-sm: 14px;
+        --fs-base: 16px;
+        --fs-md: 18px;
+        --fs-lg: 20px;
+        --fs-xl: 30px;
+
+        
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --radius-pill: 999px;
+
+        
+        --shadow-sm: 0 1px 2px rgba(24, 50, 46, 0.1);
+        --shadow-md:
+          0 1px 2px rgba(24, 50, 46, 0.06),
+          0 8px 20px -8px rgba(24, 50, 46, 0.16);
+        --shadow-lg: 0 24px 48px -12px rgba(16, 38, 32, 0.3);
+        --shadow-inset: inset 0 1px 2px rgba(24, 50, 46, 0.08);
+      }
+      #viewTicket *{
+        box-sizing: border-box;
+      }
+      #viewTicket{
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: var(--fs-base);
+        line-height: 1.65;
+      }
+      #viewTicket header, #viewTicket .ticket-main{
+        max-width: 1120px;
+        margin: auto;
+        padding: var(--sp-5);
+      }
+      #viewTicket header{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--sp-4);
+        flex-wrap: wrap; 
+        border-bottom: 1px solid var(--line);
+      }
+      #viewTicket a{
+        color: var(--green-600);
+        text-underline-offset: 3px;
+      }
+      #viewTicket a:hover{
+        color: var(--green-700);
+      }
+      #viewTicket header a{
+        font-size: var(--fs-sm);
+        font-weight: 600;
+      }
+      #viewTicket h1{
+        font-size: var(--fs-xl);
+        line-height: 1.2; 
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: var(--sp-2) 0;
+      }
+      #viewTicket h2{
+        font-size: var(--fs-lg);
+        line-height: 1.35;
+        font-weight: 600;
+        margin: 0 0 var(--sp-4);
+      }
+      #viewTicket h3{
+        font-size: var(--fs-md); 
+        line-height: 1.4;
+        font-weight: 600;
+        margin: var(--sp-4) 0 var(--sp-2);
+      }
+      #viewTicket p{
+        margin: var(--sp-2) 0;
+      }
+      #viewTicket .muted, #viewTicket small{
+        color: var(--muted);
+      }
+      #viewTicket .ticket-main > p.muted{
+        max-width: 68ch; 
+        line-height: 1.7;
+      }
+      #viewTicket .badge{
+        display: inline-flex;
+        align-items: center;
+        background: var(--green-100);
+        color: var(--ink);
+        padding: 6px var(--sp-3);
+        border-radius: var(--radius-pill);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+      }
+      #viewTicket .warning{
+        color: var(--warn-ink);
+        background: var(--warn-bg);
+        border-left: 3px solid var(--warn-ink); 
+        padding: var(--sp-3) var(--sp-4);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+      }
+      #viewTicket .grid{
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--sp-6); 
+        align-items: start; 
+        margin-top: var(--sp-5);
+      }
+      #viewTicket .card{
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: var(--sp-5);
+        box-shadow: var(--shadow-md); 
+      }
+      #viewTicket .card.featured{
+        box-shadow:
+          inset 0 3px 0 var(--green-600),
+          var(--shadow-md); 
+      }
+      #viewTicket .flowtag{
+        display: inline-block;
+        margin-left: var(--sp-2);
+        padding: 3px var(--sp-2);
+        border-radius: var(--radius-sm);
+        background: var(--green-100);
+        color: var(--green-700);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        vertical-align: middle;
+      }
+      #viewTicket .wide{
+        grid-column: 1 / -1;
+      }
+      #viewTicket label{
+        display: block;
+        margin: var(--sp-4) 0 var(--sp-1);
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      #viewTicket label small{
+        display: block;
+        margin-top: 2px;
+        font-size: var(--fs-xs);
+        font-weight: 400;
+        line-height: 1.5;
+      }
+      #viewTicket input, #viewTicket select, #viewTicket textarea, #viewTicket button{
+        font: inherit;
+        font-size: var(--fs-base);
+        border-radius: var(--radius-sm);
+        max-width: 100%;
+      }
+      #viewTicket input, #viewTicket select, #viewTicket textarea{
+        width: 100%;
+        min-width: 0;
+        padding: 10px var(--sp-3);
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--border-strong); 
+        box-shadow: var(--shadow-inset); 
+      }
+      #viewTicket input::placeholder, #viewTicket textarea::placeholder{
+        color: var(--muted);
+        opacity: 1;
+      }
+      #viewTicket textarea{
+        min-height: 120px; 
+        resize: vertical;
+        line-height: 1.6;
+      }
+      #viewTicket button{
+        cursor: pointer;
+        padding: 10px var(--sp-4);
+        margin: var(--sp-4) var(--sp-2) 0 0;
+        background: var(--green-600);
+        color: #fff;
+        border: 1px solid var(--green-600);
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        transition:
+          background-color 0.15s,
+          transform 0.15s,
+          box-shadow 0.15s;
+      }
+      #viewTicket button:hover:not(:disabled){
+        background: var(--green-700);
+        border-color: var(--green-700);
+      }
+      #viewTicket button:active:not(:disabled){
+        transform: translateY(1px); 
+        box-shadow: none;
+      }
+      #viewTicket button.secondary{
+        background: var(--surface);
+        color: var(--green-600);
+        border-color: var(--green-600);
+        box-shadow: none;
+      }
+      #viewTicket button.secondary:hover:not(:disabled){
+        background: var(--green-50);
+      }
+      #viewTicket button:disabled{
+        background: var(--surface-disabled);
+        color: var(--muted); 
+        border-color: transparent;
+        opacity: 1;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      #viewTicket .row{
+        display: flex;
+        gap: var(--sp-3);
+      }
+      #viewTicket .row > *{
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      
+      #viewTicket .row > .row-wide{
+        flex: 1.35 1 0;
+      }
+      
+      #viewTicket .visitor{
+        background: var(--surface-subtle); 
+        border-radius: var(--radius-md);
+        padding: var(--sp-4);
+        margin-top: var(--sp-3);
+      }
+      #viewTicket .visitor .row{
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--sp-3);
+      }
+      #viewTicket .visitor label{
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-1);
+        margin: 0;
+        font-size: var(--fs-sm);
+      }
+      #viewTicket .visitor button.secondary{
+        background: transparent;
+        color: var(--green-700);
+        border-color: transparent;
+        box-shadow: none;
+        font-size: var(--fs-sm);
+        padding: var(--sp-1) 0;
+        margin: var(--sp-2) 0 0;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      #viewTicket .visitor button.secondary:hover:not(:disabled){
+        background: transparent;
+        color: var(--green-800);
+      }
+      #viewTicket #visitors:empty{
+        display: none;
+      }
+      #viewTicket #status{
+        white-space: pre-wrap;
+      }
+      #viewTicket #status:empty, #viewTicket #savedRecord:empty{
+        display: none; 
+      }
+      #viewTicket #status:not(:empty){
+        margin: var(--sp-4) 0 0;
+        padding: var(--sp-3) var(--sp-4);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+      }
+      #viewTicket #savedRecord:not(:empty){
+        margin: var(--sp-3) 0;
+        padding: var(--sp-2) var(--sp-3);
+        background: var(--green-50);
+        border-radius: var(--radius-sm);
+        font-size: var(--fs-sm);
+      }
+      #viewTicket #conversation{
+        white-space: pre-wrap;
+      }
+      #viewTicket #conversation:not(:empty){
+        max-height: 230px;
+        overflow: auto;
+        margin: var(--sp-2) 0 var(--sp-4);
+      }
+      #viewTicket #conversation:empty::before{
+        content: "还没有对话，提交购票问题后会显示在这里。"; 
+        display: block;
+        margin-top: var(--sp-3);
+        padding: var(--sp-3) var(--sp-4);
+        background: var(--surface-subtle);
+        border-radius: var(--radius-sm);
+        color: var(--muted);
+        font-size: var(--fs-sm);
+      }
+      #viewTicket .bubble{
+        background: var(--surface-subtle);
+        border-radius: var(--radius-sm);
+        padding: var(--sp-2) var(--sp-3);
+        margin: var(--sp-2) 0;
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      #viewTicket .empty{
+        background: var(--surface-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--sp-5) var(--sp-4);
+      }
+      #viewTicket .empty-title{
+        margin: 0 0 var(--sp-2);
+        font-weight: 600;
+        color: var(--ink);
+      }
+      #viewTicket .empty p{
+        margin: 0;
+        max-width: 52ch;
+        font-size: var(--fs-sm);
+        line-height: 1.7;
+      }
+      #viewTicket #result h3:first-child{
+        margin-top: 0;
+        font-size: var(--fs-lg); 
+        color: var(--green-700);
+      }
+      #viewTicket #result p, #viewTicket #result ul{
+        font-size: var(--fs-sm);
+      }
+      #viewTicket #result ul{
+        margin: var(--sp-3) 0;
+        padding-left: var(--sp-5);
+      }
+      #viewTicket #result li{
+        margin: var(--sp-1) 0;
+        line-height: 1.6;
+      }
+      #viewTicket #result a{
+        font-size: var(--fs-sm);
+        font-weight: 600;
+      }
+      #viewTicket table{
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--fs-sm);
+      }
+      #viewTicket td, #viewTicket th{
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        padding: var(--sp-3);
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+      #viewTicket details{
+        margin: var(--sp-4) 0 0;
+        font-size: var(--fs-sm);
+      }
+      #viewTicket summary{
+        cursor: pointer;
+        font-weight: 600;
+        padding: var(--sp-1) 0;
+      }
+      #viewTicket details p{
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      #viewTicket dialog{
+        border: none;
+        border-radius: var(--radius-lg);
+        max-width: min(560px, calc(100vw - var(--sp-6)));
+        padding: var(--sp-5);
+        box-shadow: var(--shadow-lg); 
+        color: var(--ink);
+      }
+      #viewTicket dialog::backdrop{
+        background: rgba(16, 38, 32, 0.42);
+      }
+      #viewTicket dialog h2{
+        margin-bottom: var(--sp-3);
+      }
+      #viewTicket dialog pre{
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+        background: var(--surface-subtle);
+        padding: var(--sp-3);
+        border-radius: var(--radius-sm);
+      }
+      #viewTicket pre{
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      #viewTicket [hidden]{
+        display: none !important;
+      }
+      #viewTicket a:focus-visible, #viewTicket button:focus-visible, #viewTicket input:focus-visible, #viewTicket select:focus-visible, #viewTicket textarea:focus-visible, #viewTicket summary:focus-visible, #viewTicket [tabindex]:focus-visible{
+        outline: 3px solid var(--focus); 
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #viewTicket *, #viewTicket *::before, #viewTicket *::after{
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+      @media (max-width: 760px) {
+        #viewTicket header, #viewTicket .ticket-main{
+          padding: var(--sp-4);
+        }
+        #viewTicket h1{
+          font-size: 24px;
+        }
+        #viewTicket .grid{
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--sp-5);
+        }
+        #viewTicket .wide{
+          grid-column: auto;
+        }
+        #viewTicket .card{
+          padding: var(--sp-4);
+        }
+        
+        #viewTicket .row, #viewTicket .visitor .row{
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--sp-3);
+        }
+        #viewTicket .row > *{
+          min-width: 0;
+        }
+        #viewTicket dialog{
+          padding: var(--sp-4);
+        }
+      }
+
+/* 票务视图在深色下重新映射它自己的绿色刻度，保持与工作台同温 */
+[data-theme="dark"] #viewTicket{
+  color-scheme:dark;
+  --ink:#E6E2D6; --muted:#A29C8C; --line:#333A31; --border-strong:#5A6455;
+  --bg:#191C18; --surface:#212620; --surface-subtle:#242A23; --surface-disabled:#2A302A;
+  --green-50:#1E241F; --green-100:#232B25; --green-200:#2B352D; --green-300:#3A4A3F;
+  --green-600:#6FAF93; --green-700:#8CC4AB; --green-800:#A6D6BE;
+  --warn-bg:#2E2519; --warn-ink:#E0B072;
+  --focus:#D79A57;
+}
+[data-theme="dark"] #viewTicket button:not(.secondary):not(:disabled){
+  background:#2F6B57; border-color:#2F6B57; color:#F2F7F3;
+}
+[data-theme="dark"] #viewTicket button:not(.secondary):not(:disabled):hover{
+  background:#3A7D66; border-color:#3A7D66;
+}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) #viewTicket{
+    color-scheme:dark;
+    --ink:#E6E2D6; --muted:#A29C8C; --line:#333A31; --border-strong:#5A6455;
+    --bg:#191C18; --surface:#212620; --surface-subtle:#242A23; --surface-disabled:#2A302A;
+    --green-50:#1E241F; --green-100:#232B25; --green-200:#2B352D; --green-300:#3A4A3F;
+    --green-600:#6FAF93; --green-700:#8CC4AB; --green-800:#A6D6BE;
+    --warn-bg:#2E2519; --warn-ink:#E0B072;
+    --focus:#D79A57;
+  }
+  html:not([data-theme="light"]) #viewTicket button:not(.secondary):not(:disabled){
+    background:#2F6B57; border-color:#2F6B57; color:#F2F7F3;
+  }
+  html:not([data-theme="light"]) #viewTicket button:not(.secondary):not(:disabled):hover{
+    background:#3A7D66; border-color:#3A7D66;
+  }
+}
+
+/* ---------- 深色下把「当文字用的绿」提亮，按钮仍然是深底白字 ---------- */
+html[data-theme="dark"] a,
+html[data-theme="dark"] .map-pill b,
+html[data-theme="dark"] .pin,
+html[data-theme="dark"] .day-card .h b,
+html[data-theme="dark"] .plan-tag,
+html[data-theme="dark"] .fold-btn,
+html[data-theme="dark"] .vote-win,
+html[data-theme="dark"] .qacard-head,
+html[data-theme="dark"] .chip:hover,
+html[data-theme="dark"] .source>button:hover,
+html[data-theme="dark"] .check.low,
+html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) a,
+  html:not([data-theme="light"]) .map-pill b,
+  html:not([data-theme="light"]) .pin,
+  html:not([data-theme="light"]) .day-card .h b,
+  html:not([data-theme="light"]) .plan-tag,
+  html:not([data-theme="light"]) .fold-btn,
+  html:not([data-theme="light"]) .vote-win,
+  html:not([data-theme="light"]) .qacard-head,
+  html:not([data-theme="light"]) .chip:hover,
+  html:not([data-theme="light"]) .source>button:hover,
+  html:not([data-theme="light"]) .check.low,
+  html:not([data-theme="light"]) .ai-head .ai-ico{color:var(--pine-text)}
+}
+
 /* ---------- 窄屏：上半地图 + 下半对话 sheet ---------- */
 @media (max-width:900px){
   .topbar{height:52px;padding:0 12px;gap:9px}
-  .brand small,.top-sep,.trip-meta,.who,.tbtn:not(.keep){display:none}
-  .trip-name{max-width:150px;font-size:var(--fs-xs)}
-  .workspace{height:calc(100vh - 52px);display:flex;flex-direction:column}
+  .brand small,.top-sep,.trip-meta,.who,.tbtn.keep span{display:none}
+  .trip-name{max-width:120px;font-size:var(--fs-xs)}
+  .vtabs button{padding:0 9px}
+  .vtabs button span{display:none}
+  .workspace{height:calc(100vh - 52px)}
+  #viewPlan{display:flex;flex-direction:column}
   .map-stage{position:relative;inset:auto;flex:0 0 38%;min-height:210px}
   .map-note{right:12px;top:10px}
   .map-pill{top:10px}
@@ -269,13 +1123,14 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   .daystrip{display:none}
   .ai-head{padding-top:8px}
   .grab{display:block!important}
+  #viewTrips{padding:16px 14px 32px}
+  .trip-list{grid-template-columns:1fr}
 }
 @media (max-width:600px){
   .brand b{font-size:var(--fs-sm)}
   .seal{width:27px;height:27px}
-  .trip-name{max-width:96px}
+  .trip-name{max-width:84px}
   .top-right{gap:6px}
-  .tbtn.keep span{display:none}
   .map-stage{flex-basis:34%;min-height:180px}
   .ai-panel{margin-left:0;margin-right:0}
   .dialog{padding:16px}
@@ -442,9 +1297,23 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     <path d="M8 18.5 C8 13 10 9.5 13 9.5"/>
     <circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
   </symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 4 H16.5 A2 2 0 0 1 18.5 6 V8.6 A2.8 2.8 0 0 0 18.5 14.4 V16 L13 21 H6.5 A2 2 0 0 1 4.5 19 V6 A2 2 0 0 1 5.5 4 Z"/>
+    <path d="M6.5 9 H9.5 M6.5 12.5 H9"/>
+    <path d="M12.5 7.5 V10 M12.5 12.5 V15 M12.5 17 V18.5" opacity=".65"/>
+  </symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
+    <circle cx="12" cy="12" r="3.4"/>
+    <path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22"/>
+    <path d="M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/>
+  </symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/>
+    <circle cx="16.4" cy="8.2" r="1.1" fill="currentColor" stroke="none" opacity=".7"/>
+  </symbol>
 </svg>
 
-<!-- 图标符号由 tools/design_icons.py wire 注入，源为 design/icons.svg 与 design/brand-mark.svg -->
 
 <header class="topbar">
   <div class="brand">
@@ -452,99 +1321,249 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     <div><b>旅行助手</b><small>行程工作台</small></div>
   </div>
   <span class="top-sep"></span>
+  <nav class="vtabs" role="tablist" aria-label="视图切换">
+    <button type="button" role="tab" data-view="plan" aria-selected="true"><svg class="ico"><use href="#i-map"/></svg><span>规划</span></button>
+    <button type="button" role="tab" data-view="ticket" aria-selected="false"><svg class="ico"><use href="#i-ticket"/></svg><span>票务</span></button>
+    <button type="button" role="tab" data-view="trips" aria-selected="false"><svg class="ico"><use href="#i-list"/></svg><span>行程</span></button>
+  </nav>
   <div class="trip-name" id="tripName">还没有行程</div>
   <div class="trip-meta" id="tripMeta">说一句话开始规划</div>
   <div class="top-right">
     <span class="who"><span class="dot" id="whoDot">·</span><span id="whoName">加载中</span></span>
-    <a class="tbtn" href="/chat.html">旧版对话</a>
+    <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
+      <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
+    </button>
     <button class="tbtn keep" type="button" id="exportBtn" disabled><svg class="ico"><use href="#i-export"/></svg><span>导出</span></button>
     <button class="tbtn keep" type="button" id="logoutBtn">退出</button>
   </div>
 </header>
 
 <main class="workspace" id="workspace">
-  <section class="map-stage" id="mapStage" aria-label="行程地图">
-    <svg class="map-svg" viewBox="0 0 1440 840" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <defs>
-        <pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse">
-          <circle cx="1.2" cy="1.6" r=".55" fill="#C4BAA6" opacity=".30"/>
-          <circle cx="5.1" cy="4.8" r=".4" fill="#1E4A3E" opacity=".14"/>
-        </pattern>
-      </defs>
-      <rect width="1440" height="840" fill="#EFEAE0"/>
-      <rect width="1440" height="840" fill="url(#grain)"/>
-      <g fill="none" stroke="#C4BAA6" stroke-width="1.15" opacity=".62">
-        <path d="M-60 690 C180 590 260 700 470 600 S760 430 980 520 S1260 660 1510 500"/>
-        <path d="M-60 640 C190 540 270 650 480 550 S770 380 990 470 S1270 610 1510 450"/>
-        <path d="M-60 590 C200 490 280 600 490 500 S780 330 1000 420 S1280 560 1510 400"/>
-        <path d="M-60 540 C210 440 290 550 500 450 S790 280 1010 370 S1290 510 1510 350"/>
-        <path d="M-60 490 C220 390 300 500 510 400 S800 230 1020 320 S1300 460 1510 300"/>
-        <path d="M-60 260 C160 180 340 300 560 200 S900 120 1120 210 S1360 300 1510 200"/>
-        <path d="M-60 215 C165 135 345 255 565 155 S905 75 1125 165 S1365 255 1510 155"/>
-      </g>
-      <g fill="none" stroke="#1E4A3E" stroke-width="1.1" opacity=".22">
-        <path d="M120 60 C300 140 420 40 600 130 S900 250 1100 130 S1340 90 1440 160"/>
-        <path d="M60 120 C250 200 390 100 570 190 S880 310 1080 190 S1320 150 1440 220"/>
-      </g>
-      <g class="route" fill="none" stroke="#B4542A" stroke-width="3" stroke-dasharray="7 8" opacity=".85">
-        <path id="routeA" d="M470 620 C560 540 620 520 700 450 S840 380 920 320 S1050 300 1120 240"/>
-        <path id="routeB" d="M700 450 C760 500 820 560 880 600"/>
-      </g>
-      <text x="24" y="816" font-size="12" fill="#8A8577" font-family="sans-serif">示意底图 · 非导航用 · 点位按草案生成</text>
-    </svg>
-    <div id="bmap"></div>
-    <div class="pin-layer" id="pinLayer"></div>
-    <div class="map-pill"><b id="mapPillTitle">行程地图</b><span id="mapPillMeta">· 尚未生成草案</span></div>
-    <div class="map-note" id="mapNote">未配置 AK · 示意底图</div>
-    <div class="map-legend">
-      <span><i style="background:#1E4A3E"></i>已排点位</span>
-      <span><i style="background:#B4542A"></i>按天路线</span>
+  <section class="view" id="viewPlan" aria-label="规划">
+    <div class="map-stage" id="mapStage">
+      <svg class="map-svg" viewBox="0 0 1440 840" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="1.2" cy="1.6" r=".55" fill="var(--line-strong)" opacity=".30"/>
+            <circle cx="5.1" cy="4.8" r=".4" fill="var(--pine)" opacity=".14"/>
+          </pattern>
+        </defs>
+        <rect width="1440" height="840" fill="var(--paper-2)"/>
+        <rect width="1440" height="840" fill="url(#grain)"/>
+        <g fill="none" stroke="var(--line-strong)" stroke-width="1.15" opacity=".62">
+          <path d="M-60 690 C180 590 260 700 470 600 S760 430 980 520 S1260 660 1510 500"/>
+          <path d="M-60 640 C190 540 270 650 480 550 S770 380 990 470 S1270 610 1510 450"/>
+          <path d="M-60 590 C200 490 280 600 490 500 S780 330 1000 420 S1280 560 1510 400"/>
+          <path d="M-60 540 C210 440 290 550 500 450 S790 280 1010 370 S1290 510 1510 350"/>
+          <path d="M-60 490 C220 390 300 500 510 400 S800 230 1020 320 S1300 460 1510 300"/>
+          <path d="M-60 260 C160 180 340 300 560 200 S900 120 1120 210 S1360 300 1510 200"/>
+          <path d="M-60 215 C165 135 345 255 565 155 S905 75 1125 165 S1365 255 1510 155"/>
+        </g>
+        <g fill="none" stroke="var(--pine)" stroke-width="1.1" opacity=".22">
+          <path d="M120 60 C300 140 420 40 600 130 S900 250 1100 130 S1340 90 1440 160"/>
+          <path d="M60 120 C250 200 390 100 570 190 S880 310 1080 190 S1320 150 1440 220"/>
+        </g>
+        <g class="route" fill="none" stroke="var(--clay)" stroke-width="3" stroke-dasharray="7 8" opacity=".85">
+          <path id="routeA" d="M470 620 C560 540 620 520 700 450 S840 380 920 320 S1050 300 1120 240"/>
+          <path id="routeB" d="M700 450 C760 500 820 560 880 600"/>
+        </g>
+        <text x="24" y="816" font-size="12" fill="var(--muted-2)" font-family="sans-serif">示意底图 · 非导航用 · 点位按草案生成</text>
+      </svg>
+      <div id="bmap"></div>
+      <div class="pin-layer" id="pinLayer"></div>
+      <div class="map-pill"><b id="mapPillTitle">行程地图</b><span id="mapPillMeta">· 尚未生成草案</span></div>
+      <div class="map-note" id="mapNote">未配置 AK · 示意底图</div>
+      <div class="map-legend">
+        <span><i style="background:var(--pine)"></i>已排点位</span>
+        <span><i style="background:var(--clay)"></i>按天路线</span>
+      </div>
+      <div class="spot-card" id="spotCard">
+        <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
+        <h3 id="spotName">点位</h3>
+        <p id="spotMeta"></p>
+      </div>
     </div>
-    <div class="spot-card" id="spotCard">
-      <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
-      <h3 id="spotName">点位</h3>
-      <p id="spotMeta"></p>
-    </div>
-  </section>
 
-  <section class="ai-panel" aria-label="AI 规划对话">
-    <div class="grab" aria-hidden="true"></div>
-    <div class="ai-head">
-      <span class="ai-ico"><svg class="ico" style="font-size:17px"><use href="#i-ai"/></svg></span>
-      <b>AI 规划</b>
-      <span class="st" id="draftState">草案未保存</span>
-    </div>
-    <div class="query-bar" id="queryBar">
-      <span class="q-ico"><svg class="ico" style="font-size:13px"><use href="#i-search"/></svg></span>
-      <span class="txt" id="queryText">例如：带爸妈去武当山玩四天，预算六千</span>
-      <button class="x" type="button" id="queryClear" aria-label="清除问题">×</button>
-    </div>
-    <div class="thread" id="thread">
-      <div class="msg">
-        <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
-        <div class="ai-block">
-          <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到右边的地图上。</p>
-          <p>缺日期、天数或预算时我会逐条问，不替你猜。草案确认后才会写进行程，之前都只是预览。</p>
-        </div>
-        <div class="qa">
-          <span class="lbl">可以直接点</span>
-          <div class="chips" id="quickChips">
-            <button class="chip" type="button" data-quick="帮我规划杭州两天，预算一千，想看人文古迹">杭州两日</button>
-            <button class="chip" type="button" data-quick="带爸妈去十堰玩四天，预算六千">武当山四日</button>
-            <button class="chip" type="button" data-quick="去武汉玩三天，预算两千，想吃美食">武汉三日</button>
+    <section class="ai-panel" aria-label="AI 规划对话">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="ai-head">
+        <span class="ai-ico"><svg class="ico" style="font-size:17px"><use href="#i-ai"/></svg></span>
+        <b>AI 规划</b>
+        <span class="st" id="draftState">草案未保存</span>
+      </div>
+      <div class="query-bar" id="queryBar">
+        <span class="q-ico"><svg class="ico" style="font-size:13px"><use href="#i-search"/></svg></span>
+        <span class="txt" id="queryText">例如：带爸妈去武当山玩四天，预算六千</span>
+        <button class="x" type="button" id="queryClear" aria-label="清除问题">×</button>
+      </div>
+      <div class="thread" id="thread">
+        <div class="msg" id="welcome">
+          <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
+          <div class="ai-block">
+            <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到地图上。</p>
+            <p>缺日期、天数或预算时我会逐条问，不替你猜。草案确认后才会写进行程，之前都只是预览。</p>
+            <p>问天气、问吃什么、问怎么买票也都可以，答案里会带上来源。</p>
+          </div>
+          <div class="qa">
+            <span class="lbl">可以直接点</span>
+            <div class="chips" id="quickChips">
+              <button class="chip" type="button" data-quick="帮我规划杭州两天，预算一千，想看人文古迹">杭州两日</button>
+              <button class="chip" type="button" data-quick="带爸妈去十堰玩四天，预算六千">武当山四日</button>
+              <button class="chip" type="button" data-quick="去武汉玩三天，预算两千，想吃美食">武汉三日</button>
+              <button class="chip" type="button" data-quick="武汉这周末天气怎么样">周末天气</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="hint">回车发送 · 草案与地图共用同一份数据 · 未确认前不写库</div>
-    <div class="composer">
-      <input id="prompt" type="text" autocomplete="off" placeholder="说说想去哪、玩几天、预算多少…" aria-label="给行程助手发送消息" />
-      <button class="round" type="button" id="micBtn" title="语音输入未接入"><svg class="ico" style="font-size:17px"><use href="#i-mic"/></svg></button>
-      <button class="round send" type="button" id="sendBtn" title="发送"><svg class="ico" style="font-size:17px"><use href="#i-send"/></svg></button>
-    </div>
+      <div class="hint">回车发送 · 草案与地图共用同一份数据 · 未确认前不写库</div>
+      <div class="composer">
+        <input id="prompt" type="text" autocomplete="off" placeholder="说说想去哪、玩几天、预算多少…" aria-label="给行程助手发送消息" />
+        <button class="round" type="button" id="micBtn" title="语音输入未接入"><svg class="ico" style="font-size:17px"><use href="#i-mic"/></svg></button>
+        <button class="round send" type="button" id="sendBtn" title="发送"><svg class="ico" style="font-size:17px"><use href="#i-send"/></svg></button>
+      </div>
+    </section>
+
+    <div class="daystrip" id="daystrip" aria-label="逐日安排"></div>
   </section>
 
-  <div class="daystrip" id="daystrip" aria-label="逐日安排"></div>
+<!-- 票务视图：标记原样搬自 ticket-assistant.html，勿手改；脚本见文件末尾 IIFE -->
+<div class="view" id="viewTicket" hidden>
+    <div class="ticket-main">
+      <p class="muted">
+        八达岭长城 · 首都博物馆 · 中山公园。规则为人工核验快照，来源日期可查。
+      </p>
+      <p class="badge">余票未核验 · 在官方渠道完成购买</p>
+      <p id="status" role="status" aria-live="polite"></p>
+      <div class="grid">
+        <section class="card featured">
+          <h2>告诉我你的计划<span class="flowtag">主流程</span></h2>
+          <div id="conversation" aria-live="polite"></div>
+          <form id="adviceForm">
+            <label for="message">购票问题</label
+            ><textarea
+              id="message"
+              maxlength="1500"
+              placeholder="例如：2026-11-21 去八达岭，带一位12岁的孩子，怎么买票？请勿输入姓名或证件号。"
+            ></textarea>
+            <label for="attraction">景点</label
+            ><select id="attraction">
+              <option value="">请选择，或在消息中说明</option>
+            </select>
+            <div class="row">
+              <div>
+                <label for="date">游览日期</label
+                ><input id="date" type="date" />
+              </div>
+              <div class="row-wide">
+                <label for="product">参观产品</label
+                ><select id="product">
+                  <option value="STANDARD">普通入园／北京通史基本陈列</option>
+                  <option value="COMBINED">联票</option>
+                  <option value="SPECIAL">特展／活动</option>
+                  <option value="TRANSPORT">索道／交通附加项目</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="startTime">计划到达时间（可选）</label
+                ><input id="startTime" type="time" />
+              </div>
+              <div>
+                <label for="endTime">计划结束时间（可选）</label
+                ><input id="endTime" type="time" />
+              </div>
+            </div>
+            <label
+              >游客条件
+              <small>仅收集优惠判断所需信息，年龄按游览日周岁填写</small></label
+            >
+            <div id="visitors"></div>
+            <button type="button" class="secondary" id="addVisitor">
+              添加游客</button
+            ><button id="ask" type="submit">查看购票建议</button>
+          </form>
+        </section>
+        <section class="card">
+          <h2>购票建议</h2>
+          <div id="result">
+            <div class="empty">
+              <p class="empty-title">还没有购票建议</p>
+              <p class="muted">
+                填好左侧需求后点「查看购票建议」，这里会显示匹配票种、费用与行程提醒。未核实的项目不会按免费处理。
+              </p>
+            </div>
+          </div>
+        </section>
+        <section class="card wide">
+          <h2>关联行程与手动登记</h2>
+          <p class="muted">
+            选择已有活动可带入日期与时间。没有活动，请先返回行程创建。登记金额不会自动加入费用。
+          </p>
+          <button id="loadTrips" class="secondary">加载我的行程</button>
+          <div class="row">
+            <div>
+              <label for="trip">行程</label
+              ><select id="trip">
+                <option value="">不关联行程</option>
+              </select>
+            </div>
+            <div>
+              <label for="activity">目标活动</label
+              ><select id="activity">
+                <option value="">请选择已有活动</option>
+              </select>
+            </div>
+          </div>
+          <div id="savedRecord" class="muted"></div>
+          <div id="registration">
+            <div class="row">
+              <div>
+                <label for="recordProduct">实际购买产品</label
+                ><input
+                  id="recordProduct"
+                  maxlength="100"
+                  placeholder="按购票结果填写"
+                />
+              </div>
+              <div>
+                <label for="session">场次（可选）</label
+                ><input
+                  id="session"
+                  maxlength="100"
+                  placeholder="如上午场；不填写订单号"
+                />
+              </div>
+              <div>
+                <label for="paid">实付总额（元，可留空）</label
+                ><input id="paid" type="number" min="0" step="0.01" />
+              </div>
+            </div>
+            <button id="preview" class="secondary">预览自报登记</button>
+          </div>
+          <p class="warning">
+            用户自报已购票／已预约，未经平台核验。这里只记录结果，不下单、不支付、不验证出票。
+          </p>
+        </section>
+      </div>
+      <dialog id="confirm">
+        <h2>确认写入目标活动</h2>
+        <pre id="previewText"></pre>
+        <p>用户自报，未经平台核验。</p>
+        <button id="save">确认登记</button
+        ><button class="secondary" id="cancel">返回修改</button>
+      </dialog>
+    </div>
+</div>
+
+  <section class="view" id="viewTrips" hidden aria-label="我的行程">
+    <div class="trips-head">
+      <h1>我的行程</h1>
+      <span class="sub" id="tripsMeta">只列出你名下的行程</span>
+      <button class="btn btn-outline" type="button" id="tripsRefresh"><svg class="ico"><use href="#i-search"/></svg>刷新</button>
+    </div>
+    <div id="tripsBox"><div class="trip-empty">正在读取…</div></div>
+  </section>
 </main>
 
 <div class="mask" id="mask"></div>
@@ -585,16 +1604,20 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
   }
 
-  var state = {
-    busy: false, request: null, draft: null, queryText: '',
-    activeField: null, questions: [], itineraryId: null, points: []
-  };
+  var busy = false;
+  var PREF_TEXT = { '自然':'自然风光','人文':'人文古迹','美食':'本地美食',
+                    '慢节奏':'节奏慢一点','亲子':'带娃出游','摄影':'拍照出片' };
+  var convo = [];          // 最近几轮，只留文本，供 /api/chat 理解指代
+  var convoState = {};     // city / days / travelers / budget / preferences
+  var draftView = null;    // 当前草案的精简视图，地图与保存都用它
+  var points = [];
+  var itineraryId = null;
 
   /* ---------- 统一请求：401 回登录页，文本与 JSON 都能读 ---------- */
   async function api(path, opts) {
     var res = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
     if (res.status === 401) {
-      location.replace('/?next=' + encodeURIComponent('/planner.html'));
+      location.replace('/?next=' + encodeURIComponent(location.pathname + location.hash));
       throw new Error('登录已过期');
     }
     var ct = res.headers.get('content-type') || '';
@@ -612,226 +1635,160 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
       body: JSON.stringify(data) });
   }
 
+  /* ---------- 主题：跟随系统 → 浅色 → 深色，选择记在本地 ---------- */
+  var THEME_KEY = 'travel.theme';
+  var THEME_ORDER = ['auto', 'light', 'dark'];
+  var THEME_TEXT = { auto: '跟随系统', light: '浅色', dark: '深色' };
+  function currentTheme() {
+    try {
+      var t = localStorage.getItem(THEME_KEY);
+      return THEME_ORDER.indexOf(t) >= 0 ? t : 'auto';
+    } catch (e) { return 'auto'; }
+  }
+  function paintThemeIcon(mode) {
+    var dark = mode === 'dark' || (mode === 'auto' &&
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var svg = $('themeIcon');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', '#' + (dark ? 'i-sun' : 'i-moon'));
+    svg.appendChild(use);
+    var btn = $('themeBtn');
+    btn.title = '外观：' + THEME_TEXT[mode];
+    btn.setAttribute('aria-label', '外观：' + THEME_TEXT[mode] + '，点击切换');
+  }
+  function applyTheme(mode) {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 隐私模式忽略 */ }
+    paintThemeIcon(mode);
+  }
+  applyTheme(currentTheme());
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    var onScheme = function () { if (currentTheme() === 'auto') paintThemeIcon('auto'); };
+    if (mq.addEventListener) mq.addEventListener('change', onScheme);
+    else if (mq.addListener) mq.addListener(onScheme);
+  }
+
+  /* ---------- 视图切换：用 hash，刷新后停在原视图 ---------- */
+  function showView(name, silent) {
+    var target = name === 'ticket' || name === 'trips' ? name : 'plan';
+    ['plan', 'ticket', 'trips'].forEach(function (v) {
+      var box = $('view' + v.charAt(0).toUpperCase() + v.slice(1));
+      if (box) box.hidden = v !== target;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.vtabs button'), function (b) {
+      b.setAttribute('aria-selected', b.dataset.view === target ? 'true' : 'false');
+    });
+    if (location.hash !== '#' + target && !silent) {
+      try { history.replaceState(null, '', '#' + target); } catch (e) { /* file:// 忽略 */ }
+    }
+    if (target === 'trips') loadTrips();
+    if (target === 'plan' && window.__bmap) { try { window.__bmap.resize(); } catch (e) {} }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.vtabs button'), function (b) {
+    b.addEventListener('click', function () { showView(b.dataset.view); });
+  });
+
   /* ---------- 会话渲染 ---------- */
   function scrollThread() { var t = $('thread'); t.scrollTop = t.scrollHeight; }
   function appendUser(text) {
     $('thread').appendChild(el('div', 'msg user', '<div class="bubble">' + esc(text) + '</div>'));
     scrollThread();
   }
-  function appendNote(label) {
+  function appendTyping() {
     var n = el('div', 'msg');
-    n.appendChild(el('div', 'think',
-      '<svg class="ico"><use href="#i-think"/></svg><span>' + esc(label) + '</span>'));
+    n.appendChild(el('div', 'typing', '<i></i><i></i><i></i>'));
     $('thread').appendChild(n); scrollThread();
     return n;
   }
   function appendError(msg) {
     var n = el('div', 'msg');
     n.appendChild(el('div', 'notice', '<b>没能完成：</b>' + esc(msg) +
-      '<br/>可以换个说法重试，或到旧版对话页看详细报错。'));
+      '<br/>可以换个说法重试。'));
     $('thread').appendChild(n); scrollThread();
   }
   function setBusy(b) {
-    state.busy = b;
+    busy = b;
     $('sendBtn').disabled = b;
     $('prompt').disabled = b;
-    if (b) appendNote('正在查知识库、排草案…');
   }
-
-  /* ---------- 服务端解析结果 → 规划请求 ---------- */
-  function contextFromIntent(it) {
-    var ctx = {};
-    // 知识库按「城市」检索：景区名要归位到所在城市，否则查不到候选。
-    var dest = it.city || it.destination;
-    if (dest) ctx.destination = dest;
-    ['days', 'travelers', 'budget', 'currency', 'preferences', 'departDate', 'returnDate']
-      .forEach(function (k) { if (it[k] !== null && it[k] !== undefined && it[k] !== '') ctx[k] = it[k]; });
-    if (it.preferences && !it.preferences.length) delete ctx.preferences;
-    return ctx;
+  function pushTurn(role, text) {
+    convo.push({ role: role, text: String(text || '').slice(0, 240) });
+    if (convo.length > 16) convo = convo.slice(-16);
   }
-  function renderQuery(text, it) {
-    state.queryText = text;
-    $('queryText').textContent = text;
-    var dest = it.city || it.destination || '未指定目的地';
-    $('tripName').textContent = dest + ' · 规划中';
-    var bits = [];
-    if (it.days) bits.push(it.days + ' 天');
-    if (it.travelers) bits.push(it.travelers + ' 人');
-    if (it.budget) bits.push('¥' + it.budget);
-    if (it.departDate) bits.push(it.departDate);
-    $('tripMeta').textContent = bits.length ? bits.join(' · ') : '缺项会逐条补问';
-    if (it.note) { var n = el('div', 'msg'); n.appendChild(el('div', 'notice', esc(it.note))); $('thread').appendChild(n); }
-    if (!it.city && it.alternatives && it.alternatives.length) {
-      var box = el('div', 'msg');
-      var q = el('div', 'qa');
-      q.appendChild(el('span', 'lbl', '库里没有直接命中，选一个城市继续'));
-      var chips = el('div', 'chips');
-      it.alternatives.slice(0, 5).forEach(function (a) {
-        var name = (typeof a === 'string') ? a : (a.city || a.name || a.label);
-        var b = el('button', 'chip', esc(name));
-        b.type = 'button';
-        b.addEventListener('click', function () {
-          state.request = state.request || {};
-          state.request.destination = name;
-          $('tripName').textContent = name + ' · 规划中';
-          toast('按「' + name + '」检索');
-          runPlan();
-        });
-        chips.appendChild(b);
-      });
-      q.appendChild(chips); box.appendChild(q); $('thread').appendChild(box);
-    }
-    scrollThread();
-  }
-
-  /* ---------- 编排层信封 → 草案；没有结构化草案时回退 plan 接口 ---------- */
-  function draftFromEnvelope(env) {
-    var r = env && env.result;
-    if (!r || !r.facts) return null;
-    for (var i = 0; i < r.facts.length; i++) {
-      var f = r.facts[i];
-      if (f && f.type === 'CONTENT' && f.value && f.value.category === 'PLAN_DRAFT') return f.value;
-    }
-    return null;
-  }
-  async function runPlan() {
-    if (!state.request || !state.request.destination) {
-      appendError('还没确定目的地，先说说想去哪。'); return;
-    }
-    setBusy(true);
-    try {
-      var env = await post('/api/agent/invoke', { intent: 'PLAN_DRAFT', context: state.request });
-      var draft = draftFromEnvelope(env);
-      var fallback = !draft;
-      if (fallback) draft = await post('/api/agent/plan', state.request);
-      state.draft = draft;
-      renderDraft(draft, env, fallback);
-    } catch (e) { appendError(e.message); }
-    finally { setBusy(false); }
-  }
-
-  /* ---------- 一条 AI 回复：正文 / 提醒 / 来源 / 草案 / 补问 / 操作 ---------- */
-  function sourceText(s) {
-    if (s == null) return '';
-    if (typeof s === 'string') return s;
-    return s.title || s.name || s.url || s.source || JSON.stringify(s);
-  }
-  function renderDraft(d, env, fallback) {
-    var msg = el('div', 'msg');
-    msg.appendChild(el('div', 'think',
-      '<svg class="ico"><use href="#i-think"/></svg><span>深度思考完成（AI 生成）' +
-      (fallback ? ' · 编排层降级，已回退确定性草案接口' : '') + '</span>'));
-
-    var body = el('div', 'ai-block');
-    var advice = d.advice || (env && env.result && env.result.advice) || '';
-    if (advice) body.appendChild(el('p', null, esc(advice)));
-    else body.appendChild(el('p', null, '已按本地知识库候选排出草案。模型正文当前不可用，下面的逐日安排与检查项仍来自确定性规则。'));
-    var notices = (d.notices || []).slice(0, 3);
-    notices.forEach(function (n) { body.appendChild(el('p', null, esc(sourceText(n)))); });
-    msg.appendChild(body);
-
-    var checks = (d.checks || []).slice(0, 3);
-    if (checks.length) {
-      var rem = el('div', 'remind');
-      rem.appendChild(el('b', null, '核心提醒'));
-      var ol = el('ol');
-      checks.forEach(function (c) {
-        ol.appendChild(el('li', null, esc(c.message || c.code) +
-          (c.suggestion ? '（' + esc(c.suggestion) + '）' : '')));
-      });
-      rem.appendChild(ol); msg.appendChild(rem);
-    }
-
-    var srcs = d.sources || [];
-    if (srcs.length) {
-      var src = el('div', 'source');
-      var btn = el('button', null, '<svg class="ico"><use href="#i-source"/></svg>来源 ' +
-        srcs.length + ' 条 ⌄');
-      btn.type = 'button';
-      var bd = el('div', 'body');
-      srcs.slice(0, 8).forEach(function (s) { bd.appendChild(el('div', null, '· ' + esc(sourceText(s)))); });
-      btn.addEventListener('click', function () { src.classList.toggle('open'); });
-      src.appendChild(btn); src.appendChild(bd); msg.appendChild(src);
-    }
-
-    var days = d.dailySchedules || [];
-    var mini = el('div', 'draft-mini');
-    mini.appendChild(el('b', null, '逐日草案 · ' + days.length + ' 天'));
-    days.slice(0, 6).forEach(function (day) {
-      var names = (day.items || []).map(function (x) { return x.name; }).join('、') || '候选不足，留空';
-      mini.appendChild(el('div', 'day-line',
-        '<span class="d">DAY ' + esc(day.dayIndex) + '</span><span class="n">' + esc(names) + '</span>'));
+  function historyOf() { return convo.slice(-8); }
+  function mergeState(next) {
+    if (!next) return;
+    ['city', 'days', 'travelers', 'budget', 'preferences'].forEach(function (k) {
+      var v = next[k];
+      if (v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) {
+        convoState[k] = v;
+      }
     });
-    msg.appendChild(mini);
+  }
 
-    if (checks.length) {
-      var ck = el('div', 'checks');
-      checks.forEach(function (c) {
-        var sev = String(c.severity || '').toLowerCase();
-        var cls = sev === 'high' ? 'high' : (sev === 'low' ? 'low' : '');
-        ck.appendChild(el('div', 'check ' + cls,
-          '<b>' + esc(c.code || 'CHECK') + ' · ' + esc(sev.toUpperCase()) + '</b>' +
-          esc(c.message || '') + (c.suggestion ? '<span>' + esc(c.suggestion) + '</span>' : '')));
-      });
-      msg.appendChild(ck);
-    }
+  /* ---------- 一条回复：正文 + 富内容卡片，卡片由 blocks 渲染层统一画 ---------- */
+  function renderReply(replyText, cards, baseText, plain) {
+    var msg = el('div', 'msg');
+    var body = el('div', 'ai-block');
+    body.innerHTML = plain ? esc(replyText) : formatRich(replyText);
+    msg.appendChild(body);
+    var found = null;
+    (cards || []).forEach(function (card) {
+      var node = paintCard(card, baseText);
+      if (node) { node.style.marginTop = 'var(--sp-2)'; body.appendChild(node); }
+      if (card && card.type === 'envelope' && card.intent !== 'FOOD_RECOMMEND' && !found) {
+        found = draftFromEnvelope(card.data);
+      }
+    });
+    msg.appendChild(body);
+    $('thread').appendChild(msg);
+    scrollThread();
+    if (found) applyDraft(found);
+    return msg;
+  }
 
-    state.questions = d.questions || [];
-    if (state.questions.length) {
-      var qa = el('div', 'qa');
-      qa.appendChild(el('span', 'lbl', '还缺 ' + state.questions.length + ' 项，点一项后在下方输入框回答'));
-      var chips = el('div', 'chips');
-      state.questions.forEach(function (q) {
-        var b = el('button', 'chip', esc(q.question || q.code));
-        b.type = 'button';
-        b.addEventListener('click', function () {
-          state.activeField = q.field || 'destination';
-          $('prompt').placeholder = (q.hint || q.question || '请回答') + '（直接输入值即可）';
-          $('prompt').focus();
-          toast('请回答：' + (q.question || q.field));
-        });
-        chips.appendChild(b);
-      });
-      qa.appendChild(chips); msg.appendChild(qa);
-    }
-
+  /* ---------- 草案 → 地图 / 日程条 / 操作按钮 ---------- */
+  function applyDraft(view) {
+    draftView = view;
+    renderMap(view);
+    renderDaystrip(view);
+    flashMap();
+    $('draftState').textContent = '草案未保存';
+    if (!view || !(view.dailySchedules || []).length) return;
     var acts = el('div', 'actions');
     var save = el('button', 'btn btn-primary',
       '<svg class="ico"><use href="#i-check"/></svg>确认保存');
     save.type = 'button';
-    save.disabled = !days.length;
     save.addEventListener('click', openSave);
     var regen = el('button', 'btn btn-outline', '重新生成');
     regen.type = 'button';
-    regen.addEventListener('click', function () { flashMap(); runPlan(); });
+    regen.addEventListener('click', function () { sendText(lastText(), true); });
     acts.appendChild(save); acts.appendChild(regen);
-    msg.appendChild(acts);
-
-    $('thread').appendChild(msg);
+    $('thread').appendChild(acts);
     scrollThread();
-    $('draftState').textContent = '草案未保存';
-    renderMap(d);
-    renderDaystrip(d);
-    flashMap();
   }
+  var lastUserText = '';
+  function lastText() { return lastUserText; }
 
-  /* ---------- 地图：点位由草案生成，无 AK 用示意底图 ---------- */
   var ANCHORS = [
     [33, 74], [42, 62], [50, 54], [58, 46], [65, 38], [72, 30],
     [48, 68], [56, 60], [64, 52], [71, 44], [78, 36], [82, 27]
   ];
   function renderMap(d) {
     var layer = $('pinLayer'); layer.innerHTML = '';
-    state.points = [];
-    var days = d.dailySchedules || [];
+    points = [];
+    var days = (d && d.dailySchedules) || [];
     var n = 0;
     days.forEach(function (day, di) {
       (day.items || []).forEach(function (item, ii) {
         var a = ANCHORS[n % ANCHORS.length];
         var pt = { day: day.dayIndex, name: item.name || '未命名点位',
           city: item.city || '', ticket: item.ticket, openTime: item.openTime,
-          source: item.source, note: item.note, x: a[0] + (ii % 2) * 2, y: a[1] + di * 1.5 };
-        state.points.push(pt); n++;
+          x: a[0] + (ii % 2) * 2, y: a[1] + di * 1.5 };
+        points.push(pt); n++;
         var pin = el('button', 'pin', '<i>' + esc(n) + '</i>' + esc(pt.name));
         pin.type = 'button';
         pin.style.left = pt.x + '%'; pin.style.top = pt.y + '%';
@@ -839,21 +1796,21 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
         layer.appendChild(pin);
       });
     });
-    var dest = (state.request && state.request.destination) || '行程';
+    var dest = (convoState && convoState.city) || '行程';
     $('mapPillTitle').textContent = dest + ' · 逐日路线';
-    $('mapPillMeta').textContent = '· ' + days.length + ' 天 · ' + state.points.length + ' 个点位';
-    if (window.BMapGL && $('mapStage').classList.contains('has-bmap')) drawBMapPoints();
+    $('mapPillMeta').textContent = '· ' + days.length + ' 天 · ' + points.length + ' 个点位';
+    if (window.__bmap && $('mapStage').classList.contains('has-bmap')) drawBMapPoints();
   }
   function showSpot(pt, pin) {
-    Array.prototype.forEach.call(document.querySelectorAll('.pin'), function (p) { p.classList.remove('is-active'); });
+    Array.prototype.forEach.call(document.querySelectorAll('.pin'), function (p) {
+      p.classList.remove('is-active');
+    });
     pin.classList.add('is-active');
     $('spotName').textContent = pt.name;
     var bits = ['DAY ' + pt.day];
     if (pt.city) bits.push(pt.city);
-    if (pt.ticket) bits.push('票价：' + pt.ticket);
-    else bits.push('票价：未核验');
+    bits.push(pt.ticket ? '票价：' + pt.ticket : '票价：未核验');
     if (pt.openTime) bits.push('开放：' + pt.openTime);
-    if (pt.source) bits.push('来源：' + pt.source);
     bits.push('示意底图，不含真实地理坐标');
     $('spotMeta').textContent = bits.join(' · ');
     $('spotCard').classList.add('open');
@@ -861,13 +1818,10 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   function flashMap() {
     var m = $('mapStage');
     m.classList.remove('rerouting'); void m.offsetWidth; m.classList.add('rerouting');
-    $('mapPillMeta').textContent = '· 路线已重排';
   }
-
-  /* ---------- 横向日程卡 ---------- */
   function renderDaystrip(d) {
     var strip = $('daystrip'); strip.innerHTML = '';
-    (d.dailySchedules || []).forEach(function (day) {
+    ((d && d.dailySchedules) || []).forEach(function (day) {
       var c = el('div', 'day-card');
       c.appendChild(el('div', 'h', '<b>DAY ' + esc(day.dayIndex) + '</b><span>' +
         esc(day.date || '日期待定') + '</span>'));
@@ -879,7 +1833,9 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
           var li = el('li', null, '<i>' + (i + 1) + '</i>' + esc(it.name) +
             '<em>' + esc(it.ticket || '票价未知') + '</em>');
           li.addEventListener('click', function () {
-            var pin = document.querySelectorAll('.pin')[state.points.findIndex(function (p) { return p.name === it.name; })];
+            var idx = -1;
+            points.forEach(function (p, k) { if (p.name === it.name && idx < 0) idx = k; });
+            var pin = document.querySelectorAll('.pin')[idx];
             if (pin) pin.click();
           });
           ul.appendChild(li);
@@ -890,51 +1846,143 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     });
   }
 
-  /* ---------- 补问回答：数值 / 日期 / 文本按字段落回请求 ---------- */
-  function applyFieldAnswer(text) {
-    var f = state.activeField; state.activeField = null;
-    $('prompt').placeholder = '说说想去哪、玩几天、预算多少…';
-    if (!state.request) state.request = {};
-    var v = text.trim();
-    if (f === 'budget' || f === 'days' || f === 'travelers') {
-      var num = parseFloat(v.replace(/[^\d.]/g, ''));
-      if (!isNaN(num)) state.request[f] = num;
-    } else if (f === 'departDate' || f === 'returnDate') {
-      var m = v.match(/\d{4}-\d{1,2}-\d{1,2}/);
-      state.request[f] = m ? m[0] : v;
-    } else { state.request[f] = v; }
-    toast('已补充 ' + f + '，重新排草案');
+  /* ---------- 主链路：先问 /api/chat，模型不可用再走解析 + 编排 ---------- */
+  async function chatAgent(text) {
+    try {
+      return await post('/api/chat', { message: String(text).slice(0, 300),
+        history: historyOf(), state: convoState });
+    } catch (e) { return null; }
+  }
+  function contextFromIntent(it, extra) {
+    var ctx = {};
+    var dest = it.city || it.destination;
+    if (dest) ctx.destination = dest;
+    ['days', 'travelers', 'budget', 'currency', 'preferences', 'departDate', 'returnDate']
+      .forEach(function (k) {
+        if (it[k] !== null && it[k] !== undefined && it[k] !== '') ctx[k] = it[k];
+      });
+    if (it.preferences && !it.preferences.length) delete ctx.preferences;
+    if (extra) {
+      ['days', 'travelers', 'budget', 'departDate', 'returnDate'].forEach(function (k) {
+        if (extra[k] != null && extra[k] !== '') ctx[k] = extra[k];
+      });
+      if (extra.prefs && extra.prefs.length) ctx.preferences = extra.prefs;
+    }
+    return ctx;
+  }
+  function renderTripName(it) {
+    var dest = it.city || it.destination || '未指定目的地';
+    $('tripName').textContent = dest + ' · 规划中';
+    var bits = [];
+    if (it.days) bits.push(it.days + ' 天');
+    if (it.travelers) bits.push(it.travelers + ' 人');
+    if (it.budget) bits.push('¥' + it.budget);
+    if (it.departDate) bits.push(it.departDate);
+    $('tripMeta').textContent = bits.length ? bits.join(' · ') : '缺项会逐条补问';
+  }
+  function renderAlternatives(it) {
+    var alts = it.alternatives || [];
+    if (!alts.length) return;
+    var box = el('div', 'msg');
+    var q = el('div', 'qa');
+    q.appendChild(el('span', 'lbl', '库里没有直接命中，选一个继续'));
+    var chips = el('div', 'chips');
+    alts.slice(0, 5).forEach(function (a) {
+      var name = (typeof a === 'string') ? a : (a.city || a.name || a.label);
+      if (!name) return;
+      var b = el('button', 'chip', esc(name));
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        $('tripName').textContent = name + ' · 规划中';
+        sendText('去' + name + '，' + (lastUserText || '帮我排个行程'));
+      });
+      chips.appendChild(b);
+    });
+    q.appendChild(chips); box.appendChild(q); $('thread').appendChild(box);
   }
 
-  /* ---------- 发送 ---------- */
-  async function send() {
-    var input = $('prompt');
-    var text = input.value.trim();
-    if (!text || state.busy) return;
-    input.value = '';
+  async function sendText(text, skipChoice, extra) {
+    text = String(text == null ? '' : text).trim();
+    if (!text || busy) return;
+    lastUserText = text;
     appendUser(text);
-    if (state.activeField) { applyFieldAnswer(text); await runPlan(); return; }
+    pushTurn('user', text);
     setBusy(true);
+    var typing = appendTyping();
     try {
-      var it = await post('/api/intent/parse', { text: text });
-      if (it.intent && it.intent !== 'PLAN_DRAFT') {
-        appendNote('这句话不是行程规划请求');
-        var n = el('div', 'msg');
-        n.appendChild(el('div', 'ai-block', esc(it.reply ||
-          '当前工作台只处理行程规划。闲聊、天气与美食问答请到旧版对话页。')));
-        $('thread').appendChild(n); scrollThread();
+      // 结构化补充（点选卡片）说明槽位已定，直接走确定性链路，不再让模型猜
+      if (!extra) {
+        var agent = await chatAgent(text);
+        if (agent && agent.reply) {
+          typing.remove();
+          mergeState(agent.state);
+          renderReply(agent.reply, agent.cards, text, false);
+          pushTurn('assistant', agent.reply);
+          if (agent.state && agent.state.city) renderTripName(agent.state);
+          return;
+        }
+      }
+      var it = await post('/api/intent/parse',
+        { text: text, history: historyOf(), state: convoState });
+      if (it.intent === 'CHAT') {
+        typing.remove();
+        var hello = it.reply || '我在。说个目的地和大概几天就能排行程。';
+        renderReply(hello, [], text, true);
+        pushTurn('assistant', hello);
         return;
       }
-      state.request = contextFromIntent(it);
-      renderQuery(text, it);
-      await runPlan();
+      var req = contextFromIntent(it, extra);
+      renderTripName(it);
+      if (!req.destination) {
+        typing.remove();
+        var ask = it.note || '还没确定目的地，说说想去哪座城市或哪个景区。';
+        renderReply(ask, [], text, true);
+        renderAlternatives(it);
+        return;
+      }
+      var capability = it.intent === 'FOOD_RECOMMEND' ? 'FOOD_RECOMMEND' : 'PLAN_DRAFT';
+      req.intent = capability;
+      var env = await post('/api/agent/invoke', { intent: capability, context: req });
+      typing.remove();
+      var view = draftFromEnvelope(env);
+      var advice = (view && view.advice) || (env && env.result && env.result.advice) ||
+        '已按本地知识库候选排好，下面的逐日安排来自确定性规则。';
+      renderReply(advice, [{ type: 'envelope', intent: capability, data: env }], text, false);
+      pushTurn('assistant', advice);
+      mergeState({ city: req.destination, days: req.days, travelers: req.travelers,
+        budget: req.budget, preferences: req.preferences });
+      if (view && view.dailySchedules && view.dailySchedules.length) {
+        draftView = view;
+        // appendDraftBlocks 已画出草案卡，这里只补地图与操作按钮
+        renderMap(view); renderDaystrip(view); flashMap(); renderSaveActions();
+      }
     } catch (e) { appendError(e.message); }
-    finally { setBusy(false); }
+    finally { typing.remove(); setBusy(false); }
   }
 
-  /* ---------- 确认保存：服务端重新装配载荷 → 创建 → 写每日安排 ---------- */
+  function renderSaveActions() {
+    var acts = el('div', 'actions');
+    var save = el('button', 'btn btn-primary',
+      '<svg class="ico"><use href="#i-check"/></svg>确认保存');
+    save.type = 'button';
+    save.addEventListener('click', openSave);
+    var regen = el('button', 'btn btn-outline', '重新生成');
+    regen.type = 'button';
+    regen.addEventListener('click', function () { sendText(lastText(), true); });
+    acts.appendChild(save); acts.appendChild(regen);
+    $('thread').appendChild(acts);
+    scrollThread();
+  }
+
+  /* ---------- 确认保存：服务端重装配载荷 → 创建 → 写每日安排 ---------- */
+  function requestOfState() {
+    var r = { destination: convoState.city };
+    ['days', 'travelers', 'budget', 'preferences', 'departDate', 'returnDate']
+      .forEach(function (k) { if (convoState[k] != null) r[k] = convoState[k]; });
+    return r;
+  }
   function openSave() {
-    var r = state.request || {};
+    var r = requestOfState();
     var dest = r.destination || '行程';
     $('saveTitleInput').value = dest + ((r.days || 0) + ' 日游');
     $('saveDepart').value = r.departDate || '';
@@ -950,29 +1998,31 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     $('saveErr').textContent = '';
     if (!title) { $('saveErr').textContent = '请填写行程标题'; return; }
     if (!dep || !ret) { $('saveErr').textContent = '保存前需要出发日期与返回日期'; return; }
-    state.request.departDate = dep; state.request.returnDate = ret;
+    var req = requestOfState();
+    req.departDate = dep; req.returnDate = ret;
     $('saveConfirm').disabled = true;
     try {
       var payload = await post('/api/agent/plan/materialize',
-        { title: title, request: state.request, attractionIds: [] });
+        { title: title, request: req, attractionIds: [] });
       var it = await post('/api/itineraries', { title: payload.title, plan: payload.plan });
       await api('/api/itineraries/' + encodeURIComponent(it.id) + '/daily?version=' + it.version,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload.dailySchedules || []) });
-      state.itineraryId = it.id;
+      itineraryId = it.id;
       $('exportBtn').disabled = false;
       $('draftState').textContent = '已保存';
       $('tripName').textContent = payload.title;
-      $('tripMeta').textContent = '已写入行程，重启后可读回';
+      $('tripMeta').textContent = '已写入行程，可导出或在票务里用';
       closeSave();
       toast('行程已保存，可导出行程单');
     } catch (e) { $('saveErr').textContent = e.message; }
     finally { $('saveConfirm').disabled = false; }
   }
-  async function exportPlan() {
-    if (!state.itineraryId) return;
+  async function exportPlan(id) {
+    var target = id || itineraryId;
+    if (!target) return;
     try {
-      var txt = await api('/api/itineraries/' + encodeURIComponent(state.itineraryId) + '/export');
+      var txt = await api('/api/itineraries/' + encodeURIComponent(target) + '/export');
       var blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -983,22 +2033,73 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     } catch (e) { toast('导出失败：' + e.message); }
   }
 
+  /* ---------- 行程视图 ---------- */
+  async function loadTrips() {
+    var box = $('tripsBox');
+    box.innerHTML = '<div class="trip-empty">正在读取…</div>';
+    try {
+      var list = await api('/api/itineraries?archived=false');
+      if (!list || !list.length) {
+        box.innerHTML = '<div class="trip-empty"><b>还没有保存的行程</b>' +
+          '在规划里聊出一个草案，点「确认保存」就会出现在这里。</div>';
+        $('tripsMeta').textContent = '只列出你名下的行程';
+        return;
+      }
+      $('tripsMeta').textContent = '共 ' + list.length + ' 个行程';
+      var grid = el('div', 'trip-list');
+      list.forEach(function (t) {
+        var days = (t.dailySchedules || []).length;
+        var card = el('div', 'trip-card');
+        card.appendChild(el('h3', null, esc(t.title || '未命名行程')));
+        var bits = [];
+        if (days) bits.push(days + ' 天');
+        if (t.plan && t.plan.destination) bits.push(t.plan.destination);
+        bits.push('v' + t.version);
+        if (t.updatedAt) bits.push(String(t.updatedAt).slice(0, 10));
+        card.appendChild(el('div', 'm', esc(bits.join(' · '))));
+        var acts = el('div', 'acts');
+        var exp = el('button', 'btn btn-outline', '导出行程单');
+        exp.type = 'button';
+        exp.addEventListener('click', function () { exportPlan(t.id); });
+        var tick = el('button', 'btn btn-outline', '按此行程购票');
+        tick.type = 'button';
+        tick.addEventListener('click', function () {
+          showView('ticket');
+          toast('在票务里点「加载我的行程」，选「' + (t.title || '') + '」');
+        });
+        var del = el('button', 'btn btn-outline', '删除');
+        del.type = 'button';
+        del.addEventListener('click', async function () {
+          if (!confirm('删除行程「' + (t.title || '未命名') + '」？此操作不可撤销。')) return;
+          try {
+            await api('/api/itineraries/' + encodeURIComponent(t.id), { method: 'DELETE' });
+            toast('已删除');
+            loadTrips();
+          } catch (e) { toast('删除失败：' + e.message); }
+        });
+        acts.appendChild(exp); acts.appendChild(tick); acts.appendChild(del);
+        card.appendChild(acts);
+        grid.appendChild(card);
+      });
+      box.innerHTML = ''; box.appendChild(grid);
+    } catch (e) {
+      box.innerHTML = '<div class="trip-empty">读取失败：' + esc(e.message) + '</div>';
+    }
+  }
+
   /* ---------- 百度地图（可选）：无 AK 时全程走 SVG 示意底图 ---------- */
   function drawBMapPoints() {
-    // 真实坐标由 /api/attractions?city= 提供；本页只画点，不把示意路线当真实地理数据。
     if (!window.__bmap) return;
     var map = window.__bmap;
     map.clearOverlays();
     var pts = [];
-    state.points.forEach(function (p, i) {
-      var lng = p.lng, lat = p.lat;
-      if (lng == null || lat == null) return;
-      var point = new window.BMapGL.Point(lng, lat);
+    points.forEach(function (p, i) {
+      if (p.lng == null || p.lat == null) return;
+      var point = new window.BMapGL.Point(p.lng, p.lat);
       pts.push(point);
-      var marker = new window.BMapGL.Marker(point);
-      map.addOverlay(marker);
-      var label = new window.BMapGL.Label(String(i + 1) + ' ' + p.name, { position: point, offset: new window.BMapGL.Size(12, -10) });
-      map.addOverlay(label);
+      map.addOverlay(new window.BMapGL.Marker(point));
+      map.addOverlay(new window.BMapGL.Label(String(i + 1) + ' ' + p.name,
+        { position: point, offset: new window.BMapGL.Size(12, -10) }));
     });
     if (pts.length > 1) map.addOverlay(new window.BMapGL.Polyline(pts,
       { strokeColor: '#B4542A', strokeWeight: 3, strokeOpacity: .8 }));
@@ -1011,14 +2112,13 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     window.__bmap.centerAndZoom(new window.BMapGL.Point(111.05, 32.55), 11);
     $('mapStage').classList.add('has-bmap');
     $('mapNote').textContent = '实时地图（BMapGL）';
-    // 从知识库取真实坐标，按名称匹配到已排点位
-    var city = (state.request && state.request.destination) || '';
+    var city = (convoState && convoState.city) || '';
     if (city) {
       api('/api/attractions?city=' + encodeURIComponent(city))
         .then(function (list) {
           var byName = {};
           (list || []).forEach(function (a) { if (a.name) byName[a.name] = a; });
-          state.points.forEach(function (p) {
+          points.forEach(function (p) {
             var a = byName[p.name];
             if (a && a.lat != null && a.lon != null) { p.lat = a.lat; p.lng = a.lon; }
           });
@@ -1028,17 +2128,24 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   };
 
   /* ---------- 启动与事件 ---------- */
-  $('sendBtn').addEventListener('click', send);
-  $('prompt').addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+  $('sendBtn').addEventListener('click', function () {
+    var box = $('prompt'); var t = box.value.trim();
+    if (!t) return;
+    box.value = ''; sendText(t);
+  });
+  $('prompt').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('sendBtn').click(); }
+  });
   $('micBtn').addEventListener('click', function () { toast('语音输入未接入，请直接打字'); });
   $('queryClear').addEventListener('click', function () {
-    state.request = null; state.draft = null; state.activeField = null;
+    convoState = {}; draftView = null; convo = [];
     $('queryText').textContent = '例如：带爸妈去武当山玩四天，预算六千';
     $('tripName').textContent = '还没有行程';
     $('tripMeta').textContent = '说一句话开始规划';
     $('draftState').textContent = '草案未保存';
     $('pinLayer').innerHTML = ''; $('daystrip').innerHTML = '';
     $('mapPillMeta').textContent = '· 尚未生成草案';
+    $('mapPillTitle').textContent = '行程地图';
     $('spotCard').classList.remove('open');
     toast('已清除当前需求，草案与地图已重置');
   });
@@ -1046,15 +2153,28 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   $('mask').addEventListener('click', closeSave);
   $('saveCancel').addEventListener('click', closeSave);
   $('saveConfirm').addEventListener('click', confirmSave);
-  $('exportBtn').addEventListener('click', exportPlan);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSave(); });
+  $('exportBtn').addEventListener('click', function () { exportPlan(); });
+  $('tripsRefresh').addEventListener('click', loadTrips);
+  $('themeBtn').addEventListener('click', function () {
+    var next = THEME_ORDER[(THEME_ORDER.indexOf(currentTheme()) + 1) % THEME_ORDER.length];
+    applyTheme(next); toast('外观：' + THEME_TEXT[next]);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeSave(); $('spotCard').classList.remove('open'); }
+  });
   Array.prototype.forEach.call(document.querySelectorAll('[data-quick]'), function (b) {
-    b.addEventListener('click', function () { $('prompt').value = b.dataset.quick; send(); });
+    b.addEventListener('click', function () {
+      $('prompt').value = b.dataset.quick;
+      $('sendBtn').click();
+    });
   });
   $('logoutBtn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
       .catch(function () { /* 会话已失效也回登录页 */ })
       .then(function () { location.replace('/'); });
+  });
+  window.addEventListener('hashchange', function () {
+    showView((location.hash || '#plan').slice(1), true);
   });
 
   fetch('/api/account/me', { credentials: 'same-origin' })
@@ -1073,6 +2193,8 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
     })
     .catch(function () { /* 服务未就绪时停在本页，避免跳转循环 */ });
 
+  showView((location.hash || '#plan').slice(1), true);
+
   var AK = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
   if (AK) {
     var s = document.createElement('script');
@@ -1080,7 +2202,1395 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
       encodeURIComponent(AK) + '&callback=__initBaiduMap';
     document.head.appendChild(s);
   }
+
+  /* ================================================================
+     富内容渲染层：搬自 chat.html，保持与旧对话页同一套卡片与折叠口径。
+     这些函数只依赖上面的 el / escapeHtml / 传进来的数据，不读全局状态。
+     ================================================================ */
+  function fmt(v){
+    return (v === null || v === undefined || v === '' || v === '暂无') ? '未知' : String(v);
+  }
+
+  /** 票价与开放时间原文可能上百字，卡片里只留能读的一截。 */
+  function trunc(s, n){
+    var t = String(s == null ? '' : s);
+    return t.length > n ? t.slice(0, n) + '…' : t;
+  }
+
+  /** 票价常带一长串括号说明，优先在分号/括号处断开，避免截成半句。 */
+  function brief(s, n){
+    var t = String(s == null ? '' : s);
+    var head = t.split(/[；;(（]/)[0];
+    if(head && head.trim().length >= 2) t = head.trim();
+    return t.length > n ? t.slice(0, n) + '…' : t;
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  /**
+   * 轻量格式化：只认粗体、换行与「- 」列表，其余全部先转义。
+   * 模型输出属于外部内容，不能直接塞进 innerHTML。
+   */
+  function formatRich(text){
+    var lines = escapeHtml(text).split(/\r?\n/);
+    var html = '';
+    lines.forEach(function(line){
+      var t = line.trim();
+      if(!t){ html += '<div class="gap"></div>'; return; }
+      t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      if(/^[-*]\s+/.test(t)){
+        html += '<div class="li">' + t.replace(/^[-*]\s+/, '') + '</div>';
+      } else {
+        html += '<div>' + t + '</div>';
+      }
+    });
+    return html;
+  }
+
+  /** 通用折叠：次要信息不默认占屏，点开才显示（DOM 已建好，只是 hidden）。 */
+  function foldBlock(box, label, render){
+    var body = el('div','fold-body');
+    body.hidden = true;
+    render(body);
+    var btn = el('button','fold-btn');
+    btn.type = 'button';
+    btn.setAttribute('aria-expanded','false');
+    btn.textContent = label + ' ▾';
+    btn.addEventListener('click', function(){
+      var open = body.hidden;
+      body.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.textContent = label + (open ? ' ▴' : ' ▾');
+    });
+    box.appendChild(btn);
+    box.appendChild(body);
+  }
+
+  function nowTime(){
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    return (h<10?'0'+h:h) + ':' + (m<10?'0'+m:m);
+  }
+
+  function isoDate(d){
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+  }
+
+  function shortDate(d){
+    var m = d.getMonth() + 1, day = d.getDate();
+    return m + '-' + (day < 10 ? '0' + day : day);
+  }
+
+  function addDays(d, n){
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  }
+
+  /** 本周六（今天就到周六则取今天），用于「周末出发」这类高频选择。 */
+  function nextSaturday(d){
+    var delta = (6 - d.getDay() + 7) % 7;
+    return addDays(d, delta);
+  }
+
+  function parseISO(s){
+    var p = String(s || '').split('-');
+    if(p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function slimDraft(d){
+    if(!d) return null;
+    return {
+      advice: d.advice || null,
+      // 请求天数 / 实际排出天数 / 收敛掉的天数：只用来显示一条说明，不铺空天
+      dayScope: d.dayScope || null,
+      notices: (d.notices || []).slice(0, 5),
+      sources: d.sources || [],
+      questions: (d.questions || []).map(function(q){
+        return { code:q.code, field:q.field, question:q.question, hint:q.hint };
+      }),
+      checks: (d.checks || []).map(function(c){
+        return { code:c.code, severity:c.severity, message:c.message, suggestion:c.suggestion };
+      }),
+      // 景点 record 的 JSON 键是 open_time（@JsonProperty），不是 openTime
+      candidates: (d.candidates || []).slice(0, 8).map(function(a){
+        return { name:a.name, city:a.city, level:a.level, rating:a.rating,
+                 ticket:a.ticket, openTime:a.open_time };
+      }),
+      dailySchedules: (d.dailySchedules || []).map(function(x){
+        return {
+          dayIndex: x.dayIndex, date: x.date, note: x.note,
+          items: (x.items || []).map(function(i){
+            return { name:i.name, city:i.city, ticket:i.ticket,
+                     openTime:i.openTime, unknowns:i.unknowns || [] };
+          })
+        };
+      }),
+      budgetEstimate: d.budgetEstimate || null,
+      generatedAt: d.generatedAt || null
+    };
+  }
+
+  /**
+   * 逐日草案：编排层已只给有候选的天，这里再兜一层（历史消息可能仍带空天）。
+   * 票价与开放时间压成一行小字，长篇 note 不逐天重复；收敛掉的天合并成一条说明。
+   */
+  function planCard(days, view){
+    var all = days || [];
+    var filled = all.filter(function(d){ return d && d.items && d.items.length; });
+    var emptyDays = all.length - filled.length;
+    var trimmed = Number(((view && view.dayScope) || {}).trimmedDays || 0);
+    var box = el('div','plan');
+    var head = el('div','plan-head');
+    var title = el('span','plan-title');
+    title.textContent = '逐日草案';
+    var tag = el('span','plan-tag');
+    tag.textContent = filled.length + ' 天';
+    head.appendChild(title);
+    head.appendChild(tag);
+    box.appendChild(head);
+
+    if(!filled.length){
+      var none = el('div','plan-empty');
+      none.textContent = '本轮没有可排的候选景点，未生成空天。';
+      box.appendChild(none);
+    }
+    filled.forEach(function(d){
+      var row = el('div','day');
+      var no = el('span','day-no');
+      no.textContent = 'D' + d.dayIndex;
+      row.appendChild(no);
+
+      var txt = el('div','day-txt');
+      var b = el('b');
+      b.textContent = d.items.map(function(i){ return i.name; }).join(' · ');
+      txt.appendChild(b);
+
+      var bits = d.items.map(function(i){
+        var t = brief(fmt(i.ticket), 14);
+        var o = brief(fmt(i.openTime), 16);
+        var parts = [t === '未知' ? '票价未核验' : '票价 ' + t];
+        if(o !== '未知') parts.push('开放 ' + o);
+        return i.name + '：' + parts.join('，');
+      });
+      if(d.date) bits.push(d.date);
+      var meta = el('span','day-meta');
+      meta.textContent = bits.join('；');
+      txt.appendChild(meta);
+      row.appendChild(txt);
+      box.appendChild(row);
+    });
+    var left = trimmed + emptyDays;
+    if(left > 0){
+      var foot = el('div','plan-foot');
+      foot.textContent = '另有 ' + left + ' 天没有可查景点，未硬凑空天；'
+        + '可以把天数缩短到 ' + filled.length + ' 天，或补一个周边城市再排。';
+      box.appendChild(foot);
+    }
+    return box;
+  }
+
+  /** 候选景点默认只列排序最前的 3 个，其余折叠，避免一次刷一长串。 */
+  function candCard(cands){
+    var box = el('div','cands');
+    var head = el('div','cands-head');
+    head.textContent = '候选景点 · 共 ' + cands.length + ' 个';
+    box.appendChild(head);
+    function addRow(target, a){
+      var row = el('div','cand');
+      var name = el('b');
+      name.textContent = a.name;
+      var meta = el('span');
+      var bits = [];
+      if(a.city) bits.push(a.city);
+      if(a.level) bits.push(a.level);
+      if(a.rating) bits.push('评分 ' + a.rating);
+      bits.push(a.ticket == null || a.ticket === '' ? '票价未核验'
+        : '票价 ' + brief(fmt(a.ticket), 16));
+      meta.textContent = bits.join(' · ');
+      row.appendChild(name);
+      row.appendChild(meta);
+      target.appendChild(row);
+    }
+    var shown = cands.slice(0, 3);
+    shown.forEach(function(a){ addRow(box, a); });
+    if(cands.length > shown.length){
+      foldBlock(box, '展开其余 ' + (cands.length - shown.length) + ' 个候选', function(body){
+        cands.slice(shown.length).forEach(function(a){ addRow(body, a); });
+      });
+    }
+    return box;
+  }
+
+  function foodFromEnvelope(env){
+    var payload = (env && env.result) ? env.result : null;
+    if(!payload) return null;
+    var items = [];
+    (payload.facts || []).forEach(function(f){
+      if(!f || f.type !== 'CONTENT' || !f.value || f.value.category !== 'FOOD') return;
+      var v = f.value;
+      items.push({
+        name: v.name || '',
+        slot: v.mealSlot || '',
+        price: v.pricePerPersonCny,
+        distance: v.distanceMeters,
+        rating: v.rating,
+        tags: (v.tags || []).slice(0, 3)
+      });
+    });
+    return {
+      items: items,
+      advice: payload.advice || null,
+      notices: (payload.notices || []).slice(0, 5),
+      agent: {
+        providerId: env.providerId || payload.providerId || '',
+        status: env.status || payload.status || '',
+        attempts: env.attempts || []
+      }
+    };
+  }
+
+  function foodCard(items, total){
+    var box = el('div','cands');
+    var head = el('div','cands-head');
+    head.textContent = '可以去的餐馆 · 来自地图 POI';
+    box.appendChild(head);
+    // 一次列三十家没人看：只展开离得最近的前几家，其余在末尾说明
+    var shown = items.slice(0, 8);
+    shown.forEach(function(it){
+      var row = el('div','cand');
+      var name = el('b');
+      name.textContent = it.name;
+      var meta = el('span');
+      var bits = [];
+      if(it.slot) bits.push(it.slot);
+      if(it.price) bits.push('人均 ' + it.price + ' 元');
+      if(it.distance) bits.push(Math.round(it.distance) + ' 米');
+      if(it.rating) bits.push('评分 ' + it.rating);
+      if(it.tags.length) bits.push(it.tags.join('/'));
+      meta.textContent = bits.length ? bits.join(' · ') : '暂无更多信息';
+      row.appendChild(name);
+      row.appendChild(meta);
+      box.appendChild(row);
+    });
+    if(total > shown.length){
+      var more = el('div','cand');
+      more.textContent = '另有 ' + (total - shown.length) + ' 家未展开，可以缩小范围再问，比如「东湖附近有什么好吃的」';
+      box.appendChild(more);
+    }
+    return box;
+  }
+
+  /** 通用可点卡片：标题 + 一排按钮，点一下就把那句话发出去（闲聊开场、换目的地都用它）。 */
+  function chipCard(title, items){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode(title));
+    box.appendChild(head);
+    var bodyBox = el('div','opts-body');
+    var row = el('div','opt-row');
+    items.forEach(function(it){
+      var b = el('button','opt');
+      b.type = 'button';
+      b.textContent = it.text;
+      b.addEventListener('click', function(){
+        if(busy) return;
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function(x){ x.disabled = true; });
+        sendText(it.send || it.text);
+      });
+      row.appendChild(b);
+    });
+    bodyBox.appendChild(row);
+    box.appendChild(bodyBox);
+    return box;
+  }
+
+  function qaCard(questions, ctx){
+    var baseText = (ctx && ctx.baseText) || '';
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode('补上这几项，行程就能排到具体日期'));
+    var tag = el('span','plan-tag');
+    tag.textContent = '点选即可';
+    head.appendChild(tag);
+    box.appendChild(head);
+
+    var bodyBox = el('div','opts-body');
+    var picks = {};
+    // 上一轮已经说过的信息预填回来：用户在补问卡里点过的日期不该再问一次
+    var dateOut = String(baseText || '').match(/(\d{4}-\d{2}-\d{2})\s*出发/);
+    if(dateOut) picks.departDate = dateOut[1];
+    var dateBack = String(baseText || '').match(/(\d{4}-\d{2}-\d{2})\s*返回/);
+    if(dateBack) picks.returnDate = dateBack[1];
+    var budgetHit = String(baseText || '').match(/预算\s*(\d{2,6})/);
+    if(budgetHit) picks.budget = parseInt(budgetHit[1], 10);
+    var dateInputs = {};
+    var returnRow = null;
+
+    function refresh(){
+      // 统一按 data-field / data-v 回填选中态，重建行也不会留下失效引用
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){
+        var f = b.getAttribute('data-field');
+        if(!f) return;
+        var v = b.getAttribute('data-v');
+        b.setAttribute('aria-pressed', String(picks[f]) === v ? 'true' : 'false');
+      });
+      if(dateInputs.returnDate && picks.departDate){
+        dateInputs.returnDate.min = picks.departDate;
+      }
+      if(go) go.disabled = busy;
+    }
+
+    function dateChips(field, row){
+      var today = new Date();
+      var chips;
+      if(field === 'returnDate'){
+        if(!picks.departDate) return;   // 没有出发日就不猜返程
+        var base = parseISO(picks.departDate);
+        chips = [
+          { t:'当天返程', d:base },
+          { t:'第 2 天返', d:addDays(base, 1) },
+          { t:'第 3 天返', d:addDays(base, 2) },
+          { t:'第 4 天返', d:addDays(base, 3) }
+        ];
+      } else {
+        var sat = nextSaturday(today);
+        chips = [
+          { t:'今天', d:today },
+          { t:'明天', d:addDays(today, 1) },
+          { t:'本周六', d:sat },
+          { t:'下周六', d:addDays(sat, 7) }
+        ];
+      }
+      chips.forEach(function(c){
+        var v = isoDate(c.d);
+        var b = el('button','opt');
+        b.type = 'button';
+        b.setAttribute('data-field', field);
+        b.setAttribute('data-v', v);
+        b.textContent = c.t + ' ' + shortDate(c.d);
+        b.addEventListener('click', function(){
+          picks[field] = (picks[field] === v) ? null : v;
+          if(field === 'departDate' && returnRow) fillDateRow('returnDate', returnRow);
+          refresh();
+        });
+        row.appendChild(b);
+      });
+    }
+
+    function fillDateRow(field, row){
+      row.innerHTML = '';
+      dateChips(field, row);
+      var input = document.createElement('input');
+      input.type = 'date';
+      input.className = 'opt-date';
+      input.title = '也可以直接在日历里选';
+      input.min = (field === 'returnDate' && picks.departDate) ? picks.departDate : isoDate(new Date());
+      input.value = picks[field] || '';
+      input.addEventListener('change', function(){
+        picks[field] = input.value || null;
+        if(field === 'departDate' && returnRow) fillDateRow('returnDate', returnRow);
+        refresh();
+      });
+      dateInputs[field] = input;
+      row.appendChild(input);
+      refresh();
+    }
+
+    questions.forEach(function(q){
+      var spec = QA_KINDS[q.field];
+      var wrap = el('div','opt-group');
+      if(!spec){
+        // 没有对应控件的补问项：保留原文与提示，不硬造选项
+        var title = el('div','qacard-q');
+        title.textContent = q.question || q.code || '';
+        wrap.appendChild(title);
+        if(q.hint){
+          var hint = el('div','qacard-h');
+          hint.textContent = q.hint;
+          wrap.appendChild(hint);
+        }
+        bodyBox.appendChild(wrap);
+        return;
+      }
+
+      var label = el('span','opt-label');
+      label.textContent = spec.label + (spec.unit && spec.kind === 'choice' ? '（' + spec.unit.trim() + '）' : '');
+      wrap.appendChild(label);
+
+      var row = el('div','opt-row');
+      if(spec.kind === 'date'){
+        if(q.field === 'returnDate') returnRow = row;
+        wrap.appendChild(row);
+        fillDateRow(q.field, row);
+      } else {
+        spec.options.forEach(function(o){
+          var b = el('button','opt');
+          b.type = 'button';
+          b.setAttribute('data-field', q.field);
+          b.setAttribute('data-v', String(o));
+          b.textContent = spec.unit ? o + spec.unit : String(o);
+          b.addEventListener('click', function(){
+            picks[q.field] = (picks[q.field] === o) ? null : o;
+            refresh();
+          });
+          row.appendChild(b);
+        });
+        wrap.appendChild(row);
+      }
+      bodyBox.appendChild(wrap);
+    });
+    box.appendChild(bodyBox);
+
+    var foot = el('div','opts-foot');
+    var go = el('button','opt-go');
+    go.type = 'button';
+    go.textContent = '按这些重排';
+    var tip = el('span','opts-tip');
+    tip.textContent = '日期点日历就行，其余可以只选你清楚的。';
+    var close = el('button','opt-skip');
+    close.type = 'button';
+    close.textContent = '先不填';
+    foot.appendChild(go);
+    foot.appendChild(tip);
+    foot.appendChild(close);
+    box.appendChild(foot);
+
+    function compose(){
+      var bits = [];
+      var head0 = String(baseText || '').replace(/[，,。！？!?\s]+$/, '');
+      if(picks.days){
+        // 原话里已有天数时替换掉，避免「2 天…3 天」自相矛盾
+        if(/\d+\s*天/.test(head0)) head0 = head0.replace(/\d+\s*天/, picks.days + ' 天');
+        else bits.push(picks.days + ' 天');
+      }
+      if(picks.travelers) bits.push(picks.travelers + ' 人');
+      if(picks.departDate) bits.push(picks.departDate + ' 出发');
+      if(picks.returnDate) bits.push(picks.returnDate + ' 返回');
+      if(picks.budget) bits.push('预算 ' + picks.budget);
+      return head0 + (bits.length ? '，' + bits.join('，') : '');
+    }
+
+    function extraOf(){
+      var extra = {};
+      ['days','travelers','budget','departDate','returnDate'].forEach(function(k){
+        if(picks[k]) extra[k] = picks[k];
+      });
+      return extra;
+    }
+
+    go.addEventListener('click', function(){
+      if(busy) return;
+      if(picks.departDate && picks.returnDate && picks.returnDate < picks.departDate){
+        tip.textContent = '返回日期早于出发日期，改一下再排。';
+        return;
+      }
+      go.disabled = true;
+      go.textContent = '已提交';
+      tip.textContent = '正在按这些信息重排…';
+      close.disabled = true;
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){ b.disabled = true; });
+      Array.prototype.forEach.call(box.querySelectorAll('.opt-date'), function(b){ b.disabled = true; });
+      sendText(compose(), false, extraOf());
+    });
+
+    close.addEventListener('click', function(){
+      if(busy) return;
+      Array.prototype.forEach.call(box.querySelectorAll('button, input'), function(b){ b.disabled = true; });
+      tip.textContent = '已跳过，下一句话里补充也可以。';
+    });
+
+    refresh();
+    return box;
+  }
+
+  /**
+   * 补充选项卡：天数必选，其余可跳过；已说过的信息会预选上，不重复问。
+   * 点「生成行程」把原话 + 选择拼成一句，走正常的发送链路。
+   */
+  function choiceCard(baseText, place, preset){
+    var state = { days:null, travelers:null, prefs:[] };
+    if(preset){
+      if(preset.travelers) state.travelers = preset.travelers;
+      (preset.prefs || []).forEach(function(p){
+        if(PREF_TEXT[p] && state.prefs.indexOf(p) < 0) state.prefs.push(p);
+      });
+    }
+
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode('还差几个信息 · 按 ' + place.name + ' 规划'));
+    var tag = el('span','plan-tag');
+    tag.textContent = (place.via && place.via !== place.name) ? place.via : '补充信息';
+    head.appendChild(tag);
+    box.appendChild(head);
+
+    var bodyBox = el('div','opts-body');
+    var groups = [];
+    CHOICE_GROUPS.forEach(function(g){
+      var wrap = el('div','opt-group');
+      var label = el('span','opt-label');
+      label.innerHTML = g.label + (g.required ? '<span class="req">（必选）</span>' : '');
+      wrap.appendChild(label);
+
+      var row = el('div','opt-row');
+      var btns = [];
+      g.options.forEach(function(o){
+        var b = el('button','opt');
+        b.type = 'button';
+        b.textContent = o.t;
+        b.addEventListener('click', function(){
+          if(g.multi){
+            var i = state.prefs.indexOf(o.v);
+            if(i >= 0) state.prefs.splice(i, 1); else state.prefs.push(o.v);
+          } else {
+            // 再点一次取消，避免点错后无法回到未选状态
+            state[g.key] = (state[g.key] === o.v) ? null : o.v;
+          }
+          sync();
+        });
+        btns.push({ b:b, o:o });
+        row.appendChild(b);
+      });
+      groups.push({ g:g, btns:btns });
+      wrap.appendChild(row);
+      bodyBox.appendChild(wrap);
+    });
+    box.appendChild(bodyBox);
+
+    var foot = el('div','opts-foot');
+    var go = el('button','opt-go');
+    go.type = 'button';
+    go.textContent = '生成行程';
+    var tip = el('span','opts-tip');
+    tip.textContent = '选好天数就能生成，其余可以跳过。';
+    var skip = el('button','opt-skip');
+    skip.type = 'button';
+    skip.textContent = '先看看景点';
+    skip.title = '不排日程，只列出知识库里的候选景点';
+    foot.appendChild(go);
+    foot.appendChild(tip);
+    foot.appendChild(skip);
+    box.appendChild(foot);
+
+    function sync(){
+      groups.forEach(function(x){
+        x.btns.forEach(function(p){
+          var on = x.g.multi ? state.prefs.indexOf(p.o.v) >= 0 : state[x.g.key] === p.o.v;
+          p.b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+      });
+      go.disabled = !state.days;
+    }
+
+    function compose(){
+      var bits = [];
+      if(state.days) bits.push(state.days + ' 天');
+      if(state.travelers) bits.push(state.travelers + ' 人');
+      state.prefs.forEach(function(p){ bits.push(PREF_TEXT[p] || p); });
+      var head0 = String(baseText || '').replace(/[，,。！？!?\s]+$/, '');
+      return head0 + (bits.length ? '，' + bits.join('，') : '');
+    }
+
+    go.addEventListener('click', function(){
+      if(go.disabled || busy) return;
+      go.disabled = true;
+      go.textContent = '已提交';
+      tip.textContent = '正在按你的选择生成行程…';
+      skip.disabled = true;
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){ b.disabled = true; });
+      // 结构化值跟着一起带上：偏好词表比选项卡大（购物/夜游/温泉…），只靠拼文字会丢
+      sendText(compose(), false, { days: state.days, travelers: state.travelers, prefs: state.prefs });
+    });
+
+    // 不排日程、只看候选：绕过补充信息，直接按原话检索
+    skip.addEventListener('click', function(){
+      if(busy) return;
+      go.disabled = true;
+      skip.disabled = true;
+      skip.textContent = '正在检索…';
+      tip.textContent = '先列出知识库里的候选景点。';
+      Array.prototype.forEach.call(box.querySelectorAll('.opt'), function(b){ b.disabled = true; });
+      // 带上语义再发一次：消息记录里看得出这是一次「只看景点」的请求
+      sendText(baseText + '，先看看有哪些景点', true);
+    });
+
+    sync();
+    return box;
+  }
+
+  /**
+   * 目的地候选：完全不认识这个地名时的出口。
+   * 城市来自后端的字面相近结果（库里有谁就推荐谁，没有写死清单），点一下就换过去，
+   * 不用用户把整句话重打一遍。
+   */
+  function destCard(cities, tried){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.appendChild(document.createTextNode('换成这些目的地试试'));
+    var tag = el('span','plan-tag');
+    // 未识别时 tried 可能是整句话，标签只放短词，别把整段塞进小角标
+    tag.textContent = brief(tried || '未识别', 6);
+    head.appendChild(tag);
+    box.appendChild(head);
+
+    var bodyBox = el('div','opts-body');
+    var row = el('div','opt-row');
+    cities.forEach(function(city){
+      var b = el('button','opt');
+      b.type = 'button';
+      b.textContent = city;
+      b.addEventListener('click', function(){
+        if(busy) return;
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function(x){ x.disabled = true; });
+        sendText(city);
+      });
+      row.appendChild(b);
+    });
+    bodyBox.appendChild(row);
+    box.appendChild(bodyBox);
+    return box;
+  }
+
+  function warnNodes(checks){
+    return checks
+      .filter(function(c){ return c.severity === 'HIGH' || c.severity === 'MEDIUM'; })
+      .map(function(c){
+        var n = el('div', 'warn ' + (c.severity === 'HIGH' ? 'high' : 'med'));
+        n.textContent = c.message + (c.suggestion ? '｜' + c.suggestion : '');
+        return n;
+      });
+  }
+
+  /** 天气卡：逐日一行，右上角是温度区间与风。数据是高德预报，不是实况。 */
+  function weatherBlock(data){
+    var box = el('div','wx');
+    var head = el('div','wx-h');
+    head.textContent = fmt(data && data.city) + ' · 逐日预报'
+      + (data && data.reportTime ? ' · 发布 ' + data.reportTime : '')
+      + ' · 来源高德';
+    box.appendChild(head);
+    var days = (data && data.days) || [];
+    days.forEach(function(d){
+      var row = el('div','wx-row');
+      row.appendChild(el('div','d', escapeHtml(String(d.date || '').slice(5))));
+      var mid = [d.dayWeather, (d.nightWeather && d.nightWeather !== d.dayWeather) ? d.nightWeather : '']
+        .filter(Boolean).join(' → ');
+      row.appendChild(el('div','', escapeHtml(mid || '天气未知')));
+      var temps = (d.nightTemp || '?') + '~' + (d.dayTemp || '?') + '℃';
+      var wind = [d.dayWind, d.dayPower ? d.dayPower + ' 级' : ''].filter(Boolean).join(' ');
+      row.appendChild(el('div','t', escapeHtml(temps + (wind ? ' · ' + wind : ''))));
+      box.appendChild(row);
+    });
+    box.appendChild(el('div','wx-tip','预报会变，出行当天再看一次；温度是区间，早晚差得多记得带外套。'));
+    return box;
+  }
+
+  /**
+   * 投票卡片：默认只给「胜出 + 一句口径」，候选评分、主 Agent 草案、购票入口全部折叠。
+   * 用户不想一屏里同时看到多套待候选和重复草案；想核对细节再点开，数据本身不删、不改写。
+   */
+  function voteBlock(data){
+    data = data || {};
+    var box = el('div','vote');
+    var plans = data.plans || [];
+    var ranking = data.ranking || [];
+    var notices = data.notices || [];
+    var head = el('div','vote-h');
+    head.textContent = '评委投票 · 共 ' + plans.length + ' 套候选';
+    box.appendChild(head);
+    if(data.winner){
+      var win = el('div','vote-win');
+      var winnerPlan = plans.find(function(p){ return p && p.planId === data.winner; });
+      win.textContent = '胜出：' + data.winner
+        + (winnerPlan && winnerPlan.title ? ' · ' + winnerPlan.title : '')
+        + (winnerPlan && winnerPlan.focus ? '（侧重' + ({COST:'省钱',FOOD:'美食',WALK:'少走路',BALANCED:'均衡'}[winnerPlan.focus] || winnerPlan.focus) + '）' : '');
+      box.appendChild(win);
+      var tip = el('div','vote-tip');
+      tip.textContent = '评分来自评委 Agent 的结构化票，仅供参考；行程安排最终由你决定。';
+      box.appendChild(tip);
+    } else if(notices.length){
+      box.appendChild(el('div','vote-tip', escapeHtml(notices[0] || '本轮没有产生推荐')));
+    }
+
+    foldBlock(box, '展开 ' + plans.length + ' 套候选评分与主 Agent 草案', function(fbody){
+      ranking.forEach(function(r){
+        var row = el('div','vote-row');
+        row.appendChild(el('div','d', escapeHtml(r.planId || '')));
+        row.appendChild(el('div','', escapeHtml('加权 ' + (r.score || '-') + ' · ' + (r.voterCount || 0) + ' 票有效')));
+        fbody.appendChild(row);
+      });
+      var draft = data.draft || null;
+      if(draft){
+        var dbox = el('div','');
+        dbox.style.marginTop = 'var(--sp-2)';
+        dbox.appendChild(el('div','wx-h', '主 Agent 汇总 ' + (data.collectedFactCount || 0)
+          + ' 条子 Agent 事实整理的草案'));
+        (draft.dailySchedules || []).forEach(function(d){
+          if(!d.items || !d.items.length) return;  // 不重复渲染「暂无候选」
+          dbox.appendChild(el('div','vote-tip', escapeHtml('D' + d.day + '：' + d.items.join('、'))));
+        });
+        var trimmed = Number((draft.dayScope || {}).trimmedDays || 0);
+        if(trimmed){
+          var folded = el('div','vote-tip');
+          folded.textContent = '另有 ' + trimmed + ' 天没有可查景点，未硬凑空天。';
+          dbox.appendChild(folded);
+        }
+        var guidanceBox = ticketGuidanceBlock(draft.ticketGuidance);
+        if(guidanceBox){
+          guidanceBox.style.marginTop = 'var(--sp-2)';
+          dbox.appendChild(guidanceBox);
+        }
+        fbody.appendChild(dbox);
+      }
+    });
+    return box;
+  }
+
+  /**
+   * 票务子 Agent 的产物：只列经核验的官方入口与购票方法。
+   * 不渲染「下单」「支付」按钮——系统不替用户购票，也不生成猜测链接。
+   */
+  function ticketGuidanceBlock(g){
+    if(!g) return null;
+    var box = el('div','wx');
+    box.appendChild(el('div','wx-h','官方购票入口（只给入口与方法，不代下单）'));
+    if(g.method){
+      box.appendChild(el('div','vote-tip', escapeHtml(g.method)));
+    }
+    var channels = g.channels || [];
+    channels.forEach(function(c){
+      var url = String(c.url || '');
+      if(!/^https?:\/\//i.test(url)) return;
+      var row = el('div','wx-row');
+      var link = el('a','d', escapeHtml(c.name || '官方入口'));
+      link.setAttribute('href', url);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      row.appendChild(link);
+      row.appendChild(el('div','t', escapeHtml(c.note || '以官方页面为准')));
+      box.appendChild(row);
+    });
+    box.appendChild(el('div','vote-tip', escapeHtml(channels.length
+      ? (g.note || '余票未核验，购票前请以官方页面显示为准。')
+      : '暂未收录经核验的官方入口，请自行进入景区官方网站或官方公众号；本系统不生成猜测链接。')));
+    return box;
+  }
+
+  /**
+   * 景点小表：候选已按真实评分排序；票价只显示数据源原文，缺票价就明说「未核验」
+   * 并给出购票方法。人工核验过的官方入口才渲染成链接，绝不拼一个猜测网址。
+   */
+  /** 只允许地图官方域名，避免卡片数据里混进任意外链。 */
+  function officialReviewUrl(u){
+    var raw = String(u || '');
+    if(!/^https:\/\//i.test(raw)) return '';
+    try{
+      var host = new URL(raw).hostname.toLowerCase();
+      var allowed = ['www.amap.com','ditu.amap.com','uri.amap.com',
+                     'map.baidu.com','api.map.baidu.com'];
+      return allowed.indexOf(host) >= 0 ? raw : '';
+    }catch(e){ return ''; }
+  }
+
+  /** 景点小表：名字、评价数（可点开说明）、★评分、票价原文；评论正文只在地图官方页。 */
+  function placesBlock(rows){
+    var box = el('div','wx places');
+    box.appendChild(el('div','wx-h','景点（好评高的在前，点评价看评论入口 · 票价以景区公告为准）'));
+    var links = [], seen = {};
+    var list = rows || [];
+    var shown = list.slice(0, 4);
+    function addRow(target, r){
+      var row = el('div','wx-row');
+      var nameBox = el('div','d', escapeHtml(r.name || ''));
+      var hasCount = !(r.commentCount == null || String(r.commentCount) === '');
+      var reviewLabel = hasCount ? String(r.commentCount) + ' 条评价' : '查看评价';
+      var sub = el('div','sub');
+      var toggle = el('button','review-toggle', escapeHtml(reviewLabel) + ' ▾');
+      toggle.setAttribute('type','button');
+      toggle.setAttribute('aria-expanded','false');
+      sub.appendChild(toggle);
+      if(r.level) sub.appendChild(document.createTextNode(' · ' + String(r.level)));
+      nameBox.appendChild(sub);
+      row.appendChild(nameBox);
+      var rate = (r.rating == null || String(r.rating) === '') ? '' : '★ ' + String(r.rating);
+      row.appendChild(el('div','rate', escapeHtml(rate || '暂无评分')));
+      var ticket = (r.ticket == null) ? '' : String(r.ticket);
+      var t = el('div', 't' + (ticket ? '' : ' unknown'),
+          ticket ? escapeHtml(brief(ticket, 26)) : '票价未核验');
+      if(ticket) t.setAttribute('title', ticket);
+      row.appendChild(t);
+      (r.channels || []).forEach(function(c){
+        var url = String(c.url || '');
+        if(!/^https?:\/\//i.test(url) || seen[url]) return;
+        seen[url] = 1;
+        links.push({name: String(c.name || '官方购票入口'), url: url, note: String(c.note || '')});
+      });
+      target.appendChild(row);
+
+      // 展开面板只陈述真实评分与来源：地图 API 不返回评论正文，本系统不存储也不生成评论
+      var url = officialReviewUrl(r.reviewUrl);
+      var source = String(r.reviewSource || '地图平台');
+      var panel = el('div','review-panel');
+      panel.hidden = true;
+      var ratingLine = (rate || '暂无评分')
+          + (hasCount ? ' · ' + String(r.commentCount) + ' 条评价' : '')
+          + ' · 评分来自 ' + source;
+      panel.appendChild(el('div','rp-line', escapeHtml(ratingLine)));
+      panel.appendChild(el('div','rp-note',
+          r.reviewViaSearch
+            ? '评论正文由地图平台提供，本系统没有取得评论数据、也不会生成评论。下面是官方地图搜索页，进入后点开该景点即可看真实评价。'
+            : '评论正文由地图平台提供，本系统没有取得评论数据、也不会生成评论。点下方按钮到地图官方页面查看其他游客的真实评价。'));
+      if(url){
+        var a = document.createElement('a');
+        a.textContent = r.reviewViaSearch
+            ? '在高德地图搜索该景点 ↗' : '查看' + source + '真实评论 ↗';
+        a.setAttribute('href', url);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        panel.appendChild(a);
+      } else {
+        panel.appendChild(el('div','rp-note','当前没有可用的官方评论入口，可自行在地图 App 搜索景点名查看。'));
+      }
+      target.appendChild(panel);
+      toggle.addEventListener('click', function(){
+        var open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.textContent = reviewLabel + (open ? ' ▴' : ' ▾');
+      });
+    }
+    // 一次列十几个景点没人看：好评最高的前 4 个直接给，其余折叠
+    shown.forEach(function(r){ addRow(box, r); });
+    if(list.length > shown.length){
+      foldBlock(box, '展开其余 ' + (list.length - shown.length) + ' 个景点', function(body){
+        list.slice(shown.length).forEach(function(r){ addRow(body, r); });
+      });
+    }
+    links.slice(0, 4).forEach(function(c){
+      var line = el('div','wx-link');
+      var a = document.createElement('a');
+      a.textContent = c.name + ' ↗';
+      a.setAttribute('href', c.url);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      if(c.note) a.setAttribute('title', c.note);
+      line.appendChild(a);
+      box.appendChild(line);
+    });
+    box.appendChild(el('div','wx-tip', links.length
+      ? '票价为原文快照，未核验不补数字；余票未核验、不代下单。点评价数看官方评论入口。'
+      : '票价未核验就不补数字；购票请到景区官方公众号/官网或现场窗口，余票未核验、不代下单。'));
+    return box;
+  }
+
+  /**
+   * 卡片 → DOM。行程与餐馆直接复用既有渲染器：
+   * Agent 的工具结果和 /api/agent/invoke 是同一个信封，形状一致才能不写第二套渲染。
+   */
+  function paintCard(card, baseText){
+    if(!card) return null;
+    if(card.type === 'weather') return weatherBlock(card.data);
+    if(card.type === 'places') return placesBlock(card.data);
+    if(card.type === 'vote') return voteBlock(card.data);
+    if(card.type === 'envelope'){
+      var env = card.data || {};
+      if(card.intent === 'TICKET_ADVICE'){
+        return ticketGuidanceBlock(env.ticketGuidance);
+      }
+      if(card.intent === 'FOOD_RECOMMEND'){
+        var food = foodFromEnvelope(env);
+        if(!food) return null;
+        var foodBox = el('div','');
+        if(food.advice){
+          foodBox.appendChild(el('div','warn', escapeHtml(food.advice)));
+        }
+        noticeNodes(food.notices).forEach(function(n){ foodBox.appendChild(n); });
+        if(food.items.length){
+          var fc = foodCard(food.items, food.items.length);
+          fc.style.marginTop = 'var(--sp-2)';
+          foodBox.appendChild(fc);
+        }
+        return foodBox;
+      }
+      var view = draftFromEnvelope(env);
+      if(!view) return null;
+      var planBox = el('div','');
+      appendDraftBlocks(planBox, view, { baseText: baseText || '' });
+      return planBox.childNodes.length ? planBox : null;
+    }
+    return null;
+  }
+
+  /** 契约信封 → 渲染视图。字段名与 plan 接口一致，渲染代码不必分叉。 */
+  function draftFromEnvelope(env){
+    var payload = (env && env.result) ? env.result : null;
+    if(!payload) return null;
+    var facts = payload.facts || [];
+    var draft = null;
+    for(var i=0;i<facts.length;i++){
+      var f = facts[i];
+      if(f && f.type === 'CONTENT' && f.value && f.value.category === 'PLAN_DRAFT'){ draft = f.value; break; }
+    }
+    var view = draft ? slimDraft(draft) : null;
+    if(!view){
+      // 兜底 Provider（例如 builtin.rules）只回 advice/notices，没有结构化草案
+      view = { advice:null, notices:(payload.notices || []).slice(0,5), sources:[],
+               questions:[], checks:[], candidates:[], dailySchedules:[],
+               budgetEstimate:null, generatedAt:null };
+    }
+    if(!view.advice && payload.advice) view.advice = payload.advice;
+    view.agent = {
+      providerId: env.providerId || payload.providerId || '',
+      status: env.status || payload.status || '',
+      attempts: env.attempts || [],
+      registryVersion: env.registryVersion || null
+    };
+    view.refused = view.agent.status === 'REFUSED' && !view.advice && !view.candidates.length;
+    return view;
+  }
+
+  function noticeNodes(notices){
+    return (notices || []).slice(0, 3).map(function(t){
+      var n = el('div','warn');
+      n.textContent = t;
+      return n;
+    });
+  }
+
+  /** 助手富内容统一入口：实时回复与历史回放共用，避免两套渲染漂移。 */
+  function appendDraftBlocks(body, view, ctx){
+    if(!view) return;
+    // 有模型建议时不再重复列 notices：正文通常已覆盖同样的缺失项
+    if(!view.advice){
+      noticeNodes(view.notices).forEach(function(n){
+        n.style.marginTop = 'var(--sp-2)';
+        body.appendChild(n);
+      });
+    }
+    // 收敛到 0 天时也要交代一句，否则用户只看到正文、不知道卡片去哪了
+    var trimmedDays = Number(((view.dayScope || {}).trimmedDays) || 0);
+    if((view.dailySchedules && view.dailySchedules.length) || trimmedDays){
+      var card = planCard(view.dailySchedules || [], view);
+      card.style.marginTop = 'var(--sp-2)';
+      body.appendChild(card);
+    }
+    // 检查项也可能堆五六条：先给最要紧的两条，其余折叠，不把卡片顶成一屏警告
+    var warns = warnNodes(view.checks || []);
+    warns.slice(0, 2).forEach(function(n){
+      n.style.marginTop = 'var(--sp-2)';
+      body.appendChild(n);
+    });
+    if(warns.length > 2){
+      var moreChecks = el('div','plan');
+      moreChecks.style.marginTop = 'var(--sp-2)';
+      foldBlock(moreChecks, '展开其余 ' + (warns.length - 2) + ' 项检查提示', function(fbody){
+        warns.slice(2).forEach(function(n){ fbody.appendChild(n); });
+      });
+      body.appendChild(moreChecks);
+    }
+    if(view.candidates && view.candidates.length){
+      var cands = candCard(view.candidates);
+      cands.style.marginTop = 'var(--sp-2)';
+      body.appendChild(cands);
+    }
+    if(view.questions && view.questions.length){
+      var qa = qaCard(view.questions, ctx);
+      qa.style.marginTop = 'var(--sp-2)';
+      body.appendChild(qa);
+    }
+  }
 })();
 </script>
+/* 票务视图脚本：原样搬自 ticket-assistant.html，包进 IIFE 以隔离 $ / api / el */
+(function () {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      let currentTrip = null,
+        lastResult = null,
+        pending = null,
+        catalog = [];
+      const params = new URLSearchParams(location.search);
+      let initialTrip = params.get("itineraryId"),
+        initialActivity = params.get("activityId");
+      function status(text) {
+        $("status").textContent = text;
+      }
+      async function api(path, body, method) {
+        const r = await fetch(path, {
+          credentials: "same-origin",
+          method: method || (body ? "POST" : "GET"),
+          headers: body ? { "Content-Type": "application/json" } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (!r.ok) {
+          let msg = "";
+          try {
+            msg = (await r.json()).error || "";
+          } catch {}
+          throw Error(
+            r.status === 401
+              ? "请先返回主页登录，再加载行程。"
+              : r.status === 409
+                ? "行程已变化或归档，请重新加载并核对，未保存登记。"
+                : msg || "请求失败（" + r.status + "）",
+          );
+        }
+        return r.json();
+      }
+      function el(tag, text, parent) {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = text;
+        if (parent) parent.append(n);
+        return n;
+      }
+      function option(select, value, text) {
+        const n = el("option", text, select);
+        n.value = value;
+      }
+      function addVisitor(v = {}) {
+        if ($("visitors").children.length >= 30) return;
+        const box = el("div", undefined, $("visitors"));
+        box.className = "visitor";
+        const row = el("div", undefined, box);
+        row.className = "row";
+        for (const [key, title, type] of [
+          ["age", "年龄", "number"],
+          ["heightCm", "身高厘米（中山公园）", "number"],
+          ["student", "符合全日制本科及以下学生条件", "select"],
+          ["chineseEligible", "符合八达岭年龄免票身份条件", "select"],
+        ]) {
+          const label = el("label", title, row);
+          const n = el(
+            type === "select" ? "select" : "input",
+            undefined,
+            label,
+          );
+          n.dataset.key = key;
+          if (type === "select") {
+            option(n, "", "待确认");
+            option(n, "true", "是");
+            option(n, "false", "否");
+            n.value = v[key] == null ? "" : String(v[key]);
+          } else {
+            n.type = "number";
+            n.min = key === "age" ? "0" : "30";
+            n.max = key === "age" ? "120" : "250";
+            n.value = v[key] ?? "";
+          }
+        }
+        const remove = el("button", "移除此游客", box);
+        remove.type = "button";
+        remove.className = "secondary";
+        remove.onclick = () => box.remove();
+      }
+      function needs() {
+        return {
+          attraction: $("attraction").value || null,
+          date: $("date").value || null,
+          product: $("product").value,
+          startTime: $("startTime").value || null,
+          endTime: $("endTime").value || null,
+          visitors: [...$("visitors").children].map((box) =>
+            Object.fromEntries(
+              [...box.querySelectorAll("[data-key]")].map((n) => [
+                n.dataset.key,
+                n.value === ""
+                  ? null
+                  : n.tagName === "SELECT"
+                    ? n.value === "true"
+                    : Number(n.value),
+              ]),
+            ),
+          ),
+        };
+      }
+      function signature(n) {
+        return JSON.stringify([
+          n.attraction,
+          n.date,
+          n.product,
+          (n.visitors || []).map((v) => [
+            v.age,
+            v.heightCm,
+            v.student,
+            v.chineseEligible,
+          ]),
+          n.startTime,
+          n.endTime,
+        ]);
+      }
+      function applyNeeds(n) {
+        const site = catalog.find(
+          (s) => s.name === n.attraction || s.id === n.attraction,
+        );
+        if (site) $("attraction").value = site.name;
+        $("date").value = n.date || "";
+        $("product").value = n.product;
+        $("startTime").value = n.startTime || "";
+        $("endTime").value = n.endTime || "";
+        if (n.visitors) {
+          $("visitors").replaceChildren();
+          n.visitors.forEach(addVisitor);
+        }
+      }
+      function render(r) {
+        const out = $("result");
+        out.replaceChildren();
+        if (r.questions.length) {
+          el("h3", "还需要确认", out);
+          const ul = el("ul", undefined, out);
+          r.questions.forEach((q) => el("li", q, ul));
+        }
+        el(
+          "h3",
+          "门票估算：" +
+            (r.estimatedTotal == null
+              ? "未知／资料不全"
+              : r.estimatedTotal + " 元"),
+          out,
+        );
+        r.matches.forEach((m) =>
+          el(
+            "p",
+            "游客 " +
+              m.visitor +
+              " · " +
+              m.ticket +
+              " · " +
+              (m.price == null ? "未知" : m.price + " 元"),
+            out,
+          ),
+        );
+        if (r.channels) {
+          for (const c of r.channels.channels) {
+            if (/^https?:\/\//.test(c.officialUrl)) {
+              const a = el("a", c.channelName, out);
+              a.href = c.officialUrl;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              el("br", "", out);
+            }
+          }
+          if (!r.channels.channels.length) el("p", r.channels.notice, out);
+        }
+        const ul = el("ul", undefined, out);
+        r.notices.forEach((n) => el("li", n, ul));
+        const details = el("details", undefined, out);
+        el("summary", "字段来源与核验日期", details);
+        for (const [key, f] of Object.entries(r.evidence)) {
+          const p = el(
+            "p",
+            ({
+              price: "票价",
+              eligibility: "优惠资格",
+              hours: "开放与入园时间",
+              reservation: "预约要求",
+              extras: "附加项目",
+              refund: "退改规则",
+              notice: "规则说明",
+            }[key] || key) +
+              "：" +
+              (f.value == null ? "未知" : JSON.stringify(f.value)) +
+              "；核验 " +
+              (f.verifiedAt || "未核验") +
+              "；适用 " +
+              (f.validFrom || "起始未知") +
+              " 至 " +
+              (f.validTo || "未注明结束") +
+              (f.note ? "；" + f.note : ""),
+            details,
+          );
+          if (f.sourceUrl && /^https:\/\//.test(f.sourceUrl)) {
+            const a = el("a", " 查看来源", p);
+            a.href = f.sourceUrl;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+          }
+        }
+        $("registration").hidden = !r.registrationSuggested;
+      }
+      $("addVisitor").onclick = () => addVisitor();
+      $("adviceForm").onsubmit = async (e) => {
+        e.preventDefault();
+        $("ask").disabled = true;
+        try {
+          const message = $("message").value;
+          const r = await api("/api/agent/tickets/advice", {
+            message,
+            needs: needs(),
+            itineraryId: currentTrip?.id || null,
+            activityId: $("activity").value || null,
+          });
+          lastResult = r;
+          applyNeeds(r.needs);
+          render(r);
+          if (message)
+            el("div", "你：" + message, $("conversation")).className = "bubble";
+          el(
+            "div",
+            "助手：" +
+              (r.questions.join("；") ||
+                "已按核验规则整理建议，请查看右侧依据。"),
+            $("conversation"),
+          ).className = "bubble";
+          $("message").value = "";
+          status("建议已更新，请核对模型提取及表单内容。");
+        } catch (e) {
+          status(e.message);
+        } finally {
+          $("ask").disabled = false;
+        }
+      };
+      async function loadTrip(id, activityId) {
+        $("savedRecord").textContent = "";
+        currentTrip = null;
+        lastResult = null;
+        $("activity").replaceChildren();
+        option($("activity"), "", "请选择已有活动");
+        if (!id) return;
+        const t = await api("/api/itineraries/" + encodeURIComponent(id));
+        currentTrip = t;
+        for (const d of t.dailySchedules)
+          for (const a of d.activities)
+            option($("activity"), a.id, d.date + " · " + a.title);
+        if (activityId) $("activity").value = activityId;
+        if ($("activity").value) selectActivity();
+      }
+      function selectActivity() {
+        lastResult = null;
+        $("registration").hidden = false;
+        $("savedRecord").textContent = "";
+        const id = $("activity").value;
+        for (const d of currentTrip?.dailySchedules || [])
+          for (const a of d.activities)
+            if (a.id === id) {
+              $("date").value = d.date || "";
+              $("startTime").value = a.startTime || "";
+              $("endTime").value = a.endTime || "";
+              const site = catalog.find(
+                (s) =>
+                  s.name === a.title || s.id === a.ticketRecord?.attractionId,
+              );
+              $("attraction").value = site?.name || "";
+              if (a.ticketRecord) {
+                const r = a.ticketRecord;
+                $("savedRecord").textContent =
+                  "已有登记：用户自报已购票／已预约，未经平台核验 · " +
+                  r.product +
+                  " · " +
+                  r.travelers +
+                  "人";
+                $("recordProduct").value = r.product;
+                $("session").value = r.session || "";
+                $("paid").value = r.paidTotal ?? "";
+              }
+            }
+      }
+      async function loadTrips() {
+        const selectedTrip = initialTrip || currentTrip?.id;
+        const selectedActivity = initialActivity || $("activity").value;
+        const trips = await api("/api/itineraries");
+        $("trip").replaceChildren();
+        option($("trip"), "", "不关联行程");
+        trips
+          .filter((t) => !t.archived)
+          .forEach((t) => option($("trip"), t.id, t.title));
+        if (selectedTrip) {
+          $("trip").value = selectedTrip;
+          await loadTrip(selectedTrip, selectedActivity);
+          initialTrip = null;
+          initialActivity = null;
+        }
+      }
+      $("loadTrips").onclick = () =>
+        loadTrips().catch((e) => status(e.message));
+      $("trip").onchange = () =>
+        loadTrip($("trip").value).catch((e) => status(e.message));
+      $("activity").onchange = selectActivity;
+      $("preview").onclick = () => {
+        try {
+          if (!currentTrip || !$("activity").value)
+            throw Error("请先选择行程与已有活动");
+          if (!lastResult) throw Error("请先获取建议，并核对需求表单");
+          const n = needs();
+          if (signature(n) !== signature(lastResult.needs))
+            throw Error("表单已修改，请重新获取建议");
+          if (
+            !n.date ||
+            !n.visitors?.length ||
+            !$("recordProduct").value.trim()
+          )
+            throw Error("请补齐日期、人数和实际产品");
+          if (!$("paid").checkValidity())
+            throw Error("实付金额须为非负数，最多两位小数");
+          const site = catalog.find((s) => s.name === n.attraction);
+          if (!site) throw Error("请选择支持登记的景点");
+          pending = {
+            attractionId: site.id,
+            product: $("recordProduct").value.trim(),
+            visitDate: n.date,
+            session: $("session").value || null,
+            travelers: n.visitors.length,
+            paidTotal: $("paid").value === "" ? null : Number($("paid").value),
+          };
+          $("previewText").textContent =
+            currentTrip.title +
+            " / " +
+            $("activity").selectedOptions[0].textContent +
+            "\n" +
+            pending.product +
+            " / " +
+            pending.visitDate +
+            " / " +
+            (pending.session || "场次未填") +
+            " / " +
+            pending.travelers +
+            "人 / 实付 " +
+            (pending.paidTotal ?? "未知");
+          $("confirm").showModal();
+        } catch (e) {
+          status(e.message);
+        }
+      };
+      $("cancel").onclick = () => $("confirm").close();
+      $("save").onclick = async () => {
+        $("save").disabled = true;
+        try {
+          currentTrip = await api(
+            "/api/itineraries/" +
+              encodeURIComponent(currentTrip.id) +
+              "/activities/" +
+              encodeURIComponent($("activity").value) +
+              "/ticket-record?version=" +
+              currentTrip.version,
+            pending,
+            "PUT",
+          );
+          $("confirm").close();
+          selectActivity();
+          status("已记录用户自报结果，未经平台核验；费用板块未自动变更。");
+        } catch (e) {
+          $("confirm").close();
+          status(e.message);
+        } finally {
+          $("save").disabled = false;
+        }
+      };
+      (async () => {
+        try {
+          catalog = await api("/api/tickets/catalog");
+          catalog.forEach((s) => option($("attraction"), s.name, s.name));
+          if (initialTrip) await loadTrips();
+        } catch (e) {
+          status(e.message);
+        }
+      })();
+})();
 </body>
 </html>

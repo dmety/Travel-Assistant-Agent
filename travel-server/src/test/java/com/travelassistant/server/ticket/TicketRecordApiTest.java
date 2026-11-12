@@ -55,7 +55,8 @@ class TicketRecordApiTest extends V2ApiTestBase {
     mvc.perform(put(endpoint).session(owner).param("version","6").contentType("application/json").content(record)).andExpect(status().isConflict());
   }
   @Test void assistantEndpointsAndPrivateContext() throws Exception {
-    mvc.perform(get("/ticket-assistant.html")).andExpect(status().isOk());
+    // 购票页已并入工作台，旧地址只做 302；票务接口本身仍照常可用。
+    mvc.perform(get("/ticket-assistant.html")).andExpect(status().is3xxRedirection());
     mvc.perform(get("/api/tickets/catalog")).andExpect(status().isOk());
     mvc.perform(post("/api/agent/tickets/advice").contentType("application/json").content("{}"))
         .andExpect(status().isUnauthorized());
