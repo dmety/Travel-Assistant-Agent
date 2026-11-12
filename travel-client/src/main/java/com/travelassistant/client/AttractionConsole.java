@@ -20,6 +20,10 @@ import java.util.Scanner;
  * <p>交互流程：输入城市名（如"杭州"）或景点名（如"西湖"）→ 列出命中景点
  * （每条带序号、ID 与来源）→ 输入序号查看详情。
  *
+ * <p>两种输出形态：交互模式用 {@link ConsoleUI} 渲染着色表格、行编辑与 Tab 补全；
+ * 一次性命令（{@code searchAndPrint} / {@code detailByIdAndPrint}）保持原来的纯文本
+ * 格式，便于脚本调用和输出重定向。
+ *
  * <p>规则：
  * <ul>
  *   <li>先按城市/省份查询，无结果再退化为按名称查询；</li>
@@ -37,43 +41,82 @@ public class AttractionConsole {
   private final String base;
   private final HttpClient client;
   private final ObjectMapper json = new ObjectMapper();
+  private final ConsoleUI ui;
 
   /** 当前列表中的 ID，序号从 1 开始。 */
   private final List<String> currentIds = new ArrayList<>();
 
   public AttractionConsole(String base) {
+    this(base, ConsoleUI.plain());
+  }
+
+  public AttractionConsole(String base, ConsoleUI ui) {
     this.base = base.replaceAll("/+$", "");
     this.client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    this.ui = ui;
   }
 
   /** 交互模式：循环读取关键词或序号。 */
   public void runInteractive() throws Exception {
-    Charset consoleCharset = consoleCharset();
-    System.out.println("=== 景点查询 ===");
-    System.out.println("输入城市名（如 杭州）或景点名（如 西湖）查询；输入序号查看详情；q 退出。");
-    try (Scanner scanner = new Scanner(System.in, consoleCharset)) {
+    ui.title("景点查询");
+    ui.note("输入城市名（如 杭州）或景点名（如 西湖）查询；输入序号查看详情；q 退出。");
+    if (ui.isInteractive()) {
+      ui.setSuggestions(List.of("q", "quit", "exit", "help",
+          "杭州", "武汉", "恩施", "宜昌", "西湖", "黄鹤楼"));
       while (true) {
-        System.out.print("\n> ");
-        System.out.flush();
-        if (!scanner.hasNextLine()) {
+        String raw = ui.readLine("  > ");
+        if (raw == null) {
           break;
         }
-        String input = scanner.nextLine().strip();
-        if (input.isEmpty()) {
-          continue;
+        if (!handleCommand(raw.strip())) {
+          break;
         }
-        if ("q".equalsIgnoreCase(input) || "quit".equalsIgnoreCase(input)
-            || "exit".equalsIgnoreCase(input)) {
-          System.out.println("已退出景点查询。");
-          return;
-        }
-        if (isIndex(input)) {
-          showDetailByIndex(Integer.parseInt(input));
-        } else {
-          search(input);
+      }
+    } else {
+      // 没有真实终端时保留原来的 Scanner 路径，不因缺少 JLine 而失去交互能力。
+      try (Scanner scanner = new Scanner(System.in, consoleCharset())) {
+        while (true) {
+          System.out.print("\n> ");
+          System.out.flush();
+          if (!scanner.hasNextLine()) {
+            break;
+          }
+          if (!handleCommand(scanner.nextLine().strip())) {
+            break;
+          }
         }
       }
     }
+  }
+
+  /** 处理一行输入，返回 false 表示退出。 */
+  private boolean handleCommand(String input) throws Exception {
+    if (input.isEmpty()) {
+      return true;
+    }
+    if ("q".equalsIgnoreCase(input) || "quit".equalsIgnoreCase(input)
+        || "exit".equalsIgnoreCase(input)) {
+      ui.note("已退出景点查询。");
+      return false;
+    }
+    if ("help".equalsIgnoreCase(input)) {
+      printHelp();
+      return true;
+    }
+    if (isIndex(input)) {
+      showDetailByIndex(Integer.parseInt(input));
+    } else {
+      search(input);
+    }
+    return true;
+  }
+
+  private void printHelp() {
+    ui.section("可用输入");
+    ui.note("城市或景点名  查询景点列表，例如：杭州、西湖");
+    ui.note("序号          查看当前列表中该条目的详情");
+    ui.note("help          显示本说明");
+    ui.note("q / exit      退出景点查询");
   }
 
   /** 一次性查询（非交互，便于脚本与测试）：打印列表后返回。 */
@@ -121,7 +164,7 @@ public class AttractionConsole {
     int matched = result.path("matched").asInt(0);
     if (matched == 0) {
       String message = result.path("message").asText("");
-      System.out.println(message.isEmpty()
+      ui.println(message.isEmpty()
           ? "未找到与「" + keyword + "」相关的景点。"
           : message);
       return;
@@ -129,33 +172,55 @@ public class AttractionConsole {
 
     JsonNode items = result.path("items");
     int returned = result.path("returned").asInt(items.size());
-    System.out.printf("%n[按%s] 「%s」命中 %d 条，显示 %d 条：%n", scope, keyword, matched, returned);
-
-    int index = 1;
-    for (JsonNode item : items) {
-      String id = item.path("id").asText("");
-      currentIds.add(id);
-      System.out.printf("  %2d. %s%n", index++, text(item, "name", UNKNOWN));
-      System.out.printf("      ID: %s | 来源: %s | 城市: %s%n",
-          blankTo(id, UNKNOWN),
-          text(item, "source", UNKNOWN),
-          text(item, "city", UNKNOWN));
+    if (ui.isInteractive()) {
+      ui.title("按" + scope + "查询：" + keyword);
+      ui.note("命中 " + matched + " 条，显示 " + returned + " 条；输入序号查看详情。");
+      List<List<String>> rows = new ArrayList<>();
+      int index = 1;
+      for (JsonNode item : items) {
+        String id = item.path("id").asText("");
+        currentIds.add(id);
+        rows.add(List.of(String.valueOf(index++),
+            text(item, "name", UNKNOWN),
+            text(item, "city", UNKNOWN),
+            text(item, "source", UNKNOWN),
+            blankTo(id, UNKNOWN)));
+      }
+      ui.table(List.of("#", "名称", "城市", "来源", "ID"), rows);
+    } else {
+      // 一次性命令：逐字保持原有格式，避免破坏已有脚本对输出的解析。
+      System.out.printf("%n[按%s] 「%s」命中 %d 条，显示 %d 条：%n",
+          scope, keyword, matched, returned);
+      int index = 1;
+      for (JsonNode item : items) {
+        String id = item.path("id").asText("");
+        currentIds.add(id);
+        System.out.printf("  %2d. %s%n", index++, text(item, "name", UNKNOWN));
+        System.out.printf("      ID: %s | 来源: %s | 城市: %s%n",
+            blankTo(id, UNKNOWN),
+            text(item, "source", UNKNOWN),
+            text(item, "city", UNKNOWN));
+      }
     }
 
     if (matched > returned) {
-      System.out.printf("  还有 %d 条未显示（单次最多 %d 条）。可输入更精确的名称继续查。%n",
-          matched - returned, returned);
+      ui.note("还有 " + (matched - returned) + " 条未显示（单次最多 "
+          + returned + " 条）。可输入更精确的名称继续查。");
     }
-    System.out.println("  输入序号查看详情，或输入新的城市/景点名继续查询。");
+    if (ui.isInteractive()) {
+      ui.note("输入序号查看详情，或输入新的城市/景点名继续查询。");
+    } else {
+      System.out.println("  输入序号查看详情，或输入新的城市/景点名继续查询。");
+    }
   }
 
   private void showDetailByIndex(int index) throws Exception {
     if (currentIds.isEmpty()) {
-      System.out.println("当前没有可选的列表，请先输入城市名或景点名查询。");
+      ui.warn("当前没有可选的列表，请先输入城市名或景点名查询。");
       return;
     }
     if (index < 1 || index > currentIds.size()) {
-      System.out.printf("序号超出范围：请输入 1 - %d 之间的数字。%n", currentIds.size());
+      ui.warn("序号超出范围：请输入 1 - " + currentIds.size() + " 之间的数字。");
       return;
     }
     String id = currentIds.get(index - 1);
@@ -166,24 +231,23 @@ public class AttractionConsole {
   }
 
   private void printDetail(JsonNode d) {
-    System.out.println("\n=== 景点详情 ===");
-    line("名称", text(d, "name", UNKNOWN));
-    line("ID", text(d, "id", UNKNOWN));
-    line("城市", text(d, "city", UNKNOWN) + formatProvince(d));
-    line("类型", text(d, "type", UNKNOWN));
-    line("等级", text(d, "level", UNKNOWN));
-    line("评分", text(d, "rating", UNKNOWN));
+    ui.title("景点详情");
+    ui.kv("名称", text(d, "name", UNKNOWN));
+    ui.kv("ID", text(d, "id", UNKNOWN));
+    ui.kv("城市", text(d, "city", UNKNOWN) + formatProvince(d));
+    ui.kv("类型", text(d, "type", UNKNOWN));
+    ui.kv("等级", text(d, "level", UNKNOWN));
+    ui.kv("评分", text(d, "rating", UNKNOWN));
     // 票价与开放时间：缺失时明确显示"未知"，不做任何推断
-    line("开放时间", text(d, "openTimeText", UNKNOWN));
-    line("票价", text(d, "ticketText", UNKNOWN));
-    line("地址", text(d, "address", UNKNOWN));
-    line("电话", text(d, "tel", UNKNOWN));
-    line("官网", text(d, "website", UNKNOWN));
-    line("来源", text(d, "source", UNKNOWN));
-    line("坐标", formatCoordinate(d));
-    String description = text(d, "description", UNKNOWN);
-    line("简介", description);
-    System.out.println("（提示：票价与开放时间为离线快照，缺失即显示未知，请以景区公告为准。）");
+    ui.kv("开放时间", text(d, "openTimeText", UNKNOWN));
+    ui.kv("票价", text(d, "ticketText", UNKNOWN));
+    ui.kv("地址", text(d, "address", UNKNOWN));
+    ui.kv("电话", text(d, "tel", UNKNOWN));
+    ui.kv("官网", text(d, "website", UNKNOWN));
+    ui.kv("来源", text(d, "source", UNKNOWN));
+    ui.kv("坐标", formatCoordinate(d));
+    ui.kv("简介", text(d, "description", UNKNOWN));
+    ui.note("（提示：票价与开放时间为离线快照，缺失即显示未知，请以景区公告为准。）");
   }
 
   // ---- HTTP ----
@@ -197,7 +261,7 @@ public class AttractionConsole {
       return null;
     }
     if (response.statusCode() != 200) {
-      System.out.println("查询失败：HTTP " + response.statusCode() + " " + response.body());
+      ui.error("查询失败：HTTP " + response.statusCode() + " " + response.body());
       return null;
     }
     return json.readTree(response.body());
@@ -210,11 +274,11 @@ public class AttractionConsole {
       return null;
     }
     if (response.statusCode() == 404) {
-      System.out.println("景点不存在：ID " + id);
+      ui.error("景点不存在：ID " + id);
       return null;
     }
     if (response.statusCode() != 200) {
-      System.out.println("查询详情失败：HTTP " + response.statusCode() + " " + response.body());
+      ui.error("查询详情失败：HTTP " + response.statusCode() + " " + response.body());
       return null;
     }
     return json.readTree(response.body());
@@ -230,30 +294,15 @@ public class AttractionConsole {
 
   private void printUnavailable(JsonNode body) {
     String reason = body == null ? "" : body.path("reason").asText("");
-    System.out.println("景点查询当前不可用。");
+    ui.error("景点查询当前不可用。");
     if (!reason.isEmpty()) {
-      System.out.println("原因：" + reason);
+      ui.note("原因：" + reason);
     }
-    System.out.println("（知识库缺失或损坏时查询会被停用，且不会覆盖原库；请先运行离线构建。）");
+    ui.note("（知识库缺失或损坏时查询会被停用，且不会覆盖原库；请先运行离线构建。）");
   }
 
   private static boolean isAvailable(JsonNode body) {
     return body != null && !body.has("reason");
-  }
-
-  /** 按显示宽度对齐标签（中文占 2 格），避免 %-8s 把中文标签算窄导致错位。 */
-  private static void line(String label, String value) {
-    int labelWidth = displayWidth(label);
-    int padding = Math.max(0, 9 - labelWidth);
-    System.out.println("  " + label + " ".repeat(padding) + ": " + value);
-  }
-
-  private static int displayWidth(String text) {
-    int width = 0;
-    for (int i = 0; i < text.length(); i++) {
-      width += text.charAt(i) > 127 ? 2 : 1;
-    }
-    return width;
   }
 
   private static String formatProvince(JsonNode d) {
