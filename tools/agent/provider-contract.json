@@ -1,0 +1,126 @@
+{
+  "contractVersion": "1.0",
+  "defaultDecision": "DENY",
+  "enums": {
+    "capability": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND",
+                   "ROUTE_ADVICE", "WEATHER_ADVICE", "CONTENT_INSPIRATION"],
+    "sourceKind": ["KB", "AMAP", "TICKET_RULE", "USER_INPUT", "EXTERNAL"],
+    "factType": ["ATTRACTION", "WEATHER", "TICKET", "BUDGET", "ITINERARY", "CONTENT"],
+    "externalVerificationStatus": ["unverified", "pending"],
+    "status": ["OK", "DEGRADED", "REFUSED"],
+    "sideEffect": ["NONE", "READ", "WRITE"],
+    "providerKind": ["BEAN", "HTTP"]
+  },
+  "limits": {
+    "timeoutMs": { "min": 100, "max": 10000, "default": 4000 },
+    "maxResponseBytes": { "min": 1024, "max": 262144, "default": 65536 },
+    "maxFacts": 50, "maxNotices": 20, "maxUnknownFields": 20,
+    "maxAdviceChars": 2000, "maxHints": 16, "maxContextProperties": 16,
+    "maxFactValueProperties": 32, "maxRunIdChars": 64,
+    "shadowSamples": 20, "shadowBlockViolationRate": 0,
+    "runtimeViolationToSuspend": 3
+  },
+  "rules": [
+    { "id": "M-01", "group": "META", "level": "BLOCK", "code": "E_META_ID" },
+    { "id": "M-02", "group": "META", "level": "BLOCK", "code": "E_META_ID" },
+    { "id": "M-03", "group": "META", "level": "BLOCK", "code": "E_META_VERSION" },
+    { "id": "M-04", "group": "META", "level": "BLOCK", "code": "E_META_SCHEMA" },
+    { "id": "M-05", "group": "META", "level": "BLOCK", "code": "E_META_CAPABILITY" },
+    { "id": "M-06", "group": "META", "level": "BLOCK", "code": "E_META_SIDEEFFECT" },
+    { "id": "M-07", "group": "META", "level": "BLOCK", "code": "E_META_OWNER" },
+    { "id": "M-08", "group": "META", "level": "BLOCK", "code": "E_META_ENDPOINT" },
+    { "id": "M-09", "group": "META", "level": "BLOCK", "code": "E_META_AUTH" },
+    { "id": "M-10", "group": "META", "level": "BLOCK", "code": "E_META_LIMIT" },
+    { "id": "M-11", "group": "META", "level": "BLOCK", "code": "E_META_ENABLED" },
+    { "id": "M-12", "group": "META", "level": "WARN" },
+    { "id": "T-01", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_METHOD" },
+    { "id": "T-02", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_STATUS" },
+    { "id": "T-03", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_STATUS" },
+    { "id": "T-04", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_TIMEOUT" },
+    { "id": "T-05", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_SIZE" },
+    { "id": "T-06", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_IDEMPOTENCY" },
+    { "id": "T-07", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_USAGE" },
+    { "id": "T-08", "group": "TRANSPORT", "level": "BLOCK", "code": "E_TRANSPORT_CHANNEL" },
+    { "id": "S-01", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_EVIDENCE" },
+    { "id": "S-02", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_VERIFIED" },
+    { "id": "S-03", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_UNKNOWN" },
+    { "id": "S-04", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_ADVICE" },
+    { "id": "S-05", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_GROUNDING" },
+    { "id": "S-06", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_PII" },
+    { "id": "S-07", "group": "SEMANTIC", "level": "BLOCK", "code": "E_SEMANTIC_IDENTITY" },
+    { "id": "S-08", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_INJECTION" },
+    { "id": "S-09", "group": "SEMANTIC", "level": "WARN" },
+    { "id": "X-01", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_WRITE" },
+    { "id": "X-02", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_CREDENTIAL" },
+    { "id": "X-03", "group": "SECURITY", "level": "BLOCK", "code": "E_META_ENDPOINT" },
+    { "id": "X-04", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_INJECTION" },
+    { "id": "X-05", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_AUDIT" },
+    { "id": "X-06", "group": "SECURITY", "level": "WARN" }
+  ],
+  "goldCases": ["GC-01", "GC-02", "GC-03", "GC-04", "GC-05", "GC-06", "GC-07", "GC-08"],
+  "goldCasesFile": "gold_cases.json",
+  "gates": ["G0_STATIC", "G1_CONTRACT_PROBE", "G2_SECURITY_PROBE", "G3_SHADOW", "G4_ENABLE"],
+  "runtime": {
+    "_note": "规范原文未给出 endpoint allowlist 取值与配置文件路径，P0 落地时补的运行参数，不属于规则集；变更不触发重新准入。",
+    "endpointAllowlist": ["agent.example.com"],
+    "configFile": "data/agent_providers.json",
+    "exampleConfigFile": "data/agent_providers.example.json",
+    "reservedPrefixes": ["builtin.", "system."]
+  },
+  "schemas": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "runId", "intent", "facts", "hints", "deadlineAt"],
+      "properties": {
+        "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+        "runId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "intent": { "enum": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND", "ROUTE_ADVICE", "WEATHER_ADVICE", "CONTENT_INSPIRATION"] },
+        "userIdHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "context": { "type": "object", "maxProperties": 16 },
+        "facts": { "type": "array", "maxItems": 50 },
+        "hints": { "type": "object", "maxProperties": 16 },
+        "deadlineAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "providerId", "status", "facts", "unknownFields", "notices", "usage"],
+      "properties": {
+        "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+        "providerId": { "type": "string", "maxLength": 64 },
+        "status": { "enum": ["OK", "DEGRADED", "REFUSED"] },
+        "facts": { "type": "array", "maxItems": 50 },
+        "advice": { "type": ["string", "null"], "maxLength": 2000 },
+        "unknownFields": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 64 } },
+        "notices": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 256 } },
+        "usage": {
+          "type": "object", "additionalProperties": false,
+          "required": ["elapsedMs"],
+          "properties": { "elapsedMs": { "type": "integer", "minimum": 0 }, "modelCalls": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+    "fact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["factId", "type", "value", "evidence"],
+      "properties": {
+        "factId": { "type": "string", "maxLength": 64 },
+        "type": { "enum": ["ATTRACTION", "WEATHER", "TICKET", "BUDGET", "ITINERARY", "CONTENT"] },
+        "value": { "type": "object", "maxProperties": 32 },
+        "evidence": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sourceKind", "verificationStatus", "fetchedAt"],
+          "properties": {
+            "sourceKind": { "enum": ["KB", "AMAP", "TICKET_RULE", "USER_INPUT", "EXTERNAL"] },
+            "sourceId": { "type": "string", "maxLength": 128 },
+            "verificationStatus": { "enum": ["unverified", "pending"] },
+            "fetchedAt": { "type": "string", "format": "date-time" },
+            "excerpt": { "type": "string", "maxLength": 512 }
+          }
+        }
+      }
+    }
+  }
+}

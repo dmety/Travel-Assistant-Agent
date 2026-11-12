@@ -1,1126 +1,429 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>旅行助手 · 接口测试台</title>
-  <style>
-    :root { --primary:#2563eb; --ok:#16a34a; --err:#dc2626; --bg:#f1f5f9; --line:#e2e8f0; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
-           background:var(--bg); color:#0f172a; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登录 · 旅行助手</title>
+<style>
+/* ==================================================================
+   旅行助手 · 登录页（站点首页）
+   ------------------------------------------------------------------
+   单文件原生 HTML + 内联 CSS/JS，无框架、无组件库、无外部依赖。
+   沿用 chat.html / api-console.html 的同一套 token，不另起色相：
+   主色 #2563eb、slate 中性色阶、12/14/16/20/25 字级、4/8/12 圆角。
 
-    /* 顶栏 */
-    .topbar { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
-              padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .brand { font-size:16px; font-weight:700; }
-    .brand .dot { color:#94a3b8; margin:0 6px; font-weight:400; }
-    .brand .lite { font-weight:400; color:#475569; font-size:14px; }
-    .who { display:flex; align-items:center; gap:10px; font-size:13px; color:#16a34a; font-weight:600; }
+   层级：本页只有一个任务——登录。品牌次之，辅助信息（接口地址、
+   测试台入口）最末，字号与颜色逐级弱化，不与主操作争夺注意力。
+   表单字段边框用 --field-line（对白底 ≥3:1），保证控件边界可辨；
+   正文与提示文字全部 ≥4.5:1。
+   ================================================================== */
+:root{
+  --primary:#2563eb; --primary-hover:#1d4ed8;
+  --primary-soft:#eff6ff; --primary-line:#bfdbfe;
+  --ok:#15803d; --ok-soft:#ecfdf5; --ok-line:#a7f3d0;
+  --err:#b91c1c; --err-soft:#fef2f2; --err-line:#fecaca;
 
-    .wrap { max-width:960px; margin:0 auto; padding:20px 16px 64px; }
-    .card { background:#fff; width:100%; border-radius:14px;
-            box-shadow:0 10px 30px rgba(15,23,42,.08); padding:24px; }
-    .card.auth { max-width:420px; margin:32px auto 0; }
-    h1 { font-size:20px; margin:0 0 4px; }
-    h2 { font-size:16px; margin:18px 0 10px; }
-    .sub { color:#64748b; font-size:13px; margin:0 0 16px; }
-    .muted { color:#94a3b8; font-size:12px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .row.between { justify-content:space-between; }
-    input, textarea, select { padding:9px 11px; border:1px solid #cbd5e1; border-radius:8px;
-            font-size:14px; font-family:inherit; }
-    input:focus, textarea:focus, select:focus { outline:2px solid var(--primary); border-color:var(--primary); }
-    textarea { width:100%; font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; resize:vertical; }
-    button { padding:9px 14px; border:0; border-radius:8px; background:var(--primary); color:#fff;
-             font-size:14px; cursor:pointer; }
-    button:hover { filter:brightness(.95); }
-    button.secondary { background:#e2e8f0; color:#0f172a; }
-    button.danger { background:#fee2e2; color:#991b1b; }
-    button.sm { padding:5px 10px; font-size:13px; }
-    .status { margin-bottom:16px; padding:10px 12px; border-radius:8px; font-size:13px; white-space:pre-wrap;
-              word-break:break-all; display:none; }
-    .status.ok { display:block; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
-    .status.err { display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
-    hr { border:0; border-top:1px solid var(--line); margin:20px 0; }
-    .list { display:flex; flex-direction:column; gap:8px; }
-    .item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
-            border:1px solid var(--line); border-radius:8px; gap:10px; }
-    .item .meta { color:#64748b; font-size:12px; }
-    .create { display:flex; flex-direction:column; gap:8px; margin-top:12px;
-              padding:12px; border:1px dashed var(--line); border-radius:8px; }
-    .panel { margin-top:16px; border:1px solid var(--line); border-radius:10px; padding:16px; }
-    .it-head { display:flex; justify-content:space-between; align-items:center; gap:10px;
-               margin-bottom:12px; flex-wrap:wrap; }
-    /* 页签：按「基础 / 协作 / 智能」分组 */
-    .tabs { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-    .tabgroup { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-    .tabgroup + .tabgroup { padding-left:12px; margin-left:4px; border-left:1px solid var(--line); }
-    .tabgroup .glabel { font-size:11px; color:#94a3b8; margin-right:2px; }
-    .tab { padding:7px 12px; border-radius:8px; cursor:pointer; background:#e2e8f0; font-size:13px; user-select:none; }
-    .tab.active { background:var(--primary); color:#fff; }
-    .tabpane { display:none; }
-    .tabpane.active { display:block; }
-    .sec-actions { display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap; }
-    .mem { display:flex; justify-content:space-between; align-items:center; padding:8px 10px;
-           border:1px solid var(--line); border-radius:8px; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
-    .mem .tags { font-size:12px; color:#2563eb; }
-    .checks { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0; }
-    .checks label { font-size:13px; color:#475569; display:flex; align-items:center; gap:4px; }
-    .hint { font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.7; }
-    pre { margin:0; white-space:pre-wrap; word-break:break-all; font-size:12px; line-height:1.7; }
+  --ink:#0f172a; --text-2:#475569; --text-3:#64748b;
+  --line:#e2e8f0; --line-strong:#cbd5e1; --field-line:#7d8ea3;
+  --surface:#ffffff; --surface-2:#f8fafc; --bg:#f1f5f9;
 
-    /* 登录 / 注册 */
-    .authtabs { display:flex; gap:8px; margin-bottom:16px; }
-    .authtab { flex:1; text-align:center; padding:8px; border-radius:8px; cursor:pointer;
-               background:#e2e8f0; font-size:14px; user-select:none; }
-    .authtab.active { background:var(--primary); color:#fff; }
-    .authform { display:none; flex-direction:column; gap:12px; }
-    .authform.active { display:flex; }
-    .authform label { font-size:13px; color:#475569; }
-  </style>
+  --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
+
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+  --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px;
+
+  --r-ctl:8px; --r-card:12px; --r-pill:999px;
+
+  --shadow-1:0 1px 2px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.08);
+  --shadow-2:0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.04);
+  --shadow-3:0 12px 32px rgba(15,23,42,.12), 0 4px 8px rgba(15,23,42,.05);
+}
+
+*{box-sizing:border-box;}
+html{height:100%;}
+body{
+  margin:0; padding:var(--sp-6);
+  min-height:100%;
+  display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #e8effd 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #eef6ff 0%, transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+              "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size:var(--fs-base); line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- 卡片 ---------- */
+.auth{
+  width:100%; max-width:404px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-card);
+  box-shadow:var(--shadow-3);
+  padding:var(--sp-8) var(--sp-8) var(--sp-6);
+}
+
+/* ---------- 品牌 ---------- */
+.brand{display:flex; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-6);}
+.brand .mark{
+  width:38px; height:38px; flex:0 0 auto;
+  display:grid; place-items:center;
+  background:var(--primary); color:#fff;
+  border-radius:10px; font-size:var(--fs-md); font-weight:700;
+  box-shadow:var(--shadow-1);
+}
+.brand-txt{min-width:0;}
+.brand-txt b{display:block; font-size:var(--fs-md); font-weight:600; letter-spacing:.01em;}
+.brand-txt span{display:block; font-size:var(--fs-xs); color:var(--text-3); line-height:1.4;}
+
+h1{font-size:var(--fs-lg); line-height:1.35; margin:0 0 var(--sp-2); font-weight:600; letter-spacing:-.01em;}
+.sub{margin:0 0 var(--sp-5); color:var(--text-2); font-size:var(--fs-sm); max-width:34ch;}
+
+/* ---------- 页签 ---------- */
+.tabs{
+  display:flex; gap:var(--sp-1);
+  padding:3px; margin-bottom:var(--sp-5);
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--r-ctl);
+}
+.tab{
+  flex:1; appearance:none; border:0; cursor:pointer;
+  padding:7px var(--sp-3);
+  background:transparent; color:var(--text-2);
+  font-size:var(--fs-sm); font-weight:600; font-family:inherit;
+  border-radius:6px; transition:background .15s, color .15s, box-shadow .15s;
+}
+.tab:hover{color:var(--ink);}
+.tab[aria-selected="true"]{
+  background:var(--surface); color:var(--ink);
+  box-shadow:var(--shadow-1);
+}
+
+/* ---------- 表单 ---------- */
+form{display:none; flex-direction:column; gap:var(--sp-3);}
+form.active{display:flex;}
+
+.field{display:flex; flex-direction:column; gap:6px;}
+label{font-size:var(--fs-sm); font-weight:500; color:var(--text-2);}
+input{
+  width:100%; padding:9px var(--sp-3);
+  border:1px solid var(--field-line); border-radius:var(--r-ctl);
+  background:var(--surface); color:var(--ink);
+  font-size:var(--fs-base); font-family:inherit; line-height:1.5;
+  transition:border-color .15s, box-shadow .15s;
+}
+input:hover{border-color:var(--text-3);}
+input::placeholder{color:var(--text-3);}
+input:focus{
+  outline:none; border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(37,99,235,.16);
+}
+input[aria-invalid="true"]{border-color:var(--err);}
+input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px rgba(185,28,28,.16);}
+
+.field-hint{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+
+/* ---------- 主按钮 ---------- */
+.submit{
+  margin-top:var(--sp-2);
+  width:100%; padding:10px var(--sp-4);
+  border:1px solid var(--primary); border-radius:var(--r-ctl);
+  background:var(--primary); color:#fff;
+  font-size:var(--fs-base); font-weight:600; font-family:inherit;
+  cursor:pointer; box-shadow:var(--shadow-1);
+  transition:background .15s, box-shadow .15s;
+}
+.submit:hover{background:var(--primary-hover); border-color:var(--primary-hover);}
+.submit:active{box-shadow:none; transform:translateY(1px);}
+.submit:disabled{background:var(--surface-2); border-color:var(--line-strong);
+  color:var(--text-3); cursor:not-allowed; box-shadow:none; transform:none;}
+
+/* ---------- 消息条 ---------- */
+.msg{
+  display:none; margin-top:var(--sp-4);
+  padding:var(--sp-2) var(--sp-3);
+  border-radius:var(--r-ctl); border:1px solid transparent;
+  font-size:var(--fs-sm); line-height:1.5;
+}
+.msg.show{display:block;}
+.msg.ok{background:var(--ok-soft); border-color:var(--ok-line); color:var(--ok);}
+.msg.err{background:var(--err-soft); border-color:var(--err-line); color:var(--err);}
+.msg.info{background:var(--primary-soft); border-color:var(--primary-line); color:var(--text-2);}
+
+/* ---------- 页脚 ---------- */
+.foot{
+  margin-top:var(--sp-6); padding-top:var(--sp-4);
+  border-top:1px solid var(--line);
+  display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3);
+  align-items:center; justify-content:space-between;
+  font-size:var(--fs-xs); color:var(--text-3);
+}
+.foot a{color:var(--text-2); text-decoration:none; border-bottom:1px solid var(--line-strong);}
+.foot a:hover{color:var(--primary); border-bottom-color:var(--primary-line);}
+
+/* ---------- 焦点与可达性 ---------- */
+:focus-visible{outline:2px solid var(--primary); outline-offset:2px;}
+.tab:focus-visible, input:focus-visible{outline-offset:2px;}
+.visually-hidden{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+/* ---------- 小屏：卡片贴边、内距收紧，避免 375px 下换行错乱 ---------- */
+@media (max-width:480px){
+  body{padding:var(--sp-4) var(--sp-3);}
+  .auth{padding:var(--sp-6) var(--sp-5); border-radius:var(--r-card); box-shadow:var(--shadow-2);}
+  h1{font-size:var(--fs-md);}
+  .foot{justify-content:flex-start;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important;}
+}
+</style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">旅行助手<span class="dot">·</span><span class="lite">接口测试台</span></div>
-    <div class="who">
-      <span id="meInfo"></span>
-      <button id="logoutBtn" class="secondary sm" style="display:none;">退出</button>
+
+<main class="auth">
+  <div class="brand">
+    <span class="mark" aria-hidden="true">旅</span>
+    <span class="brand-txt">
+      <b>旅行助手</b>
+      <span>知识库驱动的行程规划</span>
+    </span>
+  </div>
+
+  <h1>登录后开始规划</h1>
+  <p class="sub">登录即可进入对话页，按目的地与偏好生成逐日行程。</p>
+
+  <div class="tabs" role="tablist" aria-label="登录或注册">
+    <button class="tab" type="button" role="tab" id="tabLogin"
+            aria-selected="true" aria-controls="loginForm" data-tab="login">登录</button>
+    <button class="tab" type="button" role="tab" id="tabRegister"
+            aria-selected="false" aria-controls="registerForm" data-tab="register">注册</button>
+  </div>
+
+  <!-- ===== 登录 ===== -->
+  <form id="loginForm" class="active" aria-labelledby="tabLogin" novalidate>
+    <div class="field">
+      <label for="lUser">用户名</label>
+      <input id="lUser" name="username" autocomplete="username"
+             placeholder="输入用户名" required />
     </div>
-  </header>
+    <div class="field">
+      <label for="lPass">密码</label>
+      <input id="lPass" name="password" type="password" autocomplete="current-password"
+             placeholder="输入密码" required />
+    </div>
+    <button class="submit" type="submit">登录</button>
+  </form>
 
-  <main class="wrap">
-    <div id="msg" class="status"></div>
+  <!-- ===== 注册 ===== -->
+  <form id="registerForm" aria-labelledby="tabRegister" novalidate>
+    <div class="field">
+      <label for="rUser">用户名</label>
+      <input id="rUser" name="username" autocomplete="username"
+             placeholder="3–32 位字母、数字或下划线"
+             aria-describedby="rUserHint" required />
+      <span class="field-hint" id="rUserHint">3–32 位，仅字母 / 数字 / 下划线</span>
+    </div>
+    <div class="field">
+      <label for="rPass">密码</label>
+      <input id="rPass" name="password" type="password" autocomplete="new-password"
+             placeholder="至少 8 位，含字母和数字"
+             aria-describedby="rPassHint" required />
+      <span class="field-hint" id="rPassHint">至少 8 位，且同时包含字母和数字</span>
+    </div>
+    <button class="submit" type="submit">注册并登录</button>
+  </form>
 
-    <!-- ===== 未登录：登录 / 注册 ===== -->
-    <section id="authView" class="card auth">
-      <h1>旅行助手</h1>
-      <p class="sub">本地联调用的测试前端。登录后进入接口测试台，会话基于 JSESSIONID。</p>
+  <div class="msg" id="msg" role="status" aria-live="polite"></div>
 
-      <div class="authtabs">
-        <div class="authtab active" data-tab="login">登录</div>
-        <div class="authtab" data-tab="register">注册</div>
-      </div>
+  <div class="foot">
+    <span>本地演示环境 · 会话基于 JSESSIONID</span>
+    <a href="/api-console.html">接口测试台 →</a>
+  </div>
+</main>
 
-      <form id="loginForm" class="authform active">
-        <label for="lUser">用户名</label>
-        <input id="lUser" name="username" autocomplete="username" required />
-        <label for="lPass">密码</label>
-        <input id="lPass" name="password" type="password" autocomplete="current-password" required />
-        <button type="submit">登录</button>
-        <div class="hint">POST /api/login（表单编码，成功后下发 JSESSIONID）</div>
-      </form>
+<script>
+(function () {
+  'use strict';
 
-      <form id="registerForm" class="authform">
-        <label for="rUser">用户名</label>
-        <input id="rUser" name="username" autocomplete="username" required />
-        <label for="rPass">密码</label>
-        <input id="rPass" name="password" type="password" autocomplete="new-password" required />
-        <button type="submit">注册</button>
-        <div class="hint">用户名 3–32 位，仅字母 / 数字 / 下划线；密码至少 8 位且同时含字母和数字。<br />
-          POST /api/account/register</div>
-      </form>
-    </section>
+  var $ = function (id) { return document.getElementById(id); };
 
-    <!-- ===== 已登录：接口测试台 ===== -->
-    <section id="mainView" style="display:none;">
-      <div class="card">
-        <div class="row between">
-          <div>
-            <h1 style="margin:0;">我的行程</h1>
-            <p class="sub" style="margin:4px 0 0;">增改走乐观锁 version，冲突返回 409 并带 X-Version。</p>
-          </div>
-          <button id="refreshListBtn" class="secondary sm">刷新列表</button>
-        </div>
-        <div id="itList" class="list" style="margin-top:12px;"><span class="muted">未加载</span></div>
+  /* 只接受站内相对路径，避免 ?next=https://evil 造成开放重定向 */
+  function safeNext() {
+    var v = new URLSearchParams(location.search).get('next');
+    if (v && v.charAt(0) === '/' && v.charAt(1) !== '/') return v;
+    return '/chat.html';
+  }
+  var NEXT = safeNext();
 
-        <div class="create">
-          <input id="newTitle" placeholder="新行程标题" style="max-width:280px;" />
-          <textarea id="newPlan" rows="2" placeholder='方案 JSON（可选），如 {"destination":"云南","summary":"昆大丽"}'></textarea>
-          <div><button id="createBtn">创建行程</button></div>
-        </div>
-      </div>
+  /* ---------- 提示条 ---------- */
+  function show(text, kind) {
+    var el = $('msg');
+    el.textContent = text;
+    el.className = 'msg show ' + (kind || 'info');
+  }
+  function clearMsg() {
+    var el = $('msg');
+    el.textContent = '';
+    el.className = 'msg';
+  }
 
-      <!-- 行程详情 -->
-      <div id="itineraryPanel" class="panel" style="display:none;">
-        <div class="it-head">
-          <div><b id="itTitle"></b> <span id="itMeta" class="muted"></span></div>
-          <div class="row">
-            <button id="refreshItBtn" class="secondary sm">刷新</button>
-            <button id="deleteItBtn" class="danger sm">删除</button>
-          </div>
-        </div>
+  /* ---------- 页签 ---------- */
+  function switchTab(name) {
+    var isLogin = name === 'login';
+    $('tabLogin').setAttribute('aria-selected', String(isLogin));
+    $('tabRegister').setAttribute('aria-selected', String(!isLogin));
+    $('loginForm').classList.toggle('active', isLogin);
+    $('registerForm').classList.toggle('active', !isLogin);
+    clearMsg();
+    (isLogin ? $('lUser') : $('rUser')).focus();
+  }
+  $('tabLogin').addEventListener('click', function () { switchTab('login'); });
+  $('tabRegister').addEventListener('click', function () { switchTab('register'); });
 
-        <div class="tabs" id="secTabs">
-          <div class="tabgroup">
-            <span class="glabel">行程</span>
-            <div class="tab active" data-sec="plan">方案</div>
-            <div class="tab" data-sec="daily">每日安排</div>
-            <div class="tab" data-sec="transports">交通</div>
-            <div class="tab" data-sec="lodgings">住宿</div>
-            <div class="tab" data-sec="expenses">费用</div>
-          </div>
-          <div class="tabgroup">
-            <span class="glabel">协作</span>
-            <div class="tab" data-sec="members">成员</div>
-            <div class="tab" data-sec="invite">邀请</div>
-            <div class="tab" data-sec="collab">留言记录</div>
-          </div>
-          <div class="tabgroup">
-            <span class="glabel">智能</span>
-            <div class="tab" data-sec="budget">预算检查</div>
-            <div class="tab" data-sec="ticket">购票</div>
-            <div class="tab" data-sec="geo">周边查询</div>
-            <div class="tab" data-sec="vote">候选投票</div>
-            <div class="tab" data-sec="advice">决策建议</div>
-            <div class="tab" data-sec="archive">归档导出</div>
-          </div>
-        </div>
-
-        <div class="tabpane active" data-sec="plan">
-          <textarea id="ta_plan" rows="6"></textarea>
-          <div class="hint">
-            支持字段：destination / summary / notes / departDate / returnDate（日期 YYYY-MM-DD）；
-            返回日期早于出发日期会被服务端拒绝（400）。
-          </div>
-          <div class="sec-actions"><button data-save="plan">保存方案 (PUT)</button></div>
-        </div>
-
-        <div class="tabpane" data-sec="daily">
-          <div id="ticketActivityLinks"></div><p><a href="/ticket-assistant.html">打开购票助手</a></p>
-          <textarea id="ta_daily" rows="8"></textarea>
-          <div class="hint">数组，每项形如 {"date":"2026-11-20","note":"","activities":[{"time":"09:00","title":"西湖"}]}。</div>
-          <div class="sec-actions"><button data-save="daily">保存每日安排 (PUT)</button></div>
-        </div>
-
-        <div class="tabpane" data-sec="transports">
-          <textarea id="ta_transports" rows="8"></textarea>
-          <div class="hint">数组，每项形如 {"mode":"高铁","from":"杭州东","to":"上海虹桥","departAt":"2026-11-20T08:00","arriveAt":"2026-11-20T09:00"}。缺 id 会由服务端补。</div>
-          <div class="sec-actions"><button data-save="transports">保存交通 (PUT)</button></div>
-        </div>
-
-        <div class="tabpane" data-sec="lodgings">
-          <textarea id="ta_lodgings" rows="8"></textarea>
-          <div class="hint">数组，每项形如 {"name":"湖滨民宿","checkIn":"2026-11-20","checkOut":"2026-11-22"}；离店早于入住返回 400。</div>
-          <div class="sec-actions"><button data-save="lodgings">保存住宿 (PUT)</button></div>
-        </div>
-
-        <div class="tabpane" data-sec="expenses">
-          <textarea id="ta_expenses" rows="8"></textarea>
-          <div class="hint">数组，每项形如 {"category":"交通","amount":553,"currency":"CNY"}；金额为负返回 400，留空表示待填写。</div>
-          <div class="sec-actions"><button data-save="expenses">保存费用 (PUT)</button></div>
-        </div>
-
-        <div class="tabpane" data-sec="members">
-          <div id="memList"></div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">添加 / 更新成员</h2>
-          <div class="row">
-            <input id="memUser" placeholder="成员用户名" style="width:160px;" />
-            <button id="memSaveBtn">保存成员</button>
-          </div>
-          <div class="checks" id="memChecks">
-            <label><input type="checkbox" value="PLAN" />方案</label>
-            <label><input type="checkbox" value="DAILY" />每日安排</label>
-            <label><input type="checkbox" value="TRANSPORT" />交通</label>
-            <label><input type="checkbox" value="LODGING" />住宿</label>
-            <label><input type="checkbox" value="EXPENSE" />费用</label>
-          </div>
-          <div class="sec-actions">
-            <button id="leaveBtn" class="secondary">退出该行程（仅成员）</button>
-          </div>
-          <div class="hint">
-            「保存成员」是创建者直接授权；邀请流程见「邀请」页签，受邀者可自行接受或拒绝。
-            只能授权已注册账号，否则返回 400。
-          </div>
-        </div>
-
-        <div class="tabpane" data-sec="invite">
-          <h2 style="font-size:14px;margin:0 0 6px;">发起邀请（仅创建者）</h2>
-          <div class="row">
-            <input id="invUser" placeholder="受邀账号" style="width:160px;" />
-            <button id="invSendBtn">发出邀请</button>
-          </div>
-          <div class="checks" id="invChecks">
-            <label><input type="checkbox" value="PLAN" />方案</label>
-            <label><input type="checkbox" value="DAILY" />每日安排</label>
-            <label><input type="checkbox" value="TRANSPORT" />交通</label>
-            <label><input type="checkbox" value="LODGING" />住宿</label>
-            <label><input type="checkbox" value="EXPENSE" />费用</label>
-          </div>
-          <div class="hint">发出邀请不改变行程版本号；受邀者需在「我收到的邀请」里接受，才会成为成员。</div>
-
-          <h2 style="font-size:14px;margin:16px 0 6px;">本行程的邀请记录</h2>
-          <div id="invList"><span class="muted">打开行程后自动加载</span></div>
-
-          <h2 style="font-size:14px;margin:16px 0 6px;">我收到的邀请</h2>
-          <div class="sec-actions">
-            <button id="invRefreshMineBtn" class="secondary">刷新我的邀请</button>
-          </div>
-          <div id="invMine"><span class="muted">点刷新查看</span></div>
-        </div>
-
-        <div class="tabpane" data-sec="collab">
-          <div class="row">
-            <input id="cmContent" placeholder="写点什么，比如「第二天想加个灵隐寺」" style="flex:1;min-width:240px;" />
-            <button id="cmSendBtn">发表留言</button>
-            <button id="cmRefreshBtn" class="secondary">刷新</button>
-          </div>
-          <div class="hint">留言与修改记录不改变版本号，因此不会引发版本冲突。修改记录只由服务端在写操作成功后产生。</div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">留言</h2>
-          <div id="cmList"><span class="muted">打开行程后点击刷新</span></div>
-          <h2 style="font-size:14px;margin:16px 0 6px;">修改记录</h2>
-          <div id="clList"><span class="muted">打开行程后点击刷新</span></div>
-        </div>
-
-        <div class="tabpane" data-sec="budget">
-          <div class="sec-actions">
-            <button id="budgetRefreshBtn">刷新预算汇总与检查 (GET)</button>
-          </div>
-          <div class="hint">按币种分别合计，不做汇率换算；待填写条目单列计数。体检项含时间冲突、日期倒置等。</div>
-          <pre id="budgetOut" style="margin-top:12px;"></pre>
-        </div>
-
-        <div class="tabpane" data-sec="ticket">
-          <div class="row">
-            <input id="tkName" placeholder="景点名称，如 西湖" style="width:200px;" />
-            <button id="tkBtn">查询购票信息</button>
-            <button id="tkChannelsBtn" class="secondary">已收录的官方入口</button>
-          </div>
-          <div class="hint">
-            只展示人工核验过的官方入口。没有收录的景点会明确提示自行前往官方渠道，
-            系统不抓取、不推断、不生成任何链接；余票一律标记为「未核验」。
-          </div>
-          <pre id="tkOut" style="margin-top:12px;"></pre>
-        </div>
-
-        <div class="tabpane" data-sec="geo">
-          <h2 style="font-size:14px;margin:0 0 6px;">地点检索（高德）</h2>
-          <div class="row">
-            <input id="geoKeywords" placeholder="关键词，如 西湖" style="width:180px;" />
-            <input id="geoCity" placeholder="城市（可选）" style="width:120px;" />
-            <button id="geoPlaceBtn">查地点</button>
-          </div>
-          <h2 style="font-size:14px;margin:14px 0 6px;">天气预报（高德）</h2>
-          <div class="row">
-            <input id="geoWeatherCity" placeholder="城市名或 adcode，如 杭州" style="width:180px;" />
-            <button id="geoWeatherBtn">查天气</button>
-            <button id="geoStatusBtn" class="secondary">查询能力状态</button>
-          </div>
-          <div class="hint">
-            未配置高德密钥时，这三个查询返回 503 并说明原因；行程、景点、预算与协作功能不受影响。
-          </div>
-          <pre id="geoOut" style="margin-top:12px;"></pre>
-        </div>
-
-        <div class="tabpane" data-sec="vote">
-          <div class="row">
-            <input id="cdName" placeholder="想去的地方，如 灵隐寺" style="width:200px;" />
-            <select id="cdKind" style="width:110px;">
-              <option value="ATTRACTION">景点</option>
-              <option value="LODGING">住宿</option>
-              <option value="OTHER">其它</option>
-            </select>
-            <button id="cdAddBtn">添加候选</button>
-            <button id="cdRefreshBtn" class="secondary">刷新</button>
-          </div>
-          <div class="hint">
-            能查看该行程的人都可以提候选、投票，不需要板块编辑权。投票不改变版本号，也不会自动写入日程；
-            点「确认加入」才真正写进某一天的安排。
-          </div>
-          <div id="cdList" style="margin-top:10px;"><span class="muted">打开行程后点击刷新</span></div>
-        </div>
-
-        <div class="tabpane" data-sec="advice">
-          <div class="row">
-            <input id="adTravelers" type="number" min="1" placeholder="人数（可选）" style="width:120px;" />
-            <label class="muted" style="font-size:12px;">
-              <input type="checkbox" id="adWeather" checked /> 查询天气
-            </label>
-            <button id="adBtn">生成综合建议</button>
-          </div>
-          <div class="hint">
-            风险与调整建议由系统规则算出（预算、投票、时间冲突、交通衔接、住宿、天气），
-            模型只负责把这些事实组织成文字；未配置模型密钥时，规则结论照样完整。
-          </div>
-          <div id="adOut" style="margin-top:10px;"></div>
-        </div>
-
-        <div class="tabpane" data-sec="archive">
-          <div class="row">
-            <button id="arArchiveBtn">归档（转为只读）</button>
-            <button id="arUnarchiveBtn" class="secondary">取消归档</button>
-            <button id="arExportBtn" class="secondary">导出文本摘要</button>
-            <button id="arStateBtn" class="secondary">查看状态</button>
-          </div>
-          <div class="hint">
-            归档不删除任何数据，只转为只读：之后所有写操作（含成员变更、候选投票）返回 409，取消归档即恢复。
-            导出为纯文本，服务端不写本地磁盘，由浏览器负责保存。
-          </div>
-          <pre id="arOut" style="margin-top:12px;"></pre>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const SECTIONS = ['plan','daily','transports','lodgings','expenses'];
-    const FIELD = { plan:'plan', daily:'dailySchedules', transports:'transports', lodgings:'lodgings', expenses:'expenses' };
-    let state = { id:null, version:0 };
-
-    function show(msg, kind) {
-      const el = $('msg'); el.textContent = msg; el.className = 'status ' + (kind || '');
+  /* ---------- 提交态 ---------- */
+  function lock(form, locked, label) {
+    var btn = form.querySelector('.submit');
+    if (!btn) return;
+    if (locked) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = label;
+      btn.disabled = true;
+    } else {
+      btn.textContent = btn.dataset.label || btn.textContent;
+      btn.disabled = false;
     }
-    function clearMsg() { const el = $('msg'); el.textContent = ''; el.className = 'status'; }
+  }
 
-    async function api(method, path, body, isJson) {
-      const opt = { method, credentials: 'same-origin' };
-      if (body !== undefined) {
-        opt.headers = { 'Content-Type': isJson ? 'application/json' : 'application/x-www-form-urlencoded' };
-        opt.body = isJson ? JSON.stringify(body) : body;
-      }
-      return fetch(path, opt);
-    }
+  function markInvalid(input, bad) {
+    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+  }
 
-    // ---- 视图切换 ----
-    function showAuthView() {
-      $('authView').style.display = 'block';
-      $('mainView').style.display = 'none';
-      $('meInfo').textContent = '';
-      $('logoutBtn').style.display = 'none';
-      state.id = null; state.version = 0;
-      $('itineraryPanel').style.display = 'none';
-      $('itList').innerHTML = '<span class="muted">未加载</span>';
-    }
+  /* ---------- 登录 ---------- */
+  $('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = $('lUser').value.trim();
+    var p = $('lPass').value;
+    markInvalid($('lUser'), !u);
+    markInvalid($('lPass'), !p);
+    if (!u || !p) { show('请填写用户名和密码', 'err'); return; }
 
-    async function showMainView(username) {
-      $('authView').style.display = 'none';
-      $('mainView').style.display = 'block';
-      $('meInfo').textContent = '已登录：' + username;
-      $('logoutBtn').style.display = '';
-      await refreshList();
-    }
+    var form = e.currentTarget;
+    lock(form, true, '登录中…');
+    clearMsg();
 
-    /** 打开页面先问会话：有会话直接进测试台，没有就停在登录卡。 */
-    async function refreshMe() {
-      try {
-        const res = await api('GET', '/api/account/me');
+    fetch('/api/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
         if (res.ok) {
-          const u = await res.json();
-          await showMainView(u.username);
-          return true;
+          $('lPass').value = '';
+          show('登录成功，正在进入…', 'ok');
+          location.replace(NEXT);
+          return;
         }
-      } catch (e) { /* 网络异常时按未登录处理 */ }
-      showAuthView();
-      return false;
-    }
-
-    // ---- 登录 / 注册 ----
-    $('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const u = $('lUser').value.trim(), p = $('lPass').value;
-      if (!u || !p) { show('请填写用户名和密码', 'err'); return; }
-      const res = await api('POST', '/api/login',
-        'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p), false);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        $('lPass').value = '';
-        show('登录成功：' + (d.username || u), 'ok');
-        await showMainView(d.username || u);
-      } else {
-        show('登录失败(' + res.status + ')：' + (d.error || '用户名或密码错误'), 'err');
-      }
-    });
-
-    $('registerForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const u = $('rUser').value.trim(), p = $('rPass').value;
-      if (!u || !p) { show('请填写用户名和密码', 'err'); return; }
-      const res = await api('POST', '/api/account/register', { username:u, password:p }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.status === 201 || res.ok) {
-        // 注册成功直接填进登录表单并切回登录页签，省一次输入
-        $('lUser').value = u; $('lPass').value = p; $('rPass').value = '';
-        switchAuthTab('login');
-        show('注册成功，密码已带入登录表单，点「登录」即可进入。', 'ok');
-      } else {
-        show('注册失败(' + res.status + ')：' + (d.error || ''), 'err');
-      }
-    });
-
-    function switchAuthTab(name) {
-      document.querySelectorAll('.authtab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-      document.querySelectorAll('.authform').forEach(f => f.classList.toggle('active', f.id === name + 'Form'));
-    }
-    document.querySelectorAll('.authtab').forEach(t => {
-      t.onclick = () => { switchAuthTab(t.dataset.tab); clearMsg(); };
-    });
-
-    $('logoutBtn').onclick = async () => {
-      const res = await api('POST', '/api/logout');
-      const d = await res.json().catch(() => ({}));
-      showAuthView();
-      show('已退出：' + (d.loggedOut ? '服务端会话已失效' : 'OK'), 'ok');
-    };
-
-    // ---- 行程列表 ----
-    async function refreshList() {
-      const res = await api('GET', '/api/itineraries');
-      if (!res.ok) { $('itList').innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
-      const list = await res.json();
-      if (!list.length) { $('itList').innerHTML = '<span class="muted">暂无行程</span>'; return; }
-      $('itList').innerHTML = '';
-      list.forEach(it => {
-        const div = document.createElement('div'); div.className = 'item';
-        div.innerHTML = '<div><b>' + escapeHtml(it.title) + '</b> <span class="meta">v' + it.version +
-          ' · owner ' + escapeHtml(it.owner) + '</span></div>';
-        const btn = document.createElement('button'); btn.className = 'sm'; btn.textContent = '打开';
-        btn.onclick = () => openItinerary(it.id);
-        div.appendChild(btn); $('itList').appendChild(div);
+        lock(form, false);
+        show('登录失败：' + (d.error || '用户名或密码错误'), 'err');
+        markInvalid($('lPass'), true);
+        $('lPass').select();
       });
-    }
-    $('refreshListBtn').onclick = refreshList;
-
-    // ---- 创建 ----
-    $('createBtn').onclick = async () => {
-      const title = $('newTitle').value.trim();
-      if (!title) { show('请填写标题', 'err'); return; }
-      let plan = null;
-      const raw = $('newPlan').value.trim();
-      if (raw) { try { plan = JSON.parse(raw); } catch (e) { show('方案 JSON 解析失败：' + e.message, 'err'); return; } }
-      const res = await api('POST', '/api/itineraries', { title, plan }, true);
-      if (res.status === 201) {
-        const it = await res.json();
-        show('已创建：' + it.title + ' (v' + it.version + ')', 'ok');
-        $('newTitle').value = ''; $('newPlan').value = '';
-        await refreshList(); await openItinerary(it.id);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        show('创建失败(' + res.status + ')：' + (d.error || ''), 'err');
-      }
-    };
-
-    // ---- 打开 / 渲染行程 ----
-    async function openItinerary(id) {
-      const res = await api('GET', '/api/itineraries/' + id);
-      if (!res.ok) { show('打开失败(' + res.status + ')', 'err'); return; }
-      applyItinerary(await res.json());
-    }
-
-    function applyItinerary(it) {
-      state.id = it.id; state.version = it.version;
-      $('itineraryPanel').style.display = 'block';
-      $('itTitle').textContent = it.title;
-      $('itMeta').textContent = 'version ' + it.version + ' · owner ' + it.owner
-        + (it.archived ? ' · 已归档（只读）' : '');
-      SECTIONS.forEach(s => {
-        const val = it[FIELD[s]];
-        $('ta_' + s).value = JSON.stringify(val === undefined ? (s === 'plan' ? {} : []) : val, null, 2);
-      });
-      const links = $('ticketActivityLinks'); links.replaceChildren();
-      (it.dailySchedules || []).forEach(day => (day.activities || []).forEach(a => {
-        const p = document.createElement('p'); const link = document.createElement('a');
-        link.textContent = day.date + ' · ' + a.title + '：购票辅助';
-        link.href = '/ticket-assistant.html?itineraryId=' + encodeURIComponent(it.id)
-          + '&activityId=' + encodeURIComponent(a.id); p.append(link);
-        if (a.ticketRecord) p.append(document.createTextNode(' · 用户自报已购票／已预约，未经平台核验'));
-        links.append(p);
-      }));
-      renderMembers(it.members || []);
-      loadItineraryInvitations();
-      loadCollab();
-    }
-
-    $('refreshItBtn').onclick = () => { if (state.id) openItinerary(state.id); };
-
-    $('deleteItBtn').onclick = async () => {
-      if (!state.id) return;
-      if (!confirm('确认删除该行程？')) return;
-      const res = await api('DELETE', '/api/itineraries/' + state.id);
-      if (res.ok) {
-        show('已删除', 'ok');
-        $('itineraryPanel').style.display = 'none';
-        state.id = null;
-        await refreshList();
-      } else {
-        const d = await res.json().catch(() => ({}));
-        show('删除失败(' + res.status + ')：' + (d.error || ''), 'err');
-      }
-    };
-
-    // ---- 页签切换 ----
-    $('secTabs').querySelectorAll('.tab').forEach(t => {
-      t.onclick = () => {
-        $('secTabs').querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-        document.querySelectorAll('.tabpane').forEach(x => x.classList.remove('active'));
-        t.classList.add('active');
-        document.querySelector('.tabpane[data-sec="' + t.dataset.sec + '"]').classList.add('active');
-        // 讨论类页签按需加载，避免每次打开行程都多打几个请求
-        if (state.id && t.dataset.sec === 'vote') loadBoard();
-        if (state.id && t.dataset.sec === 'archive') loadArchiveState();
-      };
+    }).catch(function () {
+      lock(form, false);
+      show('网络异常，请确认服务已启动后重试', 'err');
     });
+  });
 
-    // ---- 保存板块 ----
-    document.querySelectorAll('[data-save]').forEach(btn => {
-      btn.onclick = async () => {
-        const sec = btn.dataset.save; const ta = $('ta_' + sec);
-        if (!state.id) { show('请先打开行程', 'err'); return; }
-        let payload;
-        try { payload = JSON.parse(ta.value); } catch (e) { show(sec + ' JSON 解析失败：' + e.message, 'err'); return; }
-        const res = await api('PUT', '/api/itineraries/' + state.id + '/' + sec + '?version=' + state.version, payload, true);
-        if (res.ok) { applyItinerary(await res.json()); show('已保存 ' + sec + '，新版本 ' + state.version, 'ok'); }
-        else {
-          const d = await res.json().catch(() => ({}));
-          const cv = res.headers.get('X-Version');
-          show('保存失败(' + res.status + ')' + (cv ? ' 服务端当前版本=' + cv : '') + '：' + (d.error || ''), 'err');
+  /* ---------- 注册 ---------- */
+  $('registerForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = $('rUser').value.trim();
+    var p = $('rPass').value;
+    markInvalid($('rUser'), !u);
+    markInvalid($('rPass'), !p);
+
+    if (!u || !p) { show('请填写用户名和密码', 'err'); return; }
+    if (!/^[A-Za-z0-9_]{3,32}$/.test(u)) {
+      markInvalid($('rUser'), true);
+      show('用户名需 3–32 位，仅字母、数字或下划线', 'err');
+      $('rUser').focus();
+      return;
+    }
+    if (p.length < 8 || !/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) {
+      markInvalid($('rPass'), true);
+      show('密码至少 8 位，且同时包含字母和数字', 'err');
+      $('rPass').focus();
+      return;
+    }
+
+    var form = e.currentTarget;
+    lock(form, true, '注册中…');
+    clearMsg();
+
+    fetch('/api/account/register', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        if (res.status === 201 || res.ok) {
+          /* 注册成功直接复用这套凭据登录，省一次输入 */
+          lock(form, false);
+          var lf = $('loginForm');
+          lock(lf, true, '登录中…');
+          fetch('/api/login', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p)
+          }).then(function (r2) {
+            if (r2.ok) {
+              show('注册成功，正在进入…', 'ok');
+              location.replace(NEXT);
+              return;
+            }
+            lock(lf, false);
+            $('rPass').value = '';
+            $('lUser').value = u;
+            switchTab('login');
+            show('注册成功，请用刚才的密码登录', 'ok');
+          }).catch(function () {
+            lock(lf, false);
+            switchTab('login');
+            $('lUser').value = u;
+            show('注册成功，但自动登录失败，请手动登录', 'info');
+          });
+          return;
         }
-      };
+        lock(form, false);
+        show('注册失败：' + (d.error || ('HTTP ' + res.status)), 'err');
+      });
+    }).catch(function () {
+      lock(form, false);
+      show('网络异常，请确认服务已启动后重试', 'err');
     });
+  });
 
-    // ---- 成员 ----
-    function renderMembers(members) {
-      const box = $('memList'); box.innerHTML = '';
-      if (!members.length) { box.innerHTML = '<span class="muted">暂无成员</span>'; return; }
-      members.forEach(m => {
-        const div = document.createElement('div'); div.className = 'mem';
-        div.innerHTML = '<div><b>' + escapeHtml(m.username) + '</b> <span class="tags">' +
-          (m.editSections && m.editSections.length ? m.editSections.join(', ') : '（仅查看）') + '</span></div>';
-        const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
-        const upd = document.createElement('button'); upd.className = 'sm secondary'; upd.textContent = '编辑';
-        upd.onclick = () => {
-          $('memUser').value = m.username;
-          $('memChecks').querySelectorAll('input').forEach(c => c.checked = (m.editSections || []).includes(c.value));
-        };
-        const del = document.createElement('button'); del.className = 'sm danger'; del.textContent = '移除';
-        del.onclick = () => removeMember(m.username);
-        wrap.appendChild(upd); wrap.appendChild(del); div.appendChild(wrap); box.appendChild(div);
-      });
-    }
+  /* ---------- 已登录访问首页：直接进对话页 ---------- */
+  fetch('/api/account/me', { credentials: 'same-origin' })
+    .then(function (res) {
+      if (res.ok) { location.replace(NEXT); }
+      else if (res.status === 401) { $('lUser').focus(); }
+    })
+    .catch(function () { /* 服务未就绪时停在登录页，不制造跳转循环 */ });
 
-    $('memSaveBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const username = $('memUser').value.trim();
-      if (!username) { show('请填写成员用户名', 'err'); return; }
-      const secs = [...$('memChecks').querySelectorAll('input:checked')].map(c => c.value);
-      const res = await api('POST', '/api/itineraries/' + state.id + '/members?version=' + state.version,
-        { username, editSections: secs }, true);
-      if (res.ok) { applyItinerary(await res.json()); show('已添加/更新成员 ' + username, 'ok'); $('memUser').value = ''; }
-      else {
-        const d = await res.json().catch(() => ({})); const cv = res.headers.get('X-Version');
-        show('成员操作失败(' + res.status + ')' + (cv ? ' 当前版本=' + cv : '') + '：' + (d.error || ''), 'err');
-      }
-    };
-
-    async function removeMember(username) {
-      if (!confirm('移除成员 ' + username + '？')) return;
-      const res = await api('DELETE', '/api/itineraries/' + state.id + '/members/'
-        + encodeURIComponent(username) + '?version=' + state.version);
-      if (res.ok) { applyItinerary(await res.json()); show('已移除 ' + username, 'ok'); }
-      else {
-        const d = await res.json().catch(() => ({}));
-        show('移除失败(' + res.status + ')：' + (d.error || ''), 'err');
-      }
-    }
-
-    $('leaveBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      if (!confirm('确认退出该行程？退出后将失去访问权。')) return;
-      const res = await api('POST', '/api/itineraries/' + state.id + '/leave');
-      if (res.status === 204) {
-        show('已退出该行程', 'ok');
-        $('itineraryPanel').style.display = 'none'; state.id = null;
-        await refreshList();
-      } else {
-        const d = await res.json().catch(() => ({}));
-        show('退出失败(' + res.status + ')：' + (d.error || ''), 'err');
-      }
-    };
-
-    // ---- 邀请 ----
-    async function loadItineraryInvitations() {
-      const box = $('invList');
-      if (!state.id) { box.innerHTML = '<span class="muted">请先打开行程</span>'; return; }
-      const res = await api('GET', '/api/itineraries/' + state.id + '/invitations');
-      if (res.status === 403) { box.innerHTML = '<span class="muted">仅行程创建者可查看邀请记录</span>'; return; }
-      if (!res.ok) { box.innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
-      const list = await res.json();
-      if (!list.length) { box.innerHTML = '<span class="muted">暂无邀请</span>'; return; }
-      box.innerHTML = '';
-      list.forEach(inv => {
-        const div = document.createElement('div'); div.className = 'mem';
-        const secs = (inv.editSections && inv.editSections.length) ? inv.editSections.join(', ') : '（仅查看）';
-        div.innerHTML = '<div><b>' + escapeHtml(inv.invitee) + '</b> <span class="tags">'
-          + escapeHtml(inv.status) + ' · ' + escapeHtml(secs) + '</span></div>';
-        if (inv.status === 'PENDING') {
-          const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
-          const btn = document.createElement('button'); btn.className = 'sm danger'; btn.textContent = '撤回';
-          btn.onclick = () => cancelInvitation(inv.id);
-          wrap.appendChild(btn); div.appendChild(wrap);
-        }
-        box.appendChild(div);
-      });
-    }
-
-    async function loadMyInvitations() {
-      const box = $('invMine'); box.innerHTML = '<span class="muted">加载中…</span>';
-      const res = await api('GET', '/api/invitations');
-      if (!res.ok) { box.innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
-      const list = await res.json();
-      if (!list.length) { box.innerHTML = '<span class="muted">没有待处理的邀请</span>'; return; }
-      box.innerHTML = '';
-      list.forEach(inv => {
-        const div = document.createElement('div'); div.className = 'mem';
-        const secs = (inv.editSections && inv.editSections.length) ? inv.editSections.join(', ') : '（仅查看）';
-        div.innerHTML = '<div><b>' + escapeHtml(inv.itineraryTitle || '（行程已删除）')
-          + '</b> <span class="tags">来自 ' + escapeHtml(inv.inviter) + ' · ' + escapeHtml(secs) + '</span></div>';
-        const wrap = document.createElement('div'); wrap.style.display = 'flex'; wrap.style.gap = '6px';
-        const ok = document.createElement('button'); ok.className = 'sm'; ok.textContent = '接受';
-        ok.onclick = () => respondInvitation(inv.id, 'accept');
-        const no = document.createElement('button'); no.className = 'sm danger'; no.textContent = '拒绝';
-        no.onclick = () => respondInvitation(inv.id, 'reject');
-        wrap.appendChild(ok); wrap.appendChild(no); div.appendChild(wrap); box.appendChild(div);
-      });
-    }
-
-    $('invSendBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const username = $('invUser').value.trim();
-      if (!username) { show('请填写受邀账号', 'err'); return; }
-      const secs = [...$('invChecks').querySelectorAll('input:checked')].map(c => c.value);
-      const res = await api('POST', '/api/itineraries/' + state.id + '/invitations',
-        { username, editSections: secs }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        show((res.status === 201 ? '已发出邀请给 ' : '已更新待处理邀请 ') + username + '（等待对方接受）', 'ok');
-        $('invUser').value = '';
-        await loadItineraryInvitations();
-      } else show('邀请失败(' + res.status + ')：' + (d.error || ''), 'err');
-    };
-
-    async function cancelInvitation(id) {
-      if (!confirm('撤回这条邀请？')) return;
-      const res = await api('DELETE', '/api/invitations/' + id);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { show('已撤回邀请', 'ok'); await loadItineraryInvitations(); }
-      else show('撤回失败(' + res.status + ')：' + (d.error || ''), 'err');
-    }
-
-    async function respondInvitation(id, action) {
-      const res = await api('POST', '/api/invitations/' + id + '/' + action);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        show(action === 'accept' ? '已接受邀请，现在可以查看并编辑该行程' : '已拒绝邀请', 'ok');
-        await loadMyInvitations(); await refreshList();
-        if (action === 'accept' && d.itineraryId) await openItinerary(d.itineraryId);
-      } else show('操作失败(' + res.status + ')：' + (d.error || ''), 'err');
-    }
-
-    $('invRefreshMineBtn').onclick = loadMyInvitations;
-
-    // ---- 预算与体检 ----
-    $('budgetRefreshBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const out = $('budgetOut');
-      out.textContent = '加载中…';
-      const [bRes, cRes] = await Promise.all([
-        api('GET', '/api/itineraries/' + state.id + '/budget'),
-        api('GET', '/api/itineraries/' + state.id + '/checks')
-      ]);
-      if (!bRes.ok || !cRes.ok) {
-        out.textContent = '读取失败：HTTP ' + bRes.status + ' / ' + cRes.status;
-        show('预算或体检读取失败', 'err');
-        return;
-      }
-      const b = await bRes.json(), c = await cRes.json();
-      const money = (v) => Number(v).toFixed(2);
-      const lines = [];
-      lines.push('主要币种：' + b.primaryCurrency + '　计入条目：' + b.itemCount + '　待填写：' + b.pendingCount);
-      lines.push('');
-      lines.push('— 各币种合计（不做汇率换算）—');
-      if (!b.totals.length) { lines.push('  （无）'); }
-      b.totals.forEach(t => lines.push('  ' + t.currency + '  ' + money(t.amount) + '（' + t.itemCount + ' 条）'));
-      lines.push('');
-      lines.push('— 分类合计 —');
-      if (!b.byCategory.length) { lines.push('  （无）'); }
-      b.byCategory.forEach(t => lines.push('  [' + t.currency + '] ' + t.category + '  '
-        + money(t.amount) + '（' + t.itemCount + ' 条）'));
-      if (b.notes && b.notes.length) {
-        lines.push('');
-        lines.push('— 口径说明 —');
-        b.notes.forEach(n => lines.push('  · ' + n));
-      }
-      lines.push('');
-      lines.push('— 体检（版本 ' + c.version + '）—');
-      if (c.ok) { lines.push('  ✓ 未发现问题'); }
-      else { c.warnings.forEach(w => lines.push('  ✗ [' + w.code + '] ' + w.message)); }
-      out.textContent = lines.join('\n');
-    };
-
-    // ---- 协作 ----
-    function fmtTime(iso) {
-      if (!iso) return '';
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return String(iso);
-      const p = (n) => String(n).padStart(2, '0');
-      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
-        + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
-    }
-
-    function renderComments(list) {
-      const box = $('cmList');
-      if (!list.length) { box.innerHTML = '<span class="muted">还没有留言</span>'; return; }
-      box.innerHTML = '';
-      list.forEach(c => {
-        const div = document.createElement('div'); div.className = 'mem';
-        div.innerHTML = '<div><b>' + escapeHtml(c.author) + '</b> <span class="tags">'
-          + fmtTime(c.createdAt) + '</span></div>'
-          + '<div style="margin-top:4px;white-space:pre-wrap;">' + escapeHtml(c.content) + '</div>';
-        box.appendChild(div);
-      });
-    }
-
-    function renderChangelog(list) {
-      const box = $('clList');
-      if (!list.length) { box.innerHTML = '<span class="muted">暂无修改记录</span>'; return; }
-      box.innerHTML = '';
-      list.forEach(e => {
-        const div = document.createElement('div'); div.className = 'mem';
-        div.innerHTML = '<div><b>' + escapeHtml(e.actor) + '</b> <span class="tags">'
-          + escapeHtml(e.section) + ' · v' + e.version + ' · ' + fmtTime(e.at) + '</span></div>'
-          + '<div style="margin-top:4px;">' + escapeHtml(e.summary) + '</div>';
-        box.appendChild(div);
-      });
-    }
-
-    async function loadCollab() {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const [cRes, lRes] = await Promise.all([
-        api('GET', '/api/itineraries/' + state.id + '/comments'),
-        api('GET', '/api/itineraries/' + state.id + '/changelog?limit=50')
-      ]);
-      if (cRes.ok) renderComments(await cRes.json());
-      else $('cmList').innerHTML = '<span class="muted">留言加载失败(' + cRes.status + ')</span>';
-      if (lRes.ok) renderChangelog(await lRes.json());
-      else $('clList').innerHTML = '<span class="muted">修改记录加载失败(' + lRes.status + ')</span>';
-    }
-
-    $('cmRefreshBtn').onclick = loadCollab;
-
-    $('cmSendBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const content = $('cmContent').value.trim();
-      if (!content) { show('留言内容不能为空', 'err'); return; }
-      const res = await api('POST', '/api/itineraries/' + state.id + '/comments', { content }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { $('cmContent').value = ''; show('留言已发表（不改变版本号）', 'ok'); await loadCollab(); }
-      else show('发表失败(' + res.status + ')：' + (d.error || ''), 'err');
-    };
-
-    // ---- 购票 ----
-    function renderTicket(a) {
-      const out = $('tkOut');
-      const lines = [];
-      lines.push('景点：' + (a.attractionName || '（未指定）') + (a.city ? '（' + a.city + '）' : ''));
-      lines.push('状态：' + a.status + '　余票已核验：' + (a.stockVerified ? '是' : '否'));
-      lines.push('查询时间：' + fmtTime(a.queriedAt) + '　来源：' + (a.source || ''));
-      lines.push('');
-      lines.push('说明：' + a.notice);
-      if (a.channels && a.channels.length) {
-        a.channels.forEach(ch => {
-          lines.push('');
-          lines.push('— ' + ch.channelName + ' —');
-          lines.push('入口：' + ch.officialUrl);
-          lines.push('核验日期：' + (ch.verifiedAt || '未记录（使用前请再次确认）'));
-          lines.push('规则：' + ((ch.rules && ch.rules.length) ? ch.rules.join('；') : '未查询到'));
-          if (ch.ticketTypes && ch.ticketTypes.length) {
-            lines.push('票种：');
-            ch.ticketTypes.forEach(t => lines.push('  · ' + t.name + '　'
-              + (t.price != null ? t.price + ' ' + (t.currency || '') : '价格未知')
-              + (t.priceNote ? '（' + t.priceNote + '）' : '')));
-          } else lines.push('票种：未查询到');
-          if (ch.note) lines.push('备注：' + ch.note);
-        });
-      }
-      out.textContent = lines.join('\n');
-    }
-
-    $('tkBtn').onclick = async () => {
-      const name = $('tkName').value.trim();
-      if (!name) { show('请填写景点名称', 'err'); return; }
-      $('tkOut').textContent = '查询中…';
-      const res = await api('GET', '/api/tickets?name=' + encodeURIComponent(name));
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { $('tkOut').textContent = '查询失败(' + res.status + ')：' + (d.error || ''); return; }
-      renderTicket(d);
-    };
-
-    $('tkChannelsBtn').onclick = async () => {
-      $('tkOut').textContent = '加载中…';
-      const res = await api('GET', '/api/tickets/channels');
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { $('tkOut').textContent = '加载失败(' + res.status + ')：' + (d.error || ''); return; }
-      const lines = ['已收录官方入口：' + d.count + ' 条', d.verificationNote || ''];
-      if (d.problem) lines.push('配置问题：' + d.problem);
-      (d.channels || []).forEach(c => lines.push('  · ' + c.attractionName + '（' + c.city + '）→ '
-        + c.channelName + ' ' + c.officialUrl + '　核验：' + (c.verifiedAt || '未记录')));
-      if (!d.count) lines.push('  （当前没有任何配置，所有景点都会提示自行前往官方渠道）');
-      $('tkOut').textContent = lines.join('\n');
-    };
-
-    // ---- 周边查询 ----
-    async function geoCall(path, label) {
-      const out = $('geoOut');
-      out.textContent = label + ' 查询中…';
-      const res = await api('GET', path);
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        out.textContent = label + ' 失败(' + res.status + ')：' + (d.reason || d.error || '未知原因');
-        return;
-      }
-      out.textContent = JSON.stringify(d, null, 2);
-    }
-
-    $('geoPlaceBtn').onclick = () => {
-      const kw = $('geoKeywords').value.trim();
-      if (!kw) { show('请填写关键词', 'err'); return; }
-      const city = $('geoCity').value.trim();
-      geoCall('/api/location/places?keywords=' + encodeURIComponent(kw)
-        + (city ? '&city=' + encodeURIComponent(city) : ''), '地点检索');
-    };
-
-    $('geoWeatherBtn').onclick = () => {
-      const city = $('geoWeatherCity').value.trim();
-      if (!city) { show('请填写城市名或 adcode', 'err'); return; }
-      geoCall('/api/location/weather?city=' + encodeURIComponent(city), '天气');
-    };
-
-    $('geoStatusBtn').onclick = async () => {
-      const res = await api('GET', '/api/location/status');
-      const d = await res.json().catch(() => ({}));
-      $('geoOut').textContent = JSON.stringify(d, null, 2);
-    };
-
-    // ---- 候选与投票 ----
-    function smallBtn(label, cls, onclick) {
-      const b = document.createElement('button');
-      b.className = 'sm ' + (cls || '');
-      b.textContent = label;
-      b.onclick = onclick;
-      return b;
-    }
-
-    function renderBoard(b) {
-      const box = $('cdList');
-      box.innerHTML = '';
-      if (!b.candidates || !b.candidates.length) {
-        const empty = document.createElement('div');
-        empty.className = 'muted';
-        empty.textContent = '还没有候选项，先在上面添加一个';
-        box.appendChild(empty);
-      } else {
-        b.candidates.forEach(t => {
-          const c = t.candidate;
-          const div = document.createElement('div');
-          div.className = 'mem';
-          const top = (c.id === b.leaderId) ? ' ★ 当前票数最高' : '';
-          div.innerHTML = '<div><b>' + escapeHtml(c.name) + '</b> <span class="tags">'
-            + escapeHtml(c.kind) + (c.city ? ' · ' + escapeHtml(c.city) : '')
-            + ' · ' + escapeHtml(c.proposedBy) + ' 提出' + escapeHtml(top) + '</span></div>'
-            + '<div style="margin-top:4px;font-size:12px;">支持 ' + t.support
-            + '　反对 ' + t.oppose + '　弃权 ' + t.abstain + '　净支持 ' + t.score + '</div>';
-          const wrap = document.createElement('div');
-          wrap.style.display = 'flex';
-          wrap.style.gap = '6px';
-          wrap.style.marginTop = '6px';
-          wrap.style.flexWrap = 'wrap';
-          wrap.appendChild(smallBtn('支持', '', () => castVote(c.id, 'SUPPORT')));
-          wrap.appendChild(smallBtn('反对', 'secondary', () => castVote(c.id, 'OPPOSE')));
-          wrap.appendChild(smallBtn('弃权', 'secondary', () => castVote(c.id, 'ABSTAIN')));
-          wrap.appendChild(smallBtn('撤票', 'secondary', () => withdrawVote(c.id)));
-          wrap.appendChild(smallBtn('确认加入', '', () => applyCandidate(c)));
-          wrap.appendChild(smallBtn('删除', 'danger', () => removeCandidate(c.id)));
-          div.appendChild(wrap);
-          box.appendChild(div);
-        });
-      }
-      const notes = document.createElement('div');
-      notes.className = 'muted';
-      notes.style.fontSize = '12px';
-      notes.style.marginTop = '8px';
-      notes.textContent = '参与者 ' + b.participantCount + ' 人，已投票 ' + b.voterCount
-        + ' 人，共 ' + b.totalVotes + ' 票。' + ((b.notes || []).join('；'));
-      box.appendChild(notes);
-    }
-
-    async function loadBoard() {
-      if (!state.id) { $('cdList').innerHTML = '<span class="muted">请先打开行程</span>'; return; }
-      const res = await api('GET', '/api/itineraries/' + state.id + '/candidates');
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { $('cdList').innerHTML = '<span class="muted">加载失败(' + res.status + ')</span>'; return; }
-      renderBoard(d);
-    }
-
-    $('cdRefreshBtn').onclick = loadBoard;
-
-    $('cdAddBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const name = $('cdName').value.trim();
-      if (!name) { show('请填写候选名称', 'err'); return; }
-      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates',
-        { kind: $('cdKind').value, name }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { $('cdName').value = ''; show('已添加候选「' + name + '」', 'ok'); await loadBoard(); }
-      else show('添加失败(' + res.status + ')：' + (d.error || ''), 'err');
-    };
-
-    async function castVote(candidateId, choice) {
-      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates/'
-        + candidateId + '/votes', { choice }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) renderBoard(d);
-      else show('投票失败(' + res.status + ')：' + (d.error || ''), 'err');
-    }
-
-    async function withdrawVote(candidateId) {
-      const res = await api('DELETE', '/api/itineraries/' + state.id + '/candidates/'
-        + candidateId + '/votes');
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) renderBoard(d);
-      else show('撤票失败(' + res.status + ')：' + (d.error || ''), 'err');
-    }
-
-    async function removeCandidate(candidateId) {
-      if (!confirm('删除这个候选项？它名下的选票也会一并清除。')) return;
-      const res = await api('DELETE', '/api/itineraries/' + state.id + '/candidates/' + candidateId);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { show('已删除候选', 'ok'); await loadBoard(); }
-      else show('删除失败(' + res.status + ')：' + (d.error || ''), 'err');
-    }
-
-    async function applyCandidate(c) {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const day = prompt('把「' + c.name + '」加入哪一天？（格式 yyyy-mm-dd）', '');
-      if (!day) return;
-      const res = await api('POST', '/api/itineraries/' + state.id + '/candidates/' + c.id
-        + '/apply?version=' + state.version, { date: day, title: c.name }, true);
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { applyItinerary(d); show('已加入 ' + day + ' 的每日安排（版本 ' + state.version + '）', 'ok'); }
-      else {
-        const cv = res.headers.get('X-Version');
-        show('加入失败(' + res.status + ')' + (cv ? ' 服务端版本=' + cv : '') + '：' + (d.error || ''), 'err');
-      }
-    }
-
-    // ---- 决策建议 ----
-    function renderAdvice(r) {
-      const out = $('adOut');
-      out.innerHTML = '';
-      const section = (title) => {
-        const h = document.createElement('h2');
-        h.style.fontSize = '14px'; h.style.margin = '14px 0 6px'; h.textContent = title;
-        out.appendChild(h);
-      };
-      const line = (text, cls, size) => {
-        const d = document.createElement('div');
-        d.className = cls || 'mem';
-        if (size) d.style.fontSize = size;
-        d.textContent = text;
-        out.appendChild(d);
-        return d;
-      };
-
-      line('版本 v' + r.version + '　生成于 ' + fmtTime(r.generatedAt)
-        + '　来源：' + ((r.sources || []).join('、') || '无'), 'muted', '12px');
-
-      section('风险（' + r.risks.length + ' 条，按严重度排序）');
-      if (!r.risks.length) line('未发现明显问题', 'muted');
-      r.risks.forEach(x => {
-        const div = document.createElement('div');
-        div.className = 'mem';
-        div.innerHTML = '<div><b>' + escapeHtml(x.severity) + '</b> <span class="tags">'
-          + escapeHtml(x.code) + ' · 依据：' + escapeHtml(x.basis) + '</span></div>'
-          + '<div style="margin-top:4px;">' + escapeHtml(x.message) + '</div>'
-          + (x.suggestion ? '<div class="muted" style="margin-top:4px;font-size:12px;">→ '
-            + escapeHtml(x.suggestion) + '</div>' : '');
-        out.appendChild(div);
-      });
-
-      section('调整建议（系统规则）');
-      if (!(r.suggestions || []).length) line('暂无可调整项', 'muted');
-      (r.suggestions || []).forEach(s => line('· ' + s));
-
-      section('模型建议');
-      const adv = document.createElement('div');
-      adv.className = 'mem';
-      adv.style.whiteSpace = 'pre-wrap';
-      adv.textContent = r.advice || '（本次没有模型文字建议，原因见下方提示）';
-      out.appendChild(adv);
-
-      if ((r.notices || []).length) {
-        section('提示');
-        r.notices.forEach(n => line('· ' + n, 'muted', '12px'));
-      }
-    }
-
-    $('adBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const travelers = parseInt($('adTravelers').value, 10);
-      $('adOut').innerHTML = '<span class="muted">分析中…</span>';
-      const body = { includeWeather: $('adWeather').checked };
-      if (!isNaN(travelers) && travelers > 0) body.travelers = travelers;
-      const res = await api('POST', '/api/agent/itineraries/' + state.id + '/advice', body, true);
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { $('adOut').textContent = '分析失败(' + res.status + ')：' + (d.error || ''); return; }
-      renderAdvice(d);
-    };
-
-    // ---- 归档与导出 ----
-    async function loadArchiveState() {
-      const out = $('arOut');
-      if (!state.id) { out.textContent = '请先打开行程'; return; }
-      const res = await api('GET', '/api/itineraries/' + state.id);
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { out.textContent = '读取失败(' + res.status + ')'; return; }
-      out.textContent = '标题：' + d.title
-        + '\n版本：v' + d.version
-        + '\n状态：' + (d.archived ? '已归档（只读）' : '进行中')
-        + (d.archivedAt ? '\n归档时间：' + fmtTime(d.archivedAt) : '')
-        + '\n创建时间：' + fmtTime(d.createdAt)
-        + '\n更新时间：' + fmtTime(d.updatedAt);
-    }
-
-    $('arStateBtn').onclick = loadArchiveState;
-
-    $('arArchiveBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      if (!confirm('归档后行程转为只读，所有写操作都会被拒绝。确认归档？')) return;
-      const res = await api('POST', '/api/itineraries/' + state.id + '/archive');
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { applyItinerary(d); show('已归档（只读，版本 ' + state.version + '）', 'ok'); await loadArchiveState(); }
-      else show('归档失败(' + res.status + ')：' + (d.error || ''), 'err');
-    };
-
-    $('arUnarchiveBtn').onclick = async () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      const res = await api('POST', '/api/itineraries/' + state.id + '/unarchive');
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) { applyItinerary(d); show('已取消归档，可继续编辑', 'ok'); await loadArchiveState(); }
-      else show('操作失败(' + res.status + ')：' + (d.error || ''), 'err');
-    };
-
-    $('arExportBtn').onclick = () => {
-      if (!state.id) { show('请先打开行程', 'err'); return; }
-      // 同源新窗口：浏览器会带着会话 Cookie 请求，并按下发的文件名保存
-      window.open('/api/itineraries/' + state.id + '/export', '_blank');
-    };
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    // ---- 初始化：先判断会话，再决定显示登录卡还是测试台 ----
-    refreshMe();
-  </script>
+  /* 有账号的用户名可直接沿用：?u=name */
+  var preset = new URLSearchParams(location.search).get('u');
+  if (preset) { $('lUser').value = preset.slice(0, 32); $('lPass').focus(); }
+})();
+</script>
 </body>
 </html>

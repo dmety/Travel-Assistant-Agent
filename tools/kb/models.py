@@ -112,6 +112,46 @@ def gcj02_to_wgs84(lat: float, lon: float) -> tuple[float, float]:
     return wgs_lat, wgs_lon
 
 
+def bd09_to_gcj02(lat: float, lon: float) -> tuple[float, float]:
+    """BD-09LL (Baidu) -> GCJ-02. Baidu POI coordinates are BD-09LL by default.
+
+    The trigonometric terms use x_pi = pi * 3000 / 180, not plain pi;
+    using pi shifts GCJ-02 by tens of metres while round-trips still look fine.
+    """
+    import math
+    lat, lon = float(lat), float(lon)
+    x_pi = math.pi * 3000.0 / 180.0
+    x = lon - 0.0065
+    y = lat - 0.006
+    z = math.sqrt(x * x + y * y) - 0.00002 * math.sin(y * x_pi)
+    theta = math.atan2(y, x) - 0.000003 * math.cos(x * x_pi)
+    return z * math.sin(theta), z * math.cos(theta)
+
+
+def gcj02_to_bd09(lat: float, lon: float) -> tuple[float, float]:
+    """GCJ-02 -> BD-09LL (Baidu). Inverse of `bd09_to_gcj02`."""
+    import math
+    lat, lon = float(lat), float(lon)
+    x_pi = math.pi * 3000.0 / 180.0
+    x = lon
+    y = lat
+    z = math.sqrt(x * x + y * y) + 0.00002 * math.sin(y * x_pi)
+    theta = math.atan2(y, x) + 0.000003 * math.cos(x * x_pi)
+    return z * math.sin(theta) + 0.006, z * math.cos(theta) + 0.0065
+
+
+def bd09_to_wgs84(lat: float, lon: float) -> tuple[float, float]:
+    """BD-09LL (Baidu) -> WGS-84 (KB canonical). Compose exact BD->GCJ with GCJ->WGS."""
+    gj_lat, gj_lon = bd09_to_gcj02(lat, lon)
+    return gcj02_to_wgs84(gj_lat, gj_lon)
+
+
+def wgs84_to_bd09(lat: float, lon: float) -> tuple[float, float]:
+    """WGS-84 (KB canonical) -> BD-09LL (Baidu). Inverse of `bd09_to_wgs84`."""
+    gj_lat, gj_lon = wgs84_to_gcj02(lat, lon)
+    return gcj02_to_bd09(gj_lat, gj_lon)
+
+
 def is_missing_value(value) -> bool:
     """Return whether a ticket/open-time value is absent or a placeholder.
 

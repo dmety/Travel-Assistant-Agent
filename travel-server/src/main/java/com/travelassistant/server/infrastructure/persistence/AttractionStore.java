@@ -69,6 +69,20 @@ public class AttractionStore {
   /** 小写名称 → 景点，用于精确名命中优先。 */
   private volatile Map<String, List<Attraction>> nameIndex = Map.of();
 
+  /**
+   * 模糊查询结果缓存（有界 LRU）。{@code /api/attractions?name=} 是匿名公开接口，
+   * 未命中精确索引时会全表扫描全量记录；缓存避免同一关键词反复扫描。
+   * accessOrder=true 的 get 会改结构，因此所有访问都在 {@code synchronized} 内进行。
+   */
+  private static final int FUZZY_CACHE_MAX = 256;
+  private final Map<String, List<Attraction>> fuzzyCache =
+      new LinkedHashMap<>(64, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, List<Attraction>> eldest) {
+          return size() > FUZZY_CACHE_MAX;
+        }
+      };
+
   public AttractionStore(ObjectMapper mapper,
       @Value("${travel.attraction-kb-path}") String kbPath) {
     this.mapper = mapper;
@@ -125,6 +139,10 @@ public class AttractionStore {
     loaded.sort(RICHNESS);
     buildIndexes(loaded);
 
+    // 索引内容变了，旧的模糊查询结果不再有效。
+    synchronized (fuzzyCache) {
+      fuzzyCache.clear();
+    }
     this.all = List.copyOf(loaded);
     this.status = new Status(true, null, loaded.size(), cityIndex.size(),
         kbPath.toString(), Instant.now().toString());
@@ -167,7 +185,8 @@ public class AttractionStore {
         PlaceholderValues.clean(a.source()),
         sources,
         PlaceholderValues.clean(a.ticketStatus()),
-        PlaceholderValues.clean(a.openTimeStatus()));
+        PlaceholderValues.clean(a.openTimeStatus()),
+        PlaceholderValues.clean(a.coordinateSystem()));
   }
 
   /** 地址等于城市/省份或其简单拼接（如"北京市北京"）时视为无效。 */
@@ -279,6 +298,9 @@ public class AttractionStore {
     this.idIndex = Map.of();
     this.cityIndex = Map.of();
     this.nameIndex = Map.of();
+    synchronized (fuzzyCache) {
+      fuzzyCache.clear();
+    }
     log.warn("景点知识库不可用，查询已停用：{}", reason);
   }
 
@@ -306,6 +328,9 @@ public class AttractionStore {
    *
    * <p>前缀优先于包含，避免"西湖"把"东西湖区图书馆"这类非目标结果排到前面。
    * 关键词为空时返回空列表（不返回全库）。
+   *
+   * <p>未命中精确名时才走全表扫描，结果按关键词缓存在有界 LRU 中；
+   * 空结果也缓存，避免不存在的关键词被反复用来打满 CPU。
    */
   public List<Attraction> findByName(String keyword) {
     String kw = keyword == null ? "" : keyword.strip();
@@ -319,20 +344,28 @@ public class AttractionStore {
       return List.copyOf(exact);
     }
 
-    List<Attraction> prefix = new ArrayList<>();
-    List<Attraction> contains = new ArrayList<>();
-    for (Attraction a : all) {
-      if (a.name() == null) {
-        continue;
+    synchronized (fuzzyCache) {
+      List<Attraction> cached = fuzzyCache.get(lower);
+      if (cached != null) {
+        return cached;
       }
-      String name = a.name().toLowerCase(Locale.ROOT);
-      if (name.startsWith(lower)) {
-        prefix.add(a);
-      } else if (name.contains(lower)) {
-        contains.add(a);
+      List<Attraction> prefix = new ArrayList<>();
+      List<Attraction> contains = new ArrayList<>();
+      for (Attraction a : all) {
+        if (a.name() == null) {
+          continue;
+        }
+        String name = a.name().toLowerCase(Locale.ROOT);
+        if (name.startsWith(lower)) {
+          prefix.add(a);
+        } else if (name.contains(lower)) {
+          contains.add(a);
+        }
       }
+      List<Attraction> result = List.copyOf(prefix.isEmpty() ? contains : prefix);
+      fuzzyCache.put(lower, result);
+      return result;
     }
-    return prefix.isEmpty() ? List.copyOf(contains) : List.copyOf(prefix);
   }
 
   public Optional<Attraction> findById(String id) {

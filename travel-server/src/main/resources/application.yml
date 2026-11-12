@@ -26,12 +26,21 @@ travel:
   # 高德 Web 服务密钥。留空则地点/天气/路线查询整体停用，接口返回 503 并说明原因；
   # 行程、景点、预算、协作等本地能力不受影响。
   amap:
-    key: ${AMAP_KEY:}
+    key: ${AMAP_KEY:${AMAP_API_KEY:}}
     timeout-ms: ${AMAP_TIMEOUT_MS:4000}
+  # 百度地图第二数据源。控制台按 IP 白名单授权时无需 SN；AK 缺失时餐饮链路自动降级，
+  # 不编造 POI。SK 仅供 Python 侧 SN 校验使用，Java 服务不读取。
+  baidu:
+    ak: ${BAIDU_AK:}
+    timeout-ms: ${BAIDU_TIMEOUT_MS:4000}
   # DeepSeek 密钥。留空则 Agent 规划接口返回 503 并说明原因（工具层仍可独立测试）。
   ai:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
-    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:20000}
-    max-tool-calls: ${AGENT_MAX_TOOL_CALLS:6}
+    # 读超时。原值 20000 与 ChatAgent 自给的 45 秒总预算互相冲突：模型一旦想得久一点，
+    # 单个请求就在 20 秒被取消，整条链路降级成规则兜底，用户看到的是「信息有限」。
+    # 提到 60 秒，让单次调用走完再判失败；真要限时由 ChatAgent 的总预算兜。
+    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:60000}
+    # 调用预算（max-tool-calls / max-model-calls）随 Agent Provider SPI 落地时再引入：
+    # 此前该键在源码里零引用，留着只会让人误以为限流已生效。

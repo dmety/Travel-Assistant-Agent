@@ -4,11 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.server.domain.itinerary.Itinerary;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -80,17 +78,6 @@ public class ItineraryStore {
   }
 
   private void write(List<Itinerary> snapshot) {
-    try {
-      Path dir = file.getParent();
-      Path tmp = Files.createTempFile(dir, "itineraries", ".tmp");
-      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), snapshot);
-      try {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-      } catch (AtomicMoveNotSupportedException e) {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("无法写入行程文件: " + file, e);
-    }
+    PersistenceSupport.writeAtomically(file, mapper, snapshot, "行程");
   }
 }

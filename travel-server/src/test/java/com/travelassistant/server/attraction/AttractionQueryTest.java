@@ -186,4 +186,18 @@ class AttractionQueryTest extends AttractionTestBase {
     mvc.perform(get("/api/attractions").param("city", "北京"))
         .andExpect(status().isOk());
   }
+
+  @Test
+  @DisplayName("列表与详情都带核验状态，历史 confirmed 归一为 verified")
+  void resultsCarryVerificationStatus() throws Exception {
+    mvc.perform(get("/api/attractions").param("name", "西湖"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[0].ticketStatus").value("verified"))
+        .andExpect(jsonPath("$.items[0].openTimeStatus").value("verified"));
+
+    mvc.perform(get("/api/attractions/t-hz-002"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.ticketStatus").value("pending"))
+        .andExpect(jsonPath("$.openTimeStatus").value("pending"));
+  }
 }

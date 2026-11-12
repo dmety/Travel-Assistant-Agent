@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="1000" height="620" style="max-width:100%;height:auto" role="img" font-family="-apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif">
+<title>美食 Agent 用户选择点与不可放开项</title>
+<desc>七个用户选择点分两行排列：要不要用、用什么条件、附近是多大、看哪些候选、看不看评价、用不用灵感层、确认与改动；下方列出不交给用户的六项安全合规底线，以及用户选择在请求与结果两侧的契约落点。</desc>
+<rect x="0" y="0" width="1000" height="620" fill="#f1f5f9"/>
+<text x="40" y="30" font-size="13" fill="#475569">用户选择点 · 七个可改项，Provider 只给候选与依据</text>
+
+<rect x="40" y="48" width="220" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="56" y="64" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">01</text>
+<text x="98" y="84" font-size="13" font-weight="600" fill="#0f172a">要不要用</text>
+<path d="M58 98 L242 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="58" y="122" font-size="11" fill="#64748b">主动发起，随时关闭</text>
+<text x="58" y="144" font-size="11" fill="#64748b">本地开关默认关闭</text>
+<text x="58" y="166" font-size="11" fill="#64748b">不自动注入推荐</text>
+<text x="58" y="190" font-size="11" font-weight="600" fill="#2563eb">前端本地状态</text>
+
+<rect x="280" y="48" width="220" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="296" y="64" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="311" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">02</text>
+<text x="338" y="84" font-size="13" font-weight="600" fill="#0f172a">用什么条件</text>
+<path d="M298 98 L482 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="298" y="122" font-size="11" fill="#64748b">预算 · 时段 · 忌口</text>
+<text x="298" y="144" font-size="11" fill="#64748b">逐项填或选不限制</text>
+<text x="298" y="166" font-size="11" fill="#64748b">缺项不替用户猜</text>
+<text x="298" y="190" font-size="11" font-weight="600" fill="#2563eb">context 显式键</text>
+
+<rect x="520" y="48" width="220" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="536" y="64" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="551" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">03</text>
+<text x="578" y="84" font-size="13" font-weight="600" fill="#0f172a">附近是多大</text>
+<path d="M538 98 L722 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="538" y="122" font-size="11" fill="#64748b">半径档位与锚点</text>
+<text x="538" y="144" font-size="11" fill="#64748b">不替用户定范围</text>
+<text x="538" y="166" font-size="11" fill="#64748b">缺锚点请用户选</text>
+<text x="538" y="190" font-size="11" font-weight="600" fill="#2563eb">radiusMeters</text>
+
+<rect x="760" y="48" width="200" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="776" y="64" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="791" y="84" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">04</text>
+<text x="818" y="84" font-size="13" font-weight="600" fill="#0f172a">看哪些候选</text>
+<path d="M778 98 L942 98" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="778" y="122" font-size="11" fill="#64748b">上限内的全部候选</text>
+<text x="778" y="144" font-size="11" fill="#64748b">软条件只标注</text>
+<text x="778" y="166" font-size="11" fill="#64748b">不替用户挑前 N 条</text>
+<text x="778" y="190" font-size="11" font-weight="600" fill="#2563eb">value 三个字段</text>
+
+<rect x="40" y="214" width="300" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="56" y="230" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="71" y="250" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">05</text>
+<text x="98" y="250" font-size="13" font-weight="600" fill="#0f172a">看不看评价</text>
+<path d="M58 264 L322 264" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="58" y="288" font-size="11" fill="#64748b">评分快照与评价平台入口</text>
+<text x="58" y="310" font-size="11" fill="#64748b">缺省显示，可关闭</text>
+<text x="58" y="332" font-size="11" fill="#64748b">不按评分替用户排序</text>
+<text x="58" y="356" font-size="11" font-weight="600" fill="#2563eb">context.showReviews</text>
+
+<rect x="350" y="214" width="300" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="366" y="230" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="381" y="250" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">06</text>
+<text x="408" y="250" font-size="13" font-weight="600" fill="#0f172a">用不用灵感层</text>
+<path d="M368 264 L632 264" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="368" y="288" font-size="11" fill="#64748b">白名单内容源开关</text>
+<text x="368" y="310" font-size="11" fill="#64748b">未开启不召回</text>
+<text x="368" y="332" font-size="11" fill="#64748b">不接禁爬站点</text>
+<text x="368" y="356" font-size="11" font-weight="600" fill="#2563eb">includeInspiration</text>
+
+<rect x="660" y="214" width="300" height="150" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="676" y="230" width="30" height="30" rx="6" fill="#2563eb" fill-opacity="0.10"/>
+<text x="691" y="250" font-size="12" font-weight="600" fill="#2563eb" text-anchor="middle">07</text>
+<text x="718" y="250" font-size="13" font-weight="600" fill="#0f172a">确认与改动</text>
+<path d="M678 264 L942 264" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+<text x="678" y="288" font-size="11" fill="#64748b">勾选 · 改选 · 撤销</text>
+<text x="678" y="310" font-size="11" fill="#64748b">不默认勾选</text>
+<text x="678" y="332" font-size="11" fill="#64748b">上次勾选不预填</text>
+<text x="678" y="356" font-size="11" font-weight="600" fill="#2563eb">既有 daily 接口</text>
+
+<text x="40" y="392" font-size="12" font-weight="600" fill="#0f172a">不交给用户的六项 · 安全与合规底线</text>
+<rect x="40" y="402" width="920" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="402" width="3" height="64" rx="1.5" fill="#64748b"/>
+<text x="58" y="426" font-size="11" fill="#0f172a">过敏与忌口硬过滤 · 契约校验与 G0 至 G4 准入 · 响应字段白名单 · robots 与 license</text>
+<text x="58" y="450" font-size="11" fill="#64748b">评价正文不搬运 · PII 过滤与 24 h 留存；由服务端与准入流程固定，不进 context。</text>
+
+<text x="40" y="494" font-size="12" font-weight="600" fill="#0f172a">契约落点 · 不新增顶层字段</text>
+<rect x="40" y="504" width="920" height="68" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<rect x="40" y="504" width="3" height="68" rx="1.5" fill="#2563eb"/>
+<text x="58" y="530" font-size="11" fill="#0f172a">请求侧 context：showReviews / includeInspiration / softFilters / showReasons / radiusMeters</text>
+<text x="58" y="552" font-size="11" fill="#64748b">结果侧 value：rating / ratingSource / ratingFetchedAt / reviewLinks / constraintNotes / reasonTags</text>
+
+<rect x="40" y="582" width="920" height="28" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<text x="58" y="601" font-size="11" fill="#475569">每次请求重读用户选择，不缓存偏好；改条件或开关就换 runId 重发。</text>
+</svg>

@@ -4,11 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.server.domain.invitation.Invitation;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -92,17 +90,6 @@ public class InvitationStore {
   }
 
   private void write() {
-    try {
-      Path dir = file.getParent();
-      Path tmp = Files.createTempFile(dir, "invitations", ".tmp");
-      mapper.writerWithDefaultPrettyPrinter().writeValue(tmp.toFile(), invitations);
-      try {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-      } catch (AtomicMoveNotSupportedException e) {
-        Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException("无法写入邀请文件: " + file, e);
-    }
+    PersistenceSupport.writeAtomically(file, mapper, invitations, "邀请");
   }
 }

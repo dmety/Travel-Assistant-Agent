@@ -39,6 +39,22 @@ INDEX_PATH = os.path.join(BASE, "data", "china_attractions_index.json")
 MAX_CROSS_SOURCE_MERGE_DISTANCE_M = 100
 
 
+def carried_status(prior, field):
+    """按逐行证据定级（K-1 修复：以证据为准，不依赖历史标签）。
+
+    字段级来源(source)与核验日期(checked_at)齐备即视为 verified；
+    confirmed 视作 verified 的历史别名，同样认可。无证据的记录一律 unverified，
+    避免把「未知费用/未知开放时间」当成已核验。
+    """
+    has_evidence = (
+        not is_missing_value(prior.get(field + "_source"))
+        and not is_missing_value(prior.get(field + "_checked_at"))
+    )
+    if has_evidence:
+        return "verified"
+    return "unverified"
+
+
 def merge_city(attractions, by_key, client, city):
     """拉取单城市高德 POI 并融合，返回 (matched, added, fetched)。"""
     try:
@@ -128,6 +144,7 @@ def merge_city(attractions, by_key, client, city):
             tgt.source = "OpenStreetMap + Amap"
             # Coordinates stay from the OSM target; only descriptive fields
             # are enriched from Amap, so the coordinate reference remains WGS-84.
+            # 高德返回值没有逐行来源与核验日期，补强后一律记为未核验。
             tgt.ticket_status = "unverified" if a.ticket else tgt.ticket_status
             tgt.open_time_status = "unverified" if a.open_time else tgt.open_time_status
             matched += 1
@@ -172,13 +189,16 @@ def build(osm_path, out_path, index_path, cities, key):
                 setattr(attraction, field, prior[field])
         if prior.get("city_intro") and attraction.city:
             city_introductions.setdefault(f"{attraction.province}|{attraction.city}", prior["city_intro"])
-        for field in ("ticket", "open_time", "ticket_source", "ticket_checked_at", "open_time_source", "open_time_checked_at"):
+        for field in ("ticket", "open_time", "ticket_source", "ticket_checked_at",
+                      "open_time_source", "open_time_checked_at"):
             if not is_missing_value(prior.get(field)):
                 value = prior[field]
                 setattr(attraction, field, value.strip() if isinstance(value, str) else value)
-                # No row-level verification evidence is currently stored, so
-                # historical "verified" labels cannot be carried forward.
-                setattr(attraction, field + "_status", "unverified")
+        # 状态只落在 ticket / open_time 两个字段上（旧实现对 6 个字段都写 _status，
+        # 会生成 ticket_source_status 这类无意义属性）。无值字段保持 from_osm 的 pending。
+        for field in ("ticket", "open_time"):
+            if not is_missing_value(prior.get(field)):
+                setattr(attraction, field + "_status", carried_status(prior, field))
     by_key = {}
     for a in attractions:
         by_key.setdefault((a.province, norm_name(a.name)), []).append(a)

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -50,11 +53,24 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("测试前端单页无需登录：/、/login、/app、/index.html 都指向同一页")
+  @DisplayName("首页（登录页）、对话页与接口测试台均无需登录即可打开")
   void staticPagesArePublic() throws Exception {
     // 页面本身的响应体用结构标记断言（不用中文文案：MockMvc 按 ISO-8859-1 解码静态资源，
     // 中文断言会因解码方式误报，与页面是否正确无关）。
+    // 首页是登录页：未登录时必须可达，否则登录卡自己就被拦住。
     mvc.perform(get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"loginForm\"")))
+        .andExpect(content().string(containsString("id=\"registerForm\"")));
+
+    // 对话页是登录后的落地页。页面静态资源必须公开（页内 JS 读到 401 再跳回登录页），
+    // 真正的数据仍由 /api/** 拦截。
+    mvc.perform(get("/chat.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"messages\"")));
+
+    // 接口测试台独立成页，仍无需登录即可打开（登录卡就在页面里）。
+    mvc.perform(get("/api-console.html"))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("id=\"authView\"")))
         .andExpect(content().string(containsString("id=\"secTabs\"")));
@@ -72,6 +88,33 @@ class SecurityRulesTest extends ApiTestBase {
           .andExpect(status().is3xxRedirection())
           .andExpect(redirectedUrl("/"));
     }
+  }
+
+  @Test
+  @DisplayName("三个能力状态接口匿名可读，且未配置模型时不宣称文字建议")
+  void capabilityStatusEndpointsArePublic() throws Exception {
+    // 状态接口只返回布尔、统计与能力描述，不含用户数据；未登录时也必须能观察降级原因。
+    mvc.perform(get("/api/attractions/status")).andExpect(status().isOk());
+    mvc.perform(get("/api/location/status")).andExpect(status().isOk());
+    mvc.perform(get("/api/agent/status"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.modelConfigured").value(false))
+        .andExpect(jsonPath("$.capabilities", not(hasItem("文字建议"))));
+  }
+
+  @Test
+  @DisplayName("模型购票建议接口匿名 401，登录后才可调用")
+  void modelAdviceRequiresAuthentication() throws Exception {
+    // 这条接口会触发模型调用，匿名放行等于把模型配额开放给任意请求。
+    mvc.perform(post("/api/agent/tickets/advice")
+            .contentType("application/json").content("{}"))
+        .andExpect(status().isUnauthorized());
+
+    MockHttpSession owner = registerAndLogin();
+    mvc.perform(post("/api/agent/tickets/advice")
+            .session(owner).contentType("application/json").content("{}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.stockVerified").value(false));
   }
 
   @Test
