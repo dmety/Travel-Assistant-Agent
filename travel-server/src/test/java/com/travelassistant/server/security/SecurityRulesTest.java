@@ -91,6 +91,21 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("新版行程工作台页面公开，/planner 转发到静态页")
+  void plannerPageIsPublic() throws Exception {
+    // 与 chat.html 同口径：页面静态资源必须公开，页内 JS 读到 401 再回登录页。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/planner.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"workspace\"")))
+        .andExpect(content().string(containsString("id=\"thread\"")));
+
+    mvc.perform(get("/planner"))
+        .andExpect(status().isOk())
+        .andExpect(forwardedUrl("/planner.html"));
+  }
+
+  @Test
   @DisplayName("三个能力状态接口匿名可读，且未配置模型时不宣称文字建议")
   void capabilityStatusEndpointsArePublic() throws Exception {
     // 状态接口只返回布尔、统计与能力描述，不含用户数据；未登录时也必须能观察降级原因。

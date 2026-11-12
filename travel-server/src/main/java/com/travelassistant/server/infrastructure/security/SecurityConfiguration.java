@@ -52,7 +52,11 @@ public class SecurityConfiguration {
                 // /api/agent/invoke 是 L1 编排入口，会触发地图 API 配额，同样必须登录后
                 // 才能访问；它不在白名单里，由 .anyRequest().authenticated() 拦截。
                 "/ticket-assistant.html", "/api-console.html", "/chat.html",
-                "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico")
+                "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico",
+                // 新版行程工作台：/planner 由 PageController 转发，/planner.html 是静态页。
+                // 与 chat.html 同口径：页面公开，页内读 /api/account/me 判断登录态，
+                // 真正的数据与模型配额仍由 /api/** 拦截。
+                "/planner.html", "/planner")
             .permitAll()
             .anyRequest().authenticated())
 

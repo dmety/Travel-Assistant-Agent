@@ -47,6 +47,8 @@ java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 
 构建成功后启动服务，打开 [浏览器联调页面](http://localhost:8080/)。默认端口为 `8080`，运行数据默认存放在项目根目录的 `data/` 下。
 
+新版行程工作台在 [`/planner.html`](http://localhost:8080/planner.html)：桌面是整幅地图加浮动的 AI 规划面板，窄屏切成上半地图加下半对话。登录页底部有入口，页面本身公开，页内检查登录态；未登录时带 `next` 参数回登录页，登录后自动返回工作台。旧版 `chat.html` 等四个页面保持原样，登录入口仍指向旧版。
+
 **Windows 免命令行启动**：项目根目录 `.env` 放好密钥后，双击 `tools\run-server.bat` 即可。它会读取 `.env`、把 `AMAP_API_KEY` 映射为 `AMAP_KEY`，再启动 JAR；启动横幅只显示各密钥有无，不打印值。需要换端口时用 `tools\run-server.bat 9090`。仓库解压路径含空格或中文时同样可用。
 
 不想用脚本时，也可以在 IDE 的运行配置里一次性填好环境变量（`AMAP_KEY`、`BAIDU_AK`、`DEEPSEEK_API_KEY`），之后直接点运行按钮，效果相同。
@@ -61,6 +63,8 @@ java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 4. 编辑每日安排、交通、住宿和费用；多人协作时可邀请成员并分配板块权限。
 5. 查看预算分析和行程检查提示，调整安排。
 6. 导出文本行程；需要收起的行程可归档，之后可恢复。
+
+新版工作台走另一条路径：说一句需求后依次调用 `POST /api/intent/parse`、`POST /api/agent/invoke`，解析契约信封里的 `PLAN_DRAFT` 草案，同步渲染到 AI 面板、地图点位与底部逐日卡；确认保存再调 `POST /api/agent/plan/materialize` 生成载荷，随后创建行程并写入每日安排。地图未配置百度 AK 时用 SVG 示意底图，不伪造地理数据。
 
 浏览器页面用于开发联调。完整接口及请求示例见 [REST 接口文档](docs/服务端REST接口文档.md)。
 
@@ -150,7 +154,7 @@ python -B tools/kb_shards.py --sync    # 分片 -> 主库 -> 运行索引
 
 | 路径 | 用途 |
 | --- | --- |
-| `travel-server/` | Spring Boot 后端、REST API 与浏览器联调页面 |
+| `travel-server/` | Spring Boot 后端、REST API、浏览器联调页面与新版行程工作台 `planner.html` |
 | `travel-client/` | 控制台客户端 |
 | `travel-common/` | 共享模型 |
 | `data/` | 全国源库产物、`attractions/` 按省分片编辑源、运行索引与购票配置；业务运行数据由各 `Store` 按需创建，不提交 |

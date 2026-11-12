@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 行程工作台</title>
+<meta name="description" content="旅行助手：以地图为主屏，用对话规划行程，草案与地图共用同一份数据。" />
+<link rel="icon" href="/favicon.ico" />
+<!--
+  行程工作台 · 由 design/desktop.html 与 design/mobile.html 落地而来。
+  视觉令牌唯一源是 design/tokens.css，此处内联一份以便静态资源独立部署；
+  图标符号由 tools/design_icons.py wire 从 design/icons.svg 派生注入，勿手改 glyphDefs。
+  真实接口：/api/account/me、/api/intent/parse、/api/agent/invoke、
+            /api/agent/plan、/api/agent/plan/materialize、/api/itineraries。
+-->
+<style>
+:root {
+  --paper:#F7F4EE; --paper-2:#EFEAE0; --paper-3:#E7E0D2; --surface-warm:#FCFAF5;
+  --ink:#20241E; --text-2:#4A4F46; --text-3:#6E6A5E; --muted-2:#8A8577;
+  --line:#DED7C9; --line-strong:#C4BAA6; --field-line:#9C9282;
+  --pine:#1E4A3E; --pine-hover:#163A30; --pine-soft:#E4EDE7; --pine-line:#BBD0C4;
+  --clay:#B4542A; --clay-soft:#F6E8DF; --clay-line:#E3C4B1;
+  --ok:#2E6B52; --ok-soft:#E7F0EA; --warn:#8A6212; --warn-soft:#F8EFDC;
+  --warn-line:#E8D6AE; --err:#A03A2C; --err-soft:#F8E7E3; --err-line:#E8C6BE;
+  --surface:#FFFFFF; --bg:var(--paper);
+  --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px;
+  --r-sm:3px; --r-ctl:6px; --r-card:10px; --r-lg:16px; --r-pill:999px;
+  --shadow-1:0 1px 2px rgba(46,42,32,.06),0 1px 3px rgba(46,42,32,.05);
+  --shadow-2:0 4px 14px rgba(46,42,32,.08),0 2px 4px rgba(46,42,32,.04);
+  --shadow-3:0 18px 48px rgba(46,42,32,.12),0 6px 12px rgba(46,42,32,.05);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
+  font-size:var(--fs-sm);line-height:1.7;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:600;line-height:1.4;letter-spacing:-.015em}
+p{margin:0} ul,ol{margin:0;padding:0;list-style:none}
+a{color:var(--pine);text-decoration:none} a:hover{color:var(--pine-hover)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+svg{display:block;max-width:100%}
+svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0 auto;
+  fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap}
+
+/* ---------- 顶栏：只有品牌与当前行程，不做菜单栏 ---------- */
+.topbar{height:60px;display:flex;align-items:center;gap:14px;padding:0 24px;
+  background:var(--surface-warm);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.seal{width:32px;height:32px;flex:0 0 auto}
+.seal svg{width:100%;height:100%}
+.brand b{font-size:var(--fs-md);font-weight:600;letter-spacing:.02em}
+.brand small{display:block;font-size:var(--fs-xs);color:var(--text-3);line-height:1.2}
+.top-sep{width:1px;height:24px;background:var(--line);flex:0 0 auto}
+.trip-name{font-size:var(--fs-sm);font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.trip-meta{font-size:var(--fs-xs);color:var(--text-3);white-space:nowrap}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.who{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--text-2)}
+.who .dot{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;
+  background:var(--pine-soft);color:var(--pine);font-weight:600}
+.tbtn{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;
+  border:1px solid var(--line-strong);border-radius:var(--r-ctl);
+  font-size:var(--fs-xs);color:var(--text-2);background:var(--surface)}
+.tbtn:hover{border-color:var(--pine);color:var(--pine)}
+.tbtn.primary{background:var(--pine);border-color:var(--pine);color:#fff}
+.tbtn.primary:hover{background:var(--pine-hover)}
+.tbtn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- 主屏：整幅地图铺满，AI 面板浮在左侧 ---------- */
+.workspace{position:relative;height:calc(100vh - 60px);overflow:hidden}
+.map-stage{position:absolute;inset:0;overflow:hidden;background:var(--paper-2)}
+.map-svg{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+#bmap{position:absolute;inset:0;z-index:2;display:none}
+.map-stage.has-bmap #bmap{display:block}
+.map-stage.has-bmap .map-svg,.map-stage.has-bmap .pin-layer{display:none}
+.pin-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
+.pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;
+  background:var(--surface-warm);border:1px solid var(--pine-line);border-radius:var(--r-pill);
+  box-shadow:var(--shadow-2);font-size:var(--fs-xs);color:var(--pine);
+  white-space:nowrap;cursor:pointer}
+.pin i{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;
+  background:var(--pine);color:#fff;font-size:11px;font-style:normal;font-weight:600}
+.pin:hover,.pin.is-active{background:var(--pine);color:#fff;border-color:var(--pine)}
+.pin:hover i,.pin.is-active i{background:var(--surface-warm);color:var(--pine)}
+.map-pill{position:absolute;z-index:4;left:50%;top:18px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;padding:7px 14px;
+  background:rgba(252,250,245,.96);border:1px solid var(--line);
+  border-radius:var(--r-pill);box-shadow:var(--shadow-2);font-size:var(--fs-xs)}
+.map-pill b{font-weight:600;color:var(--pine)}
+.map-pill span{color:var(--text-3)}
+.map-note{position:absolute;z-index:4;right:24px;top:18px;padding:5px 11px;
+  background:rgba(252,250,245,.94);border:1px solid var(--line);
+  border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
+.map-legend{position:absolute;z-index:4;right:24px;bottom:22px;display:flex;gap:12px;
+  padding:6px 11px;background:rgba(252,250,245,.95);border:1px solid var(--line);
+  border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
+.map-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.spot-card{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:86px;
+  width:min(420px,calc(100vw - 48px));padding:12px 14px;background:var(--surface-warm);
+  border:1px solid var(--line-strong);border-radius:var(--r-card);box-shadow:var(--shadow-3);
+  display:none}
+.spot-card.open{display:block}
+.spot-card h3{font-size:var(--fs-sm);margin-bottom:4px}
+.spot-card p{font-size:var(--fs-xs);color:var(--text-3);line-height:1.6}
+.spot-card .x{position:absolute;right:8px;top:8px;color:var(--text-3);font-size:18px;line-height:1}
+
+/* ---------- AI 面板 ---------- */
+.ai-panel{position:absolute;z-index:6;left:24px;top:24px;bottom:24px;width:366px;
+  display:flex;flex-direction:column;min-height:0;background:var(--surface-warm);
+  border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-3)}
+.ai-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex:0 0 auto}
+.ai-head .ai-ico{width:26px;height:26px;display:grid;place-items:center;border-radius:var(--r-ctl);
+  background:var(--pine-soft);color:var(--pine);font-size:15px}
+.ai-head b{font-size:var(--fs-sm)}
+.ai-head .st{margin-left:auto;font-size:11px;padding:1px 7px;border-radius:var(--r-sm);
+  background:var(--surface);color:var(--text-3);border:1px dashed var(--line-strong)}
+.query-bar{display:flex;align-items:center;gap:8px;margin:0 14px 10px;padding:8px 10px;
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-pill);
+  flex:0 0 auto;font-size:var(--fs-xs)}
+.query-bar .q-ico{color:var(--pine);font-size:13px;flex:0 0 auto}
+.query-bar .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text-2)}
+.query-bar .x{width:20px;height:20px;display:grid;place-items:center;flex:0 0 auto;
+  border-radius:50%;color:var(--text-3);font-size:15px;line-height:1}
+.query-bar .x:hover{background:var(--paper-2);color:var(--err)}
+.thread{flex:1;min-height:0;overflow-y:auto;padding:0 14px 12px;scrollbar-width:thin}
+.thread::-webkit-scrollbar{width:6px}
+.thread::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
+.msg{margin-bottom:12px}
+.msg.user{display:flex;justify-content:flex-end}
+.msg.user .bubble{max-width:88%;padding:8px 12px;background:var(--pine);color:#fff;
+  border-radius:12px 12px 3px 12px;font-size:var(--fs-sm);line-height:1.6}
+.ai-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:12px;font-size:var(--fs-sm);color:var(--text-2);line-height:1.75}
+.ai-block + .ai-block{margin-top:8px}
+.ai-block p + p{margin-top:8px}
+.think{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:var(--fs-xs);
+  color:var(--text-3)}
+.think .ico{color:var(--pine);font-size:13px}
+.remind{border-left:3px solid var(--clay);background:var(--clay-soft);
+  border-radius:0 var(--r-ctl) var(--r-ctl) 0;padding:10px 12px;font-size:var(--fs-sm)}
+.remind b{display:block;color:var(--clay);font-size:var(--fs-xs);margin-bottom:5px}
+.remind ol{list-style:decimal;padding-left:18px;color:var(--text-2)}
+.remind li{margin:3px 0}
+.source{margin-top:8px}
+.source>button{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--text-3)}
+.source>button:hover{color:var(--pine)}
+.source .body{display:none;margin-top:6px;padding:8px 10px;background:var(--surface-2);
+  border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3);line-height:1.65}
+.source.open .body{display:block}
+.source .body a{word-break:break-all}
+.draft-mini{margin-top:8px;border:1px solid var(--pine-line);border-radius:var(--r-ctl);
+  background:var(--pine-soft);padding:9px 11px;font-size:var(--fs-xs);color:var(--text-2)}
+.draft-mini b{color:var(--pine)}
+.day-line{display:flex;gap:7px;align-items:baseline;margin-top:5px}
+.day-line .d{font-weight:600;color:var(--pine);white-space:nowrap}
+.day-line .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.checks{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.check{padding:8px 10px;border-radius:var(--r-ctl);font-size:var(--fs-xs);line-height:1.6;
+  background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn)}
+.check.high{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
+.check.low{background:var(--pine-soft);border-color:var(--pine-line);color:var(--pine-hover)}
+.check b{display:block;font-size:11px;letter-spacing:.04em;margin-bottom:2px}
+.check span{display:block;color:var(--text-3);margin-top:2px}
+.qa{margin-top:10px}
+.qa .lbl{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:28px;padding:0 10px;border:1px solid var(--line-strong);
+  border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-xs);color:var(--text-2)}
+.chip:hover{border-color:var(--pine);color:var(--pine);background:var(--pine-soft)}
+.notice{margin-top:8px;padding:8px 10px;border-radius:var(--r-ctl);
+  background:var(--surface-2);border:1px solid var(--line);font-size:var(--fs-xs);color:var(--text-3)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;
+  padding:0 12px;border-radius:var(--r-ctl);font-size:var(--fs-xs);font-weight:600;
+  border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:var(--pine);color:#fff}
+.btn-primary:hover{background:var(--pine-hover)}
+.btn-outline{border-color:var(--line-strong);color:var(--text-2);background:var(--surface)}
+.btn-outline:hover{border-color:var(--pine);color:var(--pine)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.composer{display:flex;align-items:center;gap:8px;padding:10px 14px 12px;
+  border-top:1px solid var(--line);flex:0 0 auto;background:var(--surface-warm);
+  border-radius:0 0 var(--r-lg) var(--r-lg)}
+.composer input{flex:1;min-width:0;height:38px;padding:0 12px;background:var(--surface);
+  border:1px solid var(--field-line);border-radius:var(--r-pill);outline:none;font-size:var(--fs-sm)}
+.composer input:focus{border-color:var(--clay);box-shadow:0 0 0 3px var(--clay-soft)}
+.composer input::placeholder{color:var(--muted-2)}
+.round{width:38px;height:38px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font-size:16px}
+.round:hover{border-color:var(--pine);color:var(--pine)}
+.round.send{background:var(--pine);border-color:var(--pine);color:#fff}
+.round.send:hover{background:var(--pine-hover)}
+.round:disabled{opacity:.5;cursor:not-allowed}
+.hint{padding:0 14px 8px;font-size:11px;color:var(--text-3);flex:0 0 auto}
+/* ---------- 底部横向日程卡 ---------- */
+.daystrip{position:absolute;z-index:5;left:414px;right:24px;bottom:22px;
+  display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.daystrip:empty{display:none}
+.daystrip::-webkit-scrollbar{height:6px}
+.daystrip::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
+.day-card{flex:0 0 218px;background:var(--surface-warm);border:1px solid var(--line);
+  border-radius:var(--r-card);box-shadow:var(--shadow-2);overflow:hidden}
+.day-card .h{display:flex;align-items:center;gap:8px;padding:8px 11px;
+  background:var(--pine-soft);border-bottom:1px solid var(--pine-line)}
+.day-card .h b{font-size:var(--fs-xs);color:var(--pine)}
+.day-card .h span{font-size:11px;color:var(--text-3);margin-left:auto}
+.day-card ul{padding:4px 0}
+.day-card li{display:flex;gap:7px;align-items:baseline;padding:5px 11px;
+  font-size:var(--fs-xs);color:var(--text-2);cursor:pointer}
+.day-card li:hover{background:var(--pine-soft)}
+.day-card li i{font-style:normal;color:var(--clay);font-weight:600;flex:0 0 auto}
+.day-card li em{font-style:normal;color:var(--text-3);font-size:11px;margin-left:auto;white-space:nowrap}
+.day-card .empty{padding:9px 11px;font-size:var(--fs-xs);color:var(--text-3)}
+
+/* ---------- 保存对话框 ---------- */
+.mask{position:fixed;inset:0;z-index:20;background:rgba(32,36,30,.38);display:none}
+.mask.open{display:block}
+.dialog{position:fixed;z-index:21;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(420px,calc(100vw - 32px));background:var(--surface-warm);
+  border:1px solid var(--line-strong);border-radius:var(--r-lg);box-shadow:var(--shadow-3);
+  padding:20px;display:none}
+.dialog.open{display:block}
+.dialog h2{font-size:var(--fs-lg);margin-bottom:4px}
+.dialog .sub{font-size:var(--fs-xs);color:var(--text-3);margin-bottom:16px}
+.dialog label{display:block;font-size:var(--fs-xs);color:var(--text-3);margin:10px 0 5px}
+.dialog input{width:100%;height:38px;padding:0 11px;background:var(--surface);
+  border:1px solid var(--field-line);border-radius:var(--r-ctl);outline:none;font-size:var(--fs-sm)}
+.dialog input:focus{border-color:var(--clay);box-shadow:0 0 0 3px var(--clay-soft)}
+.dialog .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.dialog .err{font-size:var(--fs-xs);color:var(--err);margin-top:10px;min-height:18px}
+.toast{position:fixed;z-index:30;left:50%;bottom:28px;transform:translate(-50%,14px);
+  padding:9px 16px;background:var(--ink);color:var(--surface-warm);
+  border-radius:var(--r-pill);font-size:var(--fs-xs);box-shadow:var(--shadow-3);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 动效 ---------- */
+@keyframes pop{from{opacity:.72;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg{animation:pop .2s ease-out}
+@keyframes routePulse{0%,100%{stroke-opacity:.85}50%{stroke-opacity:.25}}
+.map-stage.rerouting .route{animation:routePulse .9s ease-in-out 2}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+/* ---------- 窄屏：上半地图 + 下半对话 sheet ---------- */
+@media (max-width:900px){
+  .topbar{height:52px;padding:0 12px;gap:9px}
+  .brand small,.top-sep,.trip-meta,.who,.tbtn:not(.keep){display:none}
+  .trip-name{max-width:150px;font-size:var(--fs-xs)}
+  .workspace{height:calc(100vh - 52px);display:flex;flex-direction:column}
+  .map-stage{position:relative;inset:auto;flex:0 0 38%;min-height:210px}
+  .map-note{right:12px;top:10px}
+  .map-pill{top:10px}
+  .map-legend{right:12px;bottom:10px}
+  .spot-card{bottom:52px}
+  .ai-panel{position:relative;inset:auto;flex:1;min-height:0;width:auto;
+    margin-top:-14px;border-radius:var(--r-lg) var(--r-lg) 0 0;
+    border-left:0;border-right:0;border-bottom:0;box-shadow:0 -6px 20px rgba(46,42,32,.10)}
+  .composer{border-radius:0}
+  .daystrip{display:none}
+  .ai-head{padding-top:8px}
+  .grab{display:block!important}
+}
+@media (max-width:600px){
+  .brand b{font-size:var(--fs-sm)}
+  .seal{width:27px;height:27px}
+  .trip-name{max-width:96px}
+  .top-right{gap:6px}
+  .tbtn.keep span{display:none}
+  .map-stage{flex-basis:34%;min-height:180px}
+  .ai-panel{margin-left:0;margin-right:0}
+  .dialog{padding:16px}
+}
+.grab{display:none;width:34px;height:4px;border-radius:99px;background:var(--line-strong);
+  margin:8px auto 0}
+</style>
+</head>
+<body>
+<svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <!-- 由 design/icons.svg 与 design/brand-mark.svg 派生，勿在此手改 -->
+<defs>
+    <!-- 纸色宽线：在等高线上刻出山径的槽，让两条线不相撞 -->
+    <path id="ridge" d="M14 16 L22 24 L18 33 L30 38 L40 48"/>
+  </defs>
+<symbol id="mark-full" viewBox="0 0 64 64">
+<!-- 印框：圆角方印，右下 45 度斜切 -->
+  <path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z"
+        fill="var(--paper)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/>
+
+  <!-- 三道等高线：由外向内收拢，线宽与透明度递减 -->
+  <g fill="none" stroke="var(--pine)" stroke-linecap="round">
+    <path d="M11 48 C14 32 22 21 31 21 C40 21 48 32 51 48" stroke-width="2.7"/>
+    <path d="M18 48 C20 37 25 30 31 30 C37 30 42 37 44 48" stroke-width="2.2" opacity=".82"/>
+    <path d="M25 48 C26 42 28 38 31 38 C34 38 36 42 37 48" stroke-width="1.8" opacity=".62"/>
+  </g>
+
+  <!-- 切口处的第二道刻线，强调「被切开」而非圆角矩形 -->
+  <path d="M44.5 55.5 L55.5 44.5" fill="none" stroke="var(--pine)" stroke-width="1.3" opacity=".45" stroke-linecap="round"/>
+
+  <!-- 山径：先纸色刻槽，再赤陶细线 -->
+  <use href="#ridge" fill="none" stroke="var(--paper)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#ridge" fill="none" stroke="var(--clay)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 起点：空心小环；终点：实心落点 + 纸色内点，与印框呼应 -->
+  <circle cx="14" cy="16" r="2.5" fill="var(--paper)" stroke="var(--clay)" stroke-width="1.8"/>
+  <circle cx="40" cy="48" r="4.6" fill="var(--clay)"/>
+  <circle cx="40" cy="48" r="1.6" fill="var(--paper)"/>
+  </symbol>
+<symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/>
+    <path d="M17 12.5 L20.5 9" opacity=".55"/>
+  </symbol>
+<symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 3.5 H18 A2 2 0 0 1 20 5.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V5.5 A2 2 0 0 1 4.5 3.5 Z"/>
+    <path d="M6.5 15 L10 9 L9 12 L14 13 L17 8"/>
+    <circle cx="17" cy="8" r="1.7" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 5 L9 5 L7 11 L14 12 L18 19"/>
+    <circle cx="4" cy="5" r="2.1"/>
+    <circle cx="18" cy="19" r="2.4" fill="currentColor" stroke="none"/>
+    <path d="M18 5 L20.5 5 L20.5 7.5" opacity=".5"/>
+  </symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 5.5 H20.5 M8.5 12 H17.5 M8.5 18.5 H20.5"/>
+    <circle cx="4" cy="5.5" r="1.6" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="18.5" r="1.6" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 4.5 H18 A2 2 0 0 1 20 6.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V6.5 A2 2 0 0 1 4.5 4.5 Z"/>
+    <path d="M3.5 9 H20 M7.5 2.5 V6 M15.5 2.5 V6"/>
+    <circle cx="15" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V13.5 L13.5 19 H6 A2 2 0 0 1 4 17 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <circle cx="11.5" cy="10.5" r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="11.5" cy="10.5" r=".9" fill="#F7F4EE" stroke="none"/>
+  </symbol>
+<symbol id="i-candidate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.5 3.5 H18 A2 2 0 0 1 20 5.5 V12 L15 17 H7.5 A2 2 0 0 1 5.5 15 V5.5 A2 2 0 0 1 7.5 3.5 Z"/>
+    <path d="M3.5 8 V17 A2 2 0 0 0 5.5 19 H13" opacity=".65"/>
+    <path d="M10.5 10 H16 M10.5 13 H14"/>
+  </symbol>
+<symbol id="i-collab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="3.2"/>
+    <circle cx="17" cy="8.5" r="2.6"/>
+    <path d="M2.5 19.5 C2.5 16 5 14 8 14 C11 14 13.5 16 13.5 19.5"/>
+    <path d="M15.5 13 L18.5 14.5 L21.5 12" opacity=".7"/>
+  </symbol>
+<symbol id="i-vote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20 V11 M10 20 V6 M16 20 V13"/>
+    <path d="M4 20 H20.5"/>
+    <circle cx="10" cy="4" r="1.8" fill="currentColor" stroke="none"/>
+    <path d="M15.5 3.5 L18 6 L20.5 3" opacity=".6"/>
+  </symbol>
+<symbol id="i-budget" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 18.5 L9 13 L12.5 15.5 L20 7"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="20" cy="7" r="2.1" fill="currentColor" stroke="none"/>
+    <path d="M4 6 H10" opacity=".55"/>
+  </symbol>
+<symbol id="i-source" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H14 L19 8.5 V15 L14 20.5 H6 A2 2 0 0 1 4 18.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <path d="M14 3.5 V8.5 H19 M7.5 12 H15 M7.5 15.5 H12.5"/>
+  </symbol>
+<symbol id="i-think" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 18 C3.5 9 8 4.5 14 4.5 C18 4.5 20.5 7 20.5 10"/>
+    <path d="M7 18 C7 12 10 8.5 14 8.5 C16.2 8.5 17.5 9.6 17.5 11.5"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="14" cy="14" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-remind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5 L21 13 L16 20.5 H5.5 A2 2 0 0 1 3.5 18.5 Z"/>
+    <path d="M12 9 V14"/>
+    <circle cx="12" cy="17.5" r="1.3" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="2.5" width="6" height="11" rx="3"/>
+    <path d="M5.5 11.5 C5.5 15.5 8.5 18 12 18 C15.5 18 18.5 15.5 18.5 11.5"/>
+    <path d="M12 18 V21.5 M8.5 21.5 H15.5"/>
+    <path d="M6.5 6.5 H4.5" opacity=".55"/>
+  </symbol>
+<symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20.5 V4.5 M6.5 10 L12 4.5 L17.5 10"/>
+    <path d="M5 20.5 H19"/>
+    <circle cx="12" cy="4.5" r="1.6" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 6.5 L17 17 M17 6.5 L6.5 17"/>
+    <circle cx="12" cy="12" r="1.4" fill="#F7F4EE" stroke="none"/>
+  </symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 9 L12 16 L19 9"/>
+    <path d="M9 4.5 H15" opacity=".5"/>
+  </symbol>
+<symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 5 L8 12 L15 19"/>
+    <path d="M8 12 H20" opacity=".5"/>
+  </symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 4.5 V19.5 M4.5 12 H19.5"/>
+    <path d="M17 3.5 H20.5 V7" opacity=".5"/>
+  </symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 12.5 L9.5 18 L20 6"/>
+    <circle cx="20" cy="6" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
+    <path d="M12 6.5 V12 L16 14.5"/>
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V12 L13 18.5 H6 A2 2 0 0 1 4 16.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <path d="M13 18.5 V21.5 H21 V13"/>
+    <path d="M21 13 L16 18" opacity=".6"/>
+  </symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10.5" cy="10.5" r="6.8"/>
+    <path d="M15.5 15.5 L21 21"/>
+    <path d="M7.5 10.5 H13.5" opacity=".55"/>
+  </symbol>
+<symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 16.5 L16 4.5 L19.5 8 L7.5 20 H4 Z"/>
+    <path d="M13.5 7 L17 10.5"/>
+    <path d="M4 20.5 H20.5" opacity=".45"/>
+  </symbol>
+<symbol id="i-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 18.5 C4 10 8 5 13 5 C17 5 20 8 20 12"/>
+    <path d="M8 18.5 C8 13 10 9.5 13 9.5"/>
+    <circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+</svg>
+
+<!-- 图标符号由 tools/design_icons.py wire 注入，源为 design/icons.svg 与 design/brand-mark.svg -->
+
+<header class="topbar">
+  <div class="brand">
+    <span class="seal"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#mark-full"/></svg></span>
+    <div><b>旅行助手</b><small>行程工作台</small></div>
+  </div>
+  <span class="top-sep"></span>
+  <div class="trip-name" id="tripName">还没有行程</div>
+  <div class="trip-meta" id="tripMeta">说一句话开始规划</div>
+  <div class="top-right">
+    <span class="who"><span class="dot" id="whoDot">·</span><span id="whoName">加载中</span></span>
+    <a class="tbtn" href="/chat.html">旧版对话</a>
+    <button class="tbtn keep" type="button" id="exportBtn" disabled><svg class="ico"><use href="#i-export"/></svg><span>导出</span></button>
+    <button class="tbtn keep" type="button" id="logoutBtn">退出</button>
+  </div>
+</header>
+
+<main class="workspace" id="workspace">
+  <section class="map-stage" id="mapStage" aria-label="行程地图">
+    <svg class="map-svg" viewBox="0 0 1440 840" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse">
+          <circle cx="1.2" cy="1.6" r=".55" fill="#C4BAA6" opacity=".30"/>
+          <circle cx="5.1" cy="4.8" r=".4" fill="#1E4A3E" opacity=".14"/>
+        </pattern>
+      </defs>
+      <rect width="1440" height="840" fill="#EFEAE0"/>
+      <rect width="1440" height="840" fill="url(#grain)"/>
+      <g fill="none" stroke="#C4BAA6" stroke-width="1.15" opacity=".62">
+        <path d="M-60 690 C180 590 260 700 470 600 S760 430 980 520 S1260 660 1510 500"/>
+        <path d="M-60 640 C190 540 270 650 480 550 S770 380 990 470 S1270 610 1510 450"/>
+        <path d="M-60 590 C200 490 280 600 490 500 S780 330 1000 420 S1280 560 1510 400"/>
+        <path d="M-60 540 C210 440 290 550 500 450 S790 280 1010 370 S1290 510 1510 350"/>
+        <path d="M-60 490 C220 390 300 500 510 400 S800 230 1020 320 S1300 460 1510 300"/>
+        <path d="M-60 260 C160 180 340 300 560 200 S900 120 1120 210 S1360 300 1510 200"/>
+        <path d="M-60 215 C165 135 345 255 565 155 S905 75 1125 165 S1365 255 1510 155"/>
+      </g>
+      <g fill="none" stroke="#1E4A3E" stroke-width="1.1" opacity=".22">
+        <path d="M120 60 C300 140 420 40 600 130 S900 250 1100 130 S1340 90 1440 160"/>
+        <path d="M60 120 C250 200 390 100 570 190 S880 310 1080 190 S1320 150 1440 220"/>
+      </g>
+      <g class="route" fill="none" stroke="#B4542A" stroke-width="3" stroke-dasharray="7 8" opacity=".85">
+        <path id="routeA" d="M470 620 C560 540 620 520 700 450 S840 380 920 320 S1050 300 1120 240"/>
+        <path id="routeB" d="M700 450 C760 500 820 560 880 600"/>
+      </g>
+      <text x="24" y="816" font-size="12" fill="#8A8577" font-family="sans-serif">示意底图 · 非导航用 · 点位按草案生成</text>
+    </svg>
+    <div id="bmap"></div>
+    <div class="pin-layer" id="pinLayer"></div>
+    <div class="map-pill"><b id="mapPillTitle">行程地图</b><span id="mapPillMeta">· 尚未生成草案</span></div>
+    <div class="map-note" id="mapNote">未配置 AK · 示意底图</div>
+    <div class="map-legend">
+      <span><i style="background:#1E4A3E"></i>已排点位</span>
+      <span><i style="background:#B4542A"></i>按天路线</span>
+    </div>
+    <div class="spot-card" id="spotCard">
+      <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
+      <h3 id="spotName">点位</h3>
+      <p id="spotMeta"></p>
+    </div>
+  </section>
+
+  <section class="ai-panel" aria-label="AI 规划对话">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="ai-head">
+      <span class="ai-ico"><svg class="ico" style="font-size:17px"><use href="#i-ai"/></svg></span>
+      <b>AI 规划</b>
+      <span class="st" id="draftState">草案未保存</span>
+    </div>
+    <div class="query-bar" id="queryBar">
+      <span class="q-ico"><svg class="ico" style="font-size:13px"><use href="#i-search"/></svg></span>
+      <span class="txt" id="queryText">例如：带爸妈去武当山玩四天，预算六千</span>
+      <button class="x" type="button" id="queryClear" aria-label="清除问题">×</button>
+    </div>
+    <div class="thread" id="thread">
+      <div class="msg">
+        <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
+        <div class="ai-block">
+          <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到右边的地图上。</p>
+          <p>缺日期、天数或预算时我会逐条问，不替你猜。草案确认后才会写进行程，之前都只是预览。</p>
+        </div>
+        <div class="qa">
+          <span class="lbl">可以直接点</span>
+          <div class="chips" id="quickChips">
+            <button class="chip" type="button" data-quick="帮我规划杭州两天，预算一千，想看人文古迹">杭州两日</button>
+            <button class="chip" type="button" data-quick="带爸妈去十堰玩四天，预算六千">武当山四日</button>
+            <button class="chip" type="button" data-quick="去武汉玩三天，预算两千，想吃美食">武汉三日</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hint">回车发送 · 草案与地图共用同一份数据 · 未确认前不写库</div>
+    <div class="composer">
+      <input id="prompt" type="text" autocomplete="off" placeholder="说说想去哪、玩几天、预算多少…" aria-label="给行程助手发送消息" />
+      <button class="round" type="button" id="micBtn" title="语音输入未接入"><svg class="ico" style="font-size:17px"><use href="#i-mic"/></svg></button>
+      <button class="round send" type="button" id="sendBtn" title="发送"><svg class="ico" style="font-size:17px"><use href="#i-send"/></svg></button>
+    </div>
+  </section>
+
+  <div class="daystrip" id="daystrip" aria-label="逐日安排"></div>
+</main>
+
+<div class="mask" id="mask"></div>
+<div class="dialog" id="saveDialog" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
+  <h2 id="saveTitle">确认保存行程</h2>
+  <p class="sub">服务端会按景点 ID 重读知识库事实，客户端回传不了票价结论。</p>
+  <label for="saveTitleInput">行程标题</label>
+  <input id="saveTitleInput" type="text" autocomplete="off" />
+  <div class="row">
+    <div><label for="saveDepart">出发日期</label><input id="saveDepart" type="date" /></div>
+    <div><label for="saveReturn">返回日期</label><input id="saveReturn" type="date" /></div>
+  </div>
+  <div class="err" id="saveErr"></div>
+  <div class="foot">
+    <button class="btn btn-outline" type="button" id="saveCancel">取消</button>
+    <button class="btn btn-primary" type="button" id="saveConfirm">生成载荷并保存</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  }
+
+  var state = {
+    busy: false, request: null, draft: null, queryText: '',
+    activeField: null, questions: [], itineraryId: null, points: []
+  };
+
+  /* ---------- 统一请求：401 回登录页，文本与 JSON 都能读 ---------- */
+  async function api(path, opts) {
+    var res = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
+    if (res.status === 401) {
+      location.replace('/?next=' + encodeURIComponent('/planner.html'));
+      throw new Error('登录已过期');
+    }
+    var ct = res.headers.get('content-type') || '';
+    var body = null;
+    if (ct.indexOf('json') >= 0) { try { body = await res.json(); } catch (e) { /* 空响应 */ } }
+    else { body = await res.text(); }
+    if (!res.ok) {
+      var msg = (body && (body.error || body.message)) || ('请求失败（HTTP ' + res.status + '）');
+      throw new Error(msg);
+    }
+    return body;
+  }
+  function post(path, data) {
+    return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data) });
+  }
+
+  /* ---------- 会话渲染 ---------- */
+  function scrollThread() { var t = $('thread'); t.scrollTop = t.scrollHeight; }
+  function appendUser(text) {
+    $('thread').appendChild(el('div', 'msg user', '<div class="bubble">' + esc(text) + '</div>'));
+    scrollThread();
+  }
+  function appendNote(label) {
+    var n = el('div', 'msg');
+    n.appendChild(el('div', 'think',
+      '<svg class="ico"><use href="#i-think"/></svg><span>' + esc(label) + '</span>'));
+    $('thread').appendChild(n); scrollThread();
+    return n;
+  }
+  function appendError(msg) {
+    var n = el('div', 'msg');
+    n.appendChild(el('div', 'notice', '<b>没能完成：</b>' + esc(msg) +
+      '<br/>可以换个说法重试，或到旧版对话页看详细报错。'));
+    $('thread').appendChild(n); scrollThread();
+  }
+  function setBusy(b) {
+    state.busy = b;
+    $('sendBtn').disabled = b;
+    $('prompt').disabled = b;
+    if (b) appendNote('正在查知识库、排草案…');
+  }
+
+  /* ---------- 服务端解析结果 → 规划请求 ---------- */
+  function contextFromIntent(it) {
+    var ctx = {};
+    // 知识库按「城市」检索：景区名要归位到所在城市，否则查不到候选。
+    var dest = it.city || it.destination;
+    if (dest) ctx.destination = dest;
+    ['days', 'travelers', 'budget', 'currency', 'preferences', 'departDate', 'returnDate']
+      .forEach(function (k) { if (it[k] !== null && it[k] !== undefined && it[k] !== '') ctx[k] = it[k]; });
+    if (it.preferences && !it.preferences.length) delete ctx.preferences;
+    return ctx;
+  }
+  function renderQuery(text, it) {
+    state.queryText = text;
+    $('queryText').textContent = text;
+    var dest = it.city || it.destination || '未指定目的地';
+    $('tripName').textContent = dest + ' · 规划中';
+    var bits = [];
+    if (it.days) bits.push(it.days + ' 天');
+    if (it.travelers) bits.push(it.travelers + ' 人');
+    if (it.budget) bits.push('¥' + it.budget);
+    if (it.departDate) bits.push(it.departDate);
+    $('tripMeta').textContent = bits.length ? bits.join(' · ') : '缺项会逐条补问';
+    if (it.note) { var n = el('div', 'msg'); n.appendChild(el('div', 'notice', esc(it.note))); $('thread').appendChild(n); }
+    if (!it.city && it.alternatives && it.alternatives.length) {
+      var box = el('div', 'msg');
+      var q = el('div', 'qa');
+      q.appendChild(el('span', 'lbl', '库里没有直接命中，选一个城市继续'));
+      var chips = el('div', 'chips');
+      it.alternatives.slice(0, 5).forEach(function (a) {
+        var name = (typeof a === 'string') ? a : (a.city || a.name || a.label);
+        var b = el('button', 'chip', esc(name));
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          state.request = state.request || {};
+          state.request.destination = name;
+          $('tripName').textContent = name + ' · 规划中';
+          toast('按「' + name + '」检索');
+          runPlan();
+        });
+        chips.appendChild(b);
+      });
+      q.appendChild(chips); box.appendChild(q); $('thread').appendChild(box);
+    }
+    scrollThread();
+  }
+
+  /* ---------- 编排层信封 → 草案；没有结构化草案时回退 plan 接口 ---------- */
+  function draftFromEnvelope(env) {
+    var r = env && env.result;
+    if (!r || !r.facts) return null;
+    for (var i = 0; i < r.facts.length; i++) {
+      var f = r.facts[i];
+      if (f && f.type === 'CONTENT' && f.value && f.value.category === 'PLAN_DRAFT') return f.value;
+    }
+    return null;
+  }
+  async function runPlan() {
+    if (!state.request || !state.request.destination) {
+      appendError('还没确定目的地，先说说想去哪。'); return;
+    }
+    setBusy(true);
+    try {
+      var env = await post('/api/agent/invoke', { intent: 'PLAN_DRAFT', context: state.request });
+      var draft = draftFromEnvelope(env);
+      var fallback = !draft;
+      if (fallback) draft = await post('/api/agent/plan', state.request);
+      state.draft = draft;
+      renderDraft(draft, env, fallback);
+    } catch (e) { appendError(e.message); }
+    finally { setBusy(false); }
+  }
+
+  /* ---------- 一条 AI 回复：正文 / 提醒 / 来源 / 草案 / 补问 / 操作 ---------- */
+  function sourceText(s) {
+    if (s == null) return '';
+    if (typeof s === 'string') return s;
+    return s.title || s.name || s.url || s.source || JSON.stringify(s);
+  }
+  function renderDraft(d, env, fallback) {
+    var msg = el('div', 'msg');
+    msg.appendChild(el('div', 'think',
+      '<svg class="ico"><use href="#i-think"/></svg><span>深度思考完成（AI 生成）' +
+      (fallback ? ' · 编排层降级，已回退确定性草案接口' : '') + '</span>'));
+
+    var body = el('div', 'ai-block');
+    var advice = d.advice || (env && env.result && env.result.advice) || '';
+    if (advice) body.appendChild(el('p', null, esc(advice)));
+    else body.appendChild(el('p', null, '已按本地知识库候选排出草案。模型正文当前不可用，下面的逐日安排与检查项仍来自确定性规则。'));
+    var notices = (d.notices || []).slice(0, 3);
+    notices.forEach(function (n) { body.appendChild(el('p', null, esc(sourceText(n)))); });
+    msg.appendChild(body);
+
+    var checks = (d.checks || []).slice(0, 3);
+    if (checks.length) {
+      var rem = el('div', 'remind');
+      rem.appendChild(el('b', null, '核心提醒'));
+      var ol = el('ol');
+      checks.forEach(function (c) {
+        ol.appendChild(el('li', null, esc(c.message || c.code) +
+          (c.suggestion ? '（' + esc(c.suggestion) + '）' : '')));
+      });
+      rem.appendChild(ol); msg.appendChild(rem);
+    }
+
+    var srcs = d.sources || [];
+    if (srcs.length) {
+      var src = el('div', 'source');
+      var btn = el('button', null, '<svg class="ico"><use href="#i-source"/></svg>来源 ' +
+        srcs.length + ' 条 ⌄');
+      btn.type = 'button';
+      var bd = el('div', 'body');
+      srcs.slice(0, 8).forEach(function (s) { bd.appendChild(el('div', null, '· ' + esc(sourceText(s)))); });
+      btn.addEventListener('click', function () { src.classList.toggle('open'); });
+      src.appendChild(btn); src.appendChild(bd); msg.appendChild(src);
+    }
+
+    var days = d.dailySchedules || [];
+    var mini = el('div', 'draft-mini');
+    mini.appendChild(el('b', null, '逐日草案 · ' + days.length + ' 天'));
+    days.slice(0, 6).forEach(function (day) {
+      var names = (day.items || []).map(function (x) { return x.name; }).join('、') || '候选不足，留空';
+      mini.appendChild(el('div', 'day-line',
+        '<span class="d">DAY ' + esc(day.dayIndex) + '</span><span class="n">' + esc(names) + '</span>'));
+    });
+    msg.appendChild(mini);
+
+    if (checks.length) {
+      var ck = el('div', 'checks');
+      checks.forEach(function (c) {
+        var sev = String(c.severity || '').toLowerCase();
+        var cls = sev === 'high' ? 'high' : (sev === 'low' ? 'low' : '');
+        ck.appendChild(el('div', 'check ' + cls,
+          '<b>' + esc(c.code || 'CHECK') + ' · ' + esc(sev.toUpperCase()) + '</b>' +
+          esc(c.message || '') + (c.suggestion ? '<span>' + esc(c.suggestion) + '</span>' : '')));
+      });
+      msg.appendChild(ck);
+    }
+
+    state.questions = d.questions || [];
+    if (state.questions.length) {
+      var qa = el('div', 'qa');
+      qa.appendChild(el('span', 'lbl', '还缺 ' + state.questions.length + ' 项，点一项后在下方输入框回答'));
+      var chips = el('div', 'chips');
+      state.questions.forEach(function (q) {
+        var b = el('button', 'chip', esc(q.question || q.code));
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          state.activeField = q.field || 'destination';
+          $('prompt').placeholder = (q.hint || q.question || '请回答') + '（直接输入值即可）';
+          $('prompt').focus();
+          toast('请回答：' + (q.question || q.field));
+        });
+        chips.appendChild(b);
+      });
+      qa.appendChild(chips); msg.appendChild(qa);
+    }
+
+    var acts = el('div', 'actions');
+    var save = el('button', 'btn btn-primary',
+      '<svg class="ico"><use href="#i-check"/></svg>确认保存');
+    save.type = 'button';
+    save.disabled = !days.length;
+    save.addEventListener('click', openSave);
+    var regen = el('button', 'btn btn-outline', '重新生成');
+    regen.type = 'button';
+    regen.addEventListener('click', function () { flashMap(); runPlan(); });
+    acts.appendChild(save); acts.appendChild(regen);
+    msg.appendChild(acts);
+
+    $('thread').appendChild(msg);
+    scrollThread();
+    $('draftState').textContent = '草案未保存';
+    renderMap(d);
+    renderDaystrip(d);
+    flashMap();
+  }
+
+  /* ---------- 地图：点位由草案生成，无 AK 用示意底图 ---------- */
+  var ANCHORS = [
+    [33, 74], [42, 62], [50, 54], [58, 46], [65, 38], [72, 30],
+    [48, 68], [56, 60], [64, 52], [71, 44], [78, 36], [82, 27]
+  ];
+  function renderMap(d) {
+    var layer = $('pinLayer'); layer.innerHTML = '';
+    state.points = [];
+    var days = d.dailySchedules || [];
+    var n = 0;
+    days.forEach(function (day, di) {
+      (day.items || []).forEach(function (item, ii) {
+        var a = ANCHORS[n % ANCHORS.length];
+        var pt = { day: day.dayIndex, name: item.name || '未命名点位',
+          city: item.city || '', ticket: item.ticket, openTime: item.openTime,
+          source: item.source, note: item.note, x: a[0] + (ii % 2) * 2, y: a[1] + di * 1.5 };
+        state.points.push(pt); n++;
+        var pin = el('button', 'pin', '<i>' + esc(n) + '</i>' + esc(pt.name));
+        pin.type = 'button';
+        pin.style.left = pt.x + '%'; pin.style.top = pt.y + '%';
+        pin.addEventListener('click', function () { showSpot(pt, pin); });
+        layer.appendChild(pin);
+      });
+    });
+    var dest = (state.request && state.request.destination) || '行程';
+    $('mapPillTitle').textContent = dest + ' · 逐日路线';
+    $('mapPillMeta').textContent = '· ' + days.length + ' 天 · ' + state.points.length + ' 个点位';
+    if (window.BMapGL && $('mapStage').classList.contains('has-bmap')) drawBMapPoints();
+  }
+  function showSpot(pt, pin) {
+    Array.prototype.forEach.call(document.querySelectorAll('.pin'), function (p) { p.classList.remove('is-active'); });
+    pin.classList.add('is-active');
+    $('spotName').textContent = pt.name;
+    var bits = ['DAY ' + pt.day];
+    if (pt.city) bits.push(pt.city);
+    if (pt.ticket) bits.push('票价：' + pt.ticket);
+    else bits.push('票价：未核验');
+    if (pt.openTime) bits.push('开放：' + pt.openTime);
+    if (pt.source) bits.push('来源：' + pt.source);
+    bits.push('示意底图，不含真实地理坐标');
+    $('spotMeta').textContent = bits.join(' · ');
+    $('spotCard').classList.add('open');
+  }
+  function flashMap() {
+    var m = $('mapStage');
+    m.classList.remove('rerouting'); void m.offsetWidth; m.classList.add('rerouting');
+    $('mapPillMeta').textContent = '· 路线已重排';
+  }
+
+  /* ---------- 横向日程卡 ---------- */
+  function renderDaystrip(d) {
+    var strip = $('daystrip'); strip.innerHTML = '';
+    (d.dailySchedules || []).forEach(function (day) {
+      var c = el('div', 'day-card');
+      c.appendChild(el('div', 'h', '<b>DAY ' + esc(day.dayIndex) + '</b><span>' +
+        esc(day.date || '日期待定') + '</span>'));
+      var items = day.items || [];
+      if (!items.length) { c.appendChild(el('div', 'empty', '候选不足，这一天留空，不补景点')); }
+      else {
+        var ul = el('ul');
+        items.forEach(function (it, i) {
+          var li = el('li', null, '<i>' + (i + 1) + '</i>' + esc(it.name) +
+            '<em>' + esc(it.ticket || '票价未知') + '</em>');
+          li.addEventListener('click', function () {
+            var pin = document.querySelectorAll('.pin')[state.points.findIndex(function (p) { return p.name === it.name; })];
+            if (pin) pin.click();
+          });
+          ul.appendChild(li);
+        });
+        c.appendChild(ul);
+      }
+      strip.appendChild(c);
+    });
+  }
+
+  /* ---------- 补问回答：数值 / 日期 / 文本按字段落回请求 ---------- */
+  function applyFieldAnswer(text) {
+    var f = state.activeField; state.activeField = null;
+    $('prompt').placeholder = '说说想去哪、玩几天、预算多少…';
+    if (!state.request) state.request = {};
+    var v = text.trim();
+    if (f === 'budget' || f === 'days' || f === 'travelers') {
+      var num = parseFloat(v.replace(/[^\d.]/g, ''));
+      if (!isNaN(num)) state.request[f] = num;
+    } else if (f === 'departDate' || f === 'returnDate') {
+      var m = v.match(/\d{4}-\d{1,2}-\d{1,2}/);
+      state.request[f] = m ? m[0] : v;
+    } else { state.request[f] = v; }
+    toast('已补充 ' + f + '，重新排草案');
+  }
+
+  /* ---------- 发送 ---------- */
+  async function send() {
+    var input = $('prompt');
+    var text = input.value.trim();
+    if (!text || state.busy) return;
+    input.value = '';
+    appendUser(text);
+    if (state.activeField) { applyFieldAnswer(text); await runPlan(); return; }
+    setBusy(true);
+    try {
+      var it = await post('/api/intent/parse', { text: text });
+      if (it.intent && it.intent !== 'PLAN_DRAFT') {
+        appendNote('这句话不是行程规划请求');
+        var n = el('div', 'msg');
+        n.appendChild(el('div', 'ai-block', esc(it.reply ||
+          '当前工作台只处理行程规划。闲聊、天气与美食问答请到旧版对话页。')));
+        $('thread').appendChild(n); scrollThread();
+        return;
+      }
+      state.request = contextFromIntent(it);
+      renderQuery(text, it);
+      await runPlan();
+    } catch (e) { appendError(e.message); }
+    finally { setBusy(false); }
+  }
+
+  /* ---------- 确认保存：服务端重新装配载荷 → 创建 → 写每日安排 ---------- */
+  function openSave() {
+    var r = state.request || {};
+    var dest = r.destination || '行程';
+    $('saveTitleInput').value = dest + ((r.days || 0) + ' 日游');
+    $('saveDepart').value = r.departDate || '';
+    $('saveReturn').value = r.returnDate || '';
+    $('saveErr').textContent = '';
+    $('mask').classList.add('open'); $('saveDialog').classList.add('open');
+    $('saveTitleInput').focus();
+  }
+  function closeSave() { $('mask').classList.remove('open'); $('saveDialog').classList.remove('open'); }
+  async function confirmSave() {
+    var title = $('saveTitleInput').value.trim();
+    var dep = $('saveDepart').value, ret = $('saveReturn').value;
+    $('saveErr').textContent = '';
+    if (!title) { $('saveErr').textContent = '请填写行程标题'; return; }
+    if (!dep || !ret) { $('saveErr').textContent = '保存前需要出发日期与返回日期'; return; }
+    state.request.departDate = dep; state.request.returnDate = ret;
+    $('saveConfirm').disabled = true;
+    try {
+      var payload = await post('/api/agent/plan/materialize',
+        { title: title, request: state.request, attractionIds: [] });
+      var it = await post('/api/itineraries', { title: payload.title, plan: payload.plan });
+      await api('/api/itineraries/' + encodeURIComponent(it.id) + '/daily?version=' + it.version,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload.dailySchedules || []) });
+      state.itineraryId = it.id;
+      $('exportBtn').disabled = false;
+      $('draftState').textContent = '已保存';
+      $('tripName').textContent = payload.title;
+      $('tripMeta').textContent = '已写入行程，重启后可读回';
+      closeSave();
+      toast('行程已保存，可导出行程单');
+    } catch (e) { $('saveErr').textContent = e.message; }
+    finally { $('saveConfirm').disabled = false; }
+  }
+  async function exportPlan() {
+    if (!state.itineraryId) return;
+    try {
+      var txt = await api('/api/itineraries/' + encodeURIComponent(state.itineraryId) + '/export');
+      var blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = ($('tripName').textContent || '行程') + '.txt';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      toast('行程单已导出');
+    } catch (e) { toast('导出失败：' + e.message); }
+  }
+
+  /* ---------- 百度地图（可选）：无 AK 时全程走 SVG 示意底图 ---------- */
+  function drawBMapPoints() {
+    // 真实坐标由 /api/attractions?city= 提供；本页只画点，不把示意路线当真实地理数据。
+    if (!window.__bmap) return;
+    var map = window.__bmap;
+    map.clearOverlays();
+    var pts = [];
+    state.points.forEach(function (p, i) {
+      var lng = p.lng, lat = p.lat;
+      if (lng == null || lat == null) return;
+      var point = new window.BMapGL.Point(lng, lat);
+      pts.push(point);
+      var marker = new window.BMapGL.Marker(point);
+      map.addOverlay(marker);
+      var label = new window.BMapGL.Label(String(i + 1) + ' ' + p.name, { position: point, offset: new window.BMapGL.Size(12, -10) });
+      map.addOverlay(label);
+    });
+    if (pts.length > 1) map.addOverlay(new window.BMapGL.Polyline(pts,
+      { strokeColor: '#B4542A', strokeWeight: 3, strokeOpacity: .8 }));
+    if (pts.length) map.centerAndZoom(pts[0], 12);
+  }
+  window.__initBaiduMap = function () {
+    if (!window.BMapGL) return;
+    window.__bmap = new window.BMapGL.Map('bmap');
+    window.__bmap.enableScrollWheelZoom(true);
+    window.__bmap.centerAndZoom(new window.BMapGL.Point(111.05, 32.55), 11);
+    $('mapStage').classList.add('has-bmap');
+    $('mapNote').textContent = '实时地图（BMapGL）';
+    // 从知识库取真实坐标，按名称匹配到已排点位
+    var city = (state.request && state.request.destination) || '';
+    if (city) {
+      api('/api/attractions?city=' + encodeURIComponent(city))
+        .then(function (list) {
+          var byName = {};
+          (list || []).forEach(function (a) { if (a.name) byName[a.name] = a; });
+          state.points.forEach(function (p) {
+            var a = byName[p.name];
+            if (a && a.lat != null && a.lon != null) { p.lat = a.lat; p.lng = a.lon; }
+          });
+          drawBMapPoints();
+        }).catch(function () { /* 取不到坐标就只显示底图 */ });
+    }
+  };
+
+  /* ---------- 启动与事件 ---------- */
+  $('sendBtn').addEventListener('click', send);
+  $('prompt').addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+  $('micBtn').addEventListener('click', function () { toast('语音输入未接入，请直接打字'); });
+  $('queryClear').addEventListener('click', function () {
+    state.request = null; state.draft = null; state.activeField = null;
+    $('queryText').textContent = '例如：带爸妈去武当山玩四天，预算六千';
+    $('tripName').textContent = '还没有行程';
+    $('tripMeta').textContent = '说一句话开始规划';
+    $('draftState').textContent = '草案未保存';
+    $('pinLayer').innerHTML = ''; $('daystrip').innerHTML = '';
+    $('mapPillMeta').textContent = '· 尚未生成草案';
+    $('spotCard').classList.remove('open');
+    toast('已清除当前需求，草案与地图已重置');
+  });
+  $('spotClose').addEventListener('click', function () { $('spotCard').classList.remove('open'); });
+  $('mask').addEventListener('click', closeSave);
+  $('saveCancel').addEventListener('click', closeSave);
+  $('saveConfirm').addEventListener('click', confirmSave);
+  $('exportBtn').addEventListener('click', exportPlan);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSave(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-quick]'), function (b) {
+    b.addEventListener('click', function () { $('prompt').value = b.dataset.quick; send(); });
+  });
+  $('logoutBtn').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+      .catch(function () { /* 会话已失效也回登录页 */ })
+      .then(function () { location.replace('/'); });
+  });
+
+  fetch('/api/account/me', { credentials: 'same-origin' })
+    .then(function (res) {
+      if (res.status === 401) {
+        location.replace('/?next=' + encodeURIComponent('/planner.html'));
+        return null;
+      }
+      return res.ok ? res.json() : null;
+    })
+    .then(function (u) {
+      if (u && u.username) {
+        $('whoName').textContent = u.username;
+        $('whoDot').textContent = u.username.slice(0, 1).toUpperCase();
+      }
+    })
+    .catch(function () { /* 服务未就绪时停在本页，避免跳转循环 */ });
+
+  var AK = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
+  if (AK) {
+    var s = document.createElement('script');
+    s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
+      encodeURIComponent(AK) + '&callback=__initBaiduMap';
+    document.head.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>

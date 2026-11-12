@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 接口测试台在 {@code static/api-console.html}，自带登录卡，登录后同一页面切换为测试台。
  *
  * <p>{@code /login} 与 {@code /app} 是历史链接，保留转发以免旧书签失效。
+ * {@code /planner} 是新版行程工作台（整幅地图 + AI 规划面板），转发到
+ * {@code static/planner.html}；四个旧页面保持原样，登录入口仍指向 {@code chat.html}。
  * 仅用于本地/测试演示，生产环境可移除或替换为正式前端。
  */
 @Controller
@@ -28,5 +30,11 @@ public class PageController {
   @GetMapping({"/login.html", "/app.html"})
   public String legacyPages() {
     return "redirect:/";
+  }
+
+  /** 新版行程工作台入口：静态页本身公开，数据接口仍需登录。 */
+  @GetMapping("/planner")
+  public String plannerPage() {
+    return "forward:/planner.html";
   }
 }

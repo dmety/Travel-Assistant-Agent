@@ -1,9 +1,11 @@
 # 旅行助手 · 界面设计稿
 
-移动端与网页端的 UI 设计稿。文件只放在 `design/` 目录，不改线上静态页：
-`design/` 与 `travel-server/src/main/resources/static/` 完全隔离，`index.html` / `chat.html` /
-`api-console.html` / `ticket-assistant.html` 保持原样，因此不影响任何门禁（`acceptance.py` 的静态页文本断言、
-`SecurityRulesTest` 的公开页断言均不涉及本目录）。
+移动端与网页端的 UI 设计稿，以及品牌与功能图标系统。展示板只放在 `design/` 目录：
+`chat.html` / `api-console.html` / `ticket-assistant.html` 保持原样，`index.html` 只加了
+一个工作台入口链接，因此不影响 `acceptance.py` 的静态页文本断言。
+
+真正跑在项目里的是落地页 `travel-server/src/main/resources/static/planner.html`，
+另有 `favicon.ico` 放在 static 根目录。白名单、页面路由与同批测试见第 11 节。
 
 项目里原有的蓝色静态页是早期随手生成的，本稿不以它为基准，重新设计。
 
@@ -13,7 +15,7 @@
 
 | 方式 | 说明 |
 |---|---|
-| 直接双击 | `design/mobile.html` / `design/desktop.html`，浏览器打开即可，**无需构建、无需联网** |
+| 直接双击 | `design/mobile.html` / `design/desktop.html` / `design/icon.html`，浏览器打开即可，**无需构建、无需联网** |
 | 本地服务 | `cd design && python -m http.server 8899`，访问 `http://127.0.0.1:8899/mobile.html` |
 
 `tokens.css` 只用系统字体栈（`-apple-system / Segoe UI / PingFang SC / Microsoft YaHei / Noto Sans CJK SC`），
@@ -25,6 +27,12 @@
 | `mobile.html` | 手机端 6 屏并排展示板（375 × 812 每屏） |
 | `desktop.html` | 网页端单页（1440 × 900 基准） |
 | `axure-kit.svg` | Axure 可导入的矢量元件库，7 节 |
+| `brand-mark.svg` | 品牌主标唯一导出源，字面色值供 data-URI 独立渲染 |
+| `icons.svg` | 25 个功能图标的 `symbol` 精灵图，`currentColor` 继承文字色 |
+| `icon.html` | 图标规范页：四态主标、尺寸矩阵、图标全览、自检表 |
+| `export/` | 9 张 PNG 与 5 个 Android mipmap 密度目录 |
+| `tools/design_icons.py` | 项目根下的图标资产构建工具，见第 9 节 |
+| `../travel-server/.../planner.html` | 落地页，接真实接口，见第 11 节 |
 | `README.md` | 本文件 |
 
 ---
@@ -40,6 +48,7 @@
 | 网页端定位 | 主屏是整幅地图：没有表格、权限矩阵、后台页签、变更记录。AI 对话浮在左侧 |
 | AI 的位置 | AI 对话是主入口；行程列表、地图、横向日程卡共用同一份行程数据 |
 | 手机端形态 | 圆周旅迹式“上半地图 + 下半 AI 对话面板”，追问后地图路线就地重排，不跳页 |
+| 图标 | 刻石方印加赤陶折线山径，与页面同一套色值；不用通用图标集 |
 
 ### 针对反馈的收敛过程
 
@@ -138,6 +147,9 @@ topbar（品牌 / 行程名 / 成员头像 / 成员 · 体检 · 导出行程单
 顶部只有一条 60px 的行程信息条；状态信息只在选中点的详情卡出现一次，不做成常驻清单。
 预算、成员、候选、变更记录全部收进抽屉，主屏保持“地图 + 对话”。
 
+两份设计稿顶栏的“行”字方框已换成品牌主标，`× ⌄ ↑ ◉ ‹ ▤ ◇ ◌ ○` 等字符占位符
+全部换成 `svg.ico` 线性图标，详见第 9 节。
+
 ---
 
 ## 5. 百度地图接入
@@ -159,7 +171,7 @@ window.BAIDU_MAP_AK = '你的 AK';   // 方式一：在页面里注入
 
 ---
 
-## 6. 自检结果（2026-11-12 实测，非目测）
+## 6. 自检结果（2026-11-12 实测）
 
 用无头 Edge 的 DOM 探针在浏览器内量取，并用 Python / Node 做静态校验：
 
@@ -174,12 +186,18 @@ window.BAIDU_MAP_AK = '你的 AK';   // 方式一：在页面里注入
 | 地图降级 | 未注入 AK 时 `BMapGL` 不存在，标注条 =“未配置 AK · 示意底图” |
 | 交互探针 | 发送追加 3 个节点 + `flash` 触发；清除问题 / 来源折叠 / 点位选中全部生效 |
 | 手机追问反馈 | 路线 `d` 已改变、`mapPillMeta2` =“· 路线已重排”、追问气泡 1→2、`is-rerouting` 已加 |
-| HTML 结构 | 两份页面均无重复 id、无未闭合 / 错配标签，`getElementById` 目标全部存在 |
-| 内联 JS | `node --check` 两份脚本均通过 |
-| SVG 素材 | `axure-kit.svg` XML 解析通过，273 个元素，32 段注释无非法 `--`，坐标均在 1600×1600 内 |
+| HTML 结构 | 三份页面均无重复 id、无未闭合 / 错配标签，`getElementById` 与 `<use>` 目标全部存在 |
+| 内联 JS | `node --check` 三份脚本均通过 |
+| SVG 素材 | `axure-kit.svg` XML 解析通过，273 个元素，32 段注释无非法双连字符，坐标均在 1600×1600 内 |
+| 图标渲染 | 三份页面共 69 个 `svg.ico`，零宽度 0 个；顶栏主标 32px；25 个图标格齐全 |
+| 图标页视口 | 375 / 768 / 1440 三档 `scrollWidth = clientWidth`，溢出元素 0 |
+| 手机展示板窄屏 | 375 视口下 `scrollWidth = clientWidth = 360`，6 屏横向 / 纵向溢出仍全为 0 |
+| 图标资源 | `favicon.ico` 含 16 / 32 / 48 三尺寸，Pillow 回读正确；9 张 PNG 与 5 个 mipmap 均非空白 |
+| 构建工具 | `design_icons.py all` 全流程通过，`wire` 重复运行结果不变 |
+| favicon 落地 | 重新打包后匿名 `GET /favicon.ico` = 200，5424 字节与源文件一致；`/index.html` / `/chat.html` / `/api/health` 仍为 200 |
 
-未做像素级视觉比对，结论来自 DOM 数值测量与静态校验。
-间距节奏、色彩观感请在浏览器里亲自过一眼再定稿。
+未做像素级自动比对。图标与三份页面另做了无头 Edge 截图目测（含 16px 放大预览），
+结论来自 DOM 数值测量、静态校验与截图观察。间距节奏、色彩观感请在浏览器里再过一眼。
 
 ---
 
@@ -190,6 +208,7 @@ Axure 的 `.rp` / `.rplib` 是闭源二进制，**无法由代码反向生成**�
 1. **导入矢量元件**：把 `axure-kit.svg` 拖进画布，右键“变换形状 → 取消组合”，拆成独立元件。
    共 7 节：01 色板 / 02 印章与点位 / 03 按钮与表单 / 04 标签 / 05 卡片 / 06 山形插画 /
    07 AI 对话与地图（桌面浮动面板、手机上半地图 + 下半 sheet、map-pill、DAY 标签、横向日程条、规格表）。
+   品牌主标 `brand-mark.svg` 与功能图标符号 `icons.svg` 可单独拖入画布取消组合后当元件用。
 2. **建样式库**：`项目 → 样式管理器`，按第 3 节 token 建文字样式与填充样式，之后所有元件引用样式。
 3. **画板尺寸**：移动端 375×812，网页端 1440×900。
 4. **中文字体**：Axure 只认系统已装字体，中文选“思源黑体 CN”或“微软雅黑”；
@@ -226,12 +245,121 @@ Axure 的 `.rp` / `.rplib` 是闭源二进制，**无法由代码反向生成**�
 
 ---
 
-## 9. 已知限制
+## 9. 图标系统
+
+### 定调
+
+一枚右下被 45 度切开的刻石方印。三道等高线收成山峰，一条赤陶折线山径用纸色宽线把等高线刻断，末端落在切口内侧。方印、折线、落点这三件事缩到 16px 仍能认出来。不用地球、相机、定位针，也不拿通用线性图标集凑数。
+
+功能图标沿用同一套语言：凡有外框，右下角斜切；凡表位置，用实心落点加纸色内点；凡表路径，一律折线。25 个符号各对应一个真实动作，不用于纯装饰。
+
+### 四个主标变体
+
+| 变体 | 用途 | 做法 |
+|---|---|---|
+| Full | 网页顶栏、文档封面、站点图标 | 纸底加墨绿加赤陶，完整三层等高线 |
+| Mono | 单色印刷、印章 | 赤陶并入墨绿，山径改虚线，不靠颜色分层 |
+| Inverse | 深色工具栏、App 图标底板 | 印框实填墨绿，线条反白，落点换浅陶保对比度 |
+| Micro | 16px favicon | 删掉等高线与起点，只留方印、折线、落点，线宽加倍 |
+
+色值取自 `tokens.css`：纸 `#F7F4EE`、墨绿 `#1E4A3E`、赤陶 `#B4542A`。`brand-mark.svg` 写字面值而不写 CSS 变量，因为导出时以 data-URI 独立渲染，外部变量不会传进去。展示页里的变量版由构建工具从源文件派生，改主标只需改 `brand-mark.svg` 一处。
+
+### 唯一源与构建步骤
+
+| 源文件 | 派生产物 | 命令 |
+|---|---|---|
+| `brand-mark.svg` + `icons.svg` | `icon.html` 的 `inlineDefs` 内联符号 | `inline` |
+| `icons.svg` + `brand-mark.svg` | `desktop.html` / `mobile.html` 的 `glyphDefs` 与 `svg.ico` | `wire` |
+| `brand-mark.svg` | 9 张 PNG、5 个 Android mipmap、`favicon.ico` | `export` |
+| 以上全部 | XML、引用关系与结构校验 | `check` |
+
+```
+python tools/design_icons.py all     # 依次跑 inline / wire / export / check
+python tools/design_icons.py check   # 只校验，不写文件
+```
+
+本机 Python 需带 `PYTHONPATH` 指向 F 盘包目录；`export` 依赖无头 Edge，路径不对时用 `TRAVEL_EDGE` 指定。`wire` 可重复运行，结果不变。HTML 里 `inlineDefs` 与 `glyphDefs` 两个区块由工具生成，不要手改。
+
+### 落地范围
+
+`favicon.ico` 含 16 / 32 / 48 三种尺寸，放在 `travel-server/src/main/resources/static/` 根目录。Spring Boot 会把它映射为 `/favicon.ico`，该路径已在安全白名单，浏览器请求即可拿到，四个静态页不需要加 `link` 标签。
+
+实测匿名 `GET /favicon.ico` 返回 200、`image/x-icon`、5424 字节，与源文件逐字节一致。图标文件是新增静态资源，需要重新执行 `mvn -pl travel-server -am package` 才会进包；旧 jar 里没有该资源时，404 转发到 `/error` 会被认证规则拦成 401，看起来像白名单失效。
+
+`design/export/png/` 的 9 张 PNG 与 `design/export/android/` 的 5 个 mipmap 供后续做 PWA 图标和 Android 启动图标时取用，当前没有写进 `travel-mobile` 工程。
+
+`icon.html` 是图标规范页，双击即可打开：四态主标、16 到 64px 尺寸矩阵、25 个功能图标全览、深浅底与状态对照、复制 SVG、可访问性自检表。页面用 `tokens.css` 的纸质纹理与等高线氛围层，`prefers-reduced-motion` 下取消入场动效。
+
+### 设计稿内的图标替换
+
+两份设计稿顶栏的“行”字方框已换成 Full 主标，`× ⌄ ↑ ◉ ‹ ▤ ◇ ◌ ○` 等字符占位符全部换成 `svg.ico`。图标用 `currentColor` 继承控件文字色，尺寸按 `1em` 跟随字号，因此深色底、选中态、禁用态不用再准备第二套图。
+
+---
+
+## 10. 已知限制
 
 1. 只做了浅色基线，未提供暗色模式。`tokens.css` 的语义变量可支持 `[data-theme="dark"]` 覆盖，但没做，不做无验证的承诺。
 2. 地图降级底图是 SVG 手绘示意，不含地理数据，只用于视觉占位与断网演示。
-3. 页面内数据是设计样例（武当山四日 / 3 人 / 6 个候选），不写任何 Store，不产生真实业务；
-   对话回复是预设文本，未接模型。
+3. 展示板里的页面数据是设计样例（武当山四日 / 3 人 / 6 个候选），不写任何 Store，不产生真实业务；
+   对话回复是预设文本。落地页 `planner.html` 已接真实接口，见第 11 节。
 4. 语音按钮是演示占位，未接 ASR。
-5. 手机端画板是 6 屏并排的展示板（`@media (max-width: 900px)` 会收窄外边距），
+5. 手机端画板是 6 屏并排的展示板（900px / 600px 两档断点收窄外边距并把手机框压到视口宽），
    不是可直接装机的移动端页面；要上真机需按 `tokens.css` 切到单屏布局。
+6. `favicon.ico` 已落在 static 根目录，浏览器自动请求即可生效；落地页 `planner.html` 另有显式 `link` 标签，
+   四个旧静态页没有。
+7. Android mipmap 只是导出包，未接入 `travel-mobile` 工程；PWA manifest 也未配置。
+
+---
+
+## 11. 落地为可运行页面
+
+`design/` 里的两份 HTML 是多屏展示板，用来定视觉与交互；真正跑在项目里的是
+`travel-server/src/main/resources/static/planner.html`。它把桌面稿的“整幅地图加浮动 AI 面板”
+与手机稿的“上半地图加下半对话面板”合成一份响应式页面，900px 与 600px 两档断点切换，
+共用同一份行程数据。
+
+### 入口与安全
+
+| 地址 | 说明 |
+|---|---|
+| `/planner` | `PageController` 转发到 `/planner.html` |
+| `/planner.html` | 静态页，匿名可达；页内读 `/api/account/me`，401 时跳 `/?next=/planner.html` |
+| `/` | 登录页，底部加了“新版行程工作台”入口 |
+| `/chat.html` | 旧版对话页，仍是登录后的默认落地页 |
+
+`SecurityConfiguration` 白名单加了 `/planner.html` 与 `/planner`，口径与 `chat.html` 一致：
+页面公开，数据和模型配额仍由 `/api/**` 拦截。`SecurityRulesTest` 同批补了
+`plannerPageIsPublic`，断言页面 200、结构标记存在、`/planner` 转发目标正确。
+
+### 接了哪些真实接口
+
+| 界面动作 | 接口 |
+|---|---|
+| 登录态与退出 | `GET /api/account/me`、`POST /api/logout` |
+| 理解一句话需求 | `POST /api/intent/parse` |
+| 生成草案 | `POST /api/agent/invoke`（`intent=PLAN_DRAFT`） |
+| 编排层降级兜底 | `POST /api/agent/plan` |
+| 确认前重新装配载荷 | `POST /api/agent/plan/materialize` |
+| 写入行程与逐日安排 | `POST /api/itineraries`、`PUT /api/itineraries/{id}/daily?version=N` |
+| 导出行程单 | `GET /api/itineraries/{id}/export` |
+| 百度地图真实坐标 | `GET /api/attractions?city=`（仅在注入 AK 时取用） |
+
+草案取自契约信封 `result.facts` 里 `category=PLAN_DRAFT` 的 `CONTENT` fact；
+编排层落到 `builtin.rules` 没有结构化草案时，回退调 `/api/agent/plan`，
+保证最差情况也有逐日安排与检查项。补问按 `questions[].field` 落回请求再重排；
+候选不足的天留空，不补景点、不编造游览时刻。
+
+### 仍是占位
+
+语音按钮只提示未接 ASR；投票、成员协作、预算体检这三块抽屉没有搬进落地页，
+仍在 `design/desktop.html` 里做交互演示。地图未注入 AK 时是 SVG 示意底图，
+点位按草案顺序沿示意路线分布，页面明确标注“示意底图 · 非导航用”；
+注入 `window.BAIDU_MAP_AK` 或 `?ak=` 后才启用 BMapGL 并按知识库经纬度打点。
+
+### 构建与同步
+
+图标定义由 `tools/design_icons.py wire` 从 `design/icons.svg` 与
+`design/brand-mark.svg` 派生注入 `planner.html` 的 `glyphDefs` 区块，不要手改。
+色板在本页内联一份，改动以 `design/tokens.css` 为准。
+新增静态资源需要重新 `mvn -pl travel-server -am package` 才会进 jar，
+否则请求会落到 404 再被认证规则拦成 401。
