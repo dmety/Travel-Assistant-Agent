@@ -8,12 +8,12 @@ rem Do NOT add "chcp 65001": Java 21 writes GBK here and would show mojibake.
 rem Usage:
 rem   run-client.bat                       -> interactive console (REPL)
 rem   run-client.bat attractions Hangzhou  -> one-shot command, no pause
-rem Optional: set TRAVEL_CLI_PORT to use a different port (default 18080).
+rem Optional: set TRAVEL_CLI_PORT to use a different port (default 8080).
 
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
-set "PORT=18080"
+set "PORT=8080"
 if not "%TRAVEL_CLI_PORT%"=="" set "PORT=%TRAVEL_CLI_PORT%"
 set "SERVER_JAR=%ROOT%travel-server\target\travel-server-0.1.0-SNAPSHOT.jar"
 set "CLIENT_JAR=%ROOT%travel-client\target\travel-client-0.1.0-SNAPSHOT.jar"

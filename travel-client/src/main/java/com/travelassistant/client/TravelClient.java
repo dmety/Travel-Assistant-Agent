@@ -42,7 +42,7 @@ public class TravelClient {
 
   public static void main(String[] args) {
     // 默认端口与 tools/run-server.sh 保持一致。
-    String base = args.length > 0 ? args[0] : "http://localhost:18080";
+    String base = args.length > 0 ? args[0] : "http://localhost:8080";
     // 有真实终端且没有指定子命令时进入交互式主入口；带参数或走管道时保持原有脚本用法。
     boolean repl = args.length <= 1 && System.console() != null;
     try (ConsoleUI ui = repl
