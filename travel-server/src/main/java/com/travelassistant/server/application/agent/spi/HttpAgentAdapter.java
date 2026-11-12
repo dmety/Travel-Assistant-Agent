@@ -21,7 +21,7 @@ import java.util.Set;
  *
  * <p>用 JDK 内置 HttpClient 而非 RestTemplate，是为了把 {@code Redirect.NEVER} 显式写死：
  * T-02 禁止重定向，T-03 禁止 Set-Cookie。endpoint 的 M-08 判定由注册期 G0 负责；
- * G1 / G2 探针用本地桩时允许环回地址，正式配置一律 https 加 allowlist。
+ * G1 / G2 探针用本地桩时允许环回地址，正式配置默认 https 加 allowlist；显式指定的单个本地模拟地址由 G0 单独核准。
  *
  * <p>凭据只从 {@code authRef} 指向的环境变量读取，绝不进配置、日志或异常消息。
  */

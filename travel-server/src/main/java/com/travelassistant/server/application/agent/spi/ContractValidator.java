@@ -11,6 +11,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * 注册期 G0 与运行期响应校验共用的唯一判定器。
@@ -52,9 +54,17 @@ public class ContractValidator {
   private static final List<String> UNKNOWN_AS_TRUE = List.of("免费", "全天开放");
 
   private final ContractRules rules;
+  private final String localMockEndpoint;
 
   public ContractValidator(ContractRules rules) {
+    this(rules, "");
+  }
+
+  @Autowired
+  public ContractValidator(ContractRules rules,
+      @Value("${travel.agent-local-mock-endpoint:}") String localMockEndpoint) {
     this.rules = rules;
+    this.localMockEndpoint = localMockEndpoint;
   }
 
   // ---------------------------------------------------------------- 注册期 G0
@@ -149,6 +159,12 @@ public class ContractValidator {
       uri = URI.create(endpoint);
     } catch (IllegalArgumentException e) {
       failure(out, "M-08", field, endpoint, "可解析的 https URL");
+      return;
+    }
+    // Explicit process configuration permits exactly one local mock URL, never a subnet or hostname.
+    if (endpoint.equals(localMockEndpoint) && "http".equals(uri.getScheme())
+        && ("127.0.0.1:" + uri.getPort()).equals(uri.getRawAuthority()) && uri.getPort() >= 1024 && uri.getPort() <= 65535
+        && uri.getRawUserInfo() == null && uri.getRawQuery() == null && uri.getRawFragment() == null) {
       return;
     }
     if (!"https".equalsIgnoreCase(uri.getScheme())) {

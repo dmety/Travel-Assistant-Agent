@@ -28,7 +28,7 @@
     "with_level": 1321,
     "with_rating": 4480,
     "with_open_time": 4346,
-    "with_ticket": 874,
+    "with_ticket": 873,
     "with_image": 4630,
     "amap_stats": {
       "fetched": 8053,
@@ -38,14 +38,14 @@
     },
     "enriched_at": "2026-11-07T07:50:44Z",
     "ticket_status_counts": {
-      "verified": 145,
-      "unverified": 729,
-      "pending": 6871
+      "pending": 6872,
+      "unverified": 681,
+      "verified": 192
     },
     "open_time_status_counts": {
-      "verified": 104,
-      "unverified": 4242,
-      "pending": 3399
+      "pending": 3399,
+      "unverified": 4196,
+      "verified": 150
     }
   },
   "cityIntroductions": {

@@ -391,6 +391,9 @@ public class DefaultAdmissionController implements AdmissionController {
     AgentProviderConfigLoader.Document doc = loader.load();
     for (Map<String, Object> config : doc.providers()) {
       if (providerId.equals(config.get("id"))) {
+        if (validator.validateConfig(config, 0, false).blocked()) {
+          return null;
+        }
         return new HttpAgentAdapter(config, validator, rules, json);
       }
     }

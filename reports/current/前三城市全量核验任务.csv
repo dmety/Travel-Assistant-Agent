@@ -58,7 +58,7 @@
 北京,osm-node-3523128438,BoGui Pot,,,pending,pending,,,待核验,,,
 北京,osm-node-3809864708,百工博物馆,,,pending,pending,,,待核验,,,
 北京,osm-node-3875624557,先师孔子行教像,,,pending,pending,,,待核验,,,
-北京,osm-node-3884441391,故宫博物院,旺季60元/淡季40元,旺季4月1日至10月31日 周二至周日 08:30-17:00 16:00停止检票，淡季11月1日至3月31日 周二至周日 08:30-16:30 15:30停止检票，周一全天关闭，节假日营业时间以官方通知为准,unverified,unverified,,,待核验,,,
+北京,osm-node-3884441391,故宫博物院,旺季4月1日—10月31日60元；淡季11月1日—次年3月31日40元；珍宝馆、钟表馆另各10元,周二至周日开放，周一闭馆（法定节假日除外）；4—10月08:30-17:00，16:00停止入院；11—3月08:30-16:30，15:30停止入院,verified,verified,https://ticket.dpm.org.cn/subject_booking/,https://intl.dpm.org.cn/visit,票价与时间已核验,https://ticket.dpm.org.cn/subject_booking/ | https://intl.dpm.org.cn/visit,2026-11-12,票价采信官方售票政策；时间采信官方英文参观页；实名预约，临时调整以公告为准。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,osm-node-3951269871,史家胡同博物馆,,,pending,pending,,,待核验,,,
 北京,osm-node-4284096489,天福茗茶,,,pending,pending,,,待核验,,,
 北京,osm-node-4315893490,南锣鼓巷,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
@@ -78,7 +78,7 @@
 北京,osm-node-4802402725,牛街历史文化展陈室,,,pending,pending,,,待核验,,,
 北京,osm-node-4803985921,Xinjian Commune Fine Art Studio,,,pending,pending,,,待核验,,,
 北京,osm-node-4803985922,Phoenix-Hanzhang Art Space,,,pending,pending,,,待核验,,,
-北京,osm-node-4807307421,北京奥林匹克公园,免费(开放园区)；内部鸟巢/水立方等场馆单独购票,周一至周日 06:30-22:00,unverified,unverified,,,待核验,,,
+北京,osm-node-4807307421,北京奥林匹克公园,免费(开放园区)；内部鸟巢/水立方等场馆单独购票,周一至周日 06:30-22:00,unverified,unverified,,,未获足够证据,,2026-11-12,整个园区与奥林匹克森林公园、鸟巢、水立方不同，不套用局部免费规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,osm-node-4807812621,Triumph Art Space,,,pending,pending,,,待核验,,,
 北京,osm-node-4813648922,Lumin Art Space,,,pending,pending,,,待核验,,,
 北京,osm-node-4813654421,Mountain Art Beijing Frank Lin Art Center,,,pending,pending,,,待核验,,,
@@ -459,7 +459,7 @@
 上海,osm-node-4166717989,刘海粟美术馆,,,pending,pending,,,待核验,,,
 上海,osm-node-4191939757,Zotter Chocolate Theatre,,,pending,pending,,,待核验,,,
 上海,osm-node-4191955090,Chinese Cooking Workshop,,,pending,pending,,,待核验,,,
-上海,osm-node-4211961753,中共四大纪念馆,免费(需实名预约),周一 全天关闭；周二至周日 09:00-16:30 最晚进入16:00,unverified,unverified,,,待核验,,,
+上海,osm-node-4211961753,中共四大纪念馆,免费(需实名预约),周一 全天关闭；周二至周日 09:00-16:30 最晚进入16:00,unverified,unverified,,,未获足够证据,,2026-11-12,检索首条为黄浦其他红色场馆，非虹口四大纪念馆；须避免串用开放时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,osm-node-4270902292,샤오닝루,,,pending,pending,,,待核验,,,
 上海,osm-node-4273219819,内园,,,pending,pending,,,待核验,,,
 上海,osm-node-4280503191,新美术馆,,,pending,pending,,,待核验,,,
@@ -703,7 +703,7 @@
 上海,osm-way-39763847,上海城市规划展示馆,,"1/1-12/31 周一–周二, 周四–周日 09:00–17:00开放；1/1-12/31 周三 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 09:00–17:00开放",pending,unverified,,,待核验,,,
 上海,osm-way-39961770,复兴公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,osm-way-40036584,豫园,,,pending,pending,,,待核验,,,
-上海,osm-way-40036659,上海城隍庙,免费(上海城隍庙，上海市文化和旅游局公布免费开放；黄浦区方浜中路249号，道教宫观),周一至周日 08:30-16:30,unverified,unverified,,,待核验,,,
+上海,osm-way-40036659,上海城隍庙,,每日08:30-16:30；节庆特别安排以庙方公告为准,pending,verified,,https://www.meet-in-shanghai.net/cn/shanghai-cultural-relics-protection-unit/shanghai-city-gods-temple-620221/,部分字段已核验,https://www.meet-in-shanghai.net/cn/shanghai-cultural-relics-protection-unit/shanghai-city-gods-temple-620221/,2026-11-12,旧官网域名已变为出售页；免费说法缺乏可靠支持，票价改为未知；开放时间仅采信市文旅推广网。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,osm-way-40324703,上海当代艺术馆,,,pending,pending,,,待核验,,,
 上海,osm-way-40325255,新天地,,,pending,pending,,,待核验,,,
 上海,osm-way-43779987,上海体育学院办公楼,,,pending,pending,,,待核验,,,
@@ -736,7 +736,7 @@
 上海,osm-way-307094922,A.F.A上海融侨中心,,,pending,pending,,,待核验,,,
 上海,osm-way-307455604,西岸艺术中心,,,pending,pending,,,待核验,,,
 上海,osm-way-372180467,中共一大会址,,,pending,pending,,,待核验,,,
-上海,osm-way-404676268,上海海洋水族馆,成人票160元/儿童票(1-1.4米)110元/老人票(60岁以上)90元(上海市文旅局公布挂牌价；现役军人、离休干部、残疾人70元；1米以下儿童免),"全年9:00-18:00,暑期7月1日-8月31日:9:00-21:00",unverified,unverified,,,待核验,,,
+上海,osm-way-404676268,上海海洋水族馆,成人当日票160元；儿童当日票110元；60周岁及以上老人90元；军人、残疾人、离休干部优惠票70元；适用条件及预售优惠以官方售票页为准,日常09:00-18:00，17:30停止售票及入馆；7—8月延长至21:00，20:30停止售票及入馆；其他特殊运营时间以公告为准,verified,verified,https://ticket.sh-aquarium.com/BpsWebSale/Home/List,https://sh-aquarium.com/FrequentlyAskedQuestions/index.aspx?lcid=11,票价与时间已核验,https://ticket.sh-aquarium.com/BpsWebSale/Home/List | https://sh-aquarium.com/FrequentlyAskedQuestions/index.aspx?lcid=11,2026-11-12,票价来自官方售票列表，时间来自官方运营FAQ；不把停车费计入门票。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,osm-way-404694432,龙华寺,,周一至周日 07:00-16:30 最晚进入16:30,pending,unverified,,,待核验,,,
 上海,osm-way-404699628,玉佛禅寺,,周一至周日 08:00-16:30 最晚进入16:30,pending,unverified,,,待核验,,,
 上海,osm-way-404709025,人民广场,,,pending,pending,,,待核验,,,
@@ -748,7 +748,7 @@
 上海,osm-way-437443890,上海市水务局,,,pending,pending,,,待核验,,,
 上海,osm-way-441748661,上海凝聚力工程博物馆,,,pending,pending,,,待核验,,,
 上海,osm-way-441856933,后工业生态景观公园,,,pending,pending,,,待核验,,,
-上海,osm-way-462007561,上海动物园,成人票40元/儿童及学生票20元/60-65岁老人票36元(上海市文旅局公布挂牌价；6周岁以下或1.3米以下儿童、65岁以上老人免),周一至周日 08:00-17:00,unverified,unverified,,,待核验,,,
+上海,osm-way-462007561,上海动物园,常规成人票40元；儿童票20元；老人票36元；优惠资格以园方规则为准,周一至周日 08:00-17:00,verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,2026-11-12,只采信2026年文旅活动清单明确标出的原价，不采用已结束的半价活动。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,osm-way-477237906,M50,,,pending,pending,,,待核验,,,
 上海,osm-way-481557069,杨浦滨江人民城市建设规划展示馆,,,pending,pending,,,待核验,,,
 上海,osm-way-488984509,Shanghai Center of Photography,,,pending,pending,,,待核验,,,
@@ -1098,7 +1098,7 @@
 深圳,osm-way-248181066,大芬油画村,,,pending,pending,,,待核验,,,
 深圳,osm-way-248452021,梅语亭,,,pending,pending,,,待核验,,,
 深圳,osm-way-249508399,孙中山纪念馆,,,pending,pending,,,待核验,,,
-深圳,osm-way-249696516,深圳野生动物园,成人全天票199元/儿童及老人140元/1.2米以下及70岁以上免(深圳野生动物园官方挂牌价；门票含野生动物与海洋天地，园内小火车等另行收费),周一至周日 09:30-18:00 最晚进入17:00,unverified,unverified,,,待核验,,,
+深圳,osm-way-249696516,深圳野生动物园,成人全天票199元/儿童及老人140元/1.2米以下及70岁以上免(深圳野生动物园官方挂牌价；门票含野生动物与海洋天地，园内小火车等另行收费),09:30-18:00，17:00停止检票；周末及节假日可能提前开园,unverified,verified,,https://www.szzoo.net/channels/3685.html,部分字段已核验,https://www.szzoo.net/channels/3685.html,2026-11-12,常规票价与限时促销不可混用，票价暂留未核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,osm-way-257397881,深圳科学馆,,,pending,pending,,,待核验,,,
 深圳,osm-way-264187657,巴黎凯旋门微缩模型,,,pending,pending,,,待核验,,,
 深圳,osm-way-264187661,埃菲尔铁塔,,,pending,pending,,,待核验,,,
@@ -1153,31 +1153,31 @@
 深圳,osm-way-1266690687,民治村史馆,,,pending,pending,,,待核验,,,
 北京,amap-B000A816R6,北京大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A7BD6C,清华大学,,,pending,pending,,,待核验,,,
-北京,amap-B000A7O1CU,颐和园,旺季30元/淡季20元(大门票),"1月至3月,11月至12月 周一至周日 06:30-19:00 最晚进入18:00；4月至10月 周一至周日 06:00-20:00 最晚进入19:00",unverified,unverified,,,待核验,,,
-北京,amap-B000A81CB2,天坛公园,联票旺季34元/淡季28元；大门票旺季15元/淡季10元,"1月至3月,11月至12月 周一至周日 06:30-22:00 最晚进入21:00 园中园08:00-17:00(16:30停止入园)；4月至10月 周一至周日 06:00-22:00 最晚进入21:00 园中园08:00-18:00(17:30停止入园)",unverified,unverified,,,待核验,,,
+北京,amap-B000A7O1CU,颐和园,旺季大门票30元、联票60元；淡季大门票20元、联票50元；园中园另有单票,4—10月06:00-20:00，19:00停止入园；11—3月06:30-19:00，18:00停止入园；园中园时段另查,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508035.shtml,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508035.shtml,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508035.shtml,2026-11-12,区分停止入园与闭园时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A81CB2,天坛公园,联票旺季34元/淡季28元；大门票旺季15元/淡季10元,"1月至3月,11月至12月 周一至周日 06:30-22:00 最晚进入21:00 园中园08:00-17:00(16:30停止入园)；4月至10月 周一至周日 06:00-22:00 最晚进入21:00 园中园08:00-18:00(17:30停止入园)",unverified,unverified,,,未获足够证据,,2026-11-12,旧英文票价页仅给旺季且含外国证件票种，须按淡旺季及大门/联票分开核对。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83C1S,天安门广场,,周一至周日 05:00-20:30,pending,unverified,,,待核验,,,
 北京,amap-B000A60DA1,天安门,,周一至周日 06:00-20:30,pending,unverified,,,待核验,,,
 北京,amap-B000A45467,八达岭长城,,6:30-17:00（16:30停止入园）,pending,unverified,,,待核验,,,
-北京,amap-B000A80UL1,北海公园,旺季(4.1-10.31)门票10元/联票20元，淡季(11.1-3.31)门票5元/联票15元(北海公园官网beihaipark.com.cn；联票含琼华岛/团城/永安寺等),"淡季:06:30-20:00,旺季:06:00-21:00",unverified,unverified,,,待核验,,,
+北京,amap-B000A80UL1,北海公园,旺季(4.1-10.31)门票10元/联票20元，淡季(11.1-3.31)门票5元/联票15元(北海公园官网beihaipark.com.cn；联票含琼华岛/团城/永安寺等),4—10月06:00-21:00，20:30停止入园；11—3月06:30-20:00，19:30停止入园；园内院落另查,unverified,verified,,https://gygl.beijing.gov.cn/xxgk/xxgk_tzgg/202104/t20210425_2368661.html,部分字段已核验,https://gygl.beijing.gov.cn/xxgk/xxgk_tzgg/202104/t20210425_2368661.html,2026-11-12,市公园管理中心延长开放公告；不把院落与公园大门混用。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7O5PK,什刹海,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-北京,amap-B000A81FMM,地坛公园,公园门票2元(旺季4-10月)/1元(淡季11-3月)，方泽坛+皇祇室联票5元(地坛公园；Trip.com游记引用票价),周一至周日 06:00-22:00 最晚进入21:30,unverified,unverified,,,待核验,,,
-北京,amap-B000A7O684,香山公园,旺季(4.1-11.15)门票10元/优惠票5元，淡季(11.16-3.31)门票5元/优惠票2.5元；碧云寺门票10元/优惠5元；联票旺季15元/淡季14元(香山公园官网xiangshan-park.cn 2025),04-01至11-15 周一至周日 06:00-19:30 最晚进入18:30；11-16至03-31 周一至周日 06:00-19:00 最晚进入18:00,unverified,unverified,,,待核验,,,
-北京,amap-B000A16E89,圆明园遗址公园,大门票10元/通票25元(含西洋楼遗址+全景模型),"1月至3月,11月至12月 周一至周日 06:30-19:30 最晚进入17:30；4月至10月 周一至周日 06:00-21:00 最晚进入19:00",unverified,unverified,,,待核验,,,
-北京,amap-B000A7I1OL,景山公园,公园门票2元(优惠票凭老年证/学生证等现场公示；北京旅游网、去哪儿2025)；牡丹展期间全价门票10元,"1月至3月,11月至12月 周一至周日 06:30-20:00 最晚进入19:30；4月至10月 周一至周日 06:00-21:00 最晚进入20:30",unverified,unverified,,,待核验,,,
+北京,amap-B000A81FMM,地坛公园,常规大门票2元；特殊活动另查,夏季06:00-21:30；冬季06:00-20:30,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240104_3526024.shtml,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240104_3526024.shtml,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240104_3526024.shtml,2026-11-12,2026-11-10另有局部施工围挡，不能当作全园封闭。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7O684,香山公园,旺季成人10元、半价5元；淡季成人5元、半价2.5元,4月1日—11月15日06:00-19:30，18:30停止入园；11月16日—3月31日06:00-19:00，18:00停止入园,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508036.shtml,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508036.shtml,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508036.shtml,2026-11-12,公园大门与园内革命旧址等场馆时间分别管理。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A16E89,圆明园遗址公园,大门票成人10元、半价5元；西洋楼遗址成人15元、模型展成人10元，联票另查,4—10月06:00-21:00，19:00停止入园；11—3月06:30-19:30，17:30停止入园；售票07:00开始,verified,verified,https://english.beijing.gov.cn/specials/strollthroughbeijing/imperialgardens/202611/t20261110_4940017.html,https://english.beijing.gov.cn/specials/strollthroughbeijing/imperialgardens/202611/t20261110_4940017.html,票价与时间已核验,https://english.beijing.gov.cn/specials/strollthroughbeijing/imperialgardens/202611/t20261110_4940017.html,2026-11-12,以2026-11-10政府介绍为证据，园中园单独计价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7I1OL,景山公园,平日成人2元、半价1元；活动期间成人10元、半价5元,11—3月06:30-20:00，19:30止票；4—10月06:00-21:00，20:30止票,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508033.shtml,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508033.shtml,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508033.shtml,2026-11-12,不把园内展馆08:00开门误作公园大门时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7BGMG,雍和宫,,"1月至3月,11月至12月 周一至周日 09:00-16:30 最晚进入16:00；4月至10月 周一至周日 09:00-17:00 最晚进入16:30",pending,unverified,,,待核验,,,
-北京,amap-B000A7CA07,朝阳公园,免费开放(公园门票免费，部分游乐/体验项目需另购票；中国旅游资讯网、北京旅游网2025),周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7CA07,朝阳公园,公园免费；园内收费项目另计,周一至周日 00:00-24:00,verified,unverified,https://yllhj.beijing.gov.cn/ggfw/bjsggml/zhgy/cyq/202206/t20220614_2740316.shtml,,部分字段已核验,https://yllhj.beijing.gov.cn/ggfw/bjsggml/zhgy/cyq/202206/t20220614_2740316.shtml,2026-11-12,园林绿化局目录确认免费，未从非全时开放推断具体时段。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83U0P,中国国家博物馆,,周一全天关闭(法定节假日除外)；11月1日至次年5月31日周二至周日09:00-17:00(16:00停止入馆)；6月1日至10月31日周二至周日09:00-17:30(16:30停止入馆),pending,unverified,,,待核验,,,
-北京,amap-B000A7IKWK,世界公园,成人票100元/学生票60元(北京旅游网visitbeijing官方，常规日场)；2025仲夏之夜活动日场成人89.9元/学生57元、夜场49.9元(北京本地宝)，彩灯游园会单人68元/双人98元/三人118元(限时),10-21至11-30 周一至周日 09:00-17:00 最晚进入16:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A7IKWK,世界公园,至2026年12月31日免大门票；园内演出、游乐、体验和餐饮另收费,10-21至11-30 周一至周日 09:00-17:00 最晚进入16:30,verified,unverified,https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260916_225092.shtml,,部分字段已核验,https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202609/t20260916_225092.shtml,2026-11-12,周末及假期需按官方公众号实名预约；公告节庆延长时间已过，不充当11月常规时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFF3T3SE,坡峰岭,,周一至周日 08:00-17:00 最晚进入16:00,pending,unverified,,,待核验,,,
-北京,amap-B000A645D9,恭王府博物馆,成人40元/学生老人20元,"周二至周日08:30-17:00(16:10停止检票),周一闭馆(法定节假日除外)",unverified,unverified,,,待核验,,,
-北京,amap-B000A09F5A,慕田峪长城,成人40元/学生老人25元,"3月16日至11月15日 周一至周五 07:30-18:00开放(17:00停止售票,17:30停止入园)；周六至周日 07:30-18:30开放(17:30停止售票,18:00停止入园)；11月16日至次年3月15日 08:00-17:30开放(16:30停止售票,17:00停止入园)；缆车运营时间同景区营业时间；中秋、国庆期间夜场营业时间根据日落时间及时调整",unverified,unverified,,,待核验,,,
-北京,amap-B000A831SV,北京野生动物园,成人票145元/人(同程2025)，学生票85元(全日制大中小学生18岁及以下)，儿童票85元(1-1.5米)，双人票150元；1米以下儿童免票；自驾区车票200元另购(北京野生动物园，同程/OTA；百度百科旧价80元已过期),03-28至11-02 周一至周日 08:30-17:30 最晚进入16:00；11-03至03-27 周一至周日 09:00-17:00 最晚进入15:30,unverified,unverified,,,待核验,,,
-北京,amap-B000A875MC,奥林匹克森林公园,免费(免票入园),周一至周日 05:00-22:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A645D9,恭王府博物馆,成人40元/学生老人20元,"周二至周日08:30-17:00(16:10停止检票),周一闭馆(法定节假日除外)",unverified,unverified,,,未获足够证据,,2026-11-12,清明延时与周一开放仅限特定日期，不能作11月常规营业时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A09F5A,慕田峪长城,成人40元/学生老人25元,3月16日—11月15日工作日07:30-18:00、周末07:30-18:30；11月16日—3月15日08:00-17:30；提前1小时止售票、提前半小时止检票,unverified,verified,,https://www.mutianyugreatwall.com/,部分字段已核验,https://www.mutianyugreatwall.com/,2026-11-12,官方当前首页确认开放时段；不同政府页面票价40/45元口径待核，不提升票价状态。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A831SV,北京野生动物园,成人150元；学生/儿童90元；自驾区车票200元/车，不能代替个人门票,4—10月08:30-17:30；11—3月09:00-17:00,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260325_4566131.html,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260325_4566131.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260325_4566131.html,2026-11-12,以2026年北京市政府景区介绍为证据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A875MC,奥林匹克森林公园,公园免费；经营项目另计,3月15日—11月15日06:00-22:00，21:00停止入园；11月16日—3月14日06:00-21:00，20:00停止入园,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562517.html,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562517.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562517.html,2026-11-12,与整个奥林匹克公园及收费场馆区分。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7C9EW,日坛公园,,周一至周日 05:30-22:00,pending,unverified,,,待核验,,,
 北京,amap-B000A87QJV,奥林匹克公园中心区,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000A844Z1,中国国际展览中心(顺义馆),,周一至周日 09:00-16:30,pending,unverified,,,待核验,,,
-北京,amap-B000A886RE,明十三陵景区,联票旺季120元/淡季98元；单票长陵45/定陵60/昭陵30/神道30(旺季),周一至周日 08:30-18:00,unverified,unverified,,,待核验,,,
-北京,amap-B0I2DHO7RX,北京(通州)大运河文化旅游景区,免费(园区开放)；游船等项目另收费,周一至周日 09:00-17:00 最晚进入16:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A886RE,明十三陵景区,联票旺季120元/淡季98元；单票长陵45/定陵60/昭陵30/神道30(旺季),周一至周日 08:30-18:00,unverified,unverified,,,未获足够证据,,2026-11-12,定陵、长陵、昭陵和神路分开收费，不能把某一子景点票价写成总景区统一价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B0I2DHO7RX,北京(通州)大运河文化旅游景区,免费(园区开放)；游船等项目另收费,周一至周日 09:00-17:00 最晚进入16:30,unverified,unverified,,,未获足够证据,,2026-11-12,服务导图对应漕运码头，不能将其08:00-22:00推广到整个景区。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7S1GC,中国人民革命军事博物馆,,"周二至周日 09:00-17:00开放（16:00停止入园）；周一 不开放；特殊营业时间:元旦节,清明节,劳动节,中秋节,国庆节 09:00-17:00开放(16:00停止入园)；具体开放时间以官方通知为准",pending,unverified,,,待核验,,,
 北京,amap-B000A87IUX,北京动物园,,"1月至3月,11月至12月 周一至周日 07:30-17:00 最晚进入17:00；4月至10月 周一至周日 07:30-18:00 最晚进入18:00",pending,unverified,,,待核验,,,
 北京,amap-B000A8XDCI,奥林匹克森林公园南园,,周一至周日 05:00-22:00,pending,unverified,,,待核验,,,
@@ -1185,30 +1185,30 @@
 北京,amap-B0FFFS33G2,鼓楼,,3月26日至10月25日 09:30-17:30开放；10月26日至12月31日 09:30-16:30开放 最晚售票16:00；1月1日至3月25日 09:30-16:30开放 最晚售票16:00；劳动节 09:30-18:00开放,pending,unverified,,,待核验,,,
 北京,amap-B000AABXEH,古北水镇,,"周一-周四、周日:9:00-22:30,周五-周六:9:00-23:00；21:00停止检票",pending,unverified,,,待核验,,,
 北京,amap-B000A8XM58,奥林匹克森林公园北园,,03-15至11-15 周一至周日 05:00-22:00 最晚进入22:00；11-16至03-14 周一至周日 06:00-21:00 最晚进入21:00,pending,unverified,,,待核验,,,
-北京,amap-B000A844J5,雁栖湖,成人门票45元/学生票22元(雁栖湖景区官网yanqihu.com，常规价；2025.3.8起恢复)；淡季(11.24-次年3.31)临时下调成人20元/学生10元、娱乐项目停运,03-07至10-16 周一至周日 08:30-17:00 最晚进入16:30；10-17至10-18 周一至周日 全天关闭；10-19至10-31 周一至周日 08:30-17:00 最晚进入16:30；以上日期周末及法定节假日闭园时间以现场广播通知为准。,unverified,unverified,,,待核验,,,
+北京,amap-B000A844J5,雁栖湖,2026年10月改造后滨水公共空间免费开放；游船等经营项目另查,03-07至10-16 周一至周日 08:30-17:00 最晚进入16:30；10-17至10-18 周一至周日 全天关闭；10-19至10-31 周一至周日 08:30-17:00 最晚进入16:30；以上日期周末及法定节假日闭园时间以现场广播通知为准。,verified,unverified,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261019_4909554.html,,部分字段已核验,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261019_4909554.html,2026-11-12,2026-10-19政府秋游正文已确认改造后免费；旧45元常规大门票不再作为当前规则，具体开放时间仍待核。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A0B46C,潭柘寺,,周一至周日 08:30-16:30,pending,unverified,,,待核验,,,
 北京,amap-B000A87LVO,人民大会堂,,周一至周日 08:30-15:00,pending,unverified,,,待核验,,,
 北京,amap-B0HAF6QKNJ,北京温榆河公园,,3月16日至11月15日 06:00-22:00 最晚进入21:00；11月16日至3月15日 07:00-21:00 最晚进入20:00,pending,unverified,,,待核验,,,
 北京,amap-B000AAF9TK,北京西山国家森林公园,,03-15至11-15 周一至周日 07:00-21:00 最晚进入18:00；11-16至03-14 周一至周日 08:00-20:00 最晚进入17:00,pending,unverified,,,待核验,,,
 北京,amap-B000A7I4X8,北京市劳动人民文化宫,,"1月至3月,11月至12月 周一至周日 07:00-18:00；4月至10月 周一至周日 06:30-20:00；古建区（太庙·中华和钟展）实行周一关闭措施，国家法定节假日除外。",pending,unverified,,,待核验,,,
 北京,amap-B000A856WS,南海子公园,,周一至周日 06:00-21:00,pending,unverified,,,待核验,,,
-北京,amap-B0IA7RGK03,国家植物园,北园门票5元/半价2.5元，南园门票10元/半价5元，卧佛寺5元/半价2.5元(国家植物园，北京旅游网visitbeijing 2025)；北园套票50元另购；公园年票免费,03-16至11-15 周一至周日 06:00-21:00 最晚进入20:00；11-16至03-15 周一至周日 06:30-19:00 最晚进入18:00,unverified,unverified,,,待核验,,,
+北京,amap-B0IA7RGK03,国家植物园,南北园全价通票10元；专类园及其他票种另查,南园3月16日—11月15日08:00-17:00，11月16日—3月15日08:00-16:30；北园同期分别06:00-20:00、06:30-18:00,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/parks/202603/t20260320_4562536.html,https://english.beijing.gov.cn/travellinginbeijing/parks/202603/t20260320_4562536.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/parks/202603/t20260320_4562536.html,2026-11-12,区分南北园，不用北园单独门票代替通票。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83JHK,北京师范大学(海淀校园),,,pending,pending,,,待核验,,,
-北京,amap-B000A0285C,八大处公园,成人门票10元/优惠票5元(八大处公园，北京旅游网/同程2025)；60岁以上老人、1.2米以下儿童、现役/退休军人、残疾人等免；月票30元、年票200元,03-16至08-31 周一至周日 06:00-18:30 最晚进入18:30；09-01至11-15 周一至周日 06:00-18:00 最晚进入18:00；11-16至03-15 周一至周日 06:00-17:30 最晚进入17:30,unverified,unverified,,,待核验,,,
-北京,amap-B000A4D500,陶然亭公园,全价票2元/人、优惠票1元/人(陶然亭公园，北京西城/北京旅游网2025)；海棠春花文化节期间全价调整为10元/优惠5元；公园年票等有效,"1月至3月,11月至12月 周一至周日 06:00-21:30 最晚进入21:00；4月至10月 周一至周日 06:00-22:00 最晚进入21:00",unverified,unverified,,,待核验,,,
+北京,amap-B000A0285C,八大处公园,全价票10元；半价票5元,3月16日—8月31日06:00开园、18:30止票；9月1日—11月15日06:00开园、18:00止票；11月16日—3月15日06:00开园、17:30止票,verified,verified,https://www.bjsjs.gov.cn/sjsfc/sjslycx/202502/t20250206_476028.shtml,https://www.bjsjs.gov.cn/sjsfc/sjslycx/202502/t20250206_476028.shtml,票价与时间已核验,https://www.bjsjs.gov.cn/sjsfc/sjslycx/202502/t20250206_476028.shtml,2026-11-12,原关闭时间与停止售票时间分开，不猜测静园时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A4D500,陶然亭公园,全价票2元/人、优惠票1元/人(陶然亭公园，北京西城/北京旅游网2025)；海棠春花文化节期间全价调整为10元/优惠5元；公园年票等有效,4—10月06:00-22:00，21:00停止入园；11—3月06:00-21:30，21:00停止入园,unverified,verified,,https://japanese.beijing.gov.cn/beijinginfo/culture/beijingtownscape/parks/202401/t20240112_3534139.html,部分字段已核验,https://japanese.beijing.gov.cn/beijinginfo/culture/beijingtownscape/parks/202401/t20240112_3534139.html,2026-11-12,仅核验公园大门时间，园内展馆另查。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A840SB,中山公园,,"1月至3月,11月至12月 周一至周日 06:30-20:00；4月至5月,9月至10月 周一至周日 06:00-21:00 最晚进入20:30；6月至8月 周一至周日 06:00-22:00 最晚进入21:00",pending,unverified,,,待核验,,,
 北京,amap-B000A830XU,北京航空航天大学(学院路校区),,,pending,pending,,,待核验,,,
 北京,amap-B0GUJBN4ID,城市绿心森林公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000A4DFC4,中国国际展览中心(朝阳馆),,周一至周日 09:00-16:30；具体营业状态以当天展览活动为准,pending,unverified,,,待核验,,,
 北京,amap-B000A84GDN,故宫博物院-午门,,周二至周日 08:30-17:00，最晚16:10进入，节假日营业时间以官方通知为准,pending,unverified,,,待核验,,,
-北京,amap-B000A0B593,紫竹院公园,免费开放(紫竹院公园，北京旅游网2025免费景点推荐；无需预约),"1月至3月,11月至12月 周一至周日 06:00-21:30 最晚进入21:00；4月至10月 周一至周日 06:00-22:00 最晚进入21:00",unverified,unverified,,,待核验,,,
+北京,amap-B000A0B593,紫竹院公园,免费开放(紫竹院公园，北京旅游网2025免费景点推荐；无需预约),4—10月06:00-22:00，21:00停止入园；11—3月06:00-21:30，21:00停止入园,unverified,verified,,https://zyk.bjhd.gov.cn/kjhd/lyhd/201810/t20181023_4530786.shtml,部分字段已核验,https://zyk.bjhd.gov.cn/kjhd/lyhd/201810/t20181023_4530786.shtml,2026-11-12,按海淀政府正文核验，开闭园及停止入园时间分开；展馆时段另查。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A8UU5T,百望山森林公园,,"3月16日-6月15日、9月16日-11月15日:6:00-20:00,18:00停止入园；6月16日-9月15日:6:00-20:00,19:00停止入园；11月16日-3月15日:7:00-19:00,17:00停止入园",pending,unverified,,,待核验,,,
 北京,amap-B000A7I3OJ,北京科技大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A844ET,首都医科大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A82ZEK,中国人民大学中关村校区,,,pending,pending,,,待核验,,,
 北京,amap-B000A81K18,北京交通大学,,,pending,pending,,,待核验,,,
-北京,amap-B000A7XIYH,玉渊潭公园,成人门票2元(玉渊潭公园，同程/北京旅游网2025，畅游公园公众号预约),"1月至5月,9月至12月 周一至周日 06:00-21:30 最晚进入21:00；6月至8月 周一至周日 06:00-22:30 最晚进入21:30",unverified,unverified,,,待核验,,,
-北京,amap-B000A7783E,国家植物园北园,北园大门票5元/半价2.5元(国家植物园官网chnbg.cn、北京市园林绿化局)；桃花节/市花展期间大门票10元/半价5元；温室50元、卧佛寺5元另购；北园套票50元(含大门+温室+卧佛寺),3月16日至11月15日 6:00-20:00；11月16日至次年3月15日 6:30-18:00；具体开放时间以官方通知为准,unverified,unverified,,,待核验,,,
+北京,amap-B000A7XIYH,玉渊潭公园,成人门票2元(玉渊潭公园，同程/北京旅游网2025，畅游公园公众号预约),1—5月及9—12月06:00-21:30，21:00停止入园；6—8月06:00-22:30，21:30停止入园,unverified,verified,,https://gygl.beijing.gov.cn/xxgk/xxgk_tzgg/202104/t20210425_2368661.html,部分字段已核验,https://gygl.beijing.gov.cn/xxgk/xxgk_tzgg/202104/t20210425_2368661.html,2026-11-12,逐字核对市公园管理中心公告，旧库时段不能替代公告；临时调整以园方公告为准。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7783E,国家植物园北园,北园常规成人门票5元；市花展及桃花节期间10元；温室和卧佛寺另计,3月16日—11月15日06:00-20:00；11月16日—3月15日06:30-18:00；静园时间另查,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508032.shtml,https://english.beijing.gov.cn/travellinginbeijing/parks/202603/t20260320_4562536.html,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202312/t20231222_3508032.shtml | https://english.beijing.gov.cn/travellinginbeijing/parks/202603/t20260320_4562536.html,2026-11-12,时间采用2026年政府南北园介绍，避免旧科普页面时段冲突。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83H2R,北京理工大学(中关村校区),,,pending,pending,,,待核验,,,
 北京,amap-B0JACAVALJ,首都国际会展中心,,周一至周日 09:00-17:00,pending,unverified,,,待核验,,,
 北京,amap-B0HDPSITA5,中国共产党历史展览馆,,"周二至周日09:00-17:00(16:00停止入馆),节假日以官方通知为准",pending,unverified,,,待核验,,,
@@ -1216,15 +1216,15 @@
 北京,amap-B000A7BNVH,北京展览馆,,周一 全天关闭；周二至周日 10:00-18:00 最晚进入17:00；展览不同时间不同，详情可电话咨询。,pending,unverified,,,待核验,,,
 北京,amap-B000A7YN39,中国电影博物馆,,"4月1日至10月31日 周二至周四 09:00-17:00开放 最晚进入16:30 周五至周日 09:00-20:00开放 最晚进入19:00；11月1日至次年3月31日 周二至周五,周日 09:00-17:00开放 最晚进入16:30 周六 09:00-19:00开放；周一 全天不开放；法定节假日 09:00-20:00开放 最晚进入19:00",pending,unverified,,,待核验,,,
 北京,amap-B000A19285,北京大学口腔医院,,"周一至周五 08:00-11:30,13:00-16:30；周六至周日 08:00-11:30",pending,unverified,,,待核验,,,
-北京,amap-B000A01CD7,红螺寺,成人门票54元/半价优惠票27元(红螺寺景区官网hongluosi.com、同程2025)；6岁以下或1.2米以下儿童、65岁以上老人、残疾人、离休人员免；滑道往返100元/单程80元另购,"1/1-12/31 08:30–17:30开放 最晚售票16:00 最晚进入16:00；中秋节,国庆节 08:00–18:00开放 最晚售票16:30",unverified,unverified,,,待核验,,,
+北京,amap-B000A01CD7,红螺寺,成人54元；半价27元；其他项目另计,"1/1-12/31 08:30–17:30开放 最晚售票16:00 最晚进入16:00；中秋节,国庆节 08:00–18:00开放 最晚售票16:30",verified,unverified,https://www.bjhr.gov.cn/zwgk/zfxxgkjg/qzfbmdh/fzggwdh/fgzdly/202405/t20240528_3696959.html,,部分字段已核验,https://www.bjhr.gov.cn/zwgk/zfxxgkjg/qzfbmdh/fzggwdh/fgzdly/202405/t20240528_3696959.html,2026-11-12,怀柔政府定价表对应红螺寺行为准；全年营业不等于24小时。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFFAN0GC,鸟巢文化中心,,周一至周日 10:00-22:00,pending,unverified,,,待核验,,,
 北京,amap-B000A82ZDZ,中国传媒大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A7C66K,对外经济贸易大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A7I99C,毛主席纪念堂,,,pending,pending,,,待核验,,,
-北京,amap-B000A08861,北京金海湖风景区,成人门票40元(北京旅游网挂牌；同程OTA成人票23元/学生老人11.5元)；游船/快艇/碧波岛另购(北京金海湖风景区，同程2025),8:30-17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A08861,北京金海湖风景区,成人门票40元(北京旅游网挂牌；同程OTA成人票23元/学生老人11.5元)；游船/快艇/碧波岛另购(北京金海湖风景区，同程2025),秋季08:30-17:30；水上娱乐项目遇恶劣天气可能暂停，其他季节另查,unverified,verified,,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261019_4909554.html,部分字段已核验,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261019_4909554.html,2026-11-12,核对2026-10-19政府正文金海湖段开放时间；未将雁栖湖免费套用到金海湖。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A82ZEF,中国农业大学(东校区),,,pending,pending,,,待核验,,,
-北京,amap-B000A1FDA9,国子监,成人门票30元(孔庙和国子监博物馆，北京旅游网2025；每周三前200名免费)；未成年人、60岁以上老人等免,"07/01-08/31 周一, 周三–周日 09:00–17:00开放；07/01-08/31 周二 全天不开放；02/24-06/30 周二 09:00–17:00开放 最晚进入16:30；09/01-12/31 周二 09:00–17:00开放 最晚进入16:30；02/24-06/30 周三–周日 09:00–17:00开放 最晚进入16:30；09/01-12/31 周三–周日 09:00–17:00开放 最晚进入16:30；02/24-06/30 周一 全天不开放；09/01-12/31 周一 全天不开放；劳动节 09:00–17:00开放 最晚进入16:30；17:00室内展厅关闭。",unverified,unverified,,,待核验,,,
-北京,amap-B000A32DA7,居庸关长城,旺季(4.1-10.31)成人票45元/淡季(11.1-3.31)成人票35元(居庸关长城，北京旅游网/同程2025)；学生半价、60岁以上老人及未成年人等免,03-16至10-07 周一至周日 06:30-18:00 最晚进入17:30；10-08至03-15 周一至周日 08:30-17:00 最晚进入16:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A1FDA9,国子监,孔庙和国子监博物馆成人票30元；优惠票15元,09:00-17:00，16:30停止入馆；周一闭馆（节假日除外）,verified,verified,https://english.beijing.gov.cn/specials/strollthroughbeijing/lifeintheoldcity/202611/t20261109_4938486.html,https://english.beijing.gov.cn/specials/strollthroughbeijing/lifeintheoldcity/202611/t20261109_4938486.html,票价与时间已核验,https://english.beijing.gov.cn/specials/strollthroughbeijing/lifeintheoldcity/202611/t20261109_4938486.html,2026-11-12,以2026-11-09政府介绍为证据，明确联馆适用范围。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A32DA7,居庸关长城,淡季成人35元、半价17.5元；旺季成人40元、半价20元,淡季08:30-16:30；旺季08:30-17:30；季节划分及临时调整以景区公告为准,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562519.html,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562519.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562519.html,2026-11-12,政府不同专题存在活动价格，采用2026年景区票价页常规季节规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7CRPA,国家自然博物馆,,"9月1日至12月31日 周二 09:00-17:00开放,最晚进入16:30；周三至周日 09:00-17:00开放,最晚进入16:30；周一 全天不开放；7月6日至8月31日 周一,周三至周日 09:00-17:00,18:00-21:00开放；周二 全天不开放；1月1日至7月5日 周二 09:00-17:00开放,最晚进入16:30；周三至周日 09:00-17:00开放,最晚进入16:30；周一 全天不开放；元旦节,清明节,劳动节,端午节,中秋节,国庆节 09:00-17:00开放,最晚进入16:30",pending,unverified,,,待核验,,,
 北京,amap-B000A7CDQS,首都师范大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A830DN,北京林业大学,,,pending,pending,,,待核验,,,
@@ -1232,22 +1232,22 @@
 北京,amap-B000A7CL7C,卢沟桥文化旅游区,,周一至周五 08:00-18:00；周六至周日 08:00-21:00,pending,unverified,,,待核验,,,
 北京,amap-B0FFL075WN,国家会议中心2期,,,pending,pending,,,待核验,,,
 北京,amap-B000A76B0A,首都博物馆,,"5月20日至10月18日 周一,周三至周日 09:00-20:00,最晚进入19:00；周二 闭馆；9月25日至9月27日 09:00-20:00,最晚进入19:00；10月1日至10月7日 09:00-20:00,最晚进入19:00；具体开放时间以官方通知为准",pending,unverified,,,待核验,,,
-北京,amap-B000A8WDMD,百里山水画廊,免大门票(百里山水画廊，北京旅游网2025；全天开放，内部景点单独购票)；年卡含乌龙峡谷/硅化木/朝阳寺/恐龙乐园(挂牌75元),"淡季:4月1日-4月30日/10月11日-11月中旬(停业时间以公示为准)9:30-16:00,15:30停止检票,旺季:5月1日-10月10日:9:00-17:00,16:30停止检票；",unverified,unverified,,,待核验,,,
-北京,amap-B0FFHWO6EW,慕田峪长城国家级旅游景区-北检票口,成人40元/学生老人25元,07月13日-08月10日 07:30-19:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A8WDMD,百里山水画廊,免大门票(百里山水画廊，北京旅游网2025；全天开放，内部景点单独购票)；年卡含乌龙峡谷/硅化木/朝阳寺/恐龙乐园(挂牌75元),干沟咨询站、朝阳寺、硅化木、乌龙峡谷、滴水壶2026年11月2日—2027年3月31日闭园歇业；其他区域另查,unverified,verified,,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261030_4924674.html,部分字段已核验,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202610/t20261030_4924674.html,2026-11-12,按2026-10-30政府闭园公告记录范围，未扩大为整个区域封闭。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B0FFHWO6EW,慕田峪长城国家级旅游景区-北检票口,成人40元/学生老人25元,07月13日-08月10日 07:30-19:30,unverified,unverified,,,未获足够证据,,2026-11-12,检票口不是独立景区，不能复制整景区票价；需确认从属关系和该入口实际服务时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7CYR4,北京工业大学,,,pending,pending,,,待核验,,,
 北京,amap-B0FFFAF8K0,大运河森林公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000A07C0B,华北电力大学,,,pending,pending,,,待核验,,,
 北京,amap-B0FFGZI0M0,北京亦创国际会展中心,,周一至周日 09:00-18:00,pending,unverified,,,待核验,,,
-北京,amap-B0H23DR5S6,北京冬奥公园,免费(免票入园),周一至周日 06:00-20:00 最晚进入20:00,unverified,unverified,,,待核验,,,
-北京,amap-B000A8UR3U,前门大街,79.00,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+北京,amap-B0H23DR5S6,北京冬奥公园,免费(免票入园),周一至周日 06:00-20:00 最晚进入20:00,unverified,unverified,,,未获足够证据,,2026-11-12,需排除奥林匹克森林公园的同词检索结果，当前精确园区规则缺证。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A8UR3U,前门大街,公共街区免费；商户和独立景点另计,周一至周日 00:00-24:00,verified,unverified,https://japanese.beijing.gov.cn/specials/beijinglifeonthesubway/landmarksalongthesubwaylines/line2/202206/t20220628_2753884.html,,部分字段已核验,https://japanese.beijing.gov.cn/specials/beijinglifeonthesubway/landmarksalongthesubwaylines/line2/202206/t20220628_2753884.html,2026-11-12,政府介绍确认公共街区免费，不据此推断所有馆舍免费。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A81FY5,798·751园区,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B0FFMGTVTP,房山世界地质公园,,周一至周日 08:00-18:00,pending,unverified,,,待核验,,,
 北京,amap-B0FFL03FQ9,舞彩浅山滨水国家登山步道,,7:00-17:00,pending,unverified,,,待核验,,,
-北京,amap-B000A9PHMU,北京园博园,免费开放(北京园博园，北京旅游网2025；园区开放区域免费无需预约)；永定塔登塔、园内游乐/体验项目另购,"3月15日-10月31日 6:30-19:00,17:30分停止入园；11月1日-3月14日 7:30-18:00,16:30停止入园",unverified,unverified,,,待核验,,,
+北京,amap-B000A9PHMU,北京园博园,免费开放(北京园博园，北京旅游网2025；园区开放区域免费无需预约)；永定塔登塔、园内游乐/体验项目另购,3月15日—10月31日06:30-19:00，17:30停止入园；11月1日—3月14日07:30-18:00，16:30停止入园,unverified,verified,,https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202610/t20261028_228622.shtml,部分字段已核验,https://www.bjft.gov.cn/xwdt/jcdt/bmdt/202610/t20261028_228622.shtml,2026-11-12,永定塔40元仅为园内登塔项目，不能当园博园大门票。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A02888,北京喇叭沟原始森林公园(暂停营业),,"周一至周五:08:00-17:30(16:00停止入园),周六至周日及节假日:08:00-18:00(16:30停止入园)",pending,unverified,,,待核验,,,
 北京,amap-B0G3TLQLBH,首钢园北区,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000A7CPWG,北京邮电大学(海淀校区),,,pending,pending,,,待核验,,,
-北京,amap-B000A81HKK,房山十渡风景名胜区,风景名胜区内免费进入(房山十渡，北京旅游网；喀斯特峡谷风光)；内部景点单独收费(拒马乐园联票约180元、孤山寨55元、蹦极/漂流等另购),周一至周日 00:00-24:00；风景区免费开放，营业时间以各自子景点为准,unverified,unverified,,,待核验,,,
+北京,amap-B000A81HKK,房山十渡风景名胜区,风景名胜区内免费进入(房山十渡，北京旅游网；喀斯特峡谷风光)；内部景点单独收费(拒马乐园联票约180元、孤山寨55元、蹦极/漂流等另购),周一至周日 00:00-24:00；风景区免费开放，营业时间以各自子景点为准,unverified,unverified,,,未获足够证据,,2026-11-12,区域内各景点分别运营，节假日局部免费不能当全区域免费。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7BC2S,中国美术馆,,"8月至12月 周二至周日 09:00-17:00 最晚进入16:00； 01-01至07-14 周二至周日 09:00-17:00 最晚进入16:00； 07-15至08-30 周二至周五 09:00-18:00 最晚进入17:00, 周六至周日 09:00-20:00 最晚进入19:00； 周一闭馆（法定节假日除外）",pending,unverified,,,待核验,,,
 北京,amap-B000A82ZE2,中国地质大学(北京),,,pending,pending,,,待核验,,,
 北京,amap-B0FFFQ09XP,北京西站南广场,,,pending,pending,,,待核验,,,
@@ -1266,9 +1266,9 @@
 北京,amap-B000A84AMZ,首都经济贸易大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A5F89F,莲花池公园,,"1月至3月,11月至12月 周一至周日 06:00-21:00 最晚进入20:30；4月至10月 周一至周日 06:00-22:00 最晚进入21:30",pending,unverified,,,待核验,,,
 北京,amap-B000A81CG6,什刹海-后海,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-北京,amap-B000A7K91S,北京凤凰岭景区,门票25元/人、优惠票12.5元/人(北京凤凰岭风景区官网bjfhl.com、北京旅游网2025)；6岁以下或1.2米以下儿童、65岁以上老人、军人、残疾人等免,周一至周日 07:00-17:00 最晚进入17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7K91S,北京凤凰岭景区,成人门票25元,07:00-17:00，17:00停止检票,verified,verified,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202611/t20261104_4932034.html,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202611/t20261104_4932034.html,票价与时间已核验,https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/202611/t20261104_4932034.html,2026-11-12,使用2026-11-04政府正文凤凰岭段，非前一景点6元。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFFGXI5R,北京语言大学,,,pending,pending,,,待核验,,,
-北京,amap-B000A7CPAO,龙潭公园,公园门票2元/人、月票5元(龙潭公园，北京旅游网/北京本地宝2025),周一至周日 06:00-22:00 最晚进入21:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A7CPAO,龙潭公园,公园门票2元/人、月票5元(龙潭公园，北京旅游网/北京本地宝2025),周一至周日 06:00-22:00 最晚进入21:30,unverified,unverified,,,未获足够证据,,2026-11-12,园林目录只说明收费、非全时开放，不能据此确认具体金额及时段。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0M6SM2NPZ,南苑森林湿地公园,,"1月至3月,11月至12月 周一至周日 07:00-20:00；4月至10月 周一至周日 06:30-21:00；具体营业状态以当天开放情况为准",pending,unverified,,,待核验,,,
 北京,amap-B000A7QHTR,太庙,,周一全天关闭，周二至周日 09:00-17:00，节假日营业时间以官方通知为准,pending,unverified,,,待核验,,,
 北京,amap-B0FFF9VOVF,中国人民大学(通州校区),,,pending,pending,,,待核验,,,
@@ -1290,29 +1290,29 @@
 北京,amap-B000A84MH0,北京联合大学北四环校区,,,pending,pending,,,待核验,,,
 北京,amap-B000A87JYS,北京航空航天大学沙河校区,,,pending,pending,,,待核验,,,
 北京,amap-B0FFJ2MS4U,北京雁栖湖西山步道,,周一至周日 08:00-18:00,pending,unverified,,,待核验,,,
-北京,amap-B000A7JEXW,中央电视塔,成人票79元(同程/携程2025；门市85元)，学生/青少年63元，儿童/老人/残疾人/军人50元，双人150元；238米露天观景台,周一至周日 08:30-22:00 最晚进入21:30,unverified,unverified,,,待核验,,,
-北京,amap-B000A875HX,北京国际鲜花港(暂停开放),常规门票30元/人(大河票务/京津冀一卡通2025)；郁金香文化节期间(4.4-5.11)门票80元(北京市政府官网)；注:该景区现标注暂停开放，出行前请核实,周一至周日 09:00-17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7JEXW,中央电视塔,成人90元；1.2—1.4米儿童45元；老人50元；其他优惠见官方规则,08:30-21:30入场，22:00闭塔,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562520.html,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562520.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260320_4562520.html,2026-11-12,与政府2026年景区介绍一致。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A875HX,北京国际鲜花港(暂停开放),常规门票30元/人(大河票务/京津冀一卡通2025)；郁金香文化节期间(4.4-5.11)门票80元(北京市政府官网)；注:该景区现标注暂停开放，出行前请核实,周一至周日 09:00-17:00,unverified,unverified,,,未获足够证据,,2026-11-12,旧记录标暂停，政府历史介绍与服务导图没有当前恢复开放证据，维持待核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A812XP,敕建大觉禅寺,,周一至周日 09:00-17:00 最晚进入16:30,pending,unverified,,,待核验,,,
 北京,amap-B0FFFV3OTU,圆明园-绮春园景区,,周一至周日 07:00-19:00,pending,unverified,,,待核验,,,
 北京,amap-B000A81GN5,中央广播电视总台(光华路办公区),,周一至周日 07:00-22:00,pending,unverified,,,待核验,,,
-北京,amap-B000A7ZL26,黄花城水长城,成人票58元/人、优待票30元(同程/携程2025)；联票A(门票+游船双程)75元；游船单程25元/往返45元另购(黄花城水长城),"11月1日-3月15日 08:30-16:30开放 最晚进入16:30；3月16日-10月31日 周一至周五 08:30-17:00开放 周六 08:00-18:00开放 周日 08:00-17:00开放；清明节,劳动节,端午节,中秋节,国庆节 08:00-18:00开放；节假日最后一天:08:00-17:00 ；具体开放时间以官方通知为准",unverified,unverified,,,待核验,,,
+北京,amap-B000A7ZL26,黄花城水长城,成人门票60元；优惠资格及游船等另查,夏季工作日08:30-17:00；周六及长假前段08:00-18:00；周日及长假最后一天08:00-17:00；冬季08:30-16:30,verified,verified,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260324_4564623.html,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260324_4564623.html,票价与时间已核验,https://english.beijing.gov.cn/travellinginbeijing/attractions/202603/t20260324_4564623.html,2026-11-12,按政府景区介绍记录，不自行推断夏冬具体日期。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A877A2,北京汽车博物馆,,"9月1日至12月31日 周二至周日 09:00-17:00开放(16:00停止售票,16:30停止入园)；周一 不开放；1月1日至6月30日 周二至周日 09:00-17:00开放(16:00停止售票,16:30停止入园)；周一 不开放；7月1日至8月31日 09:00-17:00开放(16:00停止售票,16:30停止入园)；国庆节 09:00-17:00开放(16:00停止售票,16:30停止入园)",pending,unverified,,,待核验,,,
 北京,amap-B000A45927,法源寺,,周一至周日 09:00-16:00,pending,unverified,,,待核验,,,
 北京,amap-B000A88EF1,中国中医科学院,,,pending,pending,,,待核验,,,
 北京,amap-B000A6B2AE,团结湖公园,,周一至周日 05:30-22:00,pending,unverified,,,待核验,,,
-北京,amap-B000A02891,龙庆峡风景区,门票成人40元/半价20元(龙庆峡风景区官方2025)；船票100元、联票(门票+船票)140元、索道往返68元另购,周一至周日 08:30-16:30,unverified,unverified,,,待核验,,,
-北京,amap-B000A7O7FO,温都水城,水空间门市168元/温泉养生馆198元/两馆套票298元(百度百科门市价)；OTA水空间成人约128-145元、两馆通票单人约124-128元(360百科/京东2025)；1.2米以下儿童、60岁以上等有优惠,周一至周日 10:00-18:00 最晚进入17:00；具体营业状态以当天开放情况为准,unverified,unverified,,,待核验,,,
+北京,amap-B000A02891,龙庆峡风景区,门票成人40元/半价20元(龙庆峡风景区官方2025)；船票100元、联票(门票+船票)140元、索道往返68元另购,周一至周日 08:30-16:30,unverified,unverified,,,未获足够证据,,2026-11-12,购买二消项目免大门票为有条件政策，不等于无条件免费；季节性闭园仍需确认。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7O7FO,温都水城,水空间门市168元/温泉养生馆198元/两馆套票298元(百度百科门市价)；OTA水空间成人约128-145元、两馆通票单人约124-128元(360百科/京东2025)；1.2米以下儿童、60岁以上等有优惠,周一至周日 10:00-18:00 最晚进入17:00；具体营业状态以当天开放情况为准,unverified,unverified,,,未获足够证据,,2026-11-12,服务导图对应滑雪场，非水城全部项目，且标注暂停，不据此判断整个度假区。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFJJSM1H,北京理工大学(良乡校区),,,pending,pending,,,待核验,,,
 北京,amap-B0FFGBAF73,北京化工大学昌平校区,,,pending,pending,,,待核验,,,
 北京,amap-B000A83XPP,北京科技职业大学,,,pending,pending,,,待核验,,,
 北京,amap-B0HDUSK5IO,中国工艺美术馆(中国非物质文化遗产馆),,周二至周日 09:00-17:00 最晚进入16:00 周一 全天不开放； 具体开放时间以官方通知为准,pending,unverified,,,待核验,,,
 北京,amap-B0IG5HKTID,北京城市图书馆,,1/1-12/31 周二–周日 10:00–20:00开放；1/1-12/31 周一 全天不开放；劳动节 10:00–20:00开放,pending,unverified,,,待核验,,,
-北京,amap-B0FFGDYZB9,银山塔林景区,旺季(4.1-10.31)成人20元/半价10元，淡季(11.1-3.31)成人15元/半价7.5元(北京旅游网、昌平文旅2025)；60周岁以上老人免票、记者/医护免票(携程2025)；开放8:30-17:00(16:30停止入园),04/01-10/31 08:00-18:00开放；11/01-03/31 08:00-17:00开放,unverified,unverified,,,待核验,,,
+北京,amap-B0FFGDYZB9,银山塔林景区,旺季(4.1-10.31)成人20元/半价10元，淡季(11.1-3.31)成人15元/半价7.5元(北京旅游网、昌平文旅2025)；60周岁以上老人免票、记者/医护免票(携程2025)；开放8:30-17:00(16:30停止入园),04/01-10/31 08:00-18:00开放；11/01-03/31 08:00-17:00开放,unverified,unverified,,,未获足够证据,,2026-11-12,政府2026年春季介绍15元与其他季节票价页存在差异，须核对淡旺季后才能提升票价状态。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7CJ6R,中国石油大学(北京),,,pending,pending,,,待核验,,,
 北京,amap-B000A6EA36,中央财经大学(学院南路校区),,,pending,pending,,,待核验,,,
 北京,amap-B000A7OTKU,北京第二外国语学院,,,pending,pending,,,待核验,,,
-北京,amap-B000A88EDQ,北京天文馆,A馆天象厅普通45元/优惠35元，B馆宇宙剧场45/35，B馆4D剧场30/20，B馆3D剧场30/20，A+B展厅10元/优惠7元(百度百科、北京天文馆官网bjp.org.cn2025)；1.2米以下儿童、60岁以上老人、现役军人、残疾人凭证免展厅票；周二闭馆(法定节假日除外)9:00-16:30(16:00停止入馆),暑期7月6号-8月30号全天开放 09:00-19:00；周二全天关闭(法定节假日除外)周一、周三至周日:09:00-16:30(16:00停止入馆),unverified,unverified,,,待核验,,,
-北京,amap-B000A7QDJF,世界花卉大观园,门市成人80元/儿童40元(园区官方口径，北京日报网2025)；OTA优惠成人50元、儿童学生票35元、双人票96元(同程/携程2025)；1.2米以下儿童、70周岁老人免票；开放8:00-17:30(16:30停止入园)；伴游讲解150元/场另计,7月22日-10月7日:08:00-22:30；10月8日-7月21日08:00-17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A88EDQ,北京天文馆,A馆天象厅普通45元/优惠35元，B馆宇宙剧场45/35，B馆4D剧场30/20，B馆3D剧场30/20，A+B展厅10元/优惠7元(百度百科、北京天文馆官网bjp.org.cn2025)；1.2米以下儿童、60岁以上老人、现役军人、残疾人凭证免展厅票；周二闭馆(法定节假日除外)9:00-16:30(16:00停止入馆),暑期7月6号-8月30号全天开放 09:00-19:00；周二全天关闭(法定节假日除外)周一、周三至周日:09:00-16:30(16:00停止入馆),unverified,unverified,,,未获足够证据,,2026-11-12,政府多语言页和暑期公告闭馆日/时段存在差异，暑期延时政策不可外推到11月。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7QDJF,世界花卉大观园,成人60元；儿童40元；资格以园方规则为准,08:00-17:00,verified,verified,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240103_3523859.shtml,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240103_3523859.shtml,票价与时间已核验,https://yllhj.beijing.gov.cn/ztxx/kpjd/202401/t20240103_3523859.shtml,2026-11-12,以北京市园林绿化局景区介绍为证据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A7QR8W,北京物资学院,,,pending,pending,,,待核验,,,
 北京,amap-B0FFG82VNT,北京城市学院顺义校区,,,pending,pending,,,待核验,,,
 北京,amap-B000A9LFEH,景山公园-绮望楼,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
@@ -1322,19 +1322,19 @@
 北京,amap-B000A88E9R,北京中医药大学(和平街校区),,,pending,pending,,,待核验,,,
 北京,amap-B000A9PHSU,长安街,,,pending,pending,,,待核验,,,
 北京,amap-B0FFG8YDKK,天安门-城楼,,周二至周日 08:30-17:00,pending,unverified,,,待核验,,,
-北京,amap-B000A7YT50,北京怀柔青龙峡景区,成人票54元/学生优待票27元(2025.8.1起恢复原价，青龙峡景区官方公告)；2025.7.31前曾优惠为成人48元/学生24元；游船快艇因蓄水暂停开放；索道、蹦极、速降等项目另计；开放约8:00-17:00,周一至周日 08:30-17:30 最晚进入17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7YT50,北京怀柔青龙峡景区,成人54元；半价27元；附加项目另计,周一至周日 08:30-17:30 最晚进入17:00,verified,unverified,https://www.bjhr.gov.cn/zwgk/zfxxgkjg/qzfbmdh/fzggwdh/fgzdly/202405/t20240528_3696959.html,,部分字段已核验,https://www.bjhr.gov.cn/zwgk/zfxxgkjg/qzfbmdh/fzggwdh/fgzdly/202405/t20240528_3696959.html,2026-11-12,以怀柔区政府定价表对应青龙峡行为准。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A6664A,中国政法大学(海淀校区),,,pending,pending,,,待核验,,,
-北京,amap-B000A7QCCJ,石花洞景区,全价票70元/半价票35元(北京旅游网石花洞景区官方页2025)；半价限中小学生、全日制大专本科生、应急消防救援人员；现役军人、60周岁及以上老人、未满6周岁或1.2米以下儿童、残疾人凭证免票；夏季(4.16-10.15)9:00-16:30(16:00停止检票)，冬季(10.16-4.15)9:00-16:00(15:30停止检票)；洞内恒温13℃,周一至周日 09:00-16:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7QCCJ,石花洞景区,全价票70元/半价票35元(北京旅游网石花洞景区官方页2025)；半价限中小学生、全日制大专本科生、应急消防救援人员；现役军人、60周岁及以上老人、未满6周岁或1.2米以下儿童、残疾人凭证免票；夏季(4.16-10.15)9:00-16:30(16:00停止检票)，冬季(10.16-4.15)9:00-16:00(15:30停止检票)；洞内恒温13℃,周一至周日 09:00-16:00,unverified,unverified,,,未获足够证据,,2026-11-12,五一免费及开放时间属于指定日期活动，不能视为全年规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFF5WDJC,751D·PARK,,,pending,pending,,,待核验,,,
 北京,amap-B000A68FF8,中国矿业大学(北京)学院路校区,,,pending,pending,,,待核验,,,
-北京,amap-B000A9L91Z,元大都城垣遗址公园,免费开放，24小时开放、无需预约(北京旅游网、北京日报网2025)；海棠花溪春季限定国风摇橹船80元/位另计(4月花期运营，约30分钟),周一至周日 06:00-22:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A9L91Z,元大都城垣遗址公园,免费开放，24小时开放、无需预约(北京旅游网、北京日报网2025)；海棠花溪春季限定国风摇橹船80元/位另计(4月花期运营，约30分钟),周一至周日 06:00-22:00,unverified,unverified,,,未获足够证据,,2026-11-12,海淀段与朝阳段目录、全天/非全时标注有差异，当前记录具体分区须先消歧。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0FFFTHXGU,圆明园-长春园,,周一至周日 07:00-21:00；19:00停止售票,pending,unverified,,,待核验,,,
-北京,amap-B000A7GWNS,顺义奥林匹克水上公园,自2025年9月1日起实行日常免门票入园(北京顺旅水上公园投资发展有限公司公告/京报网2025)；举办大型主题活动期间视情况收取门票，以官方微信公布为准；园内赛艇/皮划艇/桨板/露营/儿童乐园等项目另行收费,周一至周日 09:00-17:00,unverified,unverified,,,待核验,,,
+北京,amap-B000A7GWNS,顺义奥林匹克水上公园,成人20元；青少年及符合条件学生优惠票10元,冬令09:00-17:00，16:45停止入园；夏令09:00-17:30，17:15停止入园,verified,verified,https://www.beijing.gov.cn/renwen/bjgk/sygk/wl/202211/t20221128_2867500.html?eqid=a446a2ee00019d5f00000002646320ab,https://www.beijing.gov.cn/renwen/bjgk/sygk/wl/202211/t20221128_2867500.html?eqid=a446a2ee00019d5f00000002646320ab,票价与时间已核验,https://www.beijing.gov.cn/renwen/bjgk/sygk/wl/202211/t20221128_2867500.html?eqid=a446a2ee00019d5f00000002646320ab,2026-11-12,时令切换日期未在来源明确，不补默认日期。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83GVH,中国科学技术馆,,周二至周日 09:30-17:00 最晚进入16:30；每周一闭馆（国家法定节假日除外）；农历除夕、初一、初二闭馆 01-01至10-04 周一 全天关闭；10-05至10-05 周一 09:30-17:00 最晚进入16:30；10-06至12-31 周一 全天关闭；每周一闭馆（国家法定节假日除外）；农历除夕、初一、初二闭馆,pending,unverified,,,待核验,,,
 北京,amap-B0FFG723P4,北京邮电大学沙河校区,,,pending,pending,,,待核验,,,
 北京,amap-B000A0ADE7,中国政法大学(昌平校区),,,pending,pending,,,待核验,,,
 北京,amap-B000A33CEA,平谷世纪广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-北京,amap-B000A7ZL8Q,京东石林峡旅游区,成人票68元/优待票34元(儿童、学生、60岁以上老人、现役军人凭证)(携程、同程2025；北京市文旅局线路推介)；门票+双程索道+玻璃观景台128元、再加登山外骨骼159-166元另购；开放8:00-17:00(OTA标注8:30-15:30),周一至周五 08:30-15:00；周六至周日 08:00-15:30,unverified,unverified,,,待核验,,,
+北京,amap-B000A7ZL8Q,京东石林峡旅游区,景区大门票68元；索道及玻璃观景台等另计,08:00-17:00,verified,verified,https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202509/t20250926_4211102.html,https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202509/t20250926_4211102.html,票价与时间已核验,https://whlyj.beijing.gov.cn/zwgk/xwzx/gzdt/202509/t20250926_4211102.html,2026-11-12,排除搜索首条青龙峡54元的错误实体匹配。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0G2J5IJ9U,北京外国语大学,,,pending,pending,,,待核验,,,
 北京,amap-B000A843G6,后海公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000AA6SFZ,中国科学院大学雁栖湖校区,,,pending,pending,,,待核验,,,
@@ -1345,7 +1345,7 @@
 北京,amap-B000A02866,金顶妙峰山,,冬季 1/1-12/31(冬季) 08:40–16:00开放 最晚售票16:00；夏季 1/1-12/31(夏季) 08:30–17:00开放 最晚进入16:30,pending,unverified,,,待核验,,,
 北京,amap-B000A7AB8D,龙潭中湖公园,,"1月至3月,11月至12月 周一至周日 06:00-22:00 最晚进入21:00；4月至10月 周一至周日 06:00-22:30 最晚进入22:00",pending,unverified,,,待核验,,,
 北京,amap-B000A9PISW,故宫博物院-神武门,,周一至周日 08:30-16:30,pending,unverified,,,待核验,,,
-北京,amap-B000A11EAB,司马台长城旅游区,成人票40元(含长城接驳车)/学生、现役军人、消防救援人员等优待票20元(同程2025)；门票+索道150元、往返索道约220元另购；北京旅游网口径：司马台长城40元、古北水镇140元、两景区联票170元；古北水镇2025年12月1-31日曾对全国游客免票(需微信公众号实名预约),"11月1日-4月30日:周一-周四、周日:09:00-20:40.夜游长城17:30-20:40(20:10停止入园),周五-周六:09:00-21:10；夜游长城17:30-21:10(20:40停止入园)；5月1日-10月31日；09:00-22:40；夜游长城18:00-22:40(21:40停止入园)",unverified,unverified,,,待核验,,,
+北京,amap-B000A11EAB,司马台长城旅游区,成人票40元(含长城接驳车)/学生、现役军人、消防救援人员等优待票20元(同程2025)；门票+索道150元、往返索道约220元另购；北京旅游网口径：司马台长城40元、古北水镇140元、两景区联票170元；古北水镇2025年12月1-31日曾对全国游客免票(需微信公众号实名预约),"11月1日-4月30日:周一-周四、周日:09:00-20:40.夜游长城17:30-20:40(20:10停止入园),周五-周六:09:00-21:10；夜游长城17:30-21:10(20:40停止入园)；5月1日-10月31日；09:00-22:40；夜游长城18:00-22:40(21:40停止入园)",unverified,unverified,,,未获足够证据,,2026-11-12,排除搜索首条慕田峪资料；司马台西段修缮与主游览区不同，未给整体下结论。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A83PLU,月坛公园,,周一至周日 06:00-21:30 最晚进入21:20,pending,unverified,,,待核验,,,
 北京,amap-B0FFFDODAW,故宫博物院-珍宝馆,,"7月27日 08:30-17:00开放 最晚进入16:10；4月1日-7月26日 与 7月28日-10月31日 周二至周日 08:30-17:00开放 最晚进入16:10；1月1日-3月31日 与 11月1日-12月31日 周二至周日 08:30-16:30开放 最晚进入15:40；周一 全天不开放；清明节,劳动节,端午节,中秋节,国庆节 08:30-17:00开放；元旦节 08:30-16:30开放 最晚进入15:40；具体开放时间以官方通知为准",pending,unverified,,,待核验,,,
 北京,amap-B000A16BBC,北京古代建筑博物馆,,"7月13日-9月1日 周一,周三至周五,周日 09:00-17:00开放 周六 09:00-19:00开放 最晚进入18:00 周二 全天不开放；1月1日-7月12日 与 9月2日-12月31日 周二 09:00-17:00开放 最晚进入16:30 周三至周五,周日 09:00-17:00开放 最晚进入16:30 周六 09:00-17:00开放 最晚进入16:30 周一 全天不开放；劳动节 09:00-17:00开放 最晚进入16:30；具体开放时间以官方通知为准",pending,unverified,,,待核验,,,
@@ -1353,16 +1353,16 @@
 北京,amap-B0FFH6KSNT,永宁古城,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 北京,amap-B000A5648B,中国人民抗日战争纪念馆,,,pending,pending,,,待核验,,,
 北京,amap-B0HDZD0BPT,亮马河国际风情水岸,,日航14:00-18:00（最晚发船及售票时间17:20）；夜航18:00-22:00（最晚发船及售票时间21:20）；具体开放时间以官方通知为准,pending,unverified,,,待核验,,,
-北京,amap-B0FFFKCEXH,龙脉温泉度假村,住店温泉门票120元(热带雨林/竹林/溶岩三馆选一)、温泉+自助餐198元(平日168)、康体球类100元(龙脉温泉官方2025报价)；北京旅游网特惠：热带雨林汤泉原价150现价99、溶岩汤泉馆原价150现价78；OTA平日成人约168元/周末198元；清明等节点曾推单馆半价75元,周一至周日 09:00-21:00,unverified,unverified,,,待核验,,,
-北京,amap-B0FFF5UVBM,八达岭水关长城,成人票35元/优惠票17.5元(18岁以上全日制本科及以下学历、享低保人员)(八达岭长城官方公众号、北京本地宝2025)；未满18周岁未成年人、60周岁以上老人、残疾人、现役军人及家属、消防救援人员凭证免票；实行实名制预约购票，开放8:00-17:00,4月1日-10月31日:09:00-16:30；11月1日-次年3月31日:09:00-16:00(停售停检)；,unverified,unverified,,,待核验,,,
+北京,amap-B0FFFKCEXH,龙脉温泉度假村,住店温泉门票120元(热带雨林/竹林/溶岩三馆选一)、温泉+自助餐198元(平日168)、康体球类100元(龙脉温泉官方2025报价)；北京旅游网特惠：热带雨林汤泉原价150现价99、溶岩汤泉馆原价150现价78；OTA平日成人约168元/周末198元；清明等节点曾推单馆半价75元,周一至周日 09:00-21:00,unverified,unverified,,,未获足够证据,,2026-11-12,2026年8月已取消4A级，旧4A介绍及2024年198/268元价格不足作当前依据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B0FFF5UVBM,八达岭水关长城,成人票35元/优惠票17.5元(18岁以上全日制本科及以下学历、享低保人员)(八达岭长城官方公众号、北京本地宝2025)；未满18周岁未成年人、60周岁以上老人、残疾人、现役军人及家属、消防救援人员凭证免票；实行实名制预约购票，开放8:00-17:00,4月1日-10月31日:09:00-16:30；11月1日-次年3月31日:09:00-16:00(停售停检)；,unverified,unverified,,,未获足够证据,,2026-11-12,搜到八达岭主景区资料和暴雨临时闭园公告，均不足确认水关当前票价与时段。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B0I64H3DDF,北京大运河博物馆(首都博物馆东馆),,"07/01-08/31 周二 全天不开放；07/01-08/31 周一 10:00–20:00开放 最晚进入19:00；01/01-12/31 周三–周日 10:00–20:00开放 最晚进入19:00；01/01-06/30 周二 10:00–20:00开放 最晚进入19:00；09/01-12/31 周二 10:00–20:00开放 最晚进入19:00；01/01-06/30 周一 全天不开放；09/01-12/31 周一 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 10:00–20:00开放 最晚进入19:00",pending,unverified,,,待核验,,,
 北京,amap-B0FFG8GP7V,中国空间技术研究院,,,pending,pending,,,待核验,,,
 北京,amap-B000A831T6,野鸭湖国家湿地公园,,周一至周日 09:00-17:00；园区内可看完日落再出景区,pending,unverified,,,待核验,,,
 北京,amap-B0FFGFF4LC,西洋楼景区,,"7:00-21:00,19:00停止进入",pending,unverified,,,待核验,,,
 北京,amap-B0FFG0UHAZ,华为公司北京研究所(环保园),,,pending,pending,,,待核验,,,
-北京,amap-B000A0884A,北京黑龙潭自然风景区,成人票60元/优待票30元(携程2025；北京旅游网年卡权益表同为60元)；1.2米以下儿童、70岁以上老人、残疾人、现役军人免费，60-69岁老人及全日制大中小学生五折；旺季(4.1-10.31)8:00-17:30(17:00停止入园)，淡季(11.1-3.31)9:00-16:00(15:30停止入园)；冬季冰瀑期部分路段封闭,周一至周日 08:00-17:00,unverified,unverified,,,待核验,,,
-北京,amap-B000A85VK3,北京张裕爱斐堡酒庄,市场价：旺季门票60元/淡季50元，参观+品酒旺季100元/淡季90元(酒庄公布口径)；OTA：参观门票40元、成人票78元(含2款葡萄酒品鉴+100ml白兰地自灌1瓶)、VIP品鉴套票195-198元(携程、大河票务2025)；1.2-1.3米以下儿童及70岁以上老人免费，学生、60岁以上半价；开放8:00-17:00,05-01至10-07 周一至周日 08:00-18:00 最晚进入17:00；10-08至04-30 周一至周日 08:00-17:00 最晚进入16:00；具体以当日实际公示信息为准,unverified,unverified,,,待核验,,,
-北京,amap-B000A7Q1V5,南宫旅游休闲度假区,度假区无首道大门票，园内各点单独售票(360百科/南宫旅游景区)；世界地热博览园通票30元(地热科普中心10元、温室公园20元)；南宫五洲植物乐园门票成人78元；南宫民族温泉养生园成人99元(亲子1大1小158元)、夜场汤泉69元(携程、北京旅游网2025)；开放9:30-18:00,周一至周日 00:00-24:00；具体开放时间以现场公示为准,unverified,unverified,,,待核验,,,
+北京,amap-B000A0884A,北京黑龙潭自然风景区,成人58元；优惠及免票资格以景区规则为准,09:00-17:00，16:00停止检票入园,verified,verified,https://s.visitbeijing.com.cn/attraction/101508,https://s.visitbeijing.com.cn/attraction/101508,票价与时间已核验,https://s.visitbeijing.com.cn/attraction/101508,2026-11-12,北京旅游网景点详情明确对应密云黑龙潭，排除东城区龙潭公园。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A85VK3,北京张裕爱斐堡酒庄,市场价：旺季门票60元/淡季50元，参观+品酒旺季100元/淡季90元(酒庄公布口径)；OTA：参观门票40元、成人票78元(含2款葡萄酒品鉴+100ml白兰地自灌1瓶)、VIP品鉴套票195-198元(携程、大河票务2025)；1.2-1.3米以下儿童及70岁以上老人免费，学生、60岁以上半价；开放8:00-17:00,05-01至10-07 周一至周日 08:00-18:00 最晚进入17:00；10-08至04-30 周一至周日 08:00-17:00 最晚进入16:00；具体以当日实际公示信息为准,unverified,unverified,,,未获足够证据,,2026-11-12,旧政府PDF的冬夏时段不证明当前票务及开放时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+北京,amap-B000A7Q1V5,南宫旅游休闲度假区,度假区无首道大门票，园内各点单独售票(360百科/南宫旅游景区)；世界地热博览园通票30元(地热科普中心10元、温室公园20元)；南宫五洲植物乐园门票成人78元；南宫民族温泉养生园成人99元(亲子1大1小158元)、夜场汤泉69元(携程、北京旅游网2025)；开放9:30-18:00,周一至周日 00:00-24:00；具体开放时间以现场公示为准,unverified,unverified,,,未获足够证据,,2026-11-12,五洲植物乐园等子项目独立售票，不能把相邻免费公园或单项目政策作为整体规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 北京,amap-B000A85ZAP,中央财经大学(沙河校区),,,pending,pending,,,待核验,,,
 北京,amap-B0FFJ9YAYQ,通州奥体公园,,周一至周日 06:00-21:00,pending,unverified,,,待核验,,,
 北京,amap-B000A88DUT,北京工业职业技术学院,,,pending,pending,,,待核验,,,
@@ -1373,29 +1373,29 @@
 上海,amap-B00155R1D5,上海交通大学(闵行本部校区),,,pending,pending,,,待核验,,,
 上海,amap-B00157AW8O,上海迪士尼度假区,,10-23至10-25 周一至周日 08:30-22:00；10-26至10-28 周一至周日 08:30-21:30；10-29至11-01 周一至周日 08:30-22:00；11-02至11-04 周一至周日 08:30-20:30；11-05至11-07 周一至周日 08:30-21:30,pending,unverified,,,待核验,,,
 上海,amap-B00155IVBV,上海新国际博览中心,,周一至周日 09:00-17:00 最晚进入17:00,pending,unverified,,,待核验,,,
-上海,amap-B00150F6D6,东方明珠广播电视塔,二球观光199元/三球联票299元(儿童半价),周一至周日 09:00-21:00 最晚进入21:00,unverified,unverified,,,待核验,,,
+上海,amap-B00150F6D6,东方明珠广播电视塔,二球观光199元/三球联票299元(儿童半价),周一至周日 09:00-21:00 最晚进入21:00,unverified,unverified,,,未获足够证据,,2026-11-12,官方活动资料按二球、游船和联票分别计价，不能用单一原价代表全部产品。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFFDXOI4,国家会展中心(上海),,周一至周日 10:00-17:00；外观全天开放，内部仅有展时才会对外开放。,pending,unverified,,,待核验,,,
-上海,amap-B00155MF55,上海豫园,旺季(4.1-6.30、9.1-11.30)成人40元，淡季(7.1-8.31、12.1-3.31)成人30元(豫园官网yugarden.com.cn、上海市文旅局2025)；学生票与60岁以上老人票半价20元；1.3米以下或6周岁以下儿童免票(1成人限带3名)；9:00-16:30(16:00停止入园)，每周一闭园(法定节假日除外)；夜游'豫享山林'另购(夜场150-190元),周一全天关闭(法定节假日除外)；周二至周日 09:00-16:30(16:00停止入馆),unverified,unverified,,,待核验,,,
-上海,amap-B0015211C2,上海共青森林公园,免费开放，无需门票(上海市杨浦区人民政府、徐汇报2025)；东门/南门/北门/万竹园5:00-18:00，西门5:00-19:30(18:00后仅西大门草坪开放)；森林小火车、骑马场、露营等项目另行收费,周一至周日 05:00-18:00 最晚进入18:00；东门、南门、北门、万竹园开放时间:05:00-18:00 西门开放时间:05:00-19:30（18:00后只限西门大草坪区域开放）,unverified,unverified,,,待核验,,,
-上海,amap-B00155L7QD,佘山国家旅游度假区,度假区无首道大门票；东佘山园、西佘山园均免费开放(东佘山无需预约；西佘山旺季如2025年4.30-5.31需公众号预约)(松江区文旅、去哪儿2025)；园内上海天文博物馆(佘山天文台)12元、佘山天主教堂免费；天马山园成人10元、小昆山园成人6元；停车场约6元/小时,05-01至05-14 周一至周日 08:30-17:00；05-15至06-30 周一至周日 08:30-18:00 最晚进入17:30；7月至8月 周一至周日 06:30-18:30 最晚进入18:00；09-01至10-15 周一至周日 08:30-18:00 最晚进入17:30；10-16至04-30 周一至周日 08:30-16:30 最晚进入16:00；东佘山园:南大门进，西大门出西佘山园:北大门进，东大门出天马山园:东大门进出小昆山园:南大门进出,unverified,unverified,,,待核验,,,
+上海,amap-B00155MF55,上海豫园,日间成人票旺季4—6月及9—11月40元；其余淡季30元；夜游另购票,日间周二至周日09:00-16:30，16:00停止入园；周一闭园（法定节假日除外）；夜游时段另查,verified,verified,https://www.shanghai.gov.cn/huangpu/index.html,https://www.shanghai.gov.cn/huangpu/index.html,票价与时间已核验,https://www.shanghai.gov.cn/huangpu/index.html,2026-11-12,仅核验日间游览，未把夜游并入日间门票。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B0015211C2,上海共青森林公园,公园免费；园内游乐及经营项目另计,东门、南门、北门、万竹园05:00-18:00；西门05:00-19:30，18:00后仅西门大草坪开放,verified,verified,https://lhsr.sh.gov.cn/gyhd/20210623/e7da767b-26d2-4cf9-b043-e3dc6356ded3.html,https://www.shanghai.gov.cn/ypwl/20260615/311f83104fb94f08be377409e07eec13.html,票价与时间已核验,https://lhsr.sh.gov.cn/gyhd/20210623/e7da767b-26d2-4cf9-b043-e3dc6356ded3.html | https://www.shanghai.gov.cn/ypwl/20260615/311f83104fb94f08be377409e07eec13.html,2026-11-12,免费政策见绿化局公告；开放时段按2026年政府介绍。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00155L7QD,佘山国家旅游度假区,度假区无首道大门票；东佘山园、西佘山园均免费开放(东佘山无需预约；西佘山旺季如2025年4.30-5.31需公众号预约)(松江区文旅、去哪儿2025)；园内上海天文博物馆(佘山天文台)12元、佘山天主教堂免费；天马山园成人10元、小昆山园成人6元；停车场约6元/小时,05-01至05-14 周一至周日 08:30-17:00；05-15至06-30 周一至周日 08:30-18:00 最晚进入17:30；7月至8月 周一至周日 06:30-18:30 最晚进入18:00；09-01至10-15 周一至周日 08:30-18:00 最晚进入17:30；10-16至04-30 周一至周日 08:30-16:30 最晚进入16:00；东佘山园:南大门进，西大门出西佘山园:北大门进，东大门出天马山园:东大门进出小昆山园:南大门进出,unverified,unverified,,,未获足够证据,,2026-11-12,度假区包含森林公园、天文馆及游乐项目，不存在统一适用的门票与时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B001558F5I,上海朱家角古镇旅游区,,周一至周日 00:00-24:00；内部收费景点的营业时间请以各个子景点详情页展示为准,pending,unverified,,,待核验,,,
-上海,amap-B00156R4F0,上海徐家汇源,开放式景区，无统一大门票；徐家汇天主堂、徐家汇书院、徐光启纪念馆、土山湾博物馆、《义勇军进行曲》灌制地(百代小楼)、钱学森图书馆、董浩云航运博物馆均免费(上海气象博物馆免费但需公众号预约)(徐家汇源景区官方2025)；上海电影博物馆为景区内收费场馆，成人60元/学生30元,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+上海,amap-B00156R4F0,上海徐家汇源,开放式景区，无统一大门票；徐家汇天主堂、徐家汇书院、徐光启纪念馆、土山湾博物馆、《义勇军进行曲》灌制地(百代小楼)、钱学森图书馆、董浩云航运博物馆均免费(上海气象博物馆免费但需公众号预约)(徐家汇源景区官方2025)；上海电影博物馆为景区内收费场馆，成人60元/学生30元,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,开放型景区由书院、教堂、博物馆等多个点位组成，不能给整个景区套用某一馆开放时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B001542F38,上海展览中心,,"周一至周日 10:00-17:00 最晚进入16:00；展会不同，票价,开放时间不同，详情可参见官网",pending,unverified,,,待核验,,,
 上海,amap-B0FFKTGH5N,世博文化公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00152F15F,上海野生动物园,成人190元/学生及65+老人95元,"2月-6月，9月平日，10月8日-11月30日（常规）:9:00-17:00，16:00停止检票,车入区、水域探秘运行时间:9:15-16:30 ；夜公园:7-8月，9月双休日、节假日，国庆期间:9:00-21:00,19:30停止检票；车入区运行时间:9:15-20:30，水域探秘运行时间: 9:15-19:00；12月-1月:9:00-16:30，15:30停止检票；车入区、水域探秘运行时间:9:15-16:00，具体以现场为准",unverified,unverified,,,待核验,,,
+上海,amap-B00152F15F,上海野生动物园,2026年3月1日起成人单日门票190元；6—18周岁及本科以下学生半价；60—64周岁九折，65周岁及以上半价；资格以园方规则为准,"2月-6月，9月平日，10月8日-11月30日（常规）:9:00-17:00，16:00停止检票,车入区、水域探秘运行时间:9:15-16:30 ；夜公园:7-8月，9月双休日、节假日，国庆期间:9:00-21:00,19:30停止检票；车入区运行时间:9:15-20:30，水域探秘运行时间: 9:15-19:00；12月-1月:9:00-16:30，15:30停止检票；车入区、水域探秘运行时间:9:15-16:00，具体以现场为准",verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=8fc657d1203e4e618a5f4c8c73ba43ab,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=8fc657d1203e4e618a5f4c8c73ba43ab,2026-11-12,修正旧成人票165元；开放时间未从该票务公告推断。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00154DQPJ,复旦大学邯郸校区,,,pending,pending,,,待核验,,,
 上海,amap-B00157917M,上海人民广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00156NZVG,北外滩滨江绿地,,周一至周日 06:00-22:00,pending,unverified,,,待核验,,,
-上海,amap-B00155Q41F,上海欢乐谷,成人票260元(同程2025、上海市文旅局公示原价)；大中小学生票119元、青少年/大学生票230元、儿童(5-10岁)及60岁以上老人票180元、双人票399元、亲子1大1小299元、下午场票109-119元；9:30-21:30(20:30停止入园)；园内蹦极(199-230元)、卡丁车等另计,9月12日-11月15日:周一至周四:09:30-21:30；周五至周日:09:30-22:00；10月23日-10月29日:09:30-23:00；10月30日-11月1日:09:30-23:30；,unverified,unverified,,,待核验,,,
+上海,amap-B00155Q41F,上海欢乐谷,常规日场成人260元；儿童及老人180元；青少年230元；资格与指定日价格以官方售票为准,9月12日-11月15日:周一至周四:09:30-21:30；周五至周日:09:30-22:00；10月23日-10月29日:09:30-23:00；10月30日-11月1日:09:30-23:30；,verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,2026-11-12,采信2026年文旅活动清单的原价，不采用活动结束后的130元。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155FHMD,上海滨江森林公园,,周一至周日 08:00-17:00 最晚进入17:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFIFP90V,上海博物馆(东馆),,"全年 周一, 周三–周日 10:00–18:00开放 最晚进入17:00；全年 周二 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 10:00–18:00开放 最晚进入17:00",pending,unverified,,,待核验,,,
-上海,amap-B0FFG954E8,上海海昌海洋公园,官方标准票：平日330元/高峰日399元(百度百科、新民网)；上海市文旅局公示：常规日339元、特别常规日369元、高峰日399元，优待票常规日199元、特别常规日249元、高峰日279元(1-1.4米儿童、65周岁以上长者、军人及消防救援人员、残障人士)；OTA优惠：成人229元、老人/儿童179元、大学生99元、下午场及夜场179元(同程/携程2025)；1米以下或3周岁以下儿童由持票成人携带免费；9:30-21:00(20:00停止入园),10月8日-10月31日:9:30-20:30(19:30停止检票)具体开放时间以官方通知为准,unverified,unverified,,,待核验,,,
-上海,amap-B00154DUI6,上海世纪公园,免费开放，全天24小时开放，需线上预约免费票(上海市文旅局、乐游上海2025)；游乐园、划船等园内项目另行收费,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
-上海,amap-B00155R3U3,西沙明珠湖景区,免费(免票入园，0元),"7月11日至7月12日 全天不开放；4月1日至10月31日 周一至周五 08:30-16:30 最晚进入16:00；周六至周日 08:30-17:00 最晚进入16:30；11月1日至次年3月31日 周一至周五 08:30-16:00 最晚进入15:30；周六至周日 08:30-16:30最晚进入16:00；清明节,劳动节,端午节,国庆节 08:30-17:00开放 最晚进入16:30",unverified,unverified,,,待核验,,,
+上海,amap-B0FFG954E8,上海海昌海洋公园,官方标准票：平日330元/高峰日399元(百度百科、新民网)；上海市文旅局公示：常规日339元、特别常规日369元、高峰日399元，优待票常规日199元、特别常规日249元、高峰日279元(1-1.4米儿童、65周岁以上长者、军人及消防救援人员、残障人士)；OTA优惠：成人229元、老人/儿童179元、大学生99元、下午场及夜场179元(同程/携程2025)；1米以下或3周岁以下儿童由持票成人携带免费；9:30-21:00(20:00停止入园),10月8日-10月31日:9:30-20:30(19:30停止检票)具体开放时间以官方通知为准,unverified,unverified,,,未获足够证据,,2026-11-12,官方票价页未能取得可核对的正文，日历票及指定日价格不能用旧价代替。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00154DUI6,上海世纪公园,公园免费；园内经营项目另计,全年24小时开放,verified,verified,https://www.shanghai.gov.cn/pdwl/index.html,https://www.shanghai.gov.cn/pdwl/index.html,票价与时间已核验,https://www.shanghai.gov.cn/pdwl/index.html,2026-11-12,删除没有现行依据的必须线上预约表述。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00155R3U3,西沙明珠湖景区,免费(免票入园，0元),"7月11日至7月12日 全天不开放；4月1日至10月31日 周一至周五 08:30-16:30 最晚进入16:00；周六至周日 08:30-17:00 最晚进入16:30；11月1日至次年3月31日 周一至周五 08:30-16:00 最晚进入15:30；周六至周日 08:30-16:30最晚进入16:00；清明节,劳动节,端午节,国庆节 08:30-17:00开放 最晚进入16:30",unverified,unverified,,,未获足够证据,,2026-11-12,2022年复园资料不可作为当前时段依据；总景区与西沙湿地分区需分别确认。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFFR6GDS,外滩-观景平台,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B0FFG8YEO4,北外滩国客中心,滨江公共空间免费开放、无需门票、24小时开放(携程攻略/上海虹口2025)；园内收费项目：魔都矩阵高空攀爬2小时+疯狂滑梯+平台观光175元、3次卡399元、年卡899元；'申城之光'黄浦江游船+自助餐370-380元；《我的世界-实境探险》148元,周一至周日 07:00-22:00,unverified,unverified,,,待核验,,,
+上海,amap-B0FFG8YEO4,北外滩国客中心,公共区域免费；商业项目另计,06:00-22:00,verified,verified,https://english.shanghai.gov.cn/en-ScenicSpots/20250220/f739259099f34a029a909c79327dd030.html,https://english.shanghai.gov.cn/en-ScenicSpots/20250220/f739259099f34a029a909c79327dd030.html,票价与时间已核验,https://english.shanghai.gov.cn/en-ScenicSpots/20250220/f739259099f34a029a909c79327dd030.html,2026-11-12,对应杨树浦路100号滨水公共区域，非邮轮船票。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155K8FL,同济大学(四平路校区),,,pending,pending,,,待核验,,,
-上海,amap-B00155Q4Y4,西沙明珠湖景区-西沙湿地,免费(免票入园，0元),周一至周日 08:30-17:00 最晚进入16:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155Q4Y4,西沙明珠湖景区-西沙湿地,免费(免票入园，0元),周一至周日 08:30-17:00 最晚进入16:00,unverified,unverified,,,未获足够证据,,2026-11-12,保留分区记录，未把整个景区或2022年临时政策当本分区当前规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFF0JR9H,上海广富林文化遗址,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00156QHJ2,上海交通大学医学院(黄浦校区),,,pending,pending,,,待核验,,,
 上海,amap-B001535BBC,上海博物馆(人民广场馆),,"周二至周四,周日 09:00-17:00；周五至周六 09:00-21:00",pending,unverified,,,待核验,,,
@@ -1403,7 +1403,7 @@
 上海,amap-B00156E4HB,东浩兰生上海世博展览馆,,周一至周日 09:00-17:00 最晚进入16:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFHUD4BQ,上海油罐艺术中心,,周一 全天关闭；周二至周五 12:00-18:00；周六至周日 10:00-18:00,pending,unverified,,,待核验,,,
 上海,amap-B00157G053,中山公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00156E3VY,顾村公园,成人票20元/人，大中小学生凭学生证10元/人，60-64周岁老人16元/人(顾村公园官方2025上海樱花节)；65周岁以上老人、1.3米以下或6周岁以下儿童、残疾人、现役及退役军人、消防救援人员等免票；6:00-18:00(16:30停止入园)；樱花嘉年华(夜樱)园中园项目另行购票,周一至周日 06:00-18:00 最晚进入16:30,unverified,unverified,,,待核验,,,
+上海,amap-B00156E3VY,顾村公园,成人20元；学生凭学生证10元；60—64周岁16元；65周岁及以上等符合条件者免票,06:00-18:00，16:30停止售票,verified,verified,https://www.shanghai.gov.cn/nw17239/20260914/6fddbefeeaf940c989f155ae12bdc731.html,https://www.shanghai.gov.cn/nw17239/20260914/6fddbefeeaf940c989f155ae12bdc731.html,票价与时间已核验,https://www.shanghai.gov.cn/nw17239/20260914/6fddbefeeaf940c989f155ae12bdc731.html,2026-11-12,使用公告列明的常规价格，不沿用9月限时半价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155IVKB,华东师范大学闵行校区,,,pending,pending,,,待核验,,,
 上海,amap-B001556VY1,枫泾古镇,,"周三至周六 00:00-24:00 01-01至08-08 周一至周二,周日 00:00-24:00；08-09至08-11 周一至周二,周日 全天关闭；08-12至12-31 周一至周二,周日 00:00-24:00",pending,unverified,,,待核验,,,
 上海,amap-B00155IVZ7,华东师范大学普陀校区,,,pending,pending,,,待核验,,,
@@ -1412,20 +1412,20 @@
 上海,amap-B00155L0UC,桂林公园,,周一至周日 05:00-21:00,pending,unverified,,,待核验,,,
 上海,amap-B00155L3CA,上海交通大学徐汇校区,,,pending,pending,,,待核验,,,
 上海,amap-B0LKMA4HPY,LV巨轮,,周一至周日 09:00-21:00,pending,unverified,,,待核验,,,
-上海,amap-B00155D6FY,金山城市沙滩,政府定价(金发改价管[2023]3号)：旺季周一至周五最高40元/人、双休日及法定节假日最高65元/人；淡季周一至周五最高10元/人、双休日及节假日最高25元/人(金山区政府收费目录2025、金山区政府官网)；1.3米以下儿童、65周岁以上老人免费，1.3-1.5米学生半价；泳期(6.20-9.10)8:30-21:30，非泳期8:30-20:30(冬季8:30-17:30),"泳期:6月20日至9月10日08:30-21:30(21:00停止入园)；非泳期:3月1日至6月19日,9月11日至10月30日 08:30-20:00(20:00停止入园)；12月1日至次年2月28日08:30-17:00(17:00停止入园)；",unverified,unverified,,,待核验,,,
+上海,amap-B00155D6FY,金山城市沙滩,政府定价(金发改价管[2023]3号)：旺季周一至周五最高40元/人、双休日及法定节假日最高65元/人；淡季周一至周五最高10元/人、双休日及节假日最高25元/人(金山区政府收费目录2025、金山区政府官网)；1.3米以下儿童、65周岁以上老人免费，1.3-1.5米学生半价；泳期(6.20-9.10)8:30-21:30，非泳期8:30-20:30(冬季8:30-17:30),"泳期:6月20日至9月10日08:30-21:30(21:00停止入园)；非泳期:3月1日至6月19日,9月11日至10月30日 08:30-20:00(20:00停止入园)；12月1日至次年2月28日08:30-17:00(17:00停止入园)；",unverified,unverified,,,未获足够证据,,2026-11-12,2026年5月活动列出的平日/周末票价不能外推至泳期及其他季节。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155K7SE,华东理工大学徐汇校区,,,pending,pending,,,待核验,,,
 上海,amap-B0FFGE2F10,上海浦江郊野公园,,周一至周日 08:30-18:30 最晚进入18:00；补充说明:奇迹花园区(3月6日-6月8日花展期间收费)，开放时间:8:30-18:30 活力森林区免费开放，开放时间:8:30-18:30 柳鹭田园区免费开放，开放时间8:30-18:30 滨江漫步区及森林游憩区全天开放 以上信息仅供参考，具体以当日实际公示信息为准,pending,unverified,,,待核验,,,
 上海,amap-B0FFJ2JI6R,上生新所,,周一至周日 10:00-22:00,pending,unverified,,,待核验,,,
-上海,amap-B00154DWH8,上海植物园,大门票15元、联票40元(含展览温室、盆景园、兰室等专类园)(上海本地宝2025)；另有平台提供免费预约入园票(同程2025)，实际以园方当期公示为准；开放6:00-17:00(旺季7:00-17:00)；园内电瓶车15元/次、双人自行车40元/小时另计,"1月至4月,11月至12月 周一至周日 06:00-17:00；5月至10月 周一至周日 06:00-18:00；1号门（龙吴路1111号）:11月～次年4月7:00-17:00，5月～10月7:00-18:00； 3号门（百色路940号）、4号门（罗城路151号）:11月～次年4月6:00-17:00，5月～10月6:00-18:00",unverified,unverified,,,待核验,,,
-上海,amap-B00155KK03,上海长风公园,公园免费开放、无需门票，全天开放(去哪儿/携程2025)；园内长风海洋世界另购票：成人115-149元、学生99元、家庭票2大1小322元；苏州河游船(长风公园码头)成人60元；划船脚踏船60元/小时、电动船80元/小时,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+上海,amap-B00154DWH8,上海植物园,公共园区免费；温室、盆景园等专类区域收费另查,公共园区06:00-18:00；专类园区时段另查,verified,verified,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,票价与时间已核验,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,2026-11-12,不得把公共园区免费扩大到全部温室和展区。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00155KK03,上海长风公园,公共开放区域免费；经营项目另计,北区开放区域24小时开放；南区封闭改造，走2、3、4号门入园,verified,verified,https://whlyj.sh.gov.cn/gqfc/20261016/8a31ed2ae0dc4d8faa3453ce869b4c02.html,https://whlyj.sh.gov.cn/gqfc/20261016/8a31ed2ae0dc4d8faa3453ce869b4c02.html,票价与时间已核验,https://whlyj.sh.gov.cn/gqfc/20261016/8a31ed2ae0dc4d8faa3453ce869b4c02.html,2026-11-12,按2026-10-16文旅局公告更新分区限制。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0G295OTG0,前滩体育公园,,周一至周日 10:00-22:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFF0JUD7,上海海事大学(临港校区),,,pending,pending,,,待核验,,,
-上海,amap-B00156DYI3,上海辰山植物园,普通门票60元/人(上海辰山植物园官网csnbgsh.cn)；半价30元(6-18周岁未成年人、全日制本科及以下学生)、退役军人8折48元、60-64周岁老人8.5折；65周岁以上老人、1.3米以下或6周岁以下儿童、现役军人、残疾人士、消防救援人员等免票；开放3.1-10.31 8:00-17:30，11.1-2.28 8:00-17:00,3月1日-10月31日 08:00-17:30开放（17:00停止入园）；11月1日-次年2月28日 08:00-17:00开放（16:30停止入园）；具体开放时间以官方通知为准,unverified,unverified,,,待核验,,,
+上海,amap-B00156DYI3,上海辰山植物园,常规成人票60元；儿童票30元；老人票50元；适用资格以官方规则为准,3月1日-10月31日 08:00-17:30开放（17:00停止入园）；11月1日-次年2月28日 08:00-17:00开放（16:30停止入园）；具体开放时间以官方通知为准,verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,2026-11-12,仅核验常规价格，不将全年开放理解为全天。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155MMFN,上海师范大学徐汇校区,,,pending,pending,,,待核验,,,
 上海,amap-B00156F687,上海跨国采购会展中心,,周一至周日 00:00-24:00；具体营业状态以当天开放情况为准,pending,unverified,,,待核验,,,
 上海,amap-B00155KZKW,上海鲁迅公园,,周一至周日 05:00-21:00,pending,unverified,,,待核验,,,
 上海,amap-B00155IWT7,上海佘山国家森林公园,,05-01至10-07周一至周日08:30- 17:00；10-08至04-30周一至周日08:30-16:30（16:00停止入园),pending,unverified,,,待核验,,,
-上海,amap-B00155LGBQ,上海吴淞炮台湾国家湿地公园,免费开放、免预约(澎湃新闻、上观新闻2025)；开放5:00-19:00(18:30停止入场)；矿坑花园、滨江栈道、日出广场均免费；园内小火车、儿童乐园等项目另行收费；停车约10元/天,周一至周日 08:00-17:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155LGBQ,上海吴淞炮台湾国家湿地公园,免费开放、免预约(澎湃新闻、上观新闻2025)；开放5:00-19:00(18:30停止入场)；矿坑花园、滨江栈道、日出广场均免费；园内小火车、儿童乐园等项目另行收费；停车约10元/天,4—6月05:00-18:00；7—10月05:00-19:00；11—3月06:00-18:00,unverified,verified,,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=e5562d8878f54b888981a888dcbc61c5,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=e5562d8878f54b888981a888dcbc61c5,2026-11-12,改正原统一08:00-17:00；票价另行核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00156EP9N,上海千古情景区,,10:30-19:00,pending,unverified,,,待核验,,,
 上海,amap-B00155K8GN,上海海洋大学(临港校区),,,pending,pending,,,待核验,,,
 上海,amap-B0FFGWD2M9,上海建桥学院,,,pending,pending,,,待核验,,,
@@ -1444,13 +1444,13 @@
 上海,amap-B00154D79J,上海师范大学奉贤校区,,,pending,pending,,,待核验,,,
 上海,amap-B0FFMH4KQS,上海市徐汇区图书馆(徐家汇书院),,周一 全天关闭；周二至周日 09:00-21:00 最晚进入20:30；一楼少儿区、三楼开放时间:9:00-17:00（暑期延时开放至20:00），逢周一馆休，国家法定假日另行通知，具体营业状态以当天开放情况为准。,pending,unverified,,,待核验,,,
 上海,amap-B0FFH18766,上海大宁公园,,周一至周日 05:00-22:00,pending,unverified,,,待核验,,,
-上海,amap-B00155L3X0,陆家嘴中心绿地,免费开放，无门票(上海市文旅局4A级景区公示、百度百科)；陆家嘴中心绿地开放8:30-22:00(部分资料标5:00-22:00)，滨江公园全年全天开放；吴昌硕纪念馆(绿地内)9:30-16:00免费,周一至周日 05:00-22:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155L3X0,陆家嘴中心绿地,免费开放，无门票(上海市文旅局4A级景区公示、百度百科)；陆家嘴中心绿地开放8:30-22:00(部分资料标5:00-22:00)，滨江公园全年全天开放；吴昌硕纪念馆(绿地内)9:30-16:00免费,周一至周日 05:00-22:00,unverified,unverified,,,未获足够证据,,2026-11-12,2021年汇总开放表不足以确认现行规则，不沿用旧时段为已核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0IBM5Y2V1,上海滨江森林公园二期,,周一至周日 08:00-17:00,pending,unverified,,,待核验,,,
-上海,amap-B00155IPXY,东方绿舟,成人票50元/人(上海市政府青浦文旅指南2025、青浦区政府公示)；儿童票25元、老人票45元；蜂巢塔高空探险联票220元(成人)、军事套票100元(成人)另购；上海旅游节期间曾半价25元；OTA平台优惠价约40元起,"1月至3月,11月至12月 周一至周日 08:30-17:00 最晚进入16:00；4月至10月 周一至周日 08:30-16:30 最晚进入16:00",unverified,unverified,,,待核验,,,
+上海,amap-B00155IPXY,东方绿舟,成人票50元/人(上海市政府青浦文旅指南2025、青浦区政府公示)；儿童票25元、老人票45元；蜂巢塔高空探险联票220元(成人)、军事套票100元(成人)另购；上海旅游节期间曾半价25元；OTA平台优惠价约40元起,"1月至3月,11月至12月 周一至周日 08:30-17:00 最晚进入16:00；4月至10月 周一至周日 08:30-16:30 最晚进入16:00",unverified,unverified,,,未获足够证据,,2026-11-12,已找到文旅信息表50元、08:30-17:00；页面正文抓取失败，未据检索摘要直接提升状态。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155LYLW,滴水湖,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00154DH3B,世纪广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155LZNL,新场古镇,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B0FFGMS7VI,长兴岛,无大门票(长兴岛为开放式江岛区域)；岛内长兴岛郊野公园免费入园(需在“长兴岛智慧文旅平台”或公众号预约)，长兴岛博物馆45-50元、潘石公园等另计,"周一至周日 10:30-13:00,16:30-19:30",unverified,unverified,,,待核验,,,
+上海,amap-B0FFGMS7VI,长兴岛,无大门票(长兴岛为开放式江岛区域)；岛内长兴岛郊野公园免费入园(需在“长兴岛智慧文旅平台”或公众号预约)，长兴岛博物馆45-50元、潘石公园等另计,"周一至周日 10:30-13:00,16:30-19:30",unverified,unverified,,,未获足够证据,,2026-11-12,岛屿区域不等于长兴岛郊野公园，不能继承其门票和开闭园时间。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFGFW4NK,前滩休闲公园,,周一至周日 07:00-19:00,pending,unverified,,,待核验,,,
 上海,amap-B00155R0GV,世博公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155KKQJ,人民公园,,周一至周日 05:00-22:00,pending,unverified,,,待核验,,,
@@ -1462,7 +1462,7 @@
 上海,amap-B00155R06J,上海第二工业大学(金海路校区),,,pending,pending,,,待核验,,,
 上海,amap-B0FFF3LXZR,华东理工大学(奉贤校区),,,pending,pending,,,待核验,,,
 上海,amap-B00156ZYAL,中国商飞上海飞机设计研究院,,,pending,pending,,,待核验,,,
-上海,amap-B0FFGCTMQF,上海长兴岛郊野公园,免费入园(需提前在“长兴岛智慧文旅平台”或官方公众号实名预约，同程/携程均售0元免费预约票)；开放8:30-17:00(16:30停止入园)；园内萌宠庄园10元(含饲料25元)、长兴岛博物馆45-50元、路亚钓台120-420元、宠物入园40元(年卡150元)等另购,周一至周日 08:30-17:00 最晚进入16:30,unverified,unverified,,,待核验,,,
+上海,amap-B0FFGCTMQF,上海长兴岛郊野公园,公园免费；园内经营项目另计,周一至周日 08:30-17:00 最晚进入16:30,verified,unverified,https://www.shanghai.gov.cn/nw17239/20260409/e7592cf5dea7421e90c0b808e718772a.html,,部分字段已核验,https://www.shanghai.gov.cn/nw17239/20260409/e7592cf5dea7421e90c0b808e718772a.html,2026-11-12,2026年4月政府指南明确公园免费；春游时段09:00-16:30不足以确认11月常规时段，开放时间保留未核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155QKBG,上海应用技术大学奉贤校区,,,pending,pending,,,待核验,,,
 上海,amap-B0FFLBPUT6,外滩观景台,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155KJFX,静安公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
@@ -1470,7 +1470,7 @@
 上海,amap-B00154DCY0,黄兴公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFJUO1FR,上海图书馆(东馆),,"周一 13:30-20:30；周二至周日 09:00-20:30；图书馆内各楼层开放时间不同,具体营业状态以当天开放情况为准",pending,unverified,,,待核验,,,
 上海,amap-B0H3TUK613,天主教上海教区徐家汇圣依纳爵主教座堂(不对外开放),,"周一,周日 全天关闭；周二至周六 09:00-16:00 最晚进入15:30；每月首周五上午暂停开放，下午13: 00恢复开放，具体营业状态以当天开放情况为准。",pending,unverified,,,待核验,,,
-上海,amap-B00150744F,上海影视乐园,成人票80元/人(门市价，澎湃新闻/劳动报2025)；青少年票40元(1.2米以上18岁以下)、学生票50元、60周岁以上老人50元；夜场票40元(16:00-21:00)；OTA平台优惠价约63-69元；开放8:30-16:30(15:30停止入园)，夜场至21:00,10-08至10-23 周一至周五 08:30-20:30 最晚进入19:00；10-08至10-23 周六至周日 08:30-21:30 最晚进入19:30；10-24至10-24 周一至周日 08:30-16:30 最晚进入15:30；10-25至10-25 周一至周五 08:30-20:30 最晚进入19:00；10-25至10-25 周六至周日 08:30-21:30 最晚进入19:30；10-26至12-30 周一至周日 08:30-16:30 最晚进入15:30；【黄河路开放时间】同乐园营业时间。无需预约，入园即可参观。 【《南京照相馆》拍摄地开放时间】工作日每日10:00、13:00、15:00、16:00限时开放，每场进场时间15分钟内，逾期请静候下一时段。周末为10:00至16:00的不间断开放模式。无需预约，入园即可参观。 【老爷车展开放时间】9:00~16:00。无需预约，入园即可参观。 【上影服道选粹展馆开放时间】9:00~16:00。无需预约，入园即可参观。 【红色道具展】9:00~16:00。无需预约，入园即可参观。 铛铛车体验:免费，30分钟/次， 运营时间9:30-11:30，13:00-16:00（如遇特殊情况及剧组拍摄，铛铛车停运，敬请谅解）,unverified,unverified,,,待核验,,,
+上海,amap-B00150744F,上海影视乐园,日场常规票80元；夜场及其他票种另查,10-08至10-23 周一至周五 08:30-20:30 最晚进入19:00；10-08至10-23 周六至周日 08:30-21:30 最晚进入19:30；10-24至10-24 周一至周日 08:30-16:30 最晚进入15:30；10-25至10-25 周一至周五 08:30-20:30 最晚进入19:00；10-25至10-25 周六至周日 08:30-21:30 最晚进入19:30；10-26至12-30 周一至周日 08:30-16:30 最晚进入15:30；【黄河路开放时间】同乐园营业时间。无需预约，入园即可参观。 【《南京照相馆》拍摄地开放时间】工作日每日10:00、13:00、15:00、16:00限时开放，每场进场时间15分钟内，逾期请静候下一时段。周末为10:00至16:00的不间断开放模式。无需预约，入园即可参观。 【老爷车展开放时间】9:00~16:00。无需预约，入园即可参观。 【上影服道选粹展馆开放时间】9:00~16:00。无需预约，入园即可参观。 【红色道具展】9:00~16:00。无需预约，入园即可参观。 铛铛车体验:免费，30分钟/次， 运营时间9:30-11:30，13:00-16:00（如遇特殊情况及剧组拍摄，铛铛车停运，敬请谅解）,verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,2026-11-12,2026年文旅清单原价，不沿用2024年或限时半价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFH99HKA,上海市特种设备监督检验技术研究院有限公司(中江路),,周一至周日 08:30-16:30,pending,unverified,,,待核验,,,
 上海,amap-B001575WDA,上海世博会博物馆,,"周一全天关闭(法定节假日除外),周二至周日 09:00-17:00(16:15停止进入)",pending,unverified,,,待核验,,,
 上海,amap-B00155KHES,上海图书馆(淮海路馆),,周一 13:30-20:30；周二至周日 09:00-20:30,pending,unverified,,,待核验,,,
@@ -1482,20 +1482,20 @@
 上海,amap-B0FFG4F6H2,上海音乐谷,,周一至周日 10:00-22:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFG8C3Q7,上海之鱼,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155L3F8,上海国际会议中心,,周一至周日 08:30-16:30；按实际展览时间为准,pending,unverified,,,待核验,,,
-上海,amap-B00151C9B5,上海古猗园,全价票12元/人(上海古猗园官方门票公示、上海市绿化和市容管理局2025)；60-65周岁老人优惠票10元；6-18周岁未成年人及全日制本科及以下学生半票6元；6周岁以下或1.3米以下儿童、65周岁以上老人、现役军人、残疾军人、消防救援人员、持退役军人优待证者等免票(优待证享全价票8折)；开放3-11月南门7:00-18:30、12-2月南门7:00-19:00,"1月至2月,12月 周一至周日 06:00-19:00；3月至11月 周一至周日 05:30-19:30；(一)3月—11月 南门开放时间 7:00—18:30 北门开放时间 5:30—19:30 (二)12月—2月 南门开放时间 7:00—19:00 北门开放时间 6:00—17:00",unverified,unverified,,,待核验,,,
+上海,amap-B00151C9B5,上海古猗园,成人常规票12元；优惠票及免票资格以园方规则为准,"1月至2月,12月 周一至周日 06:00-19:00；3月至11月 周一至周日 05:30-19:30；(一)3月—11月 南门开放时间 7:00—18:30 北门开放时间 5:30—19:30 (二)12月—2月 南门开放时间 7:00—19:00 北门开放时间 6:00—17:00",verified,unverified,https://www.shanghai.gov.cn/nw31406/20260214/f859ab6a25a8458e9bc28c98a55fdb59.html,,部分字段已核验,https://www.shanghai.gov.cn/nw31406/20260214/f859ab6a25a8458e9bc28c98a55fdb59.html,2026-11-12,2026年政府活动公告确认常规票价12元；当前常规开放时间未获足够新证据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155G35S,上海工程技术大学松江校区,,,pending,pending,,,待核验,,,
 上海,amap-B0K675BSVK,北外滩滨江绿地小巨蛋,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00155KS2F,上海汽车博览公园,公园免费开放、无门票(上海市政府英文网“open to the public free of charge”、嘉定区官方2025)；开放6:00-21:00(20:30停止入场)；园内上海汽车博物馆另收费：成人60元、学生30元、70岁以上老人40元、1.3米以下儿童免票(周一闭馆)；租自行车、划船另计；停车5元/时、每日上限40元,周一至周日 06:00-21:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155KS2F,上海汽车博览公园,公园免费开放、无门票(上海市政府英文网“open to the public free of charge”、嘉定区官方2025)；开放6:00-21:00(20:30停止入场)；园内上海汽车博物馆另收费：成人60元、学生30元、70岁以上老人40元、1.3米以下儿童免票(周一闭馆)；租自行车、划船另计；停车5元/时、每日上限40元,11月1日—4月30日06:00-20:00；5月1日—10月31日05:00-21:00,unverified,verified,,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=8946d6f1679e4ee384d2f264ffd73584,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=8946d6f1679e4ee384d2f264ffd73584,2026-11-12,仅公园开放时间；不把园内汽车博物馆票价套给公园。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B001556OHV,上海滨海森林公园,,周一 全天关闭；周二至周日 09:00-17:00 最晚进入16:30,pending,unverified,,,待核验,,,
 上海,amap-B0FFG2PQVL,上海闵行文化公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155QVD9,上海师范大学天华学院,,,pending,pending,,,待核验,,,
 上海,amap-B0FFFRBK9R,泗泾古镇,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B0HB3U9GTJ,世界会客厅,,09:00-22:00(最晚入园21:00),pending,unverified,,,待核验,,,
-上海,amap-B0FFIXYMDQ,上海国际赛车场,454.00,10月1日-10月7日 10:00-17:00开放（16:00停止入园）；周一 不开放；周二–周日 09:00-17:00开放（16:00停止入园）；每天开放场次10:00、11:00、13:00、14:00、15:00、16:00，最后一批游客入场时间为16:00；具体开放时间以官方通知为准,unverified,unverified,,,待核验,,,
+上海,amap-B0FFIXYMDQ,上海国际赛车场,454.00,参观需提前一周预约；周二至周日09:00-17:00；周一及赛事期间不对外开放,unverified,verified,,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=79e36255a2fb45e99b097fb949d00325,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/tpr_view.ac?id=79e36255a2fb45e99b097fb949d00325,2026-11-12,汽车博物馆60元不是赛车场票价，未采纳。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155HQPM,上海浦东图书馆(总馆),,周一至周日 07:00-20:30；咨询服务台、普通文献借阅、报刊阅览、过期报刊阅览开放时间周一13:00-20:00，周二至周日9:00-20:00 视障者服务中心、办证处、儿童与青少年阅读中心、专题文献阅览、慧学习空间、数阅读空间开放时间周一13:00-17:00，周二至周日9:00-17:00 读者自修阅览开放时间周一至周日7:00-20:30 M层自修区，除夕-初三开放时间为7:00-16:00 具体营业状态以当天开放情况为准,pending,unverified,,,待核验,,,
 上海,amap-B00156CNTY,上海立信会计金融学院(浦东校区),,,pending,pending,,,待核验,,,
 上海,amap-B00156D1GA,上海电机学院(临港校区),,,pending,pending,,,待核验,,,
-上海,amap-B00151CDD0,上海醉白池公园,成人票12元/人(松江区政府招标公示“门票价格为12元/位”、上海本地宝、人民网上海频道2025)；6-18周岁未成年人、60-64周岁老人、全日制本科及以下学生半价6元；开放6:00-17:00(菊展等花展期间票价不变),周一至周日 07:00-17:00,unverified,unverified,,,待核验,,,
+上海,amap-B00151CDD0,上海醉白池公园,成人常规票12元；65周岁以上老人凭有效证件免票,5—9月06:00-19:00，18:30停止入园；10—4月06:00-17:00,verified,verified,https://mzj.sh.gov.cn/lnb-xw/20250506/126867387e5643beb24c56e63738e9af.html,https://www.songjiang.gov.cn/govxxgk/SHSJ22/2026-04-29/6711068d-d437-44f5-b5ab-e347688b6a29.html,票价与时间已核验,https://mzj.sh.gov.cn/lnb-xw/20250506/126867387e5643beb24c56e63738e9af.html | https://www.songjiang.gov.cn/govxxgk/SHSJ22/2026-04-29/6711068d-d437-44f5-b5ab-e347688b6a29.html,2026-11-12,时间按2026年区绿容局批复更新；票价按文旅局及政府介绍。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00154DUXV,上海外国语大学(松江校区),,,pending,pending,,,待核验,,,
 上海,amap-B00155IM05,上海文化广场,,周一至周日 10:00-19:00,pending,unverified,,,待核验,,,
 上海,amap-B0IRHUT0OE,上海财经大学主校区,,,pending,pending,,,待核验,,,
@@ -1506,12 +1506,12 @@
 上海,amap-B0FFFRM3VR,上海浦江之首,,周一至周日 09:00-16:00 最晚进入16:00,pending,unverified,,,待核验,,,
 上海,amap-B00155R0GY,世博中心,,周一至周日 08:00-22:00,pending,unverified,,,待核验,,,
 上海,amap-B00155984M,上海大学(宝山校区),,,pending,pending,,,待核验,,,
-上海,amap-B0FFGRDHAA,上海花开海上生态园,普通门票30元/人(金山区政府2025年公示、上海市文旅局)；学生票20元(6-18周岁或全日制本科及以下)、老年票20元(60-69周岁)；70周岁以上老人、1.3米以下儿童、现役军人及配偶、退役军人、烈士遗属、消防人员、残疾人、记者、警察、导游等免票；年卡100元(365天每日1次)；OTA优惠价29元；园内电瓶车20元/位、骑马游船彩虹滑道等另计；开放8:00-17:00,周一至周日 08:00-17:00,unverified,unverified,,,待核验,,,
+上海,amap-B0FFGRDHAA,上海花开海上生态园,门票30元/人,08:00-17:00,verified,verified,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,票价与时间已核验,https://whlyj.sh.gov.cn/gqfc/20261015/2e195d87bc5840c89fe46a7ae8894c6d.html,2026-11-12,按2026-10-15文旅局正文中花开海上段核对，未串用相邻免费花海。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155HB31,上海大学(嘉定校区),,,pending,pending,,,待核验,,,
 上海,amap-B00155QLMG,上海政法学院(青浦校区),,,pending,pending,,,待核验,,,
-上海,amap-B0FFH6RLXF,上海月湖雕塑公园,成人票100元/人(上海本地宝、佘山度假区官方口径)；儿童票50元(0.7-1.4米)、老人票50元(70周岁以上)、宠物票50元；OTA优惠价95元、儿童49元；开放夏令时(5.1-10.31)9:00-17:30、平日9:00-17:00(16:30停止入园),5月至12月 周二至周日 09:00-17:00 最晚进入16:30；9月至12月 周一 09:00-17:00 最晚进入16:30 05-01至08-10 周一 09:00-17:00 最晚进入16:30；08-11至08-31 周一 全天关闭,unverified,unverified,,,待核验,,,
-上海,amap-B00155BDXS,太阳岛旅游度假区,入岛门票30元/成人、15元/儿童(上海市政府青浦文旅指南2025、青浦区政府公示)；OTA入岛门票26元起；岛内娱乐中心项目券3张98元、亲子探索乐源68元(1大1小98元)等另购,周一至周五 09:30-16:30；周六至周日 09:30-18:30,unverified,unverified,,,待核验,,,
-上海,amap-B0FFF5V6IR,上海金山嘴渔村,老街区域免费开放(今日头条金山旅游攻略)；海渔文化馆等展馆联票/项目套票成人32元(同程、携程套票)，金山区口径门票40元；儿童/学生票18元(1.3-1.5米)、亲子1大1小50元；2025年11月22日-12月7日“域见上海”活动期间免票；开放9:00-16:30(16:00停止入园),周一至周日 09:00-16:30 最晚进入16:00；1月21日 周一至周日 09:00-14:00；1月22日-1月24日 周一至周日 09:00-15:00；1月25日-1月27日 周一至周日 09:00-16:00；具体开放时间以官方通知为准,unverified,unverified,,,待核验,,,
+上海,amap-B0FFH6RLXF,上海月湖雕塑公园,成人票100元/人(上海本地宝、佘山度假区官方口径)；儿童票50元(0.7-1.4米)、老人票50元(70周岁以上)、宠物票50元；OTA优惠价95元、儿童49元；开放夏令时(5.1-10.31)9:00-17:30、平日9:00-17:00(16:30停止入园),5月至12月 周二至周日 09:00-17:00 最晚进入16:30；9月至12月 周一 09:00-17:00 最晚进入16:30 05-01至08-10 周一 09:00-17:00 最晚进入16:30；08-11至08-31 周一 全天关闭,unverified,unverified,,,未获足够证据,,2026-11-12,已找到2025年活动原价100元，但不足以确认当前常规价；园方现行票种与时段仍需补证。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00155BDXS,太阳岛旅游度假区,入场成人30元，儿童15元；住宿、游乐及温泉等另计,周一至周五 09:30-16:30；周六至周日 09:30-18:30,verified,unverified,https://www.shanghai.gov.cn/nw17239/20250106/efc9d864d3dc4a27a802cccd3afb7712.html,,部分字段已核验,https://www.shanghai.gov.cn/nw17239/20250106/efc9d864d3dc4a27a802cccd3afb7712.html,2026-11-12,按青浦政府指南对应太阳岛段核对，不套用其他景区免费信息。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B0FFF5V6IR,上海金山嘴渔村,老街区域免费开放(今日头条金山旅游攻略)；海渔文化馆等展馆联票/项目套票成人32元(同程、携程套票)，金山区口径门票40元；儿童/学生票18元(1.3-1.5米)、亲子1大1小50元；2025年11月22日-12月7日“域见上海”活动期间免票；开放9:00-16:30(16:00停止入园),周一至周日 09:00-16:30 最晚进入16:00；1月21日 周一至周日 09:00-14:00；1月22日-1月24日 周一至周日 09:00-15:00；1月25日-1月27日 周一至周日 09:00-16:00；具体开放时间以官方通知为准,unverified,unverified,,,未获足够证据,,2026-11-12,存在恢复开放公告，但老街公共空间和收费室内展馆需分别核对。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155IKLQ,上海大学延长校区,,,pending,pending,,,待核验,,,
 上海,amap-B001557R3Z,上海杉达学院金海校区,,,pending,pending,,,待核验,,,
 上海,amap-B00155R1E2,上海站南广场,,,pending,pending,,,待核验,,,
@@ -1521,28 +1521,28 @@
 上海,amap-B0HAKUILME,张江科学会堂,,周一至周五 09:00-17:00,pending,unverified,,,待核验,,,
 上海,amap-B00155IOQD,碧海金沙,,"4月18日至6月26日:8:30-17:00,16:00停止入场；6月27日至9月6日:08:30-21:00,19:30停止入场；9月7日至12月31日:08:30-17:00 16:00停止入场；补充说明:6月27日至9月6日为泳期,9月7日至次年6月26日为非泳期。 景区会因天气、修整等不定因素做经营时间的调整。以上信息仅供参考，具体以景区当日实际公示信息为准",pending,unverified,,,待核验,,,
 上海,amap-B0FFG188OL,延中广场公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00155KKCG,静安雕塑公园,免费开放、无需预约(静安区人民政府、新民网2025；同程仅售0元免费预约票)；公园24小时开放；静安国际雕塑展(JISP)展期内亦免费；园内上海自然博物馆另收费,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
-上海,amap-B0FFF00ERG,宝山滨江公园,免费开放、无门票、无需预约(上海发布/市文旅局“票价：免费”、宝山区政府2026)；全年全天24小时开放；可野餐、搭帐篷、放风筝，有儿童乐园及宠物友好区，自行车租赁另计；周边吴淞炮台湾湿地公园亦免费(需预约)，长江河口科技馆成人20元另计,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155KKCG,静安雕塑公园,免费开放、无需预约(静安区人民政府、新民网2025；同程仅售0元免费预约票)；公园24小时开放；静安国际雕塑展(JISP)展期内亦免费；园内上海自然博物馆另收费,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,2026年雕塑展新闻提及24小时开放，但常规票务与开放边界需补独立依据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B0FFF00ERG,宝山滨江公园,免费开放、无门票、无需预约(上海发布/市文旅局“票价：免费”、宝山区政府2026)；全年全天24小时开放；可野餐、搭帐篷、放风筝，有儿童乐园及宠物友好区，自行车租赁另计；周边吴淞炮台湾湿地公园亦免费(需预约)，长江河口科技馆成人20元另计,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,仅找到2021年开放汇总表，尚缺当前明确票价及时间证据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0LRNMKBDV,西岸国际会展中心(上海),,,pending,pending,,,待核验,,,
 上海,amap-B0FFG0WLL9,中国科学院上海生命科学研究院,,,pending,pending,,,待核验,,,
 上海,amap-B00155IVKT,上海对外经贸大学松江校区,,,pending,pending,,,待核验,,,
-上海,amap-B0FFFT5888,召稼楼古镇(暂停开放),暂停营业中：2023年1月21日起整体关闭进行“城中村”升级改造，官方未公布明确重开时间(携程/同程均标暂停营业，改造公建配套工期540天，商业地块预计2029-2030年开业)；改造前古镇老街全域免费开放，礼园等展馆另收费；原古镇美食已迁至江文路121弄“召稼楼古镇商圈”及召楼夜市广场,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+上海,amap-B0FFFT5888,召稼楼古镇(暂停开放),暂停营业中：2023年1月21日起整体关闭进行“城中村”升级改造，官方未公布明确重开时间(携程/同程均标暂停营业，改造公建配套工期540天，商业地块预计2029-2030年开业)；改造前古镇老街全域免费开放，礼园等展馆另收费；原古镇美食已迁至江文路121弄“召稼楼古镇商圈”及召楼夜市广场,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,2026年政府改造信息显示建设推进，未找到恢复常规开放公告，维持暂停待核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0LB7K2UTG,青西郊野公园,,01-01至09-04 周一至周日 08:30-16:30 最晚进入16:30；09-05至09-05 周一至周日 13:00-16:30 最晚进入16:30；09-06至12-31 周一至周日 08:30-16:30 最晚进入16:30；生态保育区（水上森林）16:00停止进入，具体营业状态以当天开放情况为准。,pending,unverified,,,待核验,,,
 上海,amap-B00155NEWG,上海光大会展中心,,,pending,pending,,,待核验,,,
-上海,amap-B00155FHN3,上海长风海洋世界,门市成人票200元、儿童票150元(上海市普陀区政府2025年旅游节半价活动公告)；OTA优惠价成人115元起、学生99元、65岁以上老人109元、亲子1大1小219元、2大1小319元；儿童需成人陪同，0.9米以下免票；开放9:00-17:30(16:45停止入园),"1月至6月 周一至周日 09:30-18:00 最晚进入17:15；7月至12月 周二至周六 09:00-17:30 最晚进入16:45 07-01至08-08 周一,周日 09:00-17:30 最晚进入16:45；08-09至08-10 周一,周日 全天关闭；08-11至12-31 周一,周日 09:00-17:30 最晚进入16:45",unverified,unverified,,,待核验,,,
+上海,amap-B00155FHN3,上海长风海洋世界,门市成人票200元、儿童票150元(上海市普陀区政府2025年旅游节半价活动公告)；OTA优惠价成人115元起、学生99元、65岁以上老人109元、亲子1大1小219元、2大1小319元；儿童需成人陪同，0.9米以下免票；开放9:00-17:30(16:45停止入园),"1月至6月 周一至周日 09:30-18:00 最晚进入17:15；7月至12月 周二至周六 09:00-17:30 最晚进入16:45 07-01至08-08 周一,周日 09:00-17:30 最晚进入16:45；08-09至08-10 周一,周日 全天关闭；08-11至12-31 周一,周日 09:00-17:30 最晚进入16:45",unverified,unverified,,,未获足够证据,,2026-11-12,政府汇总页中免费及周一闭馆属于其他纪念馆，不能挪用；当前园方常规价和时间仍缺证据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFFS173H,上海M50创意园,,周一至周日 10:00-18:30,pending,unverified,,,待核验,,,
 上海,amap-B00155IV2Q,上海东海职业技术学院,,,pending,pending,,,待核验,,,
-上海,amap-B00155L6XP,东佘山园,免费入园(上海市文旅局“旅选上海”2025、松江区口径：东西佘山园免费、全年)；东佘山以竹海与乾隆古道著称，368级登山步道免费；同园区天马山园成人10元/学生5元、小昆山园成人6元/老人3元另计；西佘山园(天文博物馆、圣母大教堂)亦免费,7月30日-8月31日 06:30-18:30,unverified,unverified,,,待核验,,,
+上海,amap-B00155L6XP,东佘山园,免费入园(上海市文旅局“旅选上海”2025、松江区口径：东西佘山园免费、全年)；东佘山以竹海与乾隆古道著称，368级登山步道免费；同园区天马山园成人10元/学生5元、小昆山园成人6元/老人3元另计；西佘山园(天文博物馆、圣母大教堂)亦免费,7月30日-8月31日 06:30-18:30,unverified,unverified,,,未获足够证据,,2026-11-12,已核对2026年5月15日—10月15日延长开放公告，现已过期，不能套用到11月。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFG5DBEP,上海财经大学国定路校区,,,pending,pending,,,待核验,,,
-上海,amap-B00156CZHT,上海联怡枇杷乐园,免费入场、无门票(上海市政府青浦文旅指南2025、上观新闻“权益：免费入场”)；园内以餐饮住宿为主，枇杷采摘等季节性项目另计,"周一至周日 10:30-13:00,16:30-20:00",unverified,unverified,,,待核验,,,
+上海,amap-B00156CZHT,上海联怡枇杷乐园,免费入场；采摘、餐饮和住宿等另计,08:00-23:00,verified,verified,https://www.shanghai.gov.cn/nw17239/20250106/efc9d864d3dc4a27a802cccd3afb7712.html,https://www.meet-in-shanghai.net/cn/attraction/shanghai-lianyi-loquat-paradise-200860/,票价与时间已核验,https://www.shanghai.gov.cn/nw17239/20250106/efc9d864d3dc4a27a802cccd3afb7712.html | https://www.meet-in-shanghai.net/cn/attraction/shanghai-lianyi-loquat-paradise-200860/,2026-11-12,免费入场来自青浦政府指南；时间来自市文旅推广网。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0LK0A7LDB,横沔公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00155KPTS,上海申隆生态园,目前免费对外开放、无需购票入园(百度百科2025年更新、上观新闻2025)；开放6:00-20:30(部分资料标9:00-18:00)；园内湖中7个人工小岛(龟岛、松鼠岛等)及部分游乐设施已关闭；欣欣旅游所列成人70元/儿童30元为过期旧价,周一至周日 08:00-16:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155KPTS,上海申隆生态园,目前免费对外开放、无需购票入园(百度百科2025年更新、上观新闻2025)；开放6:00-20:30(部分资料标9:00-18:00)；园内湖中7个人工小岛(龟岛、松鼠岛等)及部分游乐设施已关闭；欣欣旅游所列成人70元/儿童30元为过期旧价,周一至周日 08:00-16:00,unverified,unverified,,,未获足够证据,,2026-11-12,搜索首条浦东汇总页与奉贤申隆生态园实体不符，未挪用相邻景区数据。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFF3YA07,上海科技大学(浦东校区),,,pending,pending,,,待核验,,,
 上海,amap-B0FFF9RR4H,其昌栈码头,,周一至周日 05:10-23:10,pending,unverified,,,待核验,,,
 上海,amap-B0FFF4WNST,金泽古镇,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00156GBVX,廊下生态园,免费开放、无大门票(看看新闻2025年4月“金山廊下生态园免费开放”、携程/同程均标0元)；园区开放8:30-16:30；上海湾区牡丹节等主题活动期间另行售票(2025年牡丹节早鸟票19.9元、单人票29.9元)；百度百科所标20元门票为旧口径,周一至周日 08:30-16:30,unverified,unverified,,,待核验,,,
+上海,amap-B00156GBVX,廊下生态园,免费开放、无大门票(看看新闻2025年4月“金山廊下生态园免费开放”、携程/同程均标0元)；园区开放8:30-16:30；上海湾区牡丹节等主题活动期间另行售票(2025年牡丹节早鸟票19.9元、单人票29.9元)；百度百科所标20元门票为旧口径,周一至周日 08:30-16:30,unverified,unverified,,,未获足够证据,,2026-11-12,廊下生态园、廊下郊野公园和相邻商业项目边界不同，不套用周边免费和开放时段。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFHN56OF,世博展览馆北广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B0FFFE4SY1,嘉定州桥景区,免费开放、无需门票(开放式历史街区，携程/同程/360地图均标0元，Trip.com攻略“0门票”)；全年全天开放；法华塔免费参观(暂不可登塔)，嘉定竹刻博物馆、顾维钧陈列室等人文场馆均免票；周边秋霞圃成人10元、嘉定孔庙免费,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
+上海,amap-B0FFFE4SY1,嘉定州桥景区,免费开放、无需门票(开放式历史街区，携程/同程/360地图均标0元，Trip.com攻略“0门票”)；全年全天开放；法华塔免费参观(暂不可登塔)，嘉定竹刻博物馆、顾维钧陈列室等人文场馆均免票；周边秋霞圃成人10元、嘉定孔庙免费,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,2022年恢复开放临时规定时效已过，未把旧限流时段作当前规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00155E90B,上海工商外国语职业学院,,,pending,pending,,,待核验,,,
 上海,amap-B0FFIY351N,国家会展中心(上海)虹馆,,周一至周日 09:30-17:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFJGOAFY,西岸美术馆,,"周二至周日11:00-18:00(最后入场时间17:30),周一固定闭馆；2月16日-2月20日:闭馆 2月21日:开馆 2月23日正常营业；",pending,unverified,,,待核验,,,
@@ -1553,40 +1553,40 @@
 上海,amap-B00155LYLB,上海海湾国家森林公园,,周一至周五 08:30-16:30 最晚进入15:30 01-01至10-23 周六至周日 08:30-16:30 最晚进入15:30；10-24至10-25 周六至周日 全天关闭；10-26至12-31 周六至周日 08:30-16:30 最晚进入15:30,pending,unverified,,,待核验,,,
 上海,amap-B00155IWCF,上海立信会计金融学院(松江校区),,,pending,pending,,,待核验,,,
 上海,amap-B00155G2UQ,西岸自然艺术公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-上海,amap-B00155AOCD,马陆葡萄主题公园,门票30元/人(上海市嘉定区政府2025年公告“成人票原价30”、东方城乡报)；1.3米以下儿童及70周岁以上老人免票；开放8:30-17:00(16:00停止入园，另有资料标8:00-17:00/16:30停止售票)；上海科技节期间曾限时降至15元；葡萄采摘按斤另计,周一至周日 08:00-16:00,unverified,unverified,,,待核验,,,
+上海,amap-B00155AOCD,马陆葡萄主题公园,门票30元/人(上海市嘉定区政府2025年公告“成人票原价30”、东方城乡报)；1.3米以下儿童及70周岁以上老人免票；开放8:30-17:00(16:00停止入园，另有资料标8:00-17:00/16:30停止售票)；上海科技节期间曾限时降至15元；葡萄采摘按斤另计,周一至周日 08:00-16:00,unverified,unverified,,,未获足够证据,,2026-11-12,活动清单有常规原价30元，季节性运营与11月状态未确认，不外推活动季票价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0MGOCVPM6,中国共产党第一次全国代表大会会址,,周一至周日 09:00-17:00,pending,unverified,,,待核验,,,
 上海,amap-B0FFF2V6XW,美兰湖景区,,周一至周日 09:00-19:00,pending,unverified,,,待核验,,,
 上海,amap-B00154DQQ7,复兴岛公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00156OII0,中国科学院上海高等研究院,,,pending,pending,,,待核验,,,
-上海,amap-B0015524WX,金茂大厦88层观光厅,门市成人票120元、儿童票60元(1-1.3米)、老人票100元(70周岁以上)、学生票90元(上海市嘉定区政府2025年中国旅游日半价活动公告)；OTA平台成人票83元起(同程70元特价、大河票务93元)；1米以下或3周岁以下儿童免票；云中漫步联票278元、含快速通道文创票198-228元另购；开放8:30-21:30(21:30停止入园),9月至12月 周一至周日 08:30-21:30 最晚进入21:30 01-01至08-09 周一至周日 08:30-21:30 最晚进入21:30；08-10至08-31 周一至周日 08:30-22:00 最晚进入21:30,unverified,unverified,,,待核验,,,
+上海,amap-B0015524WX,金茂大厦88层观光厅,门市成人票120元、儿童票60元(1-1.3米)、老人票100元(70周岁以上)、学生票90元(上海市嘉定区政府2025年中国旅游日半价活动公告)；OTA平台成人票83元起(同程70元特价、大河票务93元)；1米以下或3周岁以下儿童免票；云中漫步联票278元、含快速通道文创票198-228元另购；开放8:30-21:30(21:30停止入园),9月至12月 周一至周日 08:30-21:30 最晚进入21:30 01-01至08-09 周一至周日 08:30-21:30 最晚进入21:30；08-10至08-31 周一至周日 08:30-22:00 最晚进入21:30,unverified,unverified,,,未获足够证据,,2026-11-12,已查到2026年5月活动常规原价120元，但活动时段08:30-15:00不是全天营业时间；待园方现行规则。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B00156CLWX,上海东滩湿地公园,,周一 全天关闭；周二至周日 08:30-17:00(16:00停止入园),pending,unverified,,,待核验,,,
 上海,amap-B0FFGFB0FD,七宝老街,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B001508347,上海电子信息职业技术学院,,,pending,pending,,,待核验,,,
-上海,amap-B00155G3HG,上海鲜花港,门市成人票100元、儿童票50元、老人票50元(上海市文旅局2025春季赏花公告、嘉定区政府旅游日公告)；现已更名“上海四季花港”；郁金香花展/花园节期间早鸟单人票38-39元、双人68-69元；开放8:00-17:30(17:00停止入园),周一至周日 08:30-16:30,unverified,unverified,,,待核验,,,
+上海,amap-B00155G3HG,上海鲜花港,常规成人100元；儿童及老人50元；适用资格以官方规则为准,周一至周日 08:30-16:30,verified,unverified,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,,部分字段已核验,https://cmp.whlyj.sh.gov.cn/CMP/news_view.ac?id=b02d8bc0f56d4f15827bd50b87989437,2026-11-12,采信2026年活动清单明确标出的常规原价，非活动价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0015358EB,上海世贸展馆,,周一至周日 09:00-18:00,pending,unverified,,,待核验,,,
 上海,amap-B001533722,滨江大道,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B0KRJH4RZ7,日落长廊,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 上海,amap-B00155IK59,上海汽车会展中心,,周一 全天不开放；周二至周日 10:00-16:00开放 最晚进入15:00 ；法定节假日 10:00-16:00开放 最晚进入15:00；会展中心无展览不对外开放，具体开放时间以官方通知为准,pending,unverified,,,待核验,,,
 上海,amap-B00155FW4I,复旦大学上海医学院,,,pending,pending,,,待核验,,,
 上海,amap-B00155N15X,上海音乐学院(汾阳校区),,,pending,pending,,,待核验,,,
-上海,amap-B00157HTI7,上海虹桥艺术中心,28.00,周一至周日 08:30-22:00；剧院营业时间根据演出情况随时调整,unverified,unverified,,,待核验,,,
+上海,amap-B00157HTI7,上海虹桥艺术中心,28.00,周一至周日 08:30-22:00；剧院营业时间根据演出情况随时调整,unverified,unverified,,,未获足够证据,,2026-11-12,演出、美术馆和周边艺术馆不是同一实体；夏季夜游政策不适用于全年。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 上海,amap-B0FFHUFGPO,广富林郊野公园,,周一至周日 08:00-17:00,pending,unverified,,,待核验,,,
 上海,amap-B00156E4ML,上海震旦职业学院,,,pending,pending,,,待核验,,,
-上海,amap-B0FFGW0KYF,上海薰衣草公园(暂停开放),日常门票20元/人，上海薰衣草节正式节期(2025年5月17日-6月2日)30元/人(人民网上海频道、上海市文旅推广网2025)；65周岁以上、1.3米及以下儿童、残疾人、军人、消防救援人员、退役军人凭证免票；开放9:00-17:00(16:30停止入园)；非花季常闭园(景区名录标注“暂停开放”)，节期可能延长开放时间；地址申迪东路399弄187号南园,周一至周日 09:30-17:00,unverified,unverified,,,待核验,,,
-上海,amap-B00155IR0X,上海环球金融中心观光厅,成人票180元、老人票/学生票120元、儿童票/军人票/残疾人票90元(上海本地宝2025年公告，景区2025年开放期为7月1日-11月30日)；OTA优惠价约110元(94层+97层+100层)；开放10:00-22:00(21:30停止入场)；100层观光天阁高474米，含悬空玻璃栈道,周一至周日 10:00-22:00 最晚进入21:30,unverified,unverified,,,待核验,,,
+上海,amap-B0FFGW0KYF,上海薰衣草公园(暂停开放),日常门票20元/人，上海薰衣草节正式节期(2025年5月17日-6月2日)30元/人(人民网上海频道、上海市文旅推广网2025)；65周岁以上、1.3米及以下儿童、残疾人、军人、消防救援人员、退役军人凭证免票；开放9:00-17:00(16:30停止入园)；非花季常闭园(景区名录标注“暂停开放”)，节期可能延长开放时间；地址申迪东路399弄187号南园,周一至周日 09:30-17:00,unverified,unverified,,,未获足够证据,,2026-11-12,原记录标暂停开放，第三方也提示暂停；其他园区和历史运营时间不能证明已恢复。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+上海,amap-B00155IR0X,上海环球金融中心观光厅,成人票180元、老人票/学生票120元、儿童票/军人票/残疾人票90元(上海本地宝2025年公告，景区2025年开放期为7月1日-11月30日)；OTA优惠价约110元(94层+97层+100层)；开放10:00-22:00(21:30停止入场)；100层观光天阁高474米，含悬空玻璃栈道,周一至周日 10:00-22:00 最晚进入21:30,unverified,unverified,,,未获足够证据,,2026-11-12,检索可见第三方时段，但未取得运营方当前公告，不提升为已核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0FFFRDS71,深圳湾公园,,周一至周日 06:00-23:00 最晚进入23:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F3001AA,大梅沙海滨公园,,周一至周日 06:30-23:00 最晚进入23:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFI1VATT,深圳人才公园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFH94PGQ,深圳国际会展中心,,周一至周日 09:00-17:00 最晚进入16:30；营业时间以展馆内演出场次为准,pending,unverified,,,待核验,,,
-深圳,amap-B02F37U4VE,深圳华侨城旅游度假区,各主题公园单独售票：世界之窗成人220元、锦绣中华民俗村220元、欢乐谷全日228元(夜场159元)；儿童及65-69岁老人约110-130元,周一至周日 10:00-22:00 最晚进入21:00,unverified,unverified,,,待核验,,,
+深圳,amap-B02F37U4VE,深圳华侨城旅游度假区,各主题公园单独售票：世界之窗成人220元、锦绣中华民俗村220元、欢乐谷全日228元(夜场159元)；儿童及65-69岁老人约110-130元,周一至周日 10:00-22:00 最晚进入21:00,unverified,unverified,,,未获足够证据,,2026-11-12,政府A级名单明确包含世界之窗等多个子景区，没有统一通票及开放时段。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B02F300115,广东梧桐山风景名胜区,,周一至周日 06:00-19:00,pending,unverified,,,待核验,,,
-深圳,amap-B02F37V2O5,深圳世界之窗,全日票成人220元/儿童及65-69岁老人110元/夜场票120元(18:00后入园),10-09至11-30 周一至周日 09:30-21:30 最晚进入20:30；10月24日起至11月22日，夜场入园时间调整为17点 10月24、25日、10月30日至11月1日夜场闭园时间为22:00,unverified,unverified,,,待核验,,,
+深圳,amap-B02F37V2O5,深圳世界之窗,全日票成人220元/儿童及65-69岁老人110元/夜场票120元(18:00后入园),10-09至11-30 周一至周日 09:30-21:30 最晚进入20:30；10月24日起至11月22日，夜场入园时间调整为17点 10月24、25日、10月30日至11月1日夜场闭园时间为22:00,unverified,unverified,,,未获足够证据,,2026-11-12,第三方近期日历时段与历史政府介绍无法确认当前园方票种、时间，保持未核验。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B02F306L5G,莲花山公园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37TV2J,深圳会展中心,,周一至周日 09:00-17:00 最晚进入17:00；有展会9:00-17:00；有展会时根据展会情况时间会有所调整，详情可电话咨询景区。,pending,unverified,,,待核验,,,
 深圳,amap-B0FFGB242E,甘坑古镇,,周一至周日 00:00-24:00；小凉帽农场:10:00-18:00 小凉帽剧场:14:00-18:00,pending,unverified,,,待核验,,,
 深圳,amap-B0GDFSX0T6,欢乐港湾,,"公园:06:00-23:00,商业:10:00-22:30",pending,unverified,,,待核验,,,
-深圳,amap-B02F38JKI1,深圳观澜湖休闲旅游区,生态运动公社大门票约30元(机动项目另计)；高尔夫为会籍制；海洋世界130元、飞鸟世界100元、卡鲁冰雪世界198元等园中园另购,周一至周日 00:00-24:00,unverified,unverified,,,待核验,,,
-深圳,amap-B02F37T4NJ,深圳仙湖植物园,成人票15元、学生及6-18岁儿童5元；每日8:00前、18:00后免费入园，6岁以下或1.2米以下、60岁以上、残疾人、现役军人免票；园区6:00-21:30，购票入园8:00-18:00；观光车单程3元、环园日票10元,周一至周日 06:00-21:00,unverified,unverified,,,待核验,,,
+深圳,amap-B02F38JKI1,深圳观澜湖休闲旅游区,生态运动公社大门票约30元(机动项目另计)；高尔夫为会籍制；海洋世界130元、飞鸟世界100元、卡鲁冰雪世界198元等园中园另购,周一至周日 00:00-24:00,unverified,unverified,,,未获足够证据,,2026-11-12,2021年30元资料可能只针对子项目，需先确认当前票种与公园/球会/商圈边界。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
+深圳,amap-B02F37T4NJ,深圳仙湖植物园,成人常规票15元；法定节假日10元；06:00-08:00和18:00-21:30免费；其他优惠资格见园方规则,植物园06:00-21:30，购票入园08:00-18:00；部分专类园09:00-17:00；古生物博物馆装修闭馆，重开待定,verified,verified,https://cgj.sz.gov.cn/xsmh/xhzwy/bmfw/,https://cgj.sz.gov.cn/xsmh/xhzwy/bmfw/,票价与时间已核验,https://cgj.sz.gov.cn/xsmh/xhzwy/bmfw/,2026-11-12,政府园方便民信息，免费时段不等于全天免费。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B02F38J6GZ,深圳大鹏半岛国家地质公园,,周二至周五 09:30-16:00；周六至周日 09:30-17:00；周一 全天关闭，节假日营业时间以官方通知为准,pending,unverified,,,待核验,,,
 深圳,amap-B02F37VQ95,凤凰山森林公园,,周一至周日 06:00-19:00,pending,unverified,,,待核验,,,
 深圳,amap-B0ID79WKDQ,深圳自然博物馆,,"09/21 10:00–18:00开放；01/01-09/20 周二–周日 09:30–18:00开放 最晚进入17:30；09/22-12/31 周二–周日 09:30–18:00开放 最晚进入17:30；01/01-09/20 周一 全天不开放；09/22-12/31 周一 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 09:30–18:00开放 最晚进入17:30；每周一闭馆，法定节假日、寒暑假除外，具体营业状态以当天开放情况为准。",pending,unverified,,,待核验,,,
@@ -1618,15 +1618,15 @@
 深圳,amap-B0FFGAM57F,中英街,,周一至周日 09:00-22:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFHDJMFY,鹅公湾,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFG47P61,南澳第一沙滩,,周一至周日 08:00-18:00 最晚进入18:00,pending,unverified,,,待核验,,,
-深圳,amap-B02F38TG4Q,海上田园,成人票55元，1.2-1.5米儿童28元，学生30元，夜场成人40元/儿童20元，1.2米以下免票；9:00-20:00（19:30停止入园）；含亲水乐园、童话王国夜场的联票另计，亲水乐园冬季停运,"9:00-20:00,19:00停止售票,19:30停止检票",unverified,unverified,,,待核验,,,
+深圳,amap-B02F38TG4Q,海上田园,成人票55元，1.2-1.5米儿童28元，学生30元，夜场成人40元/儿童20元，1.2米以下免票；9:00-20:00（19:30停止入园）；含亲水乐园、童话王国夜场的联票另计，亲水乐园冬季停运,"9:00-20:00,19:00停止售票,19:30停止检票",unverified,unverified,,,未获足够证据,,2026-11-12,政府A级目录仅确认身份等级，问卷消费档位不是门票，不据此核验价格。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0I13UUQ44,观澜古墟,,周一至周日 11:00-21:00,pending,unverified,,,待核验,,,
 深圳,amap-B0IBG7J677,恩上湿地公园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFKB2ERH,华侨城光明欢乐田园,,周一至周日 09:30-18:00 最晚进入17:30,pending,unverified,,,待核验,,,
-深圳,amap-B0FFFO3YLH,观澜山水田园文化园,观光大门票60元（平日约45元，OTA特惠49.9元起），1.2-1.5米儿童及60-69岁老人30元；9:00-21:00（20:30停止入园）；乡村汤泉另计成人139元、儿童50元，门票+8项游乐套票49.9元起,周一至周日 09:00-21:00 最晚进入20:30；夜场入园时间:17:00-20:30,unverified,unverified,,,待核验,,,
+深圳,amap-B0FFFO3YLH,观澜山水田园文化园,观光大门票60元（平日约45元，OTA特惠49.9元起），1.2-1.5米儿童及60-69岁老人30元；9:00-21:00（20:30停止入园）；乡村汤泉另计成人139元、儿童50元，门票+8项游乐套票49.9元起,周一至周日 09:00-21:00 最晚进入20:30；夜场入园时间:17:00-20:30,unverified,unverified,,,未获足够证据,,2026-11-12,园方购票项目与温泉、夜场等产品分开；政府线路仅说明需购票，未确认金额。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0HG5SBMWA,前海博物馆,,,pending,pending,,,待核验,,,
 深圳,amap-B02F37RKRH,儿童公园,,"周二至周日06:00-23:00,园内动力游乐设施运营时间09:00-22:00周一闭园,周一遇法定节假公园正常对外开放,闭园顺延至节后首个周一至周五",pending,unverified,,,待核验,,,
 深圳,amap-B0FFI76FPP,中山大学(深圳校区),,,pending,pending,,,待核验,,,
-深圳,amap-B02F30242B,深圳南山青青世界,成人票80元（线上/OTA约69.9-76元），儿童/老人优待票40元；1.2米以下儿童、70岁以上老人、一二级残疾人免票；8:30-18:00（17:30停止入园）；园内陶艺DIY、动物投喂等另收费,周一至周五 08:30-17:30 最晚进入17:30；周六至周日 08:30-18:00 最晚进入17:30；周末及节假日08:30-18:00（17:30停止入园）,unverified,unverified,,,待核验,,,
+深圳,amap-B02F30242B,深圳南山青青世界,成人票80元（线上/OTA约69.9-76元），儿童/老人优待票40元；1.2米以下儿童、70岁以上老人、一二级残疾人免票；8:30-18:00（17:30停止入园）；园内陶艺DIY、动物投喂等另收费,周一至周五 08:30-17:30 最晚进入17:30；周六至周日 08:30-18:00 最晚进入17:30；周末及节假日08:30-18:00（17:30停止入园）,unverified,unverified,,,未获足够证据,,2026-11-12,政府页面确认身份，第三方售票价不能代替园方现行常规票价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0FFG3WT2M,南山公园,,周一至周日 06:00-21:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFF4H4MQ,香港中文大学(深圳),,,pending,pending,,,待核验,,,
 深圳,amap-B0FFK4HFDB,深圳技术大学,,,pending,pending,,,待核验,,,
@@ -1649,7 +1649,7 @@
 深圳,amap-B0FFGM6YKB,深圳博物馆新馆,,周二至周日 10:00-18:00,pending,unverified,,,待核验,,,
 深圳,amap-B0L355ESRL,西丽湖,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37VHEM,深圳职业技术大学(西丽校区西丽湖园区),,,pending,pending,,,待核验,,,
-深圳,amap-B0J6J56UDU,光明文化艺术中心,269.00,10:00-18:00(城市规划馆和图书馆周一关闭),unverified,unverified,,,待核验,,,
+深圳,amap-B0J6J56UDU,光明文化艺术中心,269.00,10:00-18:00(城市规划馆和图书馆周一关闭),unverified,unverified,,,未获足够证据,,2026-11-12,图书馆、美术馆、展览馆与演艺中心时段及收费各异，不能以部分免费代表整体。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0MGXSXWT9,深圳市大鹏半岛旅游度假区,,,pending,pending,,,待核验,,,
 深圳,amap-B0FFG9KGTS,前海石公园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFG7LLXC,宝安西湾红树林公园,,周一至周日 06:00-22:00 最晚进入22:00,pending,unverified,,,待核验,,,
@@ -1688,7 +1688,7 @@
 深圳,amap-B02F38IGU3,大沙河公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F38IYO1,光明农场大观园,,周一至周日 09:00-17:30 最晚进入17:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37VEJF,清华大学深圳国际研究生院,,,pending,pending,,,待核验,,,
-深圳,amap-B0G0HSI2BJ,龙岗儿童公园·星高度魔法村,149.00,周一至周日 09:00-22:00,unverified,unverified,,,待核验,,,
+深圳,amap-B0G0HSI2BJ,龙岗儿童公园·星高度魔法村,149.00,周一至周日 09:00-22:00,unverified,unverified,,,未获足够证据,,2026-11-12,公共公园免费与动力设备套票不同，不把入园免费等同魔法村所有游乐免费。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B02F37VPSL,塘下涌文化广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F30A3RV,龙园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37VQ97,玉律广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
@@ -1704,7 +1704,7 @@
 深圳,amap-B0GRHMQCPI,头陂公园,,周一至周日 07:00-19:00,pending,unverified,,,待核验,,,
 深圳,amap-B0J2JC4N0W,科学公园,,周一至周日 09:00-20:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37UI67,龙城广场,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
-深圳,amap-B02F37SI8P,平湖生态园,140.00,周一至周日 09:00-22:00,unverified,unverified,,,待核验,,,
+深圳,amap-B02F37SI8P,平湖生态园,140.00,06:00-22:00,unverified,verified,,https://cgj.sz.gov.cn/xsmh/gysz/csgy/content/post_10774861.html,部分字段已核验,https://cgj.sz.gov.cn/xsmh/gysz/csgy/content/post_10774861.html,2026-11-12,官方公园页确认时段；未找到明确票价说明，不由城市公园性质推断免费。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B0FFGMD7J0,欣旺达动力科技股份有限公司(光明研发基地),,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFHGHPGP,莲花山公园-邓小平雕像,,周一至周日 06:30-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B0FFH0ZH1A,白石龙音乐主题公园,,周一至周日 00:00-24:00,pending,unverified,,,待核验,,,
@@ -1740,7 +1740,7 @@
 深圳,amap-B0J1RUQORM,人鱼洞,,"00:00-24:00, 具体开放时间以现场公示为准",pending,unverified,,,待核验,,,
 深圳,amap-B0FFFCIAYF,深圳中学(泥岗校区),,,pending,pending,,,待核验,,,
 深圳,amap-B0M1X76PCR,深圳罗山谷,,,pending,pending,,,待核验,,,
-深圳,amap-B0LUHHJ58M,恒远海立方·深圳海洋馆,77.00,周一至周日 10:00-19:00,unverified,unverified,,,待核验,,,
+深圳,amap-B0LUHHJ58M,恒远海立方·深圳海洋馆,77.00,周一至周日 10:00-19:00,unverified,unverified,,,未获足够证据,,2026-11-12,政府报道的免费研学课堂不等于海洋馆免费，未据此改票价。；逐字段证据见 reports/evidence/priority-attraction-verification.json。未获证据字段继续未核验。
 深圳,amap-B02F37VKOP,雪竹径公园,,周一至周日 06:00-23:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F37VM44,月亮湾公园,,周一至周日 06:00-22:00,pending,unverified,,,待核验,,,
 深圳,amap-B02F302563,四海公园,,周一至周日 06:00-22:00,pending,unverified,,,待核验,,,
