@@ -55,6 +55,30 @@ class RatingOrderTest {
   }
 
   @Test
+  @DisplayName("站前广场、停车场这类通行空间不算景点；火车站、机场本体不能一起排除")
+  void filtersTransitFacilitiesButKeepsRealSpots() {
+    // 真实案例：知识库里有「丽江站站前广场」，评分 5.0，不拦就排到最前
+    assertThat(RatingOrder.isNonTourismName("丽江站站前广场")).isTrue();
+    assertThat(RatingOrder.isNonTourism(attraction("丽江站站前广场", "其他", "5.0"))).isTrue();
+    // 其他通行空间与配套设施
+    assertThat(RatingOrder.isNonTourismName("某某站候车室")).isTrue();
+    assertThat(RatingOrder.isNonTourismName("某某景区停车场")).isTrue();
+    assertThat(RatingOrder.isNonTourismName("某某地铁站")).isTrue();
+    assertThat(RatingOrder.isNonTourismName("某某收费站")).isTrue();
+    // 不能误伤：浦口火车站、骆岗机场航站楼都是真景点
+    assertThat(RatingOrder.isNonTourismName("浦口火车站")).isFalse();
+    assertThat(RatingOrder.isNonTourismName("浦口火车站文化旅游区")).isFalse();
+    assertThat(RatingOrder.isNonTourismName("原合肥骆岗机场航站楼")).isFalse();
+    assertThat(RatingOrder.isNonTourismName("白塔火车站旧址")).isFalse();
+    // 不排除宽泛的「广场」：「天安门广场」这类是真景点
+    assertThat(RatingOrder.isNonTourismName("天安门广场")).isFalse();
+    // 排序结果里站前广场必须消失
+    assertThat(RatingOrder.ranked(List.of(attraction("丽江站站前广场", "其他", "5.0"),
+        attraction("丽江古城", "5A", "4.8")), 8)).extracting(Attraction::name)
+        .containsExactly("丽江古城");
+  }
+
+  @Test
   @DisplayName("ranked 不改变入参、按 limit 截断；空列表返回空")
   void capsAndDoesNotMutate() {
     List<Attraction> source = List.of(

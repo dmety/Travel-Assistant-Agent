@@ -73,14 +73,55 @@ public class FoodRecommendationService {
 
   private final AmapClient amap;
   private final BaiduPlaceClient baidu;
+  private final FoodResponseCache cache;
 
+  /** 测试用：不带幂等缓存，每次都是真调用。 */
   public FoodRecommendationService(AmapClient amap, BaiduPlaceClient baidu) {
+    this(amap, baidu, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public FoodRecommendationService(AmapClient amap, BaiduPlaceClient baidu,
+      FoodResponseCache cache) {
     this.amap = amap;
     this.baidu = baidu;
+    this.cache = cache;
   }
 
   public AgentResult recommend(AgentContext context) {
     long started = System.currentTimeMillis();
+    // 幂等优先：同一 runId 的重放直接返回上次的信封，不再打地图接口。
+    // 缓存未命中才往下走真实召回，命中时结果里会带一条「本次未重新请求地图接口」的说明。
+    String fingerprint = fingerprintOf(context);
+    if (cache != null) {
+      AgentResult cached = cache.get(context.runId(), fingerprint);
+      if (cached != null) {
+        return cached;
+      }
+    }
+    AgentResult result = doRecommend(context, started);
+    if (cache != null) {
+      cache.put(context.runId(), fingerprint, result);
+    }
+    return result;
+  }
+
+  /**
+   * 请求指纹：同一 {@code runId} 换了参数就不是重放，不能返回旧结果。
+   *
+   * <p>只取会影响召回与筛选的字段，顺序固定，保证同参数下指纹稳定。
+   */
+  private static String fingerprintOf(AgentContext context) {
+    Map<String, Object> input = context.context() == null ? Map.of() : context.context();
+    StringBuilder sb = new StringBuilder();
+    for (String key : List.of("city", "radiusMeters", "budgetCny", "mealSlot",
+        "dietaryFlags", "showReviews", "showReasons", "includeChains", "includeInspiration")) {
+      sb.append(key).append('=').append(input.get(key)).append(';');
+    }
+    return Integer.toHexString(sb.toString().hashCode()) + ":" + sb.length();
+  }
+
+  private AgentResult doRecommend(AgentContext context, long started) {
     Map<String, Object> input = context.context() == null ? Map.of() : context.context();
     List<String> notices = new ArrayList<>();
     Set<String> unknown = new LinkedHashSet<>();
@@ -208,10 +249,12 @@ public class FoodRecommendationService {
     }
 
     List<Fact> facts = new ArrayList<>();
+    // 稳定 ID 先分配再装配：同批里 ID 撞了就追加序号，而不是悄悄丢掉一条候选。
+    List<String> foodIds = assignIds(selected, notices);
     for (int i = 0; i < selected.size(); i++) {
       FoodPlace place = selected.get(i);
       int distance = (int) Math.round(distanceTo(place, centers));
-      facts.add(fact(place, i, distance, radius, budget,
+      facts.add(fact(place, i, foodIds.get(i), distance, radius, budget,
           text(input.get("mealSlot")), showReviews, showReasons));
     }
     if (facts.isEmpty()) {
@@ -302,7 +345,47 @@ public class FoodRecommendationService {
 
   // ---------------------------------------------------------------- fact 装配
 
-  private static Fact fact(FoodPlace place, int index, int distance, int radius,
+  /**
+   * 给每个候选分配稳定 ID，并校验同批唯一。
+   *
+   * <p>没有稳定 ID 时，前端只能靠下标认人：用户点第 3 家、下一轮候选顺序一变就指错。
+   * ID 由来源与 {@code poiId} 组成；缺 {@code poiId} 时退化为「名称 + 坐标」，
+   * 保证同名不同店（连锁分店、同名小馆）不会共用一个 ID。
+   *
+   * <p>撞号不删条目：候选是用户的选择权，不能因为工程实现问题减少可选项。
+   */
+  private static List<String> assignIds(List<FoodPlace> selected, List<String> notices) {
+    List<String> ids = new ArrayList<>();
+    Set<String> used = new LinkedHashSet<>();
+    int collisions = 0;
+    for (FoodPlace place : selected) {
+      String base = idBase(place);
+      String id = base;
+      int n = 1;
+      while (!used.add(id)) {
+        n++;
+        id = base + "#" + n;
+        collisions++;
+      }
+      ids.add(id);
+    }
+    if (collisions > 0) {
+      notices.add("有 " + collisions + " 条候选的稳定 ID 与同批其他条目重复，已追加序号区分");
+    }
+    return ids;
+  }
+
+  private static String idBase(FoodPlace place) {
+    String poi = place.poiId();
+    if (poi != null && !poi.isBlank()) {
+      return clip(place.source() + ":" + poi.strip(), 64);
+    }
+    String geo = place.lat() == null || place.lon() == null
+        ? "" : String.format(java.util.Locale.ROOT, "@%.4f,%.4f", place.lat(), place.lon());
+    return clip(place.source() + ":" + normalize(place.name()) + geo, 64);
+  }
+
+  private static Fact fact(FoodPlace place, int index, String foodId, int distance, int radius,
       Double budget, String mealSlot, boolean showReviews, boolean showReasons) {
     List<String> constraintNotes = new ArrayList<>();
     if (budget != null && place.pricePerPersonCny() != null
@@ -323,6 +406,7 @@ public class FoodRecommendationService {
     Map<String, Object> value = new LinkedHashMap<>();
     value.put("category", "FOOD");
     value.put("kind", "RESTAURANT");
+    value.put("foodId", foodId);
     value.put("name", place.name());
     value.put("mealSlot", mealSlot);
     value.put("pricePerPersonCny", place.pricePerPersonCny());

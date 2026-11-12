@@ -38,6 +38,9 @@ travel:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
-    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:20000}
+    # 读超时。原值 20000 与 ChatAgent 自给的 45 秒总预算互相冲突：模型一旦想得久一点，
+    # 单个请求就在 20 秒被取消，整条链路降级成规则兜底，用户看到的是「信息有限」。
+    # 提到 60 秒，让单次调用走完再判失败；真要限时由 ChatAgent 的总预算兜。
+    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:60000}
     # 调用预算（max-tool-calls / max-model-calls）随 Agent Provider SPI 落地时再引入：
     # 此前该键在源码里零引用，留着只会让人误以为限流已生效。

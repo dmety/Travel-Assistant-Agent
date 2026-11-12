@@ -456,15 +456,58 @@ class ChatToolsTest {
   }
 
   @Test
-  @DisplayName("工具清单：八个工具，名字唯一，参数声明合法")
+  @DisplayName("路线：把 ROUTE fact 转成带距离与耗时的摘要，并返回 route 卡片")
+  void routePlanOk() {
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "ROUTE");
+    value.put("mode", "WALKING");
+    value.put("modeLabel", "步行");
+    value.put("origin", "黄鹤楼（武汉）");
+    value.put("destination", "东湖听涛（武汉）");
+    value.put("distanceText", "3.2 公里");
+    value.put("durationText", "42 分钟");
+    value.put("steps", List.of(Map.of("instruction", "沿解放路向南", "road", "解放路",
+        "distanceMeters", 800, "durationSeconds", 600)));
+    Fact fact = new Fact("builtin.route:path", "CONTENT", value,
+        new Evidence("AMAP", "builtin.route", Evidence.UNVERIFIED, Instant.now(), "test"));
+    when(orchestrator.dispatch(any(DispatchRequest.class)))
+        .thenReturn(ok("ROUTE_ADVICE", "builtin.route", fact));
+
+    ChatTools.Outcome outcome = tools.execute("route_plan",
+        "{\"origin\":\"黄鹤楼\",\"destination\":\"东湖听涛\",\"mode\":\"walking\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("3.2 公里").contains("42 分钟").contains("步行");
+    assertThat(outcome.card()).isNotNull();
+    assertThat(outcome.card().type()).isEqualTo("route");
+  }
+
+  @Test
+  @DisplayName("路线：编排层拒绝时如实说没算出来，并明确要求不要编距离")
+  void routePlanRefused() {
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(new DispatchOutcome(
+        "ROUTE_ADVICE", "REFUSED", "builtin.rules",
+        AgentResult.refused(List.of(), List.of("origin"), "路线查询需要起点与终点"),
+        List.of(), "test"));
+
+    ChatTools.Outcome outcome = tools.execute("route_plan",
+        "{\"origin\":\"不存在的景点\",\"destination\":\"东湖\"}");
+
+    assertThat(outcome.ok()).isFalse();
+    assertThat(outcome.summary()).contains("路线查询需要起点与终点").contains("不要编造");
+    assertThat(outcome.card()).isNull();
+  }
+
+  @Test
+  @DisplayName("工具清单：九个工具，名字唯一，参数声明合法")
   void specsAreWellFormed() {
-    assertThat(ChatTools.SPECS).hasSize(8);
+    assertThat(ChatTools.SPECS).hasSize(9);
     List<String> names = ChatTools.SPECS.stream()
         .map(spec -> String.valueOf(((Map<?, ?>) spec.get("function")).get("name")))
         .toList();
     assertThat(names).containsExactlyInAnyOrder(
         "resolve_place", "list_attractions", "get_weather", "find_food",
-        "draft_itinerary", "book_ticket", "get_inspiration", "vote_plan");
+        "draft_itinerary", "book_ticket", "get_inspiration", "vote_plan", "route_plan");
   }
 
   private static DispatchOutcome ok(String intent, String provider, Fact fact) {

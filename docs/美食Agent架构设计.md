@@ -177,7 +177,9 @@
 
 所有参与距离计算的坐标先统一到 GCJ-02。`tools/kb/models.py` 已有 `wgs84_to_gcj02` 与 `gcj02_to_wgs84`，`tools/kb/query.py` 有 `_to_wgs84`，实现时复用同一套转换，不另写公式。
 
-用 Haversine 算直线距离。`distanceMeters` 是直线距离，不是步行距离或步行时间；需要步行时间得另调路径规划接口，本期不做，`notices` 里要说明距离按直线计算。半径由用户选，超出半径的候选写标注、不剔除，见「用户选择权」。
+用 Haversine 算直线距离。`distanceMeters` 是直线距离，不是步行距离或步行时间；要步行时间得另调路径规划，`notices` 里要说明距离按直线计算。半径由用户选，超出半径的候选写标注、不剔除，见「用户选择权」。
+
+> 2026-11-11 补记：对话层的 `route_plan` 工具已接通 `GET /api/location/route`（高德步行 / 驾车 / 公交），美食推荐自身的 `distanceMeters` 口径不变，仍是直线距离；两者不互相替代，页面上不能把直线距离当步行距离展示。
 
 **阻塞已解除（2026-11-09）**：源库里 `coordinateSystem` 是 GCJ-02 4,395 条、WGS-84 3,350 条，原先 `tools/build_attraction_index.py` 的 `KEEP_FIELDS` 只有 20 个字段，索引不带坐标系标签，服务端无法正确下发锚点。现已把该字段加进白名单并重建索引；`AttractionStore` 用 `mapper.treeToValue(node, Attraction.class)` 解析时，因 `Attraction` 是 `@JsonIgnoreProperties(ignoreUnknown = true)` 的 record，必须同步在 record 里加 `@JsonProperty("coordinateSystem")` 才会透传，这一点已用真实服务验收 `/api/attractions/{id}` 复核。锚点标签缺失或无法识别时编排层直接跳过该点，不猜坐标系。
 
