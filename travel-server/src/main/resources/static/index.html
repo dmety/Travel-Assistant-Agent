@@ -15,7 +15,8 @@
   } catch (e) { /* 隐私模式忽略 */ }
 })();
 </script>
-<!-- 登录 / 注册页 · 视觉令牌与工作台同源，图标由 tools/design_icons.py wire 注入 -->
+<!-- 登录 / 注册页 · 视觉令牌与工作台同源，图标由 tools/design_icons.py wire 注入。
+     布局按 design/account.html 实现：左松绿 hero + 看板娘，右表单；看板娘正脸资产在 /mascot/（mascot-v4-front-*.png）。 -->
 <style>
 :root {
   color-scheme: light;
@@ -26,6 +27,7 @@
   --pine-text:#1E4A3E;
   --clay:#B4542A; --clay-soft:#F6E8DF; --clay-line:#E3C4B1;
   --ok:#2E6B52; --ok-soft:#E7F0EA; --err:#A03A2C; --err-soft:#F8E7E3; --err-line:#E8C6BE;
+  --warn:#9A6B1E; --warn-soft:#F7EEDD; --warn-line:#E6D3A8;
   --surface:#FFFFFF; --bg:var(--paper);
   --action-bg:var(--pine); --action-fg:#FFFFFF; --action-bg-hover:var(--pine-hover);
   --fs-xs:12px; --fs-sm:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:25px;
@@ -45,6 +47,7 @@ html[data-theme="dark"] {
   --pine-text:#9ACDB4;
   --clay:#D9805A; --clay-soft:#33231B; --clay-line:#4E3628;
   --ok:#6FAF93; --ok-soft:#1F2E27; --err:#E08C7C; --err-soft:#33201C; --err-line:#4E302A;
+  --warn:#D9B36B; --warn-soft:#2E2618; --warn-line:#4A3C22;
   --surface:#212620;
   --action-bg:#2F6B57; --action-fg:#F2F7F3; --action-bg-hover:#38795F;
   --shadow-1:0 1px 2px rgba(0,0,0,.42),0 1px 3px rgba(0,0,0,.34);
@@ -61,6 +64,7 @@ html[data-theme="dark"] {
     --pine-text:#9ACDB4;
     --clay:#D9805A; --clay-soft:#33231B; --clay-line:#4E3628;
     --ok:#6FAF93; --ok-soft:#1F2E27; --err:#E08C7C; --err-soft:#33201C; --err-line:#4E302A;
+    --warn:#D9B36B; --warn-soft:#2E2618; --warn-line:#4A3C22;
     --surface:#212620;
     --action-bg:#2F6B57; --action-fg:#F2F7F3; --action-bg-hover:#38795F;
     --shadow-1:0 1px 2px rgba(0,0,0,.42),0 1px 3px rgba(0,0,0,.34);
@@ -89,38 +93,66 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .atmo svg{width:100%;height:100%;opacity:.5}
 .atmo .grain{opacity:.55}
 
-/* ---------- 顶栏：只有品牌与外观切换 ---------- */
+/* ---------- 顶栏：只留外观切换（品牌交给看板娘） ---------- */
 .topbar{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:18px 24px}
-.brand{display:flex;align-items:center;gap:10px}
-.seal{width:34px;height:34px;flex:0 0 auto}
-.brand b{font-size:var(--fs-md);font-weight:600;letter-spacing:.02em}
-.brand small{display:block;font-size:var(--fs-xs);color:var(--text-3);line-height:1.2}
 .topbar .right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .iconbtn{width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-ctl);
   border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font-size:14px}
 .iconbtn:hover{border-color:var(--pine);color:var(--pine-text)}
 
-/* ---------- 主区：一张卡，别的不抢注意力 ---------- */
-main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:8px 20px 32px}
-.card{width:min(404px,100%);background:var(--surface-warm);border:1px solid var(--line);
-  border-radius:var(--r-lg);box-shadow:var(--shadow-3);padding:26px 26px 22px}
-.card h1{font-size:var(--fs-lg);letter-spacing:-.01em;margin:0 0 4px}
-.card .lede{font-size:var(--fs-xs);color:var(--text-3);margin:0 0 18px;line-height:1.7}
+/* ---------- 主区：左右分栏，左看板娘右表单 ---------- */
+main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:8px 20px 28px}
+.auth{width:min(940px,100%);min-height:560px;display:grid;grid-template-columns:1fr 1fr;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  box-shadow:var(--shadow-3);overflow:hidden}
 
-.segs{display:flex;gap:2px;padding:3px;background:var(--paper-2);border:1px solid var(--line);
-  border-radius:var(--r-pill);margin-bottom:18px}
-.segs button{flex:1;min-height:32px;border-radius:var(--r-pill);font-size:var(--fs-sm);
-  color:var(--text-3)}
-.segs button:hover{color:var(--ink)}
-.segs button[aria-selected="true"]{background:var(--surface);color:var(--pine-text);
-  font-weight:600;box-shadow:var(--shadow-1)}
+/* 左：松绿 hero + 看板娘（登录区唯一视觉主体） */
+.auth-hero{position:relative;overflow:hidden;background:var(--pine);color:#fff;
+  padding:48px 44px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.auth-hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(62% 52% at 28% 18%, rgba(180,84,42,.20), transparent 60%)}
+
+.hero-mascot{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+.hero-mascot .mascot-mount{width:230px;height:300px;flex:0 0 auto;cursor:pointer;
+  filter:drop-shadow(0 16px 28px rgba(0,0,0,.20))}
+.hero-mascot .mascot-cap{max-width:270px;padding:10px 18px;border-radius:var(--r-pill);
+  border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);
+  color:rgba(255,255,255,.94);font-size:var(--fs-sm);line-height:1.65}
+
+/* 看板娘组件（与 tokens.css / kanban.html 同源；类名契约 .look-user/.look-pass 不要改名） */
+.mascot-svg{position:relative;display:block;width:100%;height:100%}
+.mascot-svg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+  transition:opacity .24s ease}
+.mascot-svg .m-user,.mascot-svg .m-pass{opacity:0}
+.mascot-svg.look-user .m-idle{opacity:0}
+.mascot-svg.look-user .m-user{opacity:1}
+.mascot-svg.look-pass .m-idle{opacity:0}
+.mascot-svg.look-pass .m-pass{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes mgBreath{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  @keyframes mgNod{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(4px) rotate(2deg)}70%{transform:translateY(-2px) rotate(-1deg)}100%{transform:translateY(0) rotate(0)}}
+  .mascot-svg{animation:mgBreath 5.6s ease-in-out infinite}
+  .mascot-svg.nod{animation:mgNod .55s cubic-bezier(.16,1,.3,1) both}
+}
+@media (prefers-reduced-motion:reduce){
+  .mascot-svg,.mascot-svg img{animation:none!important;transition:none!important}
+}
+
+/* 右：表单 */
+.auth-form{padding:48px 44px;display:flex;flex-direction:column}
+.auth-form .tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.auth-form .tabs button{padding:0 0 12px;font-size:var(--fs-md);color:var(--text-3);
+  border-bottom:2px solid transparent;margin-bottom:-1px;background:none}
+.auth-form .tabs button[aria-selected="true"]{color:var(--pine);font-weight:600;border-bottom-color:var(--pine)}
+.auth-form .tabs button:hover{color:var(--ink)}
 
 form{display:none}
 form.active{display:block}
-.field{margin-bottom:13px}
+.field{margin-bottom:14px}
 .field label{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:5px}
 .field input{width:100%;height:40px;padding:0 12px;background:var(--surface);
-  border:1px solid var(--field-line);border-radius:var(--r-ctl);outline:none;font-size:var(--fs-sm)}
+  border:1px solid var(--field-line);border-radius:var(--r-ctl);outline:none;font-size:var(--fs-sm);
+  transition:border-color .18s ease,box-shadow .18s ease}
 .field input:focus{border-color:var(--clay);box-shadow:0 0 0 3px var(--clay-soft)}
 .field input::placeholder{color:var(--muted-2)}
 .field input[aria-invalid="true"]{border-color:var(--err);box-shadow:0 0 0 3px var(--err-soft)}
@@ -134,17 +166,24 @@ form.active{display:block}
 
 .submit{width:100%;min-height:42px;margin-top:6px;border-radius:var(--r-ctl);
   background:var(--action-bg);color:var(--action-fg);font-size:var(--fs-sm);font-weight:600;
-  display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.submit:hover{background:var(--action-bg-hover)}
-.submit:disabled{opacity:.6;cursor:not-allowed}
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .18s ease,box-shadow .18s ease;box-shadow:var(--shadow-1)}
+.submit:hover{background:var(--action-bg-hover);transform:translateY(-2px);box-shadow:var(--shadow-2)}
+.submit:active{transform:translateY(0)}
+.submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
 
-.msg{min-height:20px;margin-top:12px;font-size:var(--fs-xs);line-height:1.6;color:var(--text-3)}
-.msg.err{color:var(--err)}
-.msg.ok{color:var(--ok)}
-.msg .bar{display:flex;gap:6px;align-items:flex-start;padding:8px 10px;border-radius:var(--r-ctl);
+.msg:empty{display:none}
+.msg{min-height:0;margin:0 0 14px;font-size:var(--fs-xs);line-height:1.6;color:var(--text-3)}
+.msg .bar{display:flex;gap:6px;align-items:flex-start;padding:9px 12px;border-radius:var(--r-ctl);
   border:1px solid var(--line);background:var(--paper-2)}
-.msg.err .bar{border-color:var(--err-line);background:var(--err-soft)}
-.msg.ok .bar{border-color:var(--pine-line);background:var(--ok-soft)}
+.msg.err .bar{border-color:var(--err-line);background:var(--err-soft);color:var(--err)}
+.msg.ok .bar{border-color:var(--pine-line);background:var(--ok-soft);color:var(--ok)}
+.msg .bar svg{margin-top:2px}
+
+.notice-bar{padding:9px 12px;border-radius:var(--r-ctl);background:var(--warn-soft);
+  border:1px solid var(--warn-line);color:var(--warn);font-size:var(--fs-xs);margin-top:14px;line-height:1.6}
+.alt{text-align:center;font-size:var(--fs-xs);color:var(--text-3);margin-top:16px}
+.alt a{color:var(--pine)}
 
 .foot{position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   padding:0 24px 20px;font-size:var(--fs-xs);color:var(--text-3)}
@@ -152,10 +191,14 @@ form.active{display:block}
 .foot a{color:var(--text-3)}
 .foot a:hover{color:var(--pine-text)}
 
+@media (max-width:760px){
+  .auth{grid-template-columns:1fr;min-height:0}
+  .auth-hero{padding:40px 28px}
+  .auth-form{padding:32px 28px 40px}
+}
 @media (max-width:520px){
   .topbar{padding:14px 16px}
   main{padding:4px 14px 24px}
-  .card{padding:20px 18px 18px;border-radius:var(--r-card)}
   .foot{padding:0 16px 16px;gap:10px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -167,88 +210,59 @@ form.active{display:block}
 <svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
   <!-- 由 design/icons.svg 与 design/brand-mark.svg 派生，勿在此手改 -->
 <defs>
-    <!-- 纸色宽线：在等高线上刻出山径的槽，让两条线不相撞 -->
     <path id="ridge" d="M14 16 L22 24 L18 33 L30 38 L40 48"/>
   </defs>
 <symbol id="mark-full" viewBox="0 0 64 64">
-<!-- 印框：圆角方印，右下 45 度斜切 -->
   <path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z"
         fill="var(--paper)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/>
-
-  <!-- 三道等高线：由外向内收拢，线宽与透明度递减 -->
   <g fill="none" stroke="var(--pine)" stroke-linecap="round">
     <path d="M11 48 C14 32 22 21 31 21 C40 21 48 32 51 48" stroke-width="2.7"/>
     <path d="M18 48 C20 37 25 30 31 30 C37 30 42 37 44 48" stroke-width="2.2" opacity=".82"/>
     <path d="M25 48 C26 42 28 38 31 38 C34 38 36 42 37 48" stroke-width="1.8" opacity=".62"/>
   </g>
-
-  <!-- 切口处的第二道刻线，强调「被切开」而非圆角矩形 -->
   <path d="M44.5 55.5 L55.5 44.5" fill="none" stroke="var(--pine)" stroke-width="1.3" opacity=".45" stroke-linecap="round"/>
-
-  <!-- 山径：先纸色刻槽，再赤陶细线 -->
   <use href="#ridge" fill="none" stroke="var(--paper)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
   <use href="#ridge" fill="none" stroke="var(--clay)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- 起点：空心小环；终点：实心落点 + 纸色内点，与印框呼应 -->
   <circle cx="14" cy="16" r="2.5" fill="var(--paper)" stroke="var(--clay)" stroke-width="1.8"/>
   <circle cx="40" cy="48" r="4.6" fill="var(--clay)"/>
   <circle cx="40" cy="48" r="1.6" fill="var(--paper)"/>
   </symbol>
 <symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/>
-    <path d="M3.5 20.5 H20.5"/>
-    <circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/>
-    <path d="M17 12.5 L20.5 9" opacity=".55"/>
+    <path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/><path d="M3.5 20.5 H20.5"/>
+    <circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><path d="M17 12.5 L20.5 9" opacity=".55"/>
   </symbol>
 <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4.5 3.5 H18 A2 2 0 0 1 20 5.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V5.5 A2 2 0 0 1 4.5 3.5 Z"/>
-    <path d="M6.5 15 L10 9 L9 12 L14 13 L17 8"/>
-    <circle cx="17" cy="8" r="1.7" fill="currentColor" stroke="none"/>
+    <path d="M6.5 15 L10 9 L9 12 L14 13 L17 8"/><circle cx="17" cy="8" r="1.7" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 5 L9 5 L7 11 L14 12 L18 19"/>
-    <circle cx="4" cy="5" r="2.1"/>
-    <circle cx="18" cy="19" r="2.4" fill="currentColor" stroke="none"/>
-    <path d="M18 5 L20.5 5 L20.5 7.5" opacity=".5"/>
+    <path d="M4 5 L9 5 L7 11 L14 12 L18 19"/><circle cx="4" cy="5" r="2.1"/><circle cx="18" cy="19" r="2.4" fill="currentColor" stroke="none"/><path d="M18 5 L20.5 5 L20.5 7.5" opacity=".5"/>
   </symbol>
 <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M8.5 5.5 H20.5 M8.5 12 H17.5 M8.5 18.5 H20.5"/>
-    <circle cx="4" cy="5.5" r="1.6" fill="currentColor" stroke="none"/>
-    <circle cx="4" cy="12" r="1.6" fill="currentColor" stroke="none"/>
-    <circle cx="4" cy="18.5" r="1.6" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="5.5" r="1.6" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="4" cy="18.5" r="1.6" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4.5 4.5 H18 A2 2 0 0 1 20 6.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V6.5 A2 2 0 0 1 4.5 4.5 Z"/>
-    <path d="M3.5 9 H20 M7.5 2.5 V6 M15.5 2.5 V6"/>
-    <circle cx="15" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
+    <path d="M3.5 9 H20 M7.5 2.5 V6 M15.5 2.5 V6"/><circle cx="15" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V13.5 L13.5 19 H6 A2 2 0 0 1 4 17 V5.5 A2 2 0 0 1 5 3.5 Z"/>
-    <circle cx="11.5" cy="10.5" r="2.6" fill="currentColor" stroke="none"/>
-    <circle cx="11.5" cy="10.5" r=".9" fill="#F7F4EE" stroke="none"/>
+    <circle cx="11.5" cy="10.5" r="2.6" fill="currentColor" stroke="none"/><circle cx="11.5" cy="10.5" r=".9" fill="#F7F4EE" stroke="none"/>
   </symbol>
 <symbol id="i-candidate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7.5 3.5 H18 A2 2 0 0 1 20 5.5 V12 L15 17 H7.5 A2 2 0 0 1 5.5 15 V5.5 A2 2 0 0 1 7.5 3.5 Z"/>
-    <path d="M3.5 8 V17 A2 2 0 0 0 5.5 19 H13" opacity=".65"/>
-    <path d="M10.5 10 H16 M10.5 13 H14"/>
+    <path d="M3.5 8 V17 A2 2 0 0 0 5.5 19 H13" opacity=".65"/><path d="M10.5 10 H16 M10.5 13 H14"/>
   </symbol>
 <symbol id="i-collab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="8" cy="8" r="3.2"/>
-    <circle cx="17" cy="8.5" r="2.6"/>
-    <path d="M2.5 19.5 C2.5 16 5 14 8 14 C11 14 13.5 16 13.5 19.5"/>
-    <path d="M15.5 13 L18.5 14.5 L21.5 12" opacity=".7"/>
+    <circle cx="8" cy="8" r="3.2"/><circle cx="17" cy="8.5" r="2.6"/>
+    <path d="M2.5 19.5 C2.5 16 5 14 8 14 C11 14 13.5 16 13.5 19.5"/><path d="M15.5 13 L18.5 14.5 L21.5 12" opacity=".7"/>
   </symbol>
 <symbol id="i-vote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 20 V11 M10 20 V6 M16 20 V13"/>
-    <path d="M4 20 H20.5"/>
-    <circle cx="10" cy="4" r="1.8" fill="currentColor" stroke="none"/>
-    <path d="M15.5 3.5 L18 6 L20.5 3" opacity=".6"/>
+    <path d="M4 20 V11 M10 20 V6 M16 20 V13"/><path d="M4 20 H20.5"/><circle cx="10" cy="4" r="1.8" fill="currentColor" stroke="none"/><path d="M15.5 3.5 L18 6 L20.5 3" opacity=".6"/>
   </symbol>
 <symbol id="i-budget" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 18.5 L9 13 L12.5 15.5 L20 7"/>
-    <path d="M3.5 20.5 H20.5"/>
-    <circle cx="20" cy="7" r="2.1" fill="currentColor" stroke="none"/>
-    <path d="M4 6 H10" opacity=".55"/>
+    <path d="M4 18.5 L9 13 L12.5 15.5 L20 7"/><path d="M3.5 20.5 H20.5"/><circle cx="20" cy="7" r="2.1" fill="currentColor" stroke="none"/><path d="M4 6 H10" opacity=".55"/>
   </symbol>
 <symbol id="i-source" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5 3.5 H14 L19 8.5 V15 L14 20.5 H6 A2 2 0 0 1 4 18.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
@@ -256,92 +270,60 @@ form.active{display:block}
   </symbol>
 <symbol id="i-think" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3.5 18 C3.5 9 8 4.5 14 4.5 C18 4.5 20.5 7 20.5 10"/>
-    <path d="M7 18 C7 12 10 8.5 14 8.5 C16.2 8.5 17.5 9.6 17.5 11.5"/>
-    <path d="M3.5 20.5 H20.5"/>
-    <circle cx="14" cy="14" r="1.8" fill="currentColor" stroke="none"/>
+    <path d="M7 18 C7 12 10 8.5 14 8.5 C16.2 8.5 17.5 9.6 17.5 11.5"/><path d="M3.5 20.5 H20.5"/><circle cx="14" cy="14" r="1.8" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-remind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 3.5 L21 13 L16 20.5 H5.5 A2 2 0 0 1 3.5 18.5 Z"/>
-    <path d="M12 9 V14"/>
-    <circle cx="12" cy="17.5" r="1.3" fill="currentColor" stroke="none"/>
+    <path d="M12 3.5 L21 13 L16 20.5 H5.5 A2 2 0 0 1 3.5 18.5 Z"/><path d="M12 9 V14"/><circle cx="12" cy="17.5" r="1.3" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="9" y="2.5" width="6" height="11" rx="3"/>
-    <path d="M5.5 11.5 C5.5 15.5 8.5 18 12 18 C15.5 18 18.5 15.5 18.5 11.5"/>
-    <path d="M12 18 V21.5 M8.5 21.5 H15.5"/>
-    <path d="M6.5 6.5 H4.5" opacity=".55"/>
+    <rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11.5 C5.5 15.5 8.5 18 12 18 C15.5 18 18.5 15.5 18.5 11.5"/><path d="M12 18 V21.5 M8.5 21.5 H15.5"/><path d="M6.5 6.5 H4.5" opacity=".55"/>
   </symbol>
 <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 20.5 V4.5 M6.5 10 L12 4.5 L17.5 10"/>
-    <path d="M5 20.5 H19"/>
-    <circle cx="12" cy="4.5" r="1.6" fill="currentColor" stroke="none"/>
+    <path d="M12 20.5 V4.5 M6.5 10 L12 4.5 L17.5 10"/><path d="M5 20.5 H19"/><circle cx="12" cy="4.5" r="1.6" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6.5 6.5 L17 17 M17 6.5 L6.5 17"/>
-    <circle cx="12" cy="12" r="1.4" fill="#F7F4EE" stroke="none"/>
+    <path d="M6.5 6.5 L17 17 M17 6.5 L6.5 17"/><circle cx="12" cy="12" r="1.4" fill="#F7F4EE" stroke="none"/>
   </symbol>
 <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 9 L12 16 L19 9"/>
-    <path d="M9 4.5 H15" opacity=".5"/>
+    <path d="M5 9 L12 16 L19 9"/><path d="M9 4.5 H15" opacity=".5"/>
   </symbol>
 <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M15 5 L8 12 L15 19"/>
-    <path d="M8 12 H20" opacity=".5"/>
+    <path d="M15 5 L8 12 L15 19"/><path d="M8 12 H20" opacity=".5"/>
   </symbol>
 <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 4.5 V19.5 M4.5 12 H19.5"/>
-    <path d="M17 3.5 H20.5 V7" opacity=".5"/>
+    <path d="M12 4.5 V19.5 M4.5 12 H19.5"/><path d="M17 3.5 H20.5 V7" opacity=".5"/>
   </symbol>
 <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 12.5 L9.5 18 L20 6"/>
-    <circle cx="20" cy="6" r="1.8" fill="currentColor" stroke="none"/>
+    <path d="M4 12.5 L9.5 18 L20 6"/><circle cx="20" cy="6" r="1.8" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
-    <path d="M12 6.5 V12 L16 14.5"/>
-    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><path d="M12 6.5 V12 L16 14.5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V12 L13 18.5 H6 A2 2 0 0 1 4 16.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
-    <path d="M13 18.5 V21.5 H21 V13"/>
-    <path d="M21 13 L16 18" opacity=".6"/>
+    <path d="M13 18.5 V21.5 H21 V13"/><path d="M21 13 L16 18" opacity=".6"/>
   </symbol>
 <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="10.5" cy="10.5" r="6.8"/>
-    <path d="M15.5 15.5 L21 21"/>
-    <path d="M7.5 10.5 H13.5" opacity=".55"/>
+    <circle cx="10.5" cy="10.5" r="6.8"/><path d="M15.5 15.5 L21 21"/><path d="M7.5 10.5 H13.5" opacity=".55"/>
   </symbol>
 <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 16.5 L16 4.5 L19.5 8 L7.5 20 H4 Z"/>
-    <path d="M13.5 7 L17 10.5"/>
-    <path d="M4 20.5 H20.5" opacity=".45"/>
+    <path d="M4 16.5 L16 4.5 L19.5 8 L7.5 20 H4 Z"/><path d="M13.5 7 L17 10.5"/><path d="M4 20.5 H20.5" opacity=".45"/>
   </symbol>
 <symbol id="i-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 18.5 C4 10 8 5 13 5 C17 5 20 8 20 12"/>
-    <path d="M8 18.5 C8 13 10 9.5 13 9.5"/>
-    <circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
+    <path d="M4 18.5 C4 10 8 5 13 5 C17 5 20 8 20 12"/><path d="M8 18.5 C8 13 10 9.5 13 9.5"/><circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
   </symbol>
 <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5.5 4 H16.5 A2 2 0 0 1 18.5 6 V8.6 A2.8 2.8 0 0 0 18.5 14.4 V16 L13 21 H6.5 A2 2 0 0 1 4.5 19 V6 A2 2 0 0 1 5.5 4 Z"/>
-    <path d="M6.5 9 H9.5 M6.5 12.5 H9"/>
-    <path d="M12.5 7.5 V10 M12.5 12.5 V15 M12.5 17 V18.5" opacity=".65"/>
+    <path d="M6.5 9 H9.5 M6.5 12.5 H9"/><path d="M12.5 7.5 V10 M12.5 12.5 V15 M12.5 17 V18.5" opacity=".65"/>
   </symbol>
 <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
-    <circle cx="12" cy="12" r="3.4"/>
-    <path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22"/>
-    <path d="M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/>
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><circle cx="12" cy="12" r="3.4"/>
+    <path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22"/><path d="M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/>
   </symbol>
 <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/>
-    <circle cx="16.4" cy="8.2" r="1.1" fill="currentColor" stroke="none" opacity=".7"/>
+    <path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/><circle cx="16.4" cy="8.2" r="1.1" fill="currentColor" stroke="none" opacity=".7"/>
   </symbol>
 </svg>
-
-
-
-
-
 
 <div class="atmo" aria-hidden="true">
   <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
@@ -359,10 +341,6 @@ form.active{display:block}
 </div>
 
 <header class="topbar">
-  <div class="brand">
-    <span class="seal"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#mark-full"/></svg></span>
-    <div><b>旅行助手</b><small>规划 · 票务 · 行程</small></div>
-  </div>
   <div class="right">
     <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
       <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
@@ -371,49 +349,66 @@ form.active{display:block}
 </header>
 
 <main>
-  <div class="card">
-    <h1 id="cardTitle">登录</h1>
-    <p class="lede">行程草案、票务核验与地图点位都存在你自己的账号下。</p>
-
-    <div class="segs" role="tablist" aria-label="登录或注册">
-      <button type="button" role="tab" id="tabLogin" aria-selected="true"
-              aria-controls="loginForm" data-tab="login">登录</button>
-      <button type="button" role="tab" id="tabRegister" aria-selected="false"
-              aria-controls="registerForm" data-tab="register">注册</button>
+  <div class="auth">
+    <!-- 左：看板娘 -->
+    <div class="auth-hero">
+      <div class="hero-mascot">
+        <span class="mascot-mount" id="mascotMount" role="img" aria-label="看板娘 游小满">
+          <div class="mascot-svg" aria-hidden="true">
+            <img class="m-idle" src="/mascot/mascot-v4-front-idle.png" alt="">
+            <img class="m-user" src="/mascot/mascot-v4-front-idle.png" alt="">
+            <img class="m-pass" src="/mascot/mascot-v4-front-shy.png" alt="">
+          </div>
+        </span>
+        <div class="mascot-cap" id="mascotCap" aria-live="polite">嗨，我是小满。告诉我去哪儿、玩几天、和谁一起，剩下的我来排。</div>
+      </div>
     </div>
 
-    <form id="loginForm" class="active" aria-labelledby="tabLogin" novalidate>
-      <div class="field">
-        <label for="lUser">用户名</label>
-        <input id="lUser" name="username" autocomplete="username" placeholder="输入用户名" required />
+    <!-- 右：表单 -->
+    <div class="auth-form">
+      <div class="tabs" role="tablist" aria-label="登录或注册">
+        <button type="button" role="tab" id="tabLogin" aria-selected="true"
+                aria-controls="loginForm" data-tab="login">登录</button>
+        <button type="button" role="tab" id="tabRegister" aria-selected="false"
+                aria-controls="registerForm" data-tab="register">注册</button>
       </div>
-      <div class="field pw">
-        <label for="lPass">密码</label>
-        <input id="lPass" name="password" type="password" autocomplete="current-password"
-               placeholder="输入密码" required />
-        <button class="peek" type="button" data-peek="lPass" aria-pressed="false">显示</button>
-      </div>
-      <button class="submit" type="submit">登录</button>
-    </form>
 
-    <form id="registerForm" aria-labelledby="tabRegister" novalidate>
-      <div class="field">
-        <label for="rUser">用户名</label>
-        <input id="rUser" name="username" autocomplete="username"
-               placeholder="3–32 位字母、数字或下划线" aria-describedby="rUserHint" required />
-        <span class="hint" id="rUserHint">3–32 位，仅字母 / 数字 / 下划线</span>
-      </div>
-      <div class="field pw">
-        <label for="rPass">密码</label>
-        <input id="rPass" name="password" type="password" autocomplete="new-password"
-               placeholder="至少 8 位，含字母和数字" aria-describedby="rPassHint" required />
-        <button class="peek" type="button" data-peek="rPass" aria-pressed="false">显示</button>
-        <span class="hint" id="rPassHint">至少 8 位，且同时包含字母和数字</span>
-      </div>
-      <button class="submit" type="submit">注册并登录</button>
-    </form>
+      <div class="msg" id="msg" role="status" aria-live="polite"></div>
 
-    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+      <form id="loginForm" class="active" aria-labelledby="tabLogin" novalidate>
+        <div class="field">
+          <label for="lUser">用户名</label>
+          <input id="lUser" name="username" autocomplete="username" placeholder="输入用户名" required />
+        </div>
+        <div class="field pw">
+          <label for="lPass">密码</label>
+          <input id="lPass" name="password" type="password" autocomplete="current-password"
+                 placeholder="输入密码" required />
+          <button class="peek" type="button" data-peek="lPass" aria-pressed="false">显示</button>
+        </div>
+        <button class="submit" type="submit">登录</button>
+      </form>
+
+      <form id="registerForm" aria-labelledby="tabRegister" novalidate>
+        <div class="field">
+          <label for="rUser">用户名</label>
+          <input id="rUser" name="username" autocomplete="username"
+                 placeholder="3–32 位字母、数字或下划线" aria-describedby="rUserHint" required />
+          <span class="hint" id="rUserHint">3–32 位，仅字母 / 数字 / 下划线</span>
+        </div>
+        <div class="field pw">
+          <label for="rPass">密码</label>
+          <input id="rPass" name="password" type="password" autocomplete="new-password"
+                 placeholder="至少 8 位，含字母和数字" aria-describedby="rPassHint" required />
+          <button class="peek" type="button" data-peek="rPass" aria-pressed="false">显示</button>
+          <span class="hint" id="rPassHint">至少 8 位，且同时包含字母和数字</span>
+        </div>
+        <button class="submit" type="submit">注册并登录</button>
+      </form>
+
+      <div class="notice-bar">安全提示：登录每分钟最多 8 次，注册每分钟最多 20 次；超了会暂时拒绝请求，稍等再试。</div>
+      <div class="alt">还没有账号？<a href="#" id="toRegister">立即注册</a></div>
+    </div>
   </div>
 </main>
 
@@ -434,10 +429,8 @@ form.active{display:block}
   var ORDER = ['auto', 'light', 'dark'];
   var TEXT = { auto: '跟随系统', light: '浅色', dark: '深色' };
   function current() {
-    try {
-      var t = localStorage.getItem(THEME_KEY);
-      return ORDER.indexOf(t) >= 0 ? t : 'auto';
-    } catch (e) { return 'auto'; }
+    try { var t = localStorage.getItem(THEME_KEY); return ORDER.indexOf(t) >= 0 ? t : 'auto'; }
+    catch (e) { return 'auto'; }
   }
   function paintIcon(mode) {
     var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia &&
@@ -460,6 +453,49 @@ form.active{display:block}
   $('themeBtn').addEventListener('click', function () {
     apply(ORDER[(ORDER.indexOf(current()) + 1) % ORDER.length]);
   });
+
+  /* ---------- 看板娘：台词与三态表情（与 account.html / tokens.css 同源） ---------- */
+  var CAP_IDLE = '嗨，我是小满。告诉我去哪儿、玩几天、和谁一起，剩下的我来排。';
+  var CAP_USER = '名字记下了，下回我认得你。';
+  var CAP_PASS = '我不看，你慢慢输。';
+  var heroSvg = document.querySelector('.hero-mascot .mascot-svg');
+  var capEl = $('mascotCap');
+  function setMood(cls, text) {
+    if (heroSvg) {
+      heroSvg.classList.remove('look-user', 'look-pass');
+      if (cls) heroSvg.classList.add(cls);
+    }
+    if (capEl) capEl.textContent = text;
+  }
+  function bindFormMood(form) {
+    if (!form) return;
+    var u = form.querySelector('input:not([type="password"])');
+    var p = form.querySelector('input[type="password"]');
+    if (!u || !p) return;
+    function mood() {
+      if (document.activeElement === p) setMood('look-pass', CAP_PASS);
+      else if (document.activeElement === u) setMood('look-user', CAP_USER);
+      else setMood(null, CAP_IDLE);
+    }
+    u.addEventListener('focus', mood); p.addEventListener('focus', mood);
+    u.addEventListener('blur', mood); p.addEventListener('blur', mood);
+    u.addEventListener('input', function () { setMood('look-user', CAP_USER); });
+    p.addEventListener('input', function () { setMood('look-pass', CAP_PASS); });
+  }
+  bindFormMood($('loginForm'));
+  bindFormMood($('registerForm'));
+  // 被点一下点个头（设计约定：点击看板娘点头）
+  var mount = $('mascotMount');
+  if (mount && heroSvg) {
+    mount.addEventListener('click', function () {
+      heroSvg.classList.remove('nod');
+      void heroSvg.getBoundingClientRect();
+      heroSvg.classList.add('nod');
+    });
+    heroSvg.addEventListener('animationend', function (e) {
+      if (e.animationName === 'mgNod') heroSvg.classList.remove('nod');
+    });
+  }
 
   /* ---------- 只接受同源站内相对路径：URL 解析后校验 origin，挡住 //、/\ 归一与外链 ---------- */
   function safeNext() {
@@ -494,9 +530,7 @@ form.active{display:block}
     bar.appendChild(span);
     box.appendChild(bar);
   }
-  function markInvalid(node, bad) {
-    node.setAttribute('aria-invalid', bad ? 'true' : 'false');
-  }
+  function markInvalid(node, bad) { node.setAttribute('aria-invalid', bad ? 'true' : 'false'); }
   function lock(form, on, label) {
     var btn = form.querySelector('.submit');
     btn.disabled = on;
@@ -510,16 +544,17 @@ form.active{display:block}
     $('registerForm').classList.toggle('active', !isLogin);
     $('tabLogin').setAttribute('aria-selected', isLogin ? 'true' : 'false');
     $('tabRegister').setAttribute('aria-selected', isLogin ? 'false' : 'true');
-    $('cardTitle').textContent = isLogin ? '登录' : '注册';
     clearMsg();
+    setMood(null, CAP_IDLE);
     $(isLogin ? 'lUser' : 'rUser').focus();
     try { history.replaceState(null, '', isLogin ? location.pathname + location.search
       : location.pathname + location.search + (location.search ? '&' : '?') + 'mode=register'); }
     catch (e) { /* file:// 忽略 */ }
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.segs button'), function (b) {
+  Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
     b.addEventListener('click', function () { switchTab(b.dataset.tab); });
   });
+  if ($('toRegister')) $('toRegister').addEventListener('click', function (e) { e.preventDefault(); switchTab('register'); });
   if (new URLSearchParams(location.search).get('mode') === 'register') switchTab('register');
 
   /* ---------- 密码可见性 ---------- */
@@ -631,10 +666,7 @@ form.active{display:block}
 
   /* ---------- 已登录就别停在登录页 ---------- */
   fetch('/api/account/me', { credentials: 'same-origin' })
-    .then(function (res) {
-      if (!res.ok) return null;
-      return res.json();
-    })
+    .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (u) {
       if (u && u.username && !new URLSearchParams(location.search).get('stay')) {
         show('已登录为 ' + u.username + '，正在进入…', 'ok');
