@@ -205,4 +205,18 @@ class SecurityRulesTest extends ApiTestBase {
         .andExpect(header().string("X-Content-Type-Options", "nosniff"))
         .andExpect(header().string("X-Frame-Options", "DENY"));
   }
+
+  @Test
+  @DisplayName("未配置管理令牌时，Provider 管理端点对登录用户也 fail-closed 403（F1）")
+  void adminEndpointsFailClosedWithoutConfiguredToken() throws Exception {
+    // 默认上下文未注入 travel.agent.admin-token：管理端点必须一律拒绝，
+    // 不能因为「已登录」就放行——否则任意注册用户仍可触发探针/影子/启用与读取准入报告。
+    MockHttpSession user = registerAndLogin();
+    mvc.perform(post("/api/agent/providers/reload").session(user))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/agent/providers/any-id/admission").session(user))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/api/agent/providers/any-id/activate").session(user))
+        .andExpect(status().isForbidden());
+  }
 }

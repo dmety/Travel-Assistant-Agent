@@ -67,7 +67,7 @@ public class TravelClient {
         }
       } else if (args.length >= 4 && "invitations".equalsIgnoreCase(args[1])) {
         // 我的待处理邀请：invitations <用户名> <密码> [accept|reject <邀请ID>]
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         if (args.length >= 6) {
           cli.respondInvitation(args[4], args[5]);
         } else {
@@ -75,7 +75,7 @@ public class TravelClient {
         }
       } else if (args.length >= 6 && "invite".equalsIgnoreCase(args[1])) {
         // 发起邀请：invite <用户名> <密码> <行程ID> <受邀账号> [板块...]
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         String[] sections = args.length > 6
             ? java.util.Arrays.copyOfRange(args, 6, args.length)
             : new String[0];
@@ -85,45 +85,45 @@ public class TravelClient {
         cli.showTicket(String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length)));
       } else if (args.length >= 5 && "timeline".equalsIgnoreCase(args[1])) {
         // 协作记录（V2 §4）：timeline <用户名> <密码> <行程ID>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.showTimeline(args[4]);
       } else if (args.length >= 6 && "comment".equalsIgnoreCase(args[1])) {
         // 留言（V2 §4）：comment <用户名> <密码> <行程ID> <内容…>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.addComment(args[4], String.join(" ", java.util.Arrays.copyOfRange(args, 5, args.length)));
       } else if (args.length >= 5 && "plan".equalsIgnoreCase(args[1])) {
         // 规划草案（V2 §2）：plan <用户名> <密码> <目的地> [天数]
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         Integer days = args.length >= 6 ? parseIntOrNull(args[5]) : null;
         cli.showPlan(args[4], days);
       } else if (args.length >= 5 && "votes".equalsIgnoreCase(args[1])) {
         // 候选与投票（V3 §1）：votes <用户名> <密码> <行程ID>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.showBoard(args[4]);
       } else if (args.length >= 6 && "candidate".equalsIgnoreCase(args[1])) {
         // 添加候选：candidate <用户名> <密码> <行程ID> <名称> [ATTRACTION|LODGING|OTHER]
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.addCandidate(args[4], args[5],
             args.length >= 7 ? args[6].toUpperCase() : "ATTRACTION");
       } else if (args.length >= 7 && "vote".equalsIgnoreCase(args[1])) {
         // 投票：vote <用户名> <密码> <行程ID> <候选ID> support|oppose|abstain
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.castVote(args[4], args[5], args[6]);
       } else if (args.length >= 5 && "advice".equalsIgnoreCase(args[1])) {
         // 综合决策建议（V3 §3）：advice <用户名> <密码> <行程ID>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.showAdvice(args[4]);
       } else if (args.length >= 5 && "export".equalsIgnoreCase(args[1])) {
         // 导出文本摘要（V3 §4）：export <用户名> <密码> <行程ID>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.exportText(args[4]);
       } else if (args.length >= 5 && ("archive".equalsIgnoreCase(args[1])
           || "unarchive".equalsIgnoreCase(args[1]))) {
         // 归档/取消归档（V3 §4）：archive|unarchive <用户名> <密码> <行程ID>
-        cli.loginOnly(args[2], args[3]);
+        cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.setArchived(args[4], "archive".equalsIgnoreCase(args[1]));
       } else if (args.length >= 3) {
-        cli.demoAuth(args[1], args[2]);
+        cli.demoAuth(args[1], resolvePassword(args[2], ui));
       } else {
         ui.println("景点查询（交互）：java -jar travel-client.jar " + base + " attractions");
         ui.println("按城市查询：      java -jar travel-client.jar " + base + " attractions 杭州");
@@ -154,7 +154,12 @@ public class TravelClient {
             + " export <用户名> <密码> <行程ID>");
         ui.println("归档/取消归档：   java -jar travel-client.jar " + base
             + " archive|unarchive <用户名> <密码> <行程ID>");
+        ui.println("密码安全：把 <密码> 写成 env:TRAVEL_CLI_PASSWORD（从环境变量读）或 -（掩码/管道输入），"
+            + "避免明文出现在进程列表与 shell 历史。");
       }
+    } catch (IllegalArgumentException e) {
+      System.err.println(e.getMessage());
+      System.exit(1);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       System.err.println("连接已中断");
@@ -951,6 +956,56 @@ public class TravelClient {
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body)).build();
     return client.send(request, HttpResponse.BodyHandlers.ofString());
+  }
+
+  /**
+   * 解析密码参数，避免明文密码出现在进程列表与 shell 历史（F8）。
+   *
+   * <p>支持三种写法：{@code env:VAR} 从环境变量读；{@code -} 或 {@code stdin} 优先取
+   * {@code TRAVEL_CLI_PASSWORD}、否则掩码/管道输入；字面量仅为兼容旧脚本保留，不推荐。
+   * 纯逻辑与输入端解耦，便于脱离终端做单元测试。
+   */
+  static String resolvePassword(String arg, java.util.function.Function<String, String> env,
+      java.util.function.Supplier<String> input) {
+    if (arg == null || arg.equals("-") || arg.equalsIgnoreCase("stdin")) {
+      String fromEnv = env.apply("TRAVEL_CLI_PASSWORD");
+      if (fromEnv != null && !fromEnv.isEmpty()) {
+        return fromEnv;
+      }
+      String typed = input.get();
+      if (typed == null || typed.isEmpty()) {
+        throw new IllegalArgumentException(
+            "未提供密码：请设置环境变量 TRAVEL_CLI_PASSWORD，或通过 stdin 传入");
+      }
+      return typed;
+    }
+    if (arg.startsWith("env:")) {
+      String var = arg.substring(4);
+      if (var.isEmpty()) {
+        var = "TRAVEL_CLI_PASSWORD";
+      }
+      String value = env.apply(var);
+      if (value == null || value.isEmpty()) {
+        throw new IllegalArgumentException("环境变量 " + var + " 未设置或为空，无法读取密码");
+      }
+      return value;
+    }
+    return arg;
+  }
+
+  /** 一次性命令用：输入端按是否交互选择掩码读取或管道一行。 */
+  static String resolvePassword(String arg, ConsoleUI ui) {
+    return resolvePassword(arg, System::getenv, () -> {
+      if (ui.isInteractive()) {
+        return ui.readMasked("  密码: ");
+      }
+      try {
+        return new java.io.BufferedReader(
+            new java.io.InputStreamReader(System.in, StandardCharsets.UTF_8)).readLine();
+      } catch (java.io.IOException e) {
+        return null;
+      }
+    });
   }
 
   private static String encode(String value) {

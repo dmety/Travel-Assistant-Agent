@@ -220,10 +220,13 @@ class ItineraryBudgetTest extends ApiTestBase {
   void checksPassWhenDataIsComplete() throws Exception {
     MockHttpSession owner = registerAndLogin();
     String id = createItinerary(owner, "完整行程");
-    savePlan(id, owner, planWithDates("2026-11-10", "2026-11-12"), 1);
-    saveDaily(id, owner, 2, "2026-11-11", "逛西湖");
-    saveTransports(id, owner, 3, transportOn("2026-11-10"));
-    saveLodgings(id, owner, 4, lodgingBetween("2026-11-10", "2026-11-12"));
+    // 相对今天取日期：硬编码的固定日期会随日历推移变成过去，触发 TRIP_ENDED 而误报体检不通过
+    LocalDate depart = LocalDate.now();
+    LocalDate ret = depart.plusDays(2);
+    savePlan(id, owner, planWithDates(depart.toString(), ret.toString()), 1);
+    saveDaily(id, owner, 2, depart.plusDays(1).toString(), "逛西湖");
+    saveTransports(id, owner, 3, transportOn(depart.toString()));
+    saveLodgings(id, owner, 4, lodgingBetween(depart.toString(), ret.toString()));
     saveExpenses(id, owner, 5, expenseOf("交通", "600", "CNY"));
 
     JsonNode body = checks(id, owner);

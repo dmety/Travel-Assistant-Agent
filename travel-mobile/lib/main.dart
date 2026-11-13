@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api/client.dart';
 import 'models/plan_view.dart';
-import 'screens/chat_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -18,7 +18,7 @@ class TravelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '旅行助手',
+      title: '出逃计划',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home: const BootGate(),
@@ -79,6 +79,6 @@ class _BootGateState extends State<BootGate> {
         },
       );
     }
-    return ChatScreen(username: a.username, onLogout: _logout);
+    return HomeScreen(username: a.username, onLogout: _logout);
   }
 }

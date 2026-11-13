@@ -1,5 +1,7 @@
 server:
   port: ${SERVER_PORT:8080}
+  # 优雅停机：收到 SIGTERM 后先拒新请求、放行在途请求再退出，配合容器/反代滚动重启不丢请求。
+  shutdown: graceful
   servlet:
     # 强制请求/响应 UTF-8：静态页面（含大量中文）与 JSON 响应都会带上 charset，
     # 避免客户端按 ISO-8859-1 解码导致乱码。
@@ -11,10 +13,15 @@ server:
       cookie:
         http-only: true
         same-site: strict
+        # 本地演示走 HTTP，默认 false 才能种上会话 Cookie；生产经 HTTPS 终止后必须置 true
+        # （SESSION_COOKIE_SECURE=true），否则 Cookie 会随明文请求泄漏。见部署说明 P5。
         secure: ${SESSION_COOKIE_SECURE:false}
 spring:
   application:
     name: travel-assistant
+  lifecycle:
+    # 优雅停机每阶段最长等待，超时强制退出；与 server.shutdown=graceful 配套。
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
 travel:
   data-directory: ${TRAVEL_DATA_DIR:./data}
   # 景点精简索引库（Python 离线构建产物，Java 只读加载，不覆盖）
@@ -23,6 +30,22 @@ travel:
   # 系统不会因此生成任何猜测链接。
   ticket-rule-file: ${TICKET_RULE_FILE:${travel.data-directory}/ticket_rules.json}
   ticket-channel-file: ${TICKET_CHANNEL_FILE:${travel.data-directory}/ticket_channels.json}
+  # Provider 管理端点独立令牌（F1）：reload/probe/shadow/activate/admission 只认此令牌，
+  # 与用户注册/会话解耦。留空即 fail-closed，所有管理请求 403；生产经环境变量注入，勿写入仓库。
+  agent:
+    admin-token: ${AGENT_ADMIN_TOKEN:}
+    # 单次 run 的调用预算（F11）：模型/工具调用次数上限，超时仍由契约 timeoutMs 边界切断。
+    # 默认值与编排层既有行为一致（plan 1/4、vote 2/8），经环境变量可调，无需改码。
+    budget:
+      plan-max-model-calls: ${AGENT_PLAN_MAX_MODEL_CALLS:1}
+      plan-max-tool-calls: ${AGENT_PLAN_MAX_TOOL_CALLS:4}
+      vote-max-model-calls: ${AGENT_VOTE_MAX_MODEL_CALLS:2}
+      vote-max-tool-calls: ${AGENT_VOTE_MAX_TOOL_CALLS:8}
+  # 登录/注册速率限制（F7）：进程内滑动窗口，登录按账号+IP、注册按 IP 计数，超限返回 429。
+  # 单实例内存方案，重启归零；多实例部署需换共享存储。置于反代后须先配置 forwarded headers 再按真实 IP 限流。
+  rate-limit:
+    login-per-minute: ${RATE_LIMIT_LOGIN_PER_MIN:8}
+    register-per-minute: ${RATE_LIMIT_REGISTER_PER_MIN:20}
   # 高德 Web 服务密钥。留空则地点/天气/路线查询整体停用，接口返回 503 并说明原因；
   # 行程、景点、预算、协作等本地能力不受影响。
   amap:
@@ -39,5 +62,3 @@ travel:
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
     timeout-ms: ${DEEPSEEK_TIMEOUT_MS:20000}
-    # 调用预算（max-tool-calls / max-model-calls）随 Agent Provider SPI 落地时再引入：
-    # 此前该键在源码里零引用，留着只会让人误以为限流已生效。

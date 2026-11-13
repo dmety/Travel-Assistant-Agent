@@ -16,9 +16,13 @@ import com.travelassistant.server.application.itinerary.VersionConflictException
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.ticket.InvalidTicketQueryException;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +32,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 /** 统一异常映射：行程领域异常 → 对应 HTTP 状态码。 */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
   @ExceptionHandler(ItineraryNotFoundException.class)
   public ResponseEntity<Map<String, Object>> notFound(ItineraryNotFoundException e) {
@@ -185,5 +191,37 @@ public class ApiExceptionHandler {
     return ResponseEntity.badRequest().body(Map.of(
         "error", "参数「" + e.getName() + "」的值 " + e.getValue() + " 格式不正确，请检查后重试",
         "parameter", e.getName()));
+  }
+
+  /**
+   * 兜底：上面没有匹配到的异常统一在这里收口，分两类处理。
+   *
+   * <p>Spring 框架异常（{@link ErrorResponse}，如 404 找不到静态资源、405 方法不支持）保留
+   * 原本的状态码，只把响应体统一成 {@code {"error": ...}}。因为
+   * {@code ExceptionHandlerExceptionResolver} 先于 {@code DefaultHandlerExceptionResolver} 执行，
+   * 这个 {@code Exception.class} 兜底会抢在框架默认处理之前命中；若不保留状态码，404/405 会被
+   * 一律吞成 500，前端按状态码做的判断全部错位。
+   *
+   * <p>其余未预期异常回 500 + 固定文案，堆栈只写服务端日志，绝不回给客户端。
+   */
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Map<String, Object>> unexpected(Exception e) {
+    if (e instanceof ErrorResponse framework) {
+      HttpStatusCode status = framework.getStatusCode();
+      log.debug("框架异常 [{}]：{}", status.value(), e.getMessage());
+      return ResponseEntity.status(status).body(Map.of("error", frameworkMessage(status)));
+    }
+    log.error("未处理的服务器异常", e);
+    return ResponseEntity.status(500).body(Map.of("error", "服务器内部错误，请稍后重试"));
+  }
+
+  private static String frameworkMessage(HttpStatusCode status) {
+    return switch (status.value()) {
+      case 404 -> "请求的资源不存在";
+      case 405 -> "请求方法不被支持";
+      case 406 -> "无法返回客户端可接受的内容类型";
+      case 415 -> "不支持的请求内容类型";
+      default -> status.is4xxClientError() ? "请求无法被处理" : "服务器内部错误，请稍后重试";
+    };
   }
 }

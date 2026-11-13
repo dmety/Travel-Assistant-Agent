@@ -69,3 +69,12 @@ Desktop.ini
 # 页面与移动端已各自内联令牌与图标，运行时不依赖本目录
 # 注意：tools/design_icons.py 以本目录为源，克隆后需自备设计稿才能执行
 /design/
+
+# Docker 相关仅本地保留，不入库/不推送（用户要求：不 push 到 GitHub）
+Dockerfile
+Dockerfile.*
+.dockerignore
+docker-compose*.yml
+docker-compose*.yaml
+compose*.yml
+compose*.yaml

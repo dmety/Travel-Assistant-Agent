@@ -210,6 +210,20 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .thread::-webkit-scrollbar{width:6px}
 .thread::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
 .msg{margin-bottom:12px}
+/* 助手头像：品牌刻石印的 28px 微缩。路径与移动端 BrandAvatar 同源，
+   改一处须同步另一处。用伪元素而非改 DOM，避免碰到消息渲染逻辑。
+   色值写死在 data URI 里，因为外部变量传不进独立渲染的 SVG，
+   深浅两套只能各存一份。 */
+.msg.ai{position:relative;padding-left:36px;
+  --seal:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M6.2 1.5H21.8A4.7 4.7 0 0 1 26.5 6.2V20.6L20.6 26.5H6.2A4.7 4.7 0 0 1 1.5 21.8V6.2A4.7 4.7 0 0 1 6.2 1.5Z' fill='%231E4A3E'/%3E%3Cpath d='M7.4 20.4C9 14.8 11.3 11.6 14 11.6c2.7 0 5 3.2 6.6 8.8' fill='none' stroke='%23F7F4EE' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='20.6' cy='20.4' r='2.1' fill='%23B4542A'/%3E%3C/svg%3E")}
+.msg.ai::before{content:"";position:absolute;left:0;top:2px;width:28px;height:28px;
+  background:var(--seal) center/28px 28px no-repeat}
+html[data-theme="dark"] .msg.ai{
+  --seal:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M6.2 1.5H21.8A4.7 4.7 0 0 1 26.5 6.2V20.6L20.6 26.5H6.2A4.7 4.7 0 0 1 1.5 21.8V6.2A4.7 4.7 0 0 1 6.2 1.5Z' fill='%234E8C72'/%3E%3Cpath d='M7.4 20.4C9 14.8 11.3 11.6 14 11.6c2.7 0 5 3.2 6.6 8.8' fill='none' stroke='%23171A16' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='20.6' cy='20.4' r='2.1' fill='%23D9805A'/%3E%3C/svg%3E")}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) .msg.ai{
+    --seal:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M6.2 1.5H21.8A4.7 4.7 0 0 1 26.5 6.2V20.6L20.6 26.5H6.2A4.7 4.7 0 0 1 1.5 21.8V6.2A4.7 4.7 0 0 1 6.2 1.5Z' fill='%234E8C72'/%3E%3Cpath d='M7.4 20.4C9 14.8 11.3 11.6 14 11.6c2.7 0 5 3.2 6.6 8.8' fill='none' stroke='%23171A16' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='20.6' cy='20.4' r='2.1' fill='%23D9805A'/%3E%3C/svg%3E")}
+}
 .msg.user{display:flex;justify-content:flex-end}
 .msg.user .bubble{max-width:88%;padding:8px 12px;background:var(--action-bg);color:var(--action-fg);
   border-radius:12px 12px 3px 12px;font-size:var(--fs-sm);line-height:1.6}
@@ -1137,6 +1151,108 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 }
 .grab{display:none;width:34px;height:4px;border-radius:99px;background:var(--line-strong);
   margin:8px auto 0}
+/* ---------- 协作面板 ---------- */
+.cl-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.cl-select{padding:8px 10px;border:1px solid var(--field-line);border-radius:var(--r-ctl);
+  background:var(--surface);color:var(--text);font:inherit;font-size:var(--fs-sm);min-width:260px;max-width:100%}
+.cl-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:var(--r-pill);
+  background:var(--clay);color:#fff;font-size:var(--fs-xs);line-height:1.5}
+.cl-archived{margin:0 0 12px;padding:10px 14px;border:1px solid var(--warn-line);border-radius:var(--r-ctl);
+  background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm)}
+.cl-subtabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px}
+.cl-subtabs button{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;
+  border-bottom:2px solid transparent;background:none;color:var(--text-3);font:inherit;
+  font-size:var(--fs-sm);cursor:pointer}
+.cl-subtabs button .ico{width:16px;height:16px}
+.cl-subtabs button[aria-selected="true"]{color:var(--pine-text);border-bottom-color:var(--pine);font-weight:600}
+.cl-pane{max-width:1180px}
+.cl-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:8px}
+.cl-stats b{color:var(--ink)}
+.cl-notes{font-size:var(--fs-xs);color:var(--warn);margin:0 0 12px}
+.cl-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:14px;margin-bottom:10px;box-shadow:var(--shadow-1)}
+.cl-cand-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cl-cand-head h3{margin:0;font-size:var(--fs-sm)}
+.cl-kind{font-size:var(--fs-xs);color:var(--text-3);border:1px solid var(--line);border-radius:var(--r-pill);padding:1px 8px}
+.cl-lead{font-size:var(--fs-xs);color:var(--pine-text);background:var(--pine-soft);
+  border:1px solid var(--pine-line);border-radius:var(--r-pill);padding:1px 8px}
+.cl-score{font-size:var(--fs-sm);font-weight:700;color:var(--pine-text);white-space:nowrap}
+.cl-score.neg{color:var(--err)}
+.cl-card .m{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
+.cl-note{font-size:var(--fs-sm);color:var(--text-2);margin-top:6px;overflow-wrap:anywhere}
+.cl-voters{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cl-voter{font-size:var(--fs-xs);padding:2px 8px;border-radius:var(--r-pill);border:1px solid var(--line);
+  background:var(--paper-2);color:var(--text-2)}
+.cl-voter.support{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.cl-voter.oppose{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
+.cl-voter.abstain{color:var(--text-3)}
+.cl-voteacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.cl-vbtn{padding:4px 12px;border-radius:var(--r-pill);border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--text-2);font:inherit;font-size:var(--fs-xs);cursor:pointer}
+.cl-vbtn:hover{border-color:var(--pine)}
+.cl-vbtn[aria-pressed="true"].support{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:600}
+.cl-vbtn[aria-pressed="true"].oppose{background:var(--err-soft);border-color:var(--err);color:var(--err);font-weight:600}
+.cl-vbtn[aria-pressed="true"].abstain{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn);font-weight:600}
+.cl-vbtn:disabled{opacity:.45;cursor:not-allowed}
+.cl-form{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:14px;margin-bottom:14px}
+.cl-form label{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:4px}
+.cl-form input,.cl-form select,.cl-form textarea{width:100%;box-sizing:border-box;padding:8px 10px;
+  border:1px solid var(--field-line);border-radius:var(--r-ctl);background:var(--surface);
+  color:var(--text);font:inherit;font-size:var(--fs-sm)}
+.cl-form textarea{resize:vertical;min-height:64px}
+.cl-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.cl-row>div{flex:1;min-width:140px}
+.cl-secs{display:flex;gap:6px;flex-wrap:wrap}
+.cl-chip{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);padding:2px 8px;
+  border:1px solid var(--line);border-radius:var(--r-pill);cursor:pointer;color:var(--text-2);user-select:none}
+.cl-chip input{accent-color:var(--pine);margin:0}
+.cl-chip:has(input:checked){background:var(--pine-soft);border-color:var(--pine-line);color:var(--pine-text)}
+.cl-chip:has(input:disabled){cursor:default;opacity:.7}
+.cl-member{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.cl-member:last-child{border-bottom:none}
+.cl-who{font-size:var(--fs-sm);font-weight:600}
+.cl-owner-tag{font-size:var(--fs-xs);color:var(--pine-text);background:var(--pine-soft);
+  border-radius:var(--r-pill);padding:1px 8px;margin-left:6px}
+.cl-status{font-size:var(--fs-xs);border-radius:var(--r-pill);padding:1px 8px;border:1px solid var(--line)}
+.cl-status.PENDING{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.cl-status.ACCEPTED{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.cl-status.REJECTED,.cl-status.CANCELLED{color:var(--text-3)}
+.cl-comment{padding:10px 0;border-bottom:1px solid var(--line)}
+.cl-comment:last-child{border-bottom:none}
+.cl-comment .when{font-size:var(--fs-xs);color:var(--text-3);margin-left:8px;font-weight:400}
+.cl-comment .body{font-size:var(--fs-sm);line-height:1.6;margin-top:4px;overflow-wrap:anywhere;white-space:pre-wrap}
+.cl-log{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+.cl-log:last-child{border-bottom:none}
+.cl-log .when{font-size:var(--fs-xs);color:var(--text-3);min-width:120px}
+.cl-log .summary{overflow-wrap:anywhere}
+.cl-log .ver{font-size:var(--fs-xs);color:var(--text-3)}
+.cl-risk{border:1px solid var(--line);border-left-width:3px;border-radius:var(--r-card);
+  padding:12px;margin-bottom:8px;background:var(--surface)}
+.cl-risk.HIGH{border-left-color:var(--err);background:var(--err-soft)}
+.cl-risk.MEDIUM{border-left-color:var(--warn);background:var(--warn-soft)}
+.cl-risk.INFO{border-left-color:var(--line-strong)}
+.cl-sev{font-size:var(--fs-xs);font-weight:700;margin-right:8px}
+.cl-risk.HIGH .cl-sev{color:var(--err)}
+.cl-risk.MEDIUM .cl-sev{color:var(--warn)}
+.cl-risk.INFO .cl-sev{color:var(--text-3)}
+.cl-risk .basis{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
+.cl-advice-text{font-size:var(--fs-sm);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.cl-h{font-size:var(--fs-sm);margin:16px 0 8px}
+.cl-dialog{border:none;border-radius:var(--r-lg);max-width:min(560px,calc(100vw - 32px));
+  padding:24px;box-shadow:var(--shadow-3);color:var(--ink);background:var(--surface)}
+.cl-dialog::backdrop{background:rgba(16,38,32,.42)}
+.cl-dialog h2{margin:0 0 12px;font-size:var(--fs-md)}
+.cl-dialog label{display:block;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:4px}
+.cl-dialog input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--field-line);
+  border-radius:var(--r-ctl);background:var(--surface);color:var(--text);font:inherit;font-size:var(--fs-sm)}
+.cl-dialog .err{color:var(--err);font-size:var(--fs-xs);min-height:16px;margin-top:8px}
+.cl-dfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.cl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:720px){
+  .cl-select{min-width:0;flex:1}
+  .cl-log .when{min-width:0}
+}
 </style>
 </head>
 <body>
@@ -1325,6 +1441,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <button type="button" role="tab" data-view="plan" aria-selected="true"><svg class="ico"><use href="#i-map"/></svg><span>规划</span></button>
     <button type="button" role="tab" data-view="ticket" aria-selected="false"><svg class="ico"><use href="#i-ticket"/></svg><span>票务</span></button>
     <button type="button" role="tab" data-view="trips" aria-selected="false"><svg class="ico"><use href="#i-list"/></svg><span>行程</span></button>
+    <button type="button" role="tab" data-view="collab" aria-selected="false"><svg class="ico"><use href="#i-collab"/></svg><span>协作</span></button>
   </nav>
   <div class="trip-name" id="tripName">还没有行程</div>
   <div class="trip-meta" id="tripMeta">说一句话开始规划</div>
@@ -1372,7 +1489,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <div id="bmap"></div>
       <div class="pin-layer" id="pinLayer"></div>
       <div class="map-pill"><b id="mapPillTitle">行程地图</b><span id="mapPillMeta">· 尚未生成草案</span></div>
-      <div class="map-note" id="mapNote">未配置 AK · 示意底图</div>
+      <div class="map-note" id="mapNote">示意底图 · 非导航用</div>
       <div class="map-legend">
         <span><i style="background:var(--pine)"></i>已排点位</span>
         <span><i style="background:var(--clay)"></i>按天路线</span>
@@ -1397,7 +1514,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <button class="x" type="button" id="queryClear" aria-label="清除问题">×</button>
       </div>
       <div class="thread" id="thread">
-        <div class="msg" id="welcome">
+        <div class="msg ai" id="welcome">
           <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
           <div class="ai-block">
             <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到地图上。</p>
@@ -1564,6 +1681,34 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     </div>
     <div id="tripsBox"><div class="trip-empty">正在读取…</div></div>
   </section>
+
+  <section class="view" id="viewCollab" hidden aria-label="协作">
+    <div class="trips-head">
+      <h1>协作</h1>
+      <span class="sub" id="collabMeta">选一个行程，开始多人决策</span>
+      <button class="btn btn-outline" type="button" id="clInvBtn"><svg class="ico"><use href="#i-remind"/></svg>我的邀请<span class="cl-badge" id="clInvBadge" hidden>0</span></button>
+    </div>
+    <div class="cl-bar">
+      <label class="cl-sr" for="clTripSel">选择行程</label>
+      <select id="clTripSel" class="cl-select"></select>
+      <button class="btn btn-outline" type="button" id="clRefresh"><svg class="ico"><use href="#i-search"/></svg>刷新</button>
+      <button class="btn btn-outline" type="button" id="clArchive" hidden>归档</button>
+    </div>
+    <div class="cl-archived" id="clArchived" hidden>此行程已归档，全部内容只读。创建者可取消归档恢复编辑。</div>
+    <div id="clBody" hidden>
+      <nav class="cl-subtabs" role="tablist" aria-label="协作功能">
+        <button type="button" role="tab" data-pane="votes" aria-selected="true"><svg class="ico"><use href="#i-vote"/></svg>投票板</button>
+        <button type="button" role="tab" data-pane="members" aria-selected="false"><svg class="ico"><use href="#i-collab"/></svg>成员与邀请</button>
+        <button type="button" role="tab" data-pane="discuss" aria-selected="false"><svg class="ico"><use href="#i-edit"/></svg>留言与记录</button>
+        <button type="button" role="tab" data-pane="advice" aria-selected="false"><svg class="ico"><use href="#i-think"/></svg>决策建议</button>
+      </nav>
+      <div class="cl-pane" id="clPaneVotes" role="tabpanel"></div>
+      <div class="cl-pane" id="clPaneMembers" role="tabpanel" hidden></div>
+      <div class="cl-pane" id="clPaneDiscuss" role="tabpanel" hidden></div>
+      <div class="cl-pane" id="clPaneAdvice" role="tabpanel" hidden></div>
+    </div>
+    <div class="trip-empty" id="clEmpty"><b>先选一个行程</b>协作围绕行程展开：邀请伙伴、候选投票、留言讨论。没有行程的话，去「规划」聊一个草案并保存。</div>
+  </section>
 </main>
 
 <div class="mask" id="mask"></div>
@@ -1584,6 +1729,24 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+
+<dialog id="clInvDialog" class="cl-dialog" aria-labelledby="clInvTitle">
+  <h2 id="clInvTitle">我的待处理邀请</h2>
+  <div id="clInvList"></div>
+  <div class="cl-dfoot"><button class="btn btn-outline" type="button" id="clInvClose">关闭</button></div>
+</dialog>
+
+<dialog id="clApplyDialog" class="cl-dialog" aria-labelledby="clApplyTitle">
+  <h2 id="clApplyTitle">采纳候选写入日程</h2>
+  <p class="sub" id="clApplyName"></p>
+  <label for="clApplyDate">写入哪一天</label>
+  <input id="clApplyDate" type="date" />
+  <div class="err" id="clApplyErr"></div>
+  <div class="cl-dfoot">
+    <button class="btn btn-outline" type="button" id="clApplyCancel">取消</button>
+    <button class="btn btn-primary" type="button" id="clApplyConfirm">写入每日安排</button>
+  </div>
+</dialog>
 <script>
 (function () {
   'use strict';
@@ -1673,8 +1836,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
   /* ---------- 视图切换：用 hash，刷新后停在原视图 ---------- */
   function showView(name, silent) {
-    var target = name === 'ticket' || name === 'trips' ? name : 'plan';
-    ['plan', 'ticket', 'trips'].forEach(function (v) {
+    var target = name === 'ticket' || name === 'trips' || name === 'collab' ? name : 'plan';
+    ['plan', 'ticket', 'trips', 'collab'].forEach(function (v) {
       var box = $('view' + v.charAt(0).toUpperCase() + v.slice(1));
       if (box) box.hidden = v !== target;
     });
@@ -1685,6 +1848,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       try { history.replaceState(null, '', '#' + target); } catch (e) { /* file:// 忽略 */ }
     }
     if (target === 'trips') loadTrips();
+    if (target === 'collab') initCollab();
     if (target === 'plan' && window.__bmap) { try { window.__bmap.resize(); } catch (e) {} }
   }
   Array.prototype.forEach.call(document.querySelectorAll('.vtabs button'), function (b) {
@@ -1698,7 +1862,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     scrollThread();
   }
   function appendTyping() {
-    var n = el('div', 'msg');
+    var n = el('div', 'msg ai');
     n.appendChild(el('div', 'typing', '<i></i><i></i><i></i>'));
     $('thread').appendChild(n); scrollThread();
     return n;
@@ -1731,7 +1895,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
   /* ---------- 一条回复：正文 + 富内容卡片，卡片由 blocks 渲染层统一画 ---------- */
   function renderReply(replyText, cards, baseText, plain) {
-    var msg = el('div', 'msg');
+    var msg = el('div', 'msg ai');
     var body = el('div', 'ai-block');
     body.innerHTML = plain ? esc(replyText) : formatRich(replyText);
     msg.appendChild(body);
@@ -2087,6 +2251,615 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     }
   }
 
+  /* ---------- 协作视图：邀请 / 成员 / 候选投票 / 留言记录 / 决策建议 ---------- */
+  var CL_SECTIONS = ['PLAN', 'DAILY', 'TRANSPORT', 'LODGING', 'EXPENSE'];
+  var CL_SEC_TEXT = { PLAN: '方案', DAILY: '每日', TRANSPORT: '交通', LODGING: '住宿', EXPENSE: '费用' };
+  var CL_CHANGE_TEXT = { PLAN: '方案', DAILY: '每日', TRANSPORT: '交通', LODGING: '住宿',
+                         EXPENSE: '费用', MEMBER: '成员', COMMENT: '留言' };
+  var CL_KIND_TEXT = { ATTRACTION: '景点', LODGING: '住宿', OTHER: '其他' };
+  var CL_CHOICE_TEXT = { SUPPORT: '支持', OPPOSE: '反对', ABSTAIN: '弃权' };
+  var CL_INV_TEXT = { PENDING: '待处理', ACCEPTED: '已接受', REJECTED: '已拒绝', CANCELLED: '已撤回' };
+  var clMe = null, clTrip = null, clBoard = null, clPane = 'votes', clApplyTarget = null;
+
+  function clBase() { return '/api/itineraries/' + encodeURIComponent(clTrip.id); }
+  function clOwner() { return !!clTrip && clTrip.owner === clMe; }
+  function clReadonly() { return !clTrip || !!clTrip.archived; }
+  function clCanEdit(sec) {
+    if (clOwner()) return true;
+    var m = (clTrip.members || []).find(function (x) { return x.username === clMe; });
+    return !!m && (m.editSections || []).indexOf(sec) >= 0;
+  }
+  function clTime(v) { return v ? String(v).replace('T', ' ').slice(0, 16) : ''; }
+  function clDel(path) { return api(path, { method: 'DELETE' }); }
+  function clPut(path, data) {
+    return api(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data) });
+  }
+  function clErr(e) {
+    var msg = e && e.message ? e.message : String(e);
+    toast(msg);
+    if (/版本|冲突|已被他人/.test(msg)) clReloadTrip();
+  }
+  function clCheckedSecs(wrap) {
+    return Array.prototype.map.call(wrap.querySelectorAll('input:checked'),
+      function (i) { return i.value; });
+  }
+  function clSecChips(selected, disabled) {
+    var wrap = el('div', 'cl-secs');
+    CL_SECTIONS.forEach(function (s) {
+      var lab = el('label', 'cl-chip');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = s;
+      cb.checked = (selected || []).indexOf(s) >= 0;
+      cb.disabled = !!disabled;
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(CL_SEC_TEXT[s]));
+      wrap.appendChild(lab);
+    });
+    return wrap;
+  }
+  function clSecText(secs) {
+    var t = (secs || []).map(function (s) { return CL_SEC_TEXT[s] || s; }).join('、');
+    return t || '仅查看';
+  }
+
+  async function initCollab() {
+    try {
+      if (!clMe) { var me = await api('/api/account/me'); clMe = me.username; }
+      await clLoadTrips();
+      clLoadInvCount();
+    } catch (e) { clErr(e); }
+  }
+  async function clLoadTrips() {
+    var list = await api('/api/itineraries');
+    var sel = $('clTripSel');
+    var keep = clTrip ? clTrip.id : sel.value;
+    sel.innerHTML = '';
+    if (!list || !list.length) {
+      sel.appendChild(el('option', null, '（没有行程）'));
+      clTrip = null; clShowEmpty(); return;
+    }
+    list.forEach(function (t) {
+      var o = el('option', null, esc((t.title || '未命名行程') +
+        (t.archived ? '（已归档）' : '') + ' · v' + t.version));
+      o.value = t.id;
+      sel.appendChild(o);
+    });
+    var pick = list.find(function (t) { return t.id === keep; }) || list[0];
+    sel.value = pick.id;
+    await clSelectTrip(pick.id);
+  }
+  async function clSelectTrip(id) {
+    try {
+      clTrip = await api('/api/itineraries/' + encodeURIComponent(id));
+      clBoard = null;
+      $('clEmpty').hidden = true; $('clBody').hidden = false;
+      clHeader(); clSwitchPane(clPane);
+    } catch (e) { clTrip = null; clShowEmpty(); toast(e.message); }
+  }
+  async function clReloadTrip() {
+    if (!clTrip) return;
+    var id = clTrip.id;
+    try {
+      clTrip = await api('/api/itineraries/' + encodeURIComponent(id));
+      clBoard = null; clHeader(); clSwitchPane(clPane);
+    } catch (e) { clTrip = null; clShowEmpty(); }
+  }
+  function clShowEmpty() {
+    $('clBody').hidden = true; $('clEmpty').hidden = false;
+    $('collabMeta').textContent = '选一个行程，开始多人决策';
+    $('clArchive').hidden = true; $('clArchived').hidden = true;
+  }
+  function clHeader() {
+    if (!clTrip) return;
+    $('collabMeta').textContent = (clTrip.title || '未命名行程') + ' · v' + clTrip.version +
+      ' · 你是' + (clOwner() ? '创建者' : '成员');
+    var arc = $('clArchive');
+    arc.hidden = !clOwner();
+    arc.textContent = clTrip.archived ? '取消归档' : '归档';
+    $('clArchived').hidden = !clTrip.archived;
+  }
+  function clSwitchPane(name) {
+    clPane = name;
+    ['votes', 'members', 'discuss', 'advice'].forEach(function (p) {
+      $('clPane' + p.charAt(0).toUpperCase() + p.slice(1)).hidden = p !== name;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.cl-subtabs button'), function (b) {
+      b.setAttribute('aria-selected', b.dataset.pane === name ? 'true' : 'false');
+    });
+    if (!clTrip) return;
+    if (name === 'votes') clRenderVotes();
+    else if (name === 'members') clRenderMembers();
+    else if (name === 'discuss') clRenderDiscuss();
+    else clRenderAdvice();
+  }
+
+  /* ---- 投票板 ---- */
+  async function clRenderVotes() {
+    var box = $('clPaneVotes');
+    box.innerHTML = '<div class="trip-empty">正在读取投票板…</div>';
+    try {
+      if (!clBoard) clBoard = await api(clBase() + '/candidates');
+      var b = clBoard;
+      box.innerHTML = '';
+      var stats = el('div', 'cl-stats');
+      stats.innerHTML = '<span>应参与 <b>' + b.participantCount + '</b></span>' +
+        '<span>已表态 <b>' + b.voterCount + '</b></span>' +
+        '<span>候选 <b>' + b.candidateCount + '</b></span>' +
+        '<span>总票 <b>' + b.totalVotes + '</b></span>';
+      box.appendChild(stats);
+      if (b.notes && b.notes.length) box.appendChild(el('div', 'cl-notes', esc(b.notes.join('；'))));
+      if (!clReadonly()) box.appendChild(clAddForm());
+      if (!b.candidates.length) {
+        box.appendChild(el('div', 'trip-empty', '还没有候选。添加一个地点，让大家表态。'));
+      }
+      b.candidates.forEach(function (t) { box.appendChild(clCandCard(t, b)); });
+    } catch (e) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'trip-empty', '读取失败：' + esc(e.message)));
+    }
+  }
+  function clAddForm() {
+    var form = el('div', 'cl-form');
+    form.innerHTML =
+      '<div class="cl-row">' +
+      '<div><label for="clCandName">名称（必填，80 字内）</label><input id="clCandName" maxlength="80" autocomplete="off"></div>' +
+      '<div><label for="clCandKind">类型</label><select id="clCandKind">' +
+      '<option value="ATTRACTION">景点</option><option value="LODGING">住宿</option><option value="OTHER">其他</option></select></div>' +
+      '<div><label for="clCandCity">城市（可选）</label><input id="clCandCity" maxlength="40" autocomplete="off"></div>' +
+      '</div>' +
+      '<div class="cl-row"><div><label for="clCandNote">备注（可选，500 字内）</label><input id="clCandNote" maxlength="500" autocomplete="off"></div></div>';
+    var btn = el('button', 'btn btn-primary', '添加候选');
+    btn.type = 'button';
+    btn.addEventListener('click', async function () {
+      var name = $('clCandName').value.trim();
+      if (!name) { toast('候选名称不能为空'); return; }
+      btn.disabled = true;
+      try {
+        await post(clBase() + '/candidates', {
+          kind: $('clCandKind').value, name: name,
+          city: $('clCandCity').value.trim() || null,
+          note: $('clCandNote').value.trim() || null
+        });
+        clBoard = null; clRenderVotes(); toast('候选已添加');
+      } catch (e) { clErr(e); }
+      btn.disabled = false;
+    });
+    var foot = el('div', 'cl-voteacts'); foot.appendChild(btn);
+    form.appendChild(foot);
+    return form;
+  }
+  function clCandCard(t, b) {
+    var c = t.candidate;
+    var card = el('div', 'cl-card');
+    var badges = '<span class="cl-kind">' + esc(CL_KIND_TEXT[c.kind] || c.kind) + '</span>';
+    if (b.leaderId === c.id) {
+      badges += ' <span class="cl-lead">领先</span>';
+    } else if (b.tie && b.candidates.length) {
+      // 平票时后端不选赢家（leaderId 恒 null），徽章须按榜首同分自行判定
+      var top = b.candidates[0];
+      if (t.score === top.score && t.support === top.support) {
+        badges += ' <span class="cl-lead">并列</span>';
+      }
+    }
+    var head = el('div', 'cl-cand-head');
+    head.appendChild(el('h3', null, esc(c.name) + ' ' + badges));
+    head.appendChild(el('span', 'cl-score' + (t.score < 0 ? ' neg' : ''),
+      '净支持 ' + (t.score > 0 ? '+' : '') + t.score));
+    card.appendChild(head);
+    var bits = [];
+    if (c.city) bits.push(esc(c.city));
+    bits.push(esc(c.proposedBy) + ' 提出');
+    if (c.createdAt) bits.push(esc(clTime(c.createdAt)));
+    card.appendChild(el('div', 'm', bits.join(' · ')));
+    if (c.note) card.appendChild(el('div', 'cl-note', esc(c.note)));
+    if (t.votes && t.votes.length) {
+      var vs = el('div', 'cl-voters');
+      t.votes.forEach(function (v) {
+        vs.appendChild(el('span', 'cl-voter ' + String(v.choice).toLowerCase(),
+          esc(v.voter) + '：' + esc(CL_CHOICE_TEXT[v.choice] || v.choice)));
+      });
+      card.appendChild(vs);
+    }
+    var acts = el('div', 'cl-voteacts');
+    var mine = (t.votes || []).find(function (v) { return v.voter === clMe; });
+    var ro = clReadonly();
+    [['SUPPORT', '支持', 'support'], ['OPPOSE', '反对', 'oppose'], ['ABSTAIN', '弃权', 'abstain']]
+      .forEach(function (o) {
+        var btn = el('button', 'cl-vbtn ' + o[2], o[1]);
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', mine && mine.choice === o[0] ? 'true' : 'false');
+        btn.disabled = ro;
+        btn.addEventListener('click', function () { clVote(c.id, o[0]); });
+        acts.appendChild(btn);
+      });
+    if (mine) {
+      var w = el('button', 'cl-vbtn', '撤回');
+      w.type = 'button'; w.disabled = ro;
+      w.addEventListener('click', function () { clWithdraw(c.id); });
+      acts.appendChild(w);
+    }
+    if (!ro && (c.proposedBy === clMe || clOwner())) {
+      var d = el('button', 'cl-vbtn', '删除');
+      d.type = 'button';
+      d.addEventListener('click', function () { clRemoveCand(c); });
+      acts.appendChild(d);
+    }
+    if (!ro && clCanEdit('DAILY')) {
+      var a = el('button', 'cl-vbtn', '采纳进日程');
+      a.type = 'button';
+      a.addEventListener('click', function () { clOpenApply(t); });
+      acts.appendChild(a);
+    }
+    card.appendChild(acts);
+    return card;
+  }
+  async function clVote(cid, choice) {
+    try {
+      clBoard = await post(clBase() + '/candidates/' + encodeURIComponent(cid) + '/votes',
+        { choice: choice });
+      clRenderVotes();
+    } catch (e) { clErr(e); }
+  }
+  async function clWithdraw(cid) {
+    try {
+      clBoard = await clDel(clBase() + '/candidates/' + encodeURIComponent(cid) + '/votes');
+      clRenderVotes();
+    } catch (e) { clErr(e); }
+  }
+  async function clRemoveCand(c) {
+    if (!confirm('删除候选「' + c.name + '」？')) return;
+    try {
+      await clDel(clBase() + '/candidates/' + encodeURIComponent(c.id));
+      clBoard = null; clRenderVotes(); toast('候选已删除');
+    } catch (e) { clErr(e); }
+  }
+  function clOpenApply(t) {
+    clApplyTarget = t.candidate;
+    $('clApplyName').textContent = '「' + t.candidate.name + '」将写入每日安排，需要每日编辑权。';
+    $('clApplyDate').value = '';
+    $('clApplyErr').textContent = '';
+    $('clApplyDialog').showModal();
+  }
+
+  /* ---- 成员与邀请 ---- */
+  async function clRenderMembers() {
+    var box = $('clPaneMembers');
+    box.innerHTML = '<div class="trip-empty">正在读取成员…</div>';
+    try {
+      var members = await api(clBase() + '/members');
+      box.innerHTML = '';
+      if (clOwner() && !clReadonly()) {
+        box.appendChild(clInviteForm());
+        var invs = await api(clBase() + '/invitations');
+        box.appendChild(clInvListCard(invs));
+      }
+      box.appendChild(clMemberCard(members));
+    } catch (e) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'trip-empty', '读取失败：' + esc(e.message)));
+    }
+  }
+  function clInviteForm() {
+    var form = el('div', 'cl-form');
+    form.innerHTML = '<div class="cl-row"><div><label for="clInvUser">受邀账号</label>' +
+      '<input id="clInvUser" maxlength="40" autocomplete="off"></div></div>';
+    form.appendChild(el('label', null, '接受后可编辑的板块（不勾则仅查看）'));
+    var chips = clSecChips([], false);
+    form.appendChild(chips);
+    var btn = el('button', 'btn btn-primary', '发起邀请');
+    btn.type = 'button';
+    btn.addEventListener('click', async function () {
+      var username = $('clInvUser').value.trim();
+      if (!username) { toast('请填写受邀账号'); return; }
+      btn.disabled = true;
+      try {
+        await post(clBase() + '/invitations',
+          { username: username, editSections: clCheckedSecs(chips) });
+        toast('邀请已发出'); clRenderMembers();
+      } catch (e) { clErr(e); }
+      btn.disabled = false;
+    });
+    var foot = el('div', 'cl-voteacts'); foot.appendChild(btn);
+    form.appendChild(foot);
+    return form;
+  }
+  function clInvListCard(invs) {
+    var card = el('div', 'cl-card');
+    card.appendChild(el('h3', 'cl-h', '发出的邀请（' + invs.length + '）'));
+    if (!invs.length) { card.appendChild(el('div', 'm', '还没有发出邀请。')); return card; }
+    invs.forEach(function (v) {
+      var row = el('div', 'cl-member');
+      var left = el('div', '');
+      left.appendChild(el('div', 'cl-who', esc(v.invitee) +
+        ' <span class="cl-status ' + esc(v.status) + '">' + esc(CL_INV_TEXT[v.status] || v.status) + '</span>'));
+      left.appendChild(el('div', 'm', '可编辑：' + esc(clSecText(v.editSections)) +
+        ' · ' + esc(clTime(v.createdAt))));
+      row.appendChild(left);
+      if (v.status === 'PENDING') {
+        var cancel = el('button', 'cl-vbtn', '撤回');
+        cancel.type = 'button';
+        cancel.addEventListener('click', async function () {
+          try {
+            await clDel('/api/invitations/' + encodeURIComponent(v.id));
+            toast('已撤回'); clRenderMembers();
+          } catch (e) { clErr(e); }
+        });
+        row.appendChild(cancel);
+      }
+      card.appendChild(row);
+    });
+    return card;
+  }
+  function clMemberCard(members) {
+    var card = el('div', 'cl-card');
+    card.appendChild(el('h3', 'cl-h', '成员（' + (members.length + 1) + ' 人，含创建者）'));
+    var ownerRow = el('div', 'cl-member');
+    ownerRow.appendChild(el('div', 'cl-who', esc(clTrip.owner) + '<span class="cl-owner-tag">创建者</span>'));
+    card.appendChild(ownerRow);
+    var editable = clOwner() && !clReadonly();
+    members.forEach(function (m) {
+      var row = el('div', 'cl-member');
+      var left = el('div', '');
+      left.appendChild(el('div', 'cl-who', esc(m.username)));
+      var chips = clSecChips(m.editSections, !editable);
+      if (editable) {
+        chips.addEventListener('change', async function () {
+          try {
+            clTrip = await clPut(clBase() + '/members/' + encodeURIComponent(m.username) +
+              '?version=' + clTrip.version, { editSections: clCheckedSecs(chips) });
+            clHeader(); toast('已更新 ' + m.username + ' 的编辑权');
+          } catch (e) { clErr(e); clRenderMembers(); }
+        });
+      }
+      left.appendChild(chips);
+      row.appendChild(left);
+      if (editable) {
+        var rm = el('button', 'cl-vbtn', '移除');
+        rm.type = 'button';
+        rm.addEventListener('click', async function () {
+          if (!confirm('移除成员「' + m.username + '」？')) return;
+          try {
+            clTrip = await clDel(clBase() + '/members/' + encodeURIComponent(m.username) +
+              '?version=' + clTrip.version);
+            clHeader(); clRenderMembers(); toast('已移除');
+          } catch (e) { clErr(e); }
+        });
+        row.appendChild(rm);
+      }
+      card.appendChild(row);
+    });
+    if (!clOwner() && members.some(function (m) { return m.username === clMe; })) {
+      var leave = el('button', 'btn btn-outline', '退出行程');
+      leave.type = 'button';
+      leave.addEventListener('click', async function () {
+        if (!confirm('退出「' + (clTrip.title || '') + '」？退出后不再看到该行程。')) return;
+        try {
+          await post(clBase() + '/leave', {});
+          clTrip = null; clBoard = null;
+          toast('已退出行程'); clLoadTrips();
+        } catch (e) { clErr(e); }
+      });
+      var foot = el('div', 'cl-voteacts'); foot.appendChild(leave);
+      card.appendChild(foot);
+    }
+    return card;
+  }
+
+  /* ---- 留言与修改记录 ---- */
+  async function clRenderDiscuss() {
+    var box = $('clPaneDiscuss');
+    box.innerHTML = '<div class="trip-empty">正在读取留言与记录…</div>';
+    try {
+      var comments = await api(clBase() + '/comments');
+      var changes = await api(clBase() + '/changelog?limit=50');
+      box.innerHTML = '';
+      if (!clReadonly()) {
+        var form = el('div', 'cl-form');
+        form.appendChild(el('label', null, '发表留言（2000 字内）'));
+        var ta = document.createElement('textarea');
+        ta.id = 'clCommentText'; ta.maxLength = 2000;
+        form.appendChild(ta);
+        var btn = el('button', 'btn btn-primary', '发表留言');
+        btn.type = 'button';
+        btn.addEventListener('click', async function () {
+          var content = ta.value.trim();
+          if (!content) { toast('留言不能为空'); return; }
+          btn.disabled = true;
+          try {
+            await post(clBase() + '/comments', { content: content });
+            clRenderDiscuss(); toast('留言已发表');
+          } catch (e) { clErr(e); }
+          btn.disabled = false;
+        });
+        var foot = el('div', 'cl-voteacts'); foot.appendChild(btn);
+        form.appendChild(foot);
+        box.appendChild(form);
+      }
+      var cc = el('div', 'cl-card');
+      cc.appendChild(el('h3', 'cl-h', '留言（' + comments.length + '）'));
+      if (!comments.length) cc.appendChild(el('div', 'm', '还没有留言。'));
+      comments.forEach(function (c) {
+        var n = el('div', 'cl-comment');
+        n.appendChild(el('div', 'cl-who', esc(c.author) +
+          '<span class="when">' + esc(clTime(c.createdAt)) + '</span>'));
+        n.appendChild(el('div', 'body', esc(c.content)));
+        cc.appendChild(n);
+      });
+      box.appendChild(cc);
+      var lc = el('div', 'cl-card');
+      lc.appendChild(el('h3', 'cl-h', '修改记录（最近 ' + changes.length + ' 条）'));
+      if (!changes.length) lc.appendChild(el('div', 'm', '还没有修改记录。'));
+      changes.forEach(function (g) {
+        var n = el('div', 'cl-log');
+        n.innerHTML = '<span class="when">' + esc(clTime(g.at)) + '</span>' +
+          '<span class="cl-kind">' + esc(CL_CHANGE_TEXT[g.section] || g.section) + '</span>' +
+          '<span class="summary">' + esc(g.summary) + '</span>' +
+          '<span class="ver">' + esc(g.actor) + ' · v' + g.version + '</span>';
+        lc.appendChild(n);
+      });
+      box.appendChild(lc);
+    } catch (e) {
+      box.innerHTML = '';
+      box.appendChild(el('div', 'trip-empty', '读取失败：' + esc(e.message)));
+    }
+  }
+
+  /* ---- 综合决策建议 ---- */
+  function clRenderAdvice() {
+    var box = $('clPaneAdvice');
+    box.innerHTML = '';
+    var form = el('div', 'cl-form');
+    form.innerHTML = '<div class="cl-row">' +
+      '<div><label for="clAdvTravelers">分摊人数（可选，默认按创建者＋成员）</label>' +
+      '<input id="clAdvTravelers" type="number" min="1" max="99" placeholder="如 3"></div>' +
+      '<div><label>选项</label><label class="cl-chip"><input type="checkbox" id="clAdvWeather" checked>查询天气</label></div>' +
+      '</div>';
+    var btn = el('button', 'btn btn-primary', '生成综合建议');
+    btn.type = 'button';
+    btn.addEventListener('click', async function () {
+      btn.disabled = true;
+      var old = btn.textContent; btn.textContent = '分析中…';
+      var out = $('clAdvOut');
+      out.innerHTML = '<div class="trip-empty">正在汇总投票、预算、体检与天气…</div>';
+      try {
+        var n = parseInt($('clAdvTravelers').value, 10);
+        var r = await post('/api/agent/itineraries/' + encodeURIComponent(clTrip.id) + '/advice',
+          { travelers: isNaN(n) ? null : n, includeWeather: $('clAdvWeather').checked });
+        clAdvReport(r);
+      } catch (e) {
+        out.innerHTML = '';
+        out.appendChild(el('div', 'trip-empty', '生成失败：' + esc(e.message)));
+      }
+      btn.disabled = false; btn.textContent = old;
+    });
+    var foot = el('div', 'cl-voteacts'); foot.appendChild(btn);
+    form.appendChild(foot);
+    box.appendChild(form);
+    var out = el('div', ''); out.id = 'clAdvOut';
+    box.appendChild(out);
+  }
+  function clAdvReport(r) {
+    var out = $('clAdvOut');
+    out.innerHTML = '';
+    if (r.risks && r.risks.length) {
+      out.appendChild(el('h3', 'cl-h', '风险（' + r.risks.length + '）'));
+      r.risks.forEach(function (k) {
+        var n = el('div', 'cl-risk ' + esc(k.severity));
+        var sev = { HIGH: '高风险', MEDIUM: '需判断', INFO: '提醒' }[k.severity] || k.severity;
+        n.appendChild(el('div', '', '<span class="cl-sev">' + esc(sev) + '</span>' + esc(k.message)));
+        if (k.basis) n.appendChild(el('div', 'basis', '依据：' + esc(k.basis)));
+        if (k.suggestion) n.appendChild(el('div', 'basis', '建议：' + esc(k.suggestion)));
+        out.appendChild(n);
+      });
+    }
+    if (r.suggestions && r.suggestions.length) {
+      out.appendChild(el('h3', 'cl-h', '可讨论的调整'));
+      var ul = el('ul', '');
+      r.suggestions.forEach(function (s) { ul.appendChild(el('li', null, esc(s))); });
+      out.appendChild(ul);
+    }
+    out.appendChild(el('h3', 'cl-h', '模型建议'));
+    out.appendChild(el('div', 'cl-advice-text',
+      r.advice ? esc(r.advice) : '模型未配置或本次调用失败：以上规则风险与建议仍然有效。'));
+    if (r.notices && r.notices.length) out.appendChild(el('div', 'cl-notes', esc(r.notices.join('；'))));
+    if (r.sources && r.sources.length) out.appendChild(el('div', 'm', '数据来源：' + esc(r.sources.join('、'))));
+    out.appendChild(el('div', 'm', '生成于 ' + esc(clTime(r.generatedAt)) + ' · 行程 v' + r.version));
+  }
+
+  /* ---- 我的待处理邀请 ---- */
+  function clInvBadge(n) {
+    var b = $('clInvBadge');
+    b.textContent = String(n); b.hidden = n === 0;
+  }
+  async function clLoadInvCount() {
+    try { clInvBadge((await api('/api/invitations')).length); }
+    catch (e) { /* 徽标非关键路径，静默 */ }
+  }
+  async function clOpenInv() {
+    $('clInvList').innerHTML = '<div class="trip-empty">正在读取…</div>';
+    $('clInvDialog').showModal();
+    try {
+      var list = await api('/api/invitations');
+      clInvBadge(list.length);
+      var box = $('clInvList'); box.innerHTML = '';
+      if (!list.length) { box.appendChild(el('div', 'trip-empty', '没有待处理的邀请。')); return; }
+      list.forEach(function (v) {
+        var card = el('div', 'cl-card');
+        card.appendChild(el('div', 'cl-who', esc(v.itineraryTitle || v.itineraryId)));
+        card.appendChild(el('div', 'm', esc(v.inviter) + ' 邀请 · ' + esc(clTime(v.createdAt)) +
+          ' · 可编辑：' + esc(clSecText(v.editSections))));
+        var acts = el('div', 'cl-voteacts');
+        var ok = el('button', 'btn btn-primary', '接受');
+        ok.type = 'button';
+        ok.addEventListener('click', async function () {
+          ok.disabled = true;
+          try {
+            await post('/api/invitations/' + encodeURIComponent(v.id) + '/accept', {});
+            toast('已接受邀请'); clOpenInv(); clLoadTrips();
+          } catch (e) { clErr(e); ok.disabled = false; }
+        });
+        var no = el('button', 'btn btn-outline', '拒绝');
+        no.type = 'button';
+        no.addEventListener('click', async function () {
+          no.disabled = true;
+          try {
+            await post('/api/invitations/' + encodeURIComponent(v.id) + '/reject', {});
+            toast('已拒绝邀请'); clOpenInv();
+          } catch (e) { clErr(e); no.disabled = false; }
+        });
+        acts.appendChild(ok); acts.appendChild(no);
+        card.appendChild(acts);
+        box.appendChild(card);
+      });
+    } catch (e) {
+      $('clInvList').innerHTML = '';
+      $('clInvList').appendChild(el('div', 'trip-empty', esc(e.message)));
+    }
+  }
+
+  /* ---- 协作视图事件 ---- */
+  $('clTripSel').addEventListener('change', function () {
+    if (this.value) clSelectTrip(this.value);
+  });
+  $('clRefresh').addEventListener('click', function () { initCollab(); });
+  $('clArchive').addEventListener('click', async function () {
+    if (!clTrip || !clOwner()) return;
+    var toArchive = !clTrip.archived;
+    if (toArchive && !confirm('归档后行程转为只读，数据全部保留。确认归档？')) return;
+    try {
+      clTrip = await post(clBase() + (toArchive ? '/archive' : '/unarchive'), {});
+      clBoard = null; clHeader(); clSwitchPane(clPane);
+      toast(toArchive ? '已归档' : '已取消归档');
+    } catch (e) { clErr(e); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.cl-subtabs button'), function (b) {
+    b.addEventListener('click', function () { clSwitchPane(b.dataset.pane); });
+  });
+  $('clInvBtn').addEventListener('click', clOpenInv);
+  $('clInvClose').addEventListener('click', function () { $('clInvDialog').close(); });
+  $('clApplyCancel').addEventListener('click', function () { $('clApplyDialog').close(); });
+  $('clApplyConfirm').addEventListener('click', async function () {
+    var date = $('clApplyDate').value;
+    if (!date) { $('clApplyErr').textContent = '请选择日期'; return; }
+    var btn = this; btn.disabled = true;
+    try {
+      var c = clApplyTarget;
+      clTrip = await post(clBase() + '/candidates/' + encodeURIComponent(c.id) +
+        '/apply?version=' + clBoard.itineraryVersion,
+        { date: date, title: c.name, location: c.city || null, note: c.note || null });
+      clBoard = null;
+      $('clApplyDialog').close();
+      clHeader(); clRenderVotes();
+      toast('已写入 ' + date + ' 的每日安排');
+    } catch (e) {
+      $('clApplyErr').textContent = e.message;
+      // 冲突时刷新票板拿到新版本号，用户可在弹窗内直接重试
+      if (/版本|冲突|已被他人/.test(e.message)) clReloadTrip();
+    }
+    btn.disabled = false;
+  });
+
   /* ---------- 百度地图（可选）：无 AK 时全程走 SVG 示意底图 ---------- */
   function drawBMapPoints() {
     if (!window.__bmap) return;
@@ -2107,11 +2880,21 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
   window.__initBaiduMap = function () {
     if (!window.BMapGL) return;
+    // #bmap 默认 display:none。必须先让容器可见再创建 Map，否则 BMapGL 按 0×0
+    // 渲染，之后只加 class 不会自动重排——表现就是徽标变「实时地图」但底图全白。
+    $('mapStage').classList.add('has-bmap');
     window.__bmap = new window.BMapGL.Map('bmap');
     window.__bmap.enableScrollWheelZoom(true);
     window.__bmap.centerAndZoom(new window.BMapGL.Point(111.05, 32.55), 11);
-    $('mapStage').classList.add('has-bmap');
     $('mapNote').textContent = '实时地图（BMapGL）';
+    // flex 布局稳定后按真实尺寸重排一次；窗口/面板尺寸变化也同步重排。
+    function resizeBMap() {
+      if (!window.__bmap) return;
+      if (typeof window.__bmap.resize === 'function') window.__bmap.resize();
+      else if (typeof window.__bmap.checkResize === 'function') window.__bmap.checkResize();
+    }
+    setTimeout(resizeBMap, 300);
+    window.addEventListener('resize', resizeBMap);
     var city = (convoState && convoState.city) || '';
     if (city) {
       api('/api/attractions?city=' + encodeURIComponent(city))
@@ -2195,13 +2978,25 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
   showView((location.hash || '#plan').slice(1), true);
 
-  var AK = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
-  if (AK) {
-    var s = document.createElement('script');
-    s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
-      encodeURIComponent(AK) + '&callback=__initBaiduMap';
-    document.head.appendChild(s);
-  }
+  /* 地图 AK：优先取后端下发的 /api/map/config（密钥只在 .env，不写进 HTML），
+     保留 window.BAIDU_MAP_AK / ?ak= 作为本地调试兜底。
+     未登录、服务端未配置或脚本加载失败时静默保留 SVG 示意底图，不打断页面。 */
+  (function loadMapAk() {
+    function inject(ak) {
+      if (!ak || window.__bmapScriptInjected) return;
+      window.__bmapScriptInjected = true;
+      var s = document.createElement('script');
+      s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
+        encodeURIComponent(ak) + '&callback=__initBaiduMap';
+      s.onerror = function () { window.__bmapScriptInjected = false; };
+      document.head.appendChild(s);
+    }
+    var fallback = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
+    fetch('/api/map/config', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) { inject((cfg && cfg.enabled && cfg.ak) || fallback); })
+      .catch(function () { inject(fallback); });
+  })();
 
   /* ================================================================
      富内容渲染层：搬自 chat.html，保持与旧对话页同一套卡片与折叠口径。

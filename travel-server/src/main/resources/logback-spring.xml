@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  最小日志配置：控制台沿用 Spring Boot 默认（include 官方 defaults/console-appender，不改既有输出），
+  另加按天+大小滚动的文件落盘，供生产持久化与采集。无新依赖（logback 随 starter-logging 已在）。
+  日志目录默认 logs/，*.log 已被 .gitignore 忽略；可用 LOG_DIR 环境变量覆盖到仓库外。
+  文件日志只记服务端运行信息，密钥仅 env 注入、异常堆栈只进服务端日志（见 ApiExceptionHandler），不落用户隐私。
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <property name="LOG_DIR" value="${LOG_DIR:-logs}"/>
+
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_DIR}/travel-assistant.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_DIR}/travel-assistant.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <maxFileSize>20MB</maxFileSize>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>500MB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <pattern>${FILE_LOG_PATTERN}</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>

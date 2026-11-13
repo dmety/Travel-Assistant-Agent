@@ -7,6 +7,7 @@ import '../models/plan_view.dart';
 import '../services/chat_store.dart';
 import '../services/place_guess.dart';
 import '../theme/tokens.dart';
+import '../widgets/map_panel.dart';
 import '../widgets/message_bubble.dart';
 
 /// 主对话页：与 Web `chat.html` 同一套信息架构，换成移动端形态。
@@ -89,6 +90,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _addAssistant(
     String text, {
     PlanView? plan,
+    PlanView? planForTrips,
     FoodView? food,
     List<ToolCard> cards = const [],
     List<String> notices = const [],
@@ -99,6 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
       role: MsgRole.assistant,
       text: text,
       plan: plan,
+      planForTrips: planForTrips,
       food: food,
       cards: cards,
       notices: notices,
@@ -205,9 +208,22 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
     }
-    // 工具已经规划出行程时，卡片里会带 envelope；这里同时把结论并入正文下方
+    // 工具已经规划出行程时，卡片里会带 envelope；ToolCardBlocks 负责渲染，
+    // 但 message.plan 为空会让地图点位和「我的行程」永远拿不到草案。
+    // 这里从同一份 envelope 再解析一次、只留档不渲染（避免逐日草案出现两遍）。
+    PlanView? archived;
+    for (final c in cards) {
+      final d = c.data;
+      if (d is! Map) continue;
+      final v = PlanView.fromEnvelope(Map<String, dynamic>.from(d));
+      if (v != null &&
+          (v.candidates.isNotEmpty || v.dailySchedules.isNotEmpty)) {
+        archived = v;
+        break;
+      }
+    }
     _absorbState(r['state']);
-    _addAssistant(reply, cards: cards, trace: traces);
+    _addAssistant(reply, planForTrips: archived, cards: cards, trace: traces);
     return true;
   }
 
@@ -298,6 +314,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _addAssistant(
       head,
       plan: view,
+      planForTrips: view,
       notices: view.notices,
     );
   }
@@ -372,6 +389,30 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// 当前会话里最近一条带结构化草案的助手消息（用于地图点位与状态条）。
+  PlanView? _currentPlan() {
+    final msgs = _current?.messages ?? const <ChatMessage>[];
+    for (var i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role != MsgRole.assistant) continue;
+      final p = msgs[i].planForTrips ?? msgs[i].plan;
+      if (p != null) return p;
+    }
+    return null;
+  }
+
+  /// AppBar 副标题：有草案时给「城市 · N 天」，否则给默认说明。
+  String _planHint() {
+    final v = _currentPlan();
+    if (v == null) return '基于景区知识库 + 实时地图';
+    final city = v.candidates.isNotEmpty ? v.candidates.first.city : '';
+    final days = v.filledDays;
+    if (city.isEmpty && days == 0) return '草案未保存';
+    final bits = <String>[];
+    if (city.isNotEmpty) bits.add(city);
+    if (days > 0) bits.add('$days 天');
+    return bits.isEmpty ? '草案未保存' : '${bits.join(' · ')} · 草案未保存';
+  }
+
   // ---------------- 会话管理 ----------------
 
   void _switchTo(ChatSession s) {
@@ -414,19 +455,19 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              _current?.title ?? '旅行助手',
+            const Text(
+              'AI 规划',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: T.fsMd,
                 color: T.ink,
                 fontWeight: T.wStrong,
               ),
             ),
-            const Text(
-              '基于景区知识库 + 实时地图',
-              style: TextStyle(fontSize: T.fsXs, color: T.text3),
+            Text(
+              _planHint(),
+              style: const TextStyle(fontSize: T.fsXs, color: T.text3),
             ),
           ],
         ),
@@ -448,6 +489,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
           : Column(
               children: [
+                MapPanel(
+                  pinCount: _currentPlan()?.dailySchedules
+                          .where((d) => d.items.isNotEmpty)
+                          .length ??
+                      0,
+                  city: _currentPlan()?.candidates.isNotEmpty == true
+                      ? _currentPlan()!.candidates.first.city
+                      : null,
+                ),
                 Expanded(child: _messagesArea()),
                 _composer(),
               ],
@@ -508,7 +558,7 @@ class _ChatScreenState extends State<ChatScreen> {
               border: Border.all(color: T.primaryLine),
             ),
             child: const Text(
-              '旅',
+              '出',
               style: TextStyle(
                 fontSize: T.fsLg,
                 color: T.primary,
@@ -650,7 +700,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       border: Border.all(color: T.primaryLine),
                     ),
                     child: const Text(
-                      '旅',
+                      '出',
                       style: TextStyle(
                         fontSize: T.fsSm,
                         color: T.primary,
@@ -660,7 +710,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: T.sp2),
                   const Text(
-                    '旅行助手',
+                    '出逃计划',
                     style: TextStyle(
                       fontSize: T.fsMd,
                       color: T.ink,
@@ -889,7 +939,7 @@ class _TypingRowState extends State<_TypingRow>
               border: Border.all(color: T.primaryLine),
             ),
             child: const Text(
-              '旅',
+              '出',
               style: TextStyle(
                 fontSize: T.fsXs,
                 color: T.primary,

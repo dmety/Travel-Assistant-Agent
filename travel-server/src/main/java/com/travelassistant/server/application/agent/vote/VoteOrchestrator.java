@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -70,14 +71,20 @@ public class VoteOrchestrator {
   private final ContractRules rules;
   private final DeepSeekClient model;
   private final ObjectMapper json;
+  private final int maxModelCalls;
+  private final int maxToolCalls;
 
   public VoteOrchestrator(AgentRegistry registry, ContractValidator validator,
-      ContractRules rules, DeepSeekClient model, ObjectMapper json) {
+      ContractRules rules, DeepSeekClient model, ObjectMapper json,
+      @Value("${travel.agent.budget.vote-max-model-calls:2}") int maxModelCalls,
+      @Value("${travel.agent.budget.vote-max-tool-calls:8}") int maxToolCalls) {
     this.registry = registry;
     this.validator = validator;
     this.rules = rules;
     this.model = model;
     this.json = json;
+    this.maxModelCalls = maxModelCalls;
+    this.maxToolCalls = maxToolCalls;
   }
 
   public record VoteRequest(String intent, Map<String, Object> context,
@@ -113,7 +120,7 @@ public class VoteOrchestrator {
         ? new LinkedHashMap<>() : new LinkedHashMap<>(safe.hints());
     long timeout = rules.limitBound("timeoutMs", "default");
     Instant deadline = Instant.now().plusMillis(timeout);
-    RunBudget budget = new RunBudget(deadline, 2, 8);
+    RunBudget budget = new RunBudget(deadline, maxModelCalls, maxToolCalls);
 
     // 汇集阶段：本轮所有子 Agent / 工具的结果先转成事实，全部留给主 Agent。
     List<Fact> collected = collectedFacts(baseContext);
