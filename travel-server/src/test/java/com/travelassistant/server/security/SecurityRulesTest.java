@@ -121,6 +121,16 @@ class SecurityRulesTest extends ApiTestBase {
         .andExpect(content().string(containsString("id=\"askInput\"")));
     // 看板娘 PNG：未登录也需可见，否则登录页/移动端看板娘裂图。
     mvc.perform(get("/mascot/mascot-v4-front-idle.png")).andExpect(status().isOk());
+
+    // 根目录共享静态资源：settings / food / mobile 引用 tokens.css 与 components.css，
+    // planner/settings/food 挂的浮动看板娘脚本是 mascot-widget.js。三者未登录也需公开，
+    // 否则页面样式与脚本 401 加载失败、渲染崩坏（实测过 401 导致 theme-seg 截断、看板娘消失）。
+    mvc.perform(get("/tokens.css")).andExpect(status().isOk())
+        .andExpect(content().string(containsString(":root")));
+    mvc.perform(get("/components.css")).andExpect(status().isOk())
+        .andExpect(content().string(containsString(".theme-seg")));
+    mvc.perform(get("/mascot-widget.js")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("mascot-dock")));
   }
 
   @Test

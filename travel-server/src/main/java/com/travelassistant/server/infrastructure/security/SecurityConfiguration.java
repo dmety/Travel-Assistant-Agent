@@ -75,7 +75,12 @@ public class SecurityConfiguration {
                 "/mobile.html", "/settings.html", "/food.html",
                 // 看板娘与共享静态资源：登录页/移动端/设置头像都引用 /mascot/*.png，
                 // 未登录也需可见，否则看板娘裂图。
-                "/mascot/**")
+                "/mascot/**",
+                // 根目录共享静态资源：tokens.css / components.css 被 settings / food /
+                // mobile 等页引用，mascot-widget.js 是挂到 planner/settings/food 的浮动
+                // 看板娘脚本。这些资源若不放行，未登录页面会 401 导致样式与脚本加载失败、
+                // 页面渲染崩坏（实测 401 会让 settings 主题控件截断、看板娘不出现）。
+                "/tokens.css", "/components.css", "/mascot-widget.js")
             .permitAll()
             .anyRequest().authenticated())
 

@@ -431,7 +431,7 @@
   ['loginUser', 'loginPass'].forEach(function (id) {
     var el = $(id); if (!el) return;
     el.addEventListener('focus', function () {
-      if (el.type === 'password') loginMood('look-pass', CAP_PASS);
+      if (el.id === 'loginPass') loginMood('look-pass', CAP_PASS);
       else loginMood('look-user', CAP_USER);
     });
     el.addEventListener('blur', function () { loginMood(null, CAP_IDLE_M); });

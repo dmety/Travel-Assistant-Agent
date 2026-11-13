@@ -38,8 +38,10 @@
 
   /* ---------- 注入样式（自包含） ---------- */
   var css =
-    '.mascot-dock{position:fixed;right:18px;bottom:18px;z-index:60;width:118px;height:150px;' +
-    'cursor:pointer;filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));transition:transform .25s cubic-bezier(.16,1,.3,1);}' +
+    '.mascot-dock{position:fixed;right:16px;bottom:16px;z-index:60;width:104px;height:132px;' +
+    'cursor:grab;touch-action:none;will-change:left,top;' +
+    'filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));transition:filter .25s ease;}' +
+    '.mascot-dock.dragging{cursor:grabbing;transition:none;}' +
     '.mascot-dock:focus-visible{outline:2px solid var(--clay,#B4542A);outline-offset:4px;}' +
     '.mascot-dock .mascot-svg{position:relative;display:block;width:100%;height:100%;}' +
     '.mascot-dock .mascot-svg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .24s ease;}' +
@@ -97,6 +99,7 @@
   dock.appendChild(cap);
   dock.appendChild(svg);
   document.body.appendChild(dock);
+  var dragging = false, moved = false;
 
   /* ---------- 台词气泡显隐 ---------- */
   var capTimer = null;
@@ -126,7 +129,10 @@
     idx = (idx + 1) % MOODS.length;
     setMood(MOODS[idx]);
   }
-  dock.addEventListener('click', advance);
+  dock.addEventListener('click', function (e) {
+    if (moved) { moved = false; e.preventDefault(); e.stopPropagation(); return; }
+    advance();
+  });
   dock.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); }
   });
@@ -143,6 +149,52 @@
   }
   scheduleBlink();
 
+  /* ---------- 拖拽：用户可挪动看板娘，位置持久化到 localStorage ---------- */
+  var savedPos = null;
+  try { savedPos = JSON.parse(localStorage.getItem('mascotPos') || 'null'); } catch (e) {}
+  if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
+    dock.style.left = savedPos.left + 'px';
+    dock.style.top = savedPos.top + 'px';
+    dock.style.right = 'auto';
+    dock.style.bottom = 'auto';
+  }
+  var dragX = 0, dragY = 0, baseX = 0, baseY = 0;
+  dock.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true; moved = false;
+    var r = dock.getBoundingClientRect();
+    if (dock.style.right !== 'auto') {
+      dock.style.left = r.left + 'px';
+      dock.style.top = r.top + 'px';
+      dock.style.right = 'auto';
+      dock.style.bottom = 'auto';
+    }
+    dragX = e.clientX; dragY = e.clientY; baseX = r.left; baseY = r.top;
+    dock.classList.add('dragging');
+    try { dock.setPointerCapture(e.pointerId); } catch (e2) {}
+  });
+  dock.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var dx = e.clientX - dragX, dy = e.clientY - dragY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    var nl = Math.max(0, Math.min(baseX + dx, window.innerWidth - dock.offsetWidth));
+    var nt = Math.max(0, Math.min(baseY + dy, window.innerHeight - dock.offsetHeight));
+    dock.style.left = nl + 'px';
+    dock.style.top = nt + 'px';
+  });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    dock.classList.remove('dragging');
+    try {
+      localStorage.setItem('mascotPos', JSON.stringify({
+        left: parseFloat(dock.style.left) || 0, top: parseFloat(dock.style.top) || 0
+      }));
+    } catch (e) {}
+  }
+  dock.addEventListener('pointerup', endDrag);
+  dock.addEventListener('pointercancel', endDrag);
+
   /* ---------- 指针跟随（整窗轻微倾斜） ---------- */
   var tx = 0, ty = 0, cx = 0, cy = 0, raf = null;
   function loop() {
@@ -154,6 +206,7 @@
     } else { raf = null; }
   }
   window.addEventListener('mousemove', function (e) {
+    if (dragging) return;
     var r = dock.getBoundingClientRect();
     var dx = (e.clientX - (r.left + r.width / 2)) / (window.innerWidth / 2);
     var dy = (e.clientY - (r.top + r.height / 2)) / (window.innerHeight / 2);
