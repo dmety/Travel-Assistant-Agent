@@ -2,7 +2,7 @@
 # Reads the gitignored .env, exports values as process environment variables,
 # maps AMAP_API_KEY -> AMAP_KEY, then starts the Spring Boot jar.
 # Usage: run-server.bat            (double-click, default port 8080)
-#        run-server.bat 18080      (explicit port)
+#        run-server.bat 9090      (explicit port)
 # NOTE: keep this file ASCII-only; non-ASCII text breaks under GBK consoles.
 
 $ErrorActionPreference = 'Stop'

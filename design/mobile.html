@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 手机端</title>
+<meta name="description" content="旅行助手移动端：全屏 AI 规划对话、草案确认、列表与地图双模式、候选协作。" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+.board {
+  display: flex; flex-wrap: wrap; gap: 40px 32px;
+  padding: 40px 32px 80px; max-width: 1400px; margin: 0 auto;
+  align-items: flex-start;
+}
+.unit { margin: 0; }
+.phone {
+  width: 375px; height: 812px; position: relative; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-2);
+  transition: box-shadow 160ms linear;
+}
+.phone.is-linked { box-shadow: 0 0 0 3px var(--pine-line), var(--shadow-2); }
+.screen { height: 100%; display: flex; flex-direction: column; }
+figcaption { margin-top: 8px; font-size: 11px; color: var(--text-3); text-align: center; }
+
+.appbar {
+  height: 52px; flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 0 16px; background: var(--surface-warm); border-bottom: 1px solid var(--line);
+}
+.appbar h2 { font-size: var(--fs-md); }
+.appbar .sp { margin-left: auto; }
+.appbar .back { font-size: var(--fs-sm); color: var(--text-3); }
+.scroll { flex: 1; overflow-y: auto; padding: 12px; }
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 2px; }
+.foot {
+  flex: 0 0 auto; padding: 10px 12px 14px;
+  background: var(--surface-warm); border-top: 1px solid var(--line);
+}
+.foot .btn { width: 100%; }
+.foot .row { display: flex; gap: 8px; }
+.foot .row .btn { flex: 1; }
+
+/* 底部导航：中间 + 是唯一主入口 */
+.tabbar {
+  height: 56px; flex: 0 0 auto; position: relative;
+  display: flex; align-items: center; justify-content: space-around;
+  background: var(--surface-warm); border-top: 1px solid var(--line);
+}
+.tabbar .t { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--text-3); min-width: 52px; }
+.tabbar .t[aria-current="page"] { color: var(--pine); font-weight: var(--w-strong); }
+.tabbar .t .ico { font-size: 16px; line-height: 1; }
+.plus {
+  width: 46px; height: 46px; margin-top: -24px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--pine); color: #fff; font-size: 24px;
+  border: 3px solid var(--surface-warm); box-shadow: var(--shadow-2);
+}
+.plus:hover { background: var(--pine-hover); }
+
+.blk { margin-bottom: 12px; }
+.blk-title { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 8px 2px; font-size: var(--fs-xs); color: var(--text-3); }
+.mini { font-size: var(--fs-xs); color: var(--text-3); }
+.trip-item { padding: 12px; margin-bottom: 8px; }
+.trip-item h3 { font-size: var(--fs-md); }
+.trip-item .meta { font-size: var(--fs-xs); color: var(--text-3); margin-top: 4px; }
+.trip-item .row2 { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+
+/* ---------- 全屏 AI 对话 ---------- */
+.tripbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: var(--pine-soft);
+  border-bottom: 1px solid var(--pine-line); font-size: var(--fs-xs); color: var(--pine-hover);
+}
+.tripbar b { font-weight: var(--w-strong); }
+.tripbar .sp { margin-left: auto; }
+.thread { flex: 1; overflow-y: auto; padding: 14px 12px; }
+.msg { margin-bottom: 14px; }
+.msg-me { text-align: right; }
+.msg-me .bubble {
+  display: inline-block; text-align: left; max-width: 86%;
+  padding: 10px 12px; background: var(--pine); color: #fff;
+  border-radius: var(--r-card) var(--r-card) var(--r-sm) var(--r-card);
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+.msg-ai .who { font-size: var(--fs-xs); color: var(--text-3); margin-bottom: 5px; }
+.msg-ai .bubble {
+  padding: 12px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-card) var(--r-card) var(--r-card) var(--r-sm);
+  font-size: var(--fs-sm); line-height: 1.75; color: var(--text-2);
+  box-shadow: var(--shadow-1);
+}
+.draft-mini { margin-top: 10px; padding: 10px; border-radius: var(--r-ctl); background: var(--pine-soft); border: 1px solid var(--pine-line); }
+.draft-mini .r { display: flex; justify-content: space-between; font-size: var(--fs-xs); padding: 3px 0; }
+.draft-mini .r b { color: var(--pine-hover); }
+.qa { margin-top: 12px; }
+.qa .lbl { margin-bottom: 6px; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.quick .chip { min-height: 28px; font-size: var(--fs-xs); padding: 0 10px; }
+.composer {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px 14px; background: var(--surface-warm);
+  border-top: 1px solid var(--line);
+}
+.composer input {
+  flex: 1; min-height: 38px; padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--field-line);
+  border-radius: var(--r-pill); font-size: var(--fs-sm); outline: none;
+}
+.composer input:focus { border-color: var(--clay); }
+.send {
+  width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center;
+  border-radius: 50%; background: var(--pine); color: #fff; font-size: var(--fs-md);
+}
+
+/* ---------- 草案 / 行程 ---------- */
+.advice { font-size: var(--fs-sm); color: var(--text-2); padding: 2px 2px 10px; line-height: 1.75; }
+.day-card { margin-bottom: 8px; overflow: hidden; }
+.check-stack { display: flex; flex-direction: column; gap: 6px; }
+.check { cursor: pointer; }
+.peek {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: var(--pine-soft); border-top: 1px solid var(--pine-line); font-size: var(--fs-xs);
+}
+.peek b { color: var(--pine-hover); }
+.peek .sp { margin-left: auto; }
+.map-wrap { position: relative; flex: 1; overflow: hidden; }
+.map-real { position: absolute; inset: 0; z-index: 2; }
+.map-bg { position: absolute; inset: 0; }
+.pin-sm { width: 26px; height: 26px; font-size: 11px; }
+
+/* ---------- 抽屉 / 弹层 ---------- */
+.sheet-mask { position: absolute; inset: 0; z-index: 20; display: none; background: rgba(32, 36, 30, .3); }
+.sheet-mask.open { display: block; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--surface-warm); border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 16px 16px 22px; box-shadow: var(--shadow-3);
+}
+.sheet h3 { font-size: var(--fs-md); margin-bottom: 4px; }
+.sheet .opt {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 4px; border-bottom: 1px solid var(--line); text-align: left; font-size: var(--fs-sm);
+}
+.sheet .opt:last-of-type { border-bottom: 0; }
+.sheet .opt .badge {
+  width: 30px; height: 30px; flex: 0 0 auto; display: grid; place-items: center;
+  border-radius: var(--r-ctl); background: var(--pine-soft); color: var(--pine); font-size: var(--fs-sm);
+}
+.sheet .opt small { display: block; font-size: var(--fs-xs); color: var(--text-3); }
+.toast {
+  position: absolute; z-index: 30; left: 50%; bottom: 76px; transform: translateX(-50%);
+  padding: 8px 14px; background: var(--ink-warm); color: var(--paper);
+  border-radius: var(--r-ctl); font-size: var(--fs-xs); white-space: nowrap;
+  opacity: 0; transition: opacity 160ms linear; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.kv { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+.kv:last-child { border-bottom: 0; }
+.kv .v { font-weight: var(--w-strong); }
+.vote-row { display: flex; gap: 6px; margin-top: 8px; }
+.cand { padding: 12px; margin-bottom: 8px; }
+.cand .top { display: flex; align-items: center; gap: 8px; }
+.cand .meta { font-size: var(--fs-xs); color: var(--text-3); margin-top: 4px; }
+.pool { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+.pool .sp { margin-left: auto; }
+
+
+/* 02 AI 对话：上半地图 + 下半对话面板 */
+.ai-map { flex: 0 0 292px; position: relative; overflow: hidden; background: var(--paper-2); }
+.ai-map > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-pill {
+  position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px; padding: 4px 12px;
+  background: rgba(252,250,245,.95); border: 1px solid var(--line);
+  border-radius: var(--r-pill); font-size: var(--fs-xs); box-shadow: var(--shadow-1);
+}
+.daytag {
+  position: absolute; z-index: 3; padding: 1px 6px;
+  font-size: 10px; color: var(--pine-hover); background: var(--pine-soft);
+  border: 1px solid var(--pine-line); border-radius: var(--r-sm);
+}
+.ai-sheet {
+  flex: 1; min-height: 0; position: relative; z-index: 5; margin-top: -14px;
+  display: flex; flex-direction: column;
+  background: var(--surface-warm); border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: 0 -6px 20px rgba(46,42,32,.10); padding: 0 14px 10px;
+}
+.ai-sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 8px auto 6px; flex: 0 0 auto; }
+.query-bar {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-bottom: 6px;
+  padding: 7px 12px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-pill); font-size: var(--fs-sm);
+}
+.query-bar .txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.query-bar .x { color: var(--text-3); font-size: var(--fs-md); }
+.think { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: var(--fs-xs); color: var(--text-3); }
+.remind { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+.remind b { font-size: var(--fs-sm); color: var(--ink); }
+.remind ol { margin: 5px 0 0; padding-left: 17px; list-style: decimal; font-size: var(--fs-xs); line-height: 1.75; color: var(--text-2); }
+.source { margin-top: 8px; }
+.source-body { margin-top: 5px; padding: 7px 9px; background: var(--surface-2); border-radius: var(--r-ctl); font-size: var(--fs-xs); color: var(--text-3); line-height: 1.6; }
+.followup { text-align: right; margin: 2px 0 10px; }
+.followup span {
+  display: inline-block; padding: 7px 11px; background: var(--pine); color: #fff;
+  border-radius: var(--r-card) var(--r-card) var(--r-sm) var(--r-card); font-size: var(--fs-sm);
+}
+.ai-sheet .thread { padding: 6px 2px 8px 0; }
+.ai-sheet .msg-ai .bubble { padding: 11px; font-size: var(--fs-sm); line-height: 1.7; }
+.ai-sheet .composer { padding: 8px 0 0; }
+.ai-sheet .foot { padding: 8px 0 2px; border-top: 0; }
+/* 追问后地图同步重排：路线重绘 + DAY 标签脉冲，不跳离当前页 */
+.ai-map.is-rerouting .route { animation: reroute 900ms ease both; }
+.ai-map.is-rerouting .daytag { animation: tagpulse 900ms ease both; }
+@keyframes reroute {
+  0%   { opacity: .2; stroke-dashoffset: 0; }
+  45%  { opacity: 1;  stroke-dashoffset: 22; }
+  100% { opacity: .85; stroke-dashoffset: 0; }
+}
+@keyframes tagpulse {
+  0%, 100% { background: var(--pine-soft); color: var(--pine-hover); }
+  40%      { background: var(--clay-soft); color: var(--clay); }
+}
+
+@media (max-width: 900px) { .board { padding: 24px 12px; gap: 32px; } }
+/* 窄屏直接看设计展示板时，手机框跟着视口收，不再产生横向滚动 */
+@media (max-width: 640px) {
+  .board { padding: 20px 12px 60px; gap: 28px; }
+  .unit { width: 100%; max-width: 375px; }
+  .phone { width: 100%; max-width: 375px; }
+}
+
+/* 图标化后的控件微调：返回与新建按钮保持 20px 触点内图形 */
+.back svg.ico, .plus svg.ico { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+<svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <!-- 由 design/icons.svg 与 design/brand-mark.svg 派生，勿在此手改 -->
+<defs>
+    <!-- 纸色宽线：在等高线上刻出山径的槽，让两条线不相撞 -->
+    <path id="ridge" d="M14 16 L22 24 L18 33 L30 38 L40 48"/>
+  </defs>
+<symbol id="mark-full" viewBox="0 0 64 64">
+<!-- 印框：圆角方印，右下 45 度斜切 -->
+  <path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z"
+        fill="var(--paper)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/>
+
+  <!-- 三道等高线：由外向内收拢，线宽与透明度递减 -->
+  <g fill="none" stroke="var(--pine)" stroke-linecap="round">
+    <path d="M11 48 C14 32 22 21 31 21 C40 21 48 32 51 48" stroke-width="2.7"/>
+    <path d="M18 48 C20 37 25 30 31 30 C37 30 42 37 44 48" stroke-width="2.2" opacity=".82"/>
+    <path d="M25 48 C26 42 28 38 31 38 C34 38 36 42 37 48" stroke-width="1.8" opacity=".62"/>
+  </g>
+
+  <!-- 切口处的第二道刻线，强调「被切开」而非圆角矩形 -->
+  <path d="M44.5 55.5 L55.5 44.5" fill="none" stroke="var(--pine)" stroke-width="1.3" opacity=".45" stroke-linecap="round"/>
+
+  <!-- 山径：先纸色刻槽，再赤陶细线 -->
+  <use href="#ridge" fill="none" stroke="var(--paper)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#ridge" fill="none" stroke="var(--clay)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 起点：空心小环；终点：实心落点 + 纸色内点，与印框呼应 -->
+  <circle cx="14" cy="16" r="2.5" fill="var(--paper)" stroke="var(--clay)" stroke-width="1.8"/>
+  <circle cx="40" cy="48" r="4.6" fill="var(--clay)"/>
+  <circle cx="40" cy="48" r="1.6" fill="var(--paper)"/>
+  </symbol>
+<symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/>
+    <path d="M17 12.5 L20.5 9" opacity=".55"/>
+  </symbol>
+<symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 3.5 H18 A2 2 0 0 1 20 5.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V5.5 A2 2 0 0 1 4.5 3.5 Z"/>
+    <path d="M6.5 15 L10 9 L9 12 L14 13 L17 8"/>
+    <circle cx="17" cy="8" r="1.7" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 5 L9 5 L7 11 L14 12 L18 19"/>
+    <circle cx="4" cy="5" r="2.1"/>
+    <circle cx="18" cy="19" r="2.4" fill="currentColor" stroke="none"/>
+    <path d="M18 5 L20.5 5 L20.5 7.5" opacity=".5"/>
+  </symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 5.5 H20.5 M8.5 12 H17.5 M8.5 18.5 H20.5"/>
+    <circle cx="4" cy="5.5" r="1.6" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="18.5" r="1.6" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 4.5 H18 A2 2 0 0 1 20 6.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V6.5 A2 2 0 0 1 4.5 4.5 Z"/>
+    <path d="M3.5 9 H20 M7.5 2.5 V6 M15.5 2.5 V6"/>
+    <circle cx="15" cy="15.5" r="1.9" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V13.5 L13.5 19 H6 A2 2 0 0 1 4 17 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <circle cx="11.5" cy="10.5" r="2.6" fill="currentColor" stroke="none"/>
+    <circle cx="11.5" cy="10.5" r=".9" fill="#F7F4EE" stroke="none"/>
+  </symbol>
+<symbol id="i-candidate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.5 3.5 H18 A2 2 0 0 1 20 5.5 V12 L15 17 H7.5 A2 2 0 0 1 5.5 15 V5.5 A2 2 0 0 1 7.5 3.5 Z"/>
+    <path d="M3.5 8 V17 A2 2 0 0 0 5.5 19 H13" opacity=".65"/>
+    <path d="M10.5 10 H16 M10.5 13 H14"/>
+  </symbol>
+<symbol id="i-collab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="3.2"/>
+    <circle cx="17" cy="8.5" r="2.6"/>
+    <path d="M2.5 19.5 C2.5 16 5 14 8 14 C11 14 13.5 16 13.5 19.5"/>
+    <path d="M15.5 13 L18.5 14.5 L21.5 12" opacity=".7"/>
+  </symbol>
+<symbol id="i-vote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20 V11 M10 20 V6 M16 20 V13"/>
+    <path d="M4 20 H20.5"/>
+    <circle cx="10" cy="4" r="1.8" fill="currentColor" stroke="none"/>
+    <path d="M15.5 3.5 L18 6 L20.5 3" opacity=".6"/>
+  </symbol>
+<symbol id="i-budget" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 18.5 L9 13 L12.5 15.5 L20 7"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="20" cy="7" r="2.1" fill="currentColor" stroke="none"/>
+    <path d="M4 6 H10" opacity=".55"/>
+  </symbol>
+<symbol id="i-source" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H14 L19 8.5 V15 L14 20.5 H6 A2 2 0 0 1 4 18.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <path d="M14 3.5 V8.5 H19 M7.5 12 H15 M7.5 15.5 H12.5"/>
+  </symbol>
+<symbol id="i-think" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3.5 18 C3.5 9 8 4.5 14 4.5 C18 4.5 20.5 7 20.5 10"/>
+    <path d="M7 18 C7 12 10 8.5 14 8.5 C16.2 8.5 17.5 9.6 17.5 11.5"/>
+    <path d="M3.5 20.5 H20.5"/>
+    <circle cx="14" cy="14" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-remind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5 L21 13 L16 20.5 H5.5 A2 2 0 0 1 3.5 18.5 Z"/>
+    <path d="M12 9 V14"/>
+    <circle cx="12" cy="17.5" r="1.3" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="2.5" width="6" height="11" rx="3"/>
+    <path d="M5.5 11.5 C5.5 15.5 8.5 18 12 18 C15.5 18 18.5 15.5 18.5 11.5"/>
+    <path d="M12 18 V21.5 M8.5 21.5 H15.5"/>
+    <path d="M6.5 6.5 H4.5" opacity=".55"/>
+  </symbol>
+<symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20.5 V4.5 M6.5 10 L12 4.5 L17.5 10"/>
+    <path d="M5 20.5 H19"/>
+    <circle cx="12" cy="4.5" r="1.6" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 6.5 L17 17 M17 6.5 L6.5 17"/>
+    <circle cx="12" cy="12" r="1.4" fill="#F7F4EE" stroke="none"/>
+  </symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 9 L12 16 L19 9"/>
+    <path d="M9 4.5 H15" opacity=".5"/>
+  </symbol>
+<symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 5 L8 12 L15 19"/>
+    <path d="M8 12 H20" opacity=".5"/>
+  </symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 4.5 V19.5 M4.5 12 H19.5"/>
+    <path d="M17 3.5 H20.5 V7" opacity=".5"/>
+  </symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 12.5 L9.5 18 L20 6"/>
+    <circle cx="20" cy="6" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
+    <path d="M12 6.5 V12 L16 14.5"/>
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-export" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3.5 H17 A2 2 0 0 1 19 5.5 V12 L13 18.5 H6 A2 2 0 0 1 4 16.5 V5.5 A2 2 0 0 1 5 3.5 Z"/>
+    <path d="M13 18.5 V21.5 H21 V13"/>
+    <path d="M21 13 L16 18" opacity=".6"/>
+  </symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10.5" cy="10.5" r="6.8"/>
+    <path d="M15.5 15.5 L21 21"/>
+    <path d="M7.5 10.5 H13.5" opacity=".55"/>
+  </symbol>
+<symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 16.5 L16 4.5 L19.5 8 L7.5 20 H4 Z"/>
+    <path d="M13.5 7 L17 10.5"/>
+    <path d="M4 20.5 H20.5" opacity=".45"/>
+  </symbol>
+<symbol id="i-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 18.5 C4 10 8 5 13 5 C17 5 20 8 20 12"/>
+    <path d="M8 18.5 C8 13 10 9.5 13 9.5"/>
+    <circle cx="13" cy="14.5" r="1.8" fill="currentColor" stroke="none"/>
+  </symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 4 H16.5 A2 2 0 0 1 18.5 6 V8.6 A2.8 2.8 0 0 0 18.5 14.4 V16 L13 21 H6.5 A2 2 0 0 1 4.5 19 V6 A2 2 0 0 1 5.5 4 Z"/>
+    <path d="M6.5 9 H9.5 M6.5 12.5 H9"/>
+    <path d="M12.5 7.5 V10 M12.5 12.5 V15 M12.5 17 V18.5" opacity=".65"/>
+  </symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/>
+    <circle cx="12" cy="12" r="3.4"/>
+    <path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22"/>
+    <path d="M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/>
+  </symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/>
+    <circle cx="16.4" cy="8.2" r="1.1" fill="currentColor" stroke="none" opacity=".7"/>
+  </symbol>
+</svg>
+
+
+
+
+
+
+
+
+
+
+
+
+<main class="board">
+
+  <!-- 01 行程列表 -->
+  <figure class="unit" id="step1">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><h2>我的行程</h2><span class="sp mini">3 个行程</span></header>
+      <div class="scroll">
+        <div class="blk-title"><span>进行中</span><span>按更新时间</span></div>
+        <div class="card trip-item">
+          <div style="display:flex;align-items:center;gap:8px"><h3>武当山四日</h3><span class="tag">版本 7</span></div>
+          <div class="meta">11.21 — 11.24 · 3 人 · 十堰</div>
+          <div class="row2"><span class="st st-pending">1 项待你定</span><span class="mini">2 处票价待核</span></div>
+        </div>
+        <div class="card trip-item"><h3>杭州周末</h3><div class="meta">12.05 — 12.07 · 4 人 · 杭州</div><div class="row2"><span class="st st-suggested">草案</span><span class="mini">未保存</span></div></div>
+        <div class="card trip-item"><h3>恩施峡谷</h3><div class="meta">10.02 — 10.05 · 2 人 · 已归档</div><div class="row2"><span class="mini">归档于 10.06</span></div></div>
+        <div class="blk-title" style="margin-top:16px"><span>最近动态</span></div>
+        <div class="panel" style="padding:12px">
+          <div class="kv"><span>master 改了第 2 天顺序</span><span class="mini">10 分钟前</span></div>
+          <div class="kv"><span>guest_b 投了「南岩宫」</span><span class="mini">1 小时前</span></div>
+        </div>
+      </div>
+      <nav class="tabbar" aria-label="主导航">
+        <span class="t" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>行程</span>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-candidate"/></svg>待规划</span>
+        <button class="plus" type="button" data-sheet="open" aria-label="新建行程"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>消息</span>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-collab"/></svg>我的</span>
+      </nav>
+    </div>
+    <div class="sheet-mask" id="sheet1"><div class="sheet">
+      <h3>新建行程</h3><p class="mini" style="margin-bottom:8px">选一种开始方式，之后都能改</p>
+      <button class="opt" type="button" data-next="2"><span class="badge">1</span><span>和 AI 说一句<small>目的地、天数、预算，生成逐日草案</small></span></button>
+      <button class="opt" type="button" data-next="2"><span class="badge">2</span><span>粘贴攻略链接<small>解析小红书 / 公众号地点，勾选后生成</small></span></button>
+      <button class="opt" type="button" data-next="2"><span class="badge">3</span><span>手动建空行程<small>自己添加方案与每日安排</small></span></button>
+    </div></div>
+    <div class="toast" id="toast1"></div></div>
+    <figcaption>01 行程列表</figcaption>
+  </figure>
+
+  <!-- 02 AI 规划：上半地图 + 下半对话面板 -->
+  <figure class="unit" id="step2">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><span class="back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></span><h2>AI 规划</h2><span class="sp st st-suggested">草案未保存</span></header>
+
+      <div class="ai-map" id="aiMap2">
+        <svg viewBox="0 0 375 292" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <rect width="375" height="292" fill="#EFEAE0" />
+          <g fill="none" stroke="#DED7C9" stroke-width="1">
+            <path d="M-20 210C50 150 110 138 164 172c54 34 90 88 150 66s70-60 100-54" />
+            <path d="M-20 236C56 178 114 166 168 198c54 32 86 84 144 64s68-58 96-52" />
+            <path d="M-20 262C62 206 118 194 172 224c54 30 82 80 138 62s66-56 92-50" />
+          </g>
+          <g fill="none" stroke="#C4BAA6" stroke-width="1" opacity=".7">
+            <path d="M238 26c30-22 74-18 92 8s-6 64-40 74-70-6-74-38 2-34 22-44Z" />
+            <path d="M252 42c20-14 50-12 62 6s-4 42-26 48-48-4-50-24 2-22 14-30Z" />
+          </g>
+          <g class="route" fill="none" stroke="#B4542A" stroke-width="2.2" stroke-dasharray="5 6" opacity=".85">
+            <path id="routeMain2" d="M78 250C104 208 126 166 158 128s48-58 70-80" />
+            <path id="routeBranch2" d="M158 128c28 22 48 48 68 66" />
+          </g>
+          <text x="20" y="280" font-size="10" fill="#8A8577">示意底图 · 非导航用</text>
+        </svg>
+        <div class="map-pill"><b>武当山四日</b><span id="mapPillMeta2">· 4 天 · 3 人</span></div>
+        <span class="daytag" data-day="1" style="left:46px;top:196px">DAY 1 · 2km</span>
+        <span class="daytag" data-day="2" style="left:170px;top:96px">DAY 2 · 8km</span>
+        <span class="daytag" data-day="3" style="left:238px;top:176px">DAY 3 · 5km</span>
+        <button class="pin pin-sm" data-spot="1" style="left:64px;top:236px" type="button"><span>1</span></button>
+        <button class="pin pin-sm is-verified" data-spot="2" style="left:92px;top:188px" type="button"><span>2</span></button>
+        <button class="pin pin-sm" data-spot="3" style="left:150px;top:118px" type="button"><span>3</span></button>
+        <button class="pin pin-sm" data-spot="4" style="left:222px;top:42px" type="button"><span>4</span></button>
+        <button class="pin pin-sm" data-spot="5" style="left:220px;top:176px" type="button"><span>5</span></button>
+      </div>
+
+      <div class="ai-sheet">
+        <div class="grab" aria-hidden="true"></div>
+        <div class="query-bar">
+          <span class="txt" id="queryText2">帮我规划带爸妈去武当山四天、六千以内的行程</span>
+          <button class="x" type="button" id="queryClear2" aria-label="清除问题"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+        </div>
+
+        <div class="thread" id="thread2">
+          <div class="think"><svg class="ico" aria-hidden="true"><use href="#i-think"/></svg><span>深度思考完成（AI 生成）</span></div>
+          <div class="msg msg-ai"><div class="bubble">
+            <p>为你规划了武当山 4 天行程，按「抵达 → 金顶 → 紫霄南岩」的地理顺序走，不走回头路。带长辈，第二天索道上行省两小时爬升，下午两个候选由你们投票定。</p>
+            <div class="remind"><b>核心提醒</b><ol>
+              <li>金顶与紫霄宫票价未核验，预算只统计已核验金额，结论是「无法判定」，不是「没超支」。</li>
+              <li>合适的候选只有 6 个，第 4 天留空，不补景点、不编造游览时刻。</li>
+            </ol></div>
+            <div class="source"><button class="btn btn-quiet btn-sm" type="button" id="sourceBtn2">来源 <svg class="ico" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+              <div class="source-body" id="sourceBody2" hidden>景点来自本地知识库；未配置高德，不查实时天气；模型只组织语言，不产生事实。</div>
+            </div>
+            <div class="draft-mini">
+              <div class="r"><span>逐日草案</span><b>3 天 / 6 个候选</b></div>
+              <div class="r"><span>票价</span><b>2 处未知，未计入</b></div>
+              <div class="r"><span>预算结论</span><b>无法判定</b></div>
+            </div>
+            <div class="qa"><span class="lbl">还差一项：返回日期</span>
+              <div class="chip-group" data-group="return">
+                <button class="chip" type="button" aria-pressed="false">第 2 天返</button>
+                <button class="chip" type="button" aria-pressed="false">第 3 天返</button>
+                <button class="chip" type="button" aria-pressed="true">第 4 天返</button>
+              </div>
+            </div>
+          </div></div>
+
+          <div class="followup"><span>第二天别排太满，加个室内备选</span></div>
+          <div class="think"><svg class="ico" aria-hidden="true"><use href="#i-think"/></svg><span>深度思考完成（AI 生成）</span></div>
+          <div class="msg msg-ai"><div class="bubble"><p>已把第二天强度调低：下午改成「太子坡」作雨天备选，顺路的紫霄宫挪到第三天。地图上的路线已同步重排。</p></div></div>
+
+          <div class="quick">
+            <button class="chip" type="button" data-quick="帮我看看哪些票价还没核">查票价</button>
+            <button class="chip" type="button" data-quick="加个下雨也能去的室内地方">加室内备选</button>
+          </div>
+        </div>
+
+        <div class="composer">
+          <input id="prompt2" type="text" placeholder="给行程助手发送消息…" aria-label="输入行程需求" />
+          <button class="send" type="button" id="mic2" aria-label="语音输入" style="background:var(--surface);color:var(--text-3);border:1px solid var(--line-strong)"><svg class="ico" aria-hidden="true"><use href="#i-mic"/></svg></button>
+          <button class="send" type="button" id="send2" aria-label="发送"><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg></button>
+        </div>
+        <div class="foot" style="padding-top:8px">
+          <div class="row"><button class="btn btn-primary" type="button" data-next="3">看逐日草案</button><button class="btn btn-outline" type="button" data-next="2">换一版</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast2"></div></div>
+    <figcaption>02 AI 规划</figcaption>
+  </figure>
+
+  <!-- 03 草案 / 检查 / 确认保存 -->
+  <figure class="unit" id="step3">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><span class="back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></span><h2>逐日草案</h2><span class="sp st st-suggested">未保存</span></header>
+      <div class="scroll">
+        <p class="advice">按 4 天排了 3 天，第 4 天留空：库里合适的候选只有 6 个。所有游览时刻均为「待定」，草案不编造时刻。</p>
+        <div class="blk-title"><span>逐日草案</span><span>每天最多 2 个候选</span></div>
+        <div class="card day-card" id="draft-day1">
+          <div class="day-head"><span class="day-badge">1</span><span class="day-title">抵达 · 玉虚宫</span><span class="day-date">11.21 周五</span></div>
+          <div class="info-row"><span class="ord">1</span><span><span class="nm">十堰东站</span><span class="meta">时间待定 · 来源 本地知识库</span></span><span class="rt"><span class="st st-suggested">建议</span></span></div>
+          <div class="info-row"><span class="ord">2</span><span><span class="nm">玉虚宫</span><span class="meta">票价未知 · 开放时间未知</span></span><span class="rt"><span class="st st-unknown">未知</span></span></div>
+        </div>
+        <div class="card day-card" id="draft-day2">
+          <div class="day-head"><span class="day-badge">2</span><span class="day-title">金顶 · 太和宫</span><span class="day-date">11.22 周六</span></div>
+          <div class="info-row"><span class="ord">1</span><span><span class="nm">索道上行 · 金顶</span><span class="meta">时间待定 · 票价未知</span></span><span class="rt"><span class="st st-unknown">未知</span></span></div>
+          <div class="info-row"><span class="ord">2</span><span><span class="nm">南岩宫 / 紫霄宫</span><span class="meta">2 个候选，待投票</span></span><span class="rt"><span class="st st-pending">待定</span></span></div>
+        </div>
+        <div class="card day-card" id="draft-day3">
+          <div class="day-head"><span class="day-badge">3</span><span class="day-title">紫霄 · 南岩</span><span class="day-date">11.23 周日</span></div>
+          <div class="info-row"><span class="ord">1</span><span><span class="nm">紫霄宫</span><span class="meta">台阶平缓 · 票价未知</span></span><span class="rt"><span class="st st-unknown">未知</span></span></div>
+        </div>
+
+        <div class="blk-title" style="margin-top:14px"><span>检查项</span><span>点一条定位到对应天</span></div>
+        <div class="check-stack">
+          <div class="check medium" data-jump="draft-day2"><span>!</span><span><b>2 个景点票价未知</b><span class="sug">核实票价后再判断；未知不等于免费</span></span></div>
+          <div class="check low" data-jump="draft-day1"><span>i</span><span><b>游览时刻均未确定</b><span class="sug">确认后可手动排</span></span></div>
+          <div id="foldRest" hidden>
+            <div class="check low" style="margin-top:6px" data-jump="draft-day3"><span>i</span><span><b>第 4 天未生成</b><span class="sug">候选不足，空天不补景点</span></span></div>
+            <div class="check low" style="margin-top:6px"><span>i</span><span><b>未接入实时天气</b><span class="sug">高德未配置时不查天气</span></span></div>
+          </div>
+          <div class="panel"><button class="fold-head" type="button" id="foldBtn"><span>展开其余 2 项检查提示</span><svg class="ico" aria-hidden="true"><use href="#i-chevron"/></svg></button></div>
+        </div>
+
+        <div class="blk-title" style="margin-top:14px"><span>预算粗估</span></div>
+        <div class="panel" style="padding:12px">
+          <div class="kv"><span>口径</span><span class="mini">仅门票，不含交通 / 住宿 / 餐饮</span></div>
+          <div class="kv"><span>已核验门票小计</span><span class="v">¥0</span></div>
+          <div class="kv"><span>结论</span><span class="v" style="color:var(--warn)">无法判定</span></div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="row" style="margin-bottom:8px">
+          <button class="btn btn-primary" type="button" id="saveBtn" data-next="4">确认保存到行程</button>
+          <button class="btn btn-outline" type="button" data-next="2">让 AI 重排</button>
+        </div>
+        <p class="mini">草案与确认载荷都不写库；点确认后才创建行程并写入每日安排。</p>
+      </div>
+    </div>
+    <div class="toast" id="toast3"></div></div>
+    <figcaption>03 草案与确认</figcaption>
+  </figure>
+
+  <!-- 04 行程详情 · 列表 -->
+  <figure class="unit" id="step4">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><span class="back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></span><h2>武当山四日</h2><span class="sp mini">邀请 <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></span></header>
+      <div class="tabs" role="tablist">
+        <button type="button" aria-selected="true" data-mode="list">列表</button>
+        <button type="button" aria-selected="false" data-mode="map">地图</button>
+        <button type="button" aria-selected="false" data-mode="cal">日历</button>
+      </div>
+      <div class="scroll">
+        <div class="panel" style="padding:10px 12px;margin-bottom:10px">
+          <div class="kv"><span>已用 / 上限</span><span class="v">¥1,200 / ¥6,000</span></div>
+          <div class="kv"><span>成员</span><span class="mini">master · guest_a · guest_b</span></div>
+        </div>
+        <div class="card day-card">
+          <div class="day-head"><span class="day-badge">1</span><span class="day-title">周五 · 抵达</span><span class="day-date">11.21</span></div>
+          <div class="info-row" data-spot="1"><span class="ord">⋮⋮</span><span><span class="nm">十堰东站</span><span class="meta">G6821 · 二等座 08 车 12A · 已出票</span></span><span class="rt"><span class="st st-booked">已出票</span><span class="mini">14:20</span></span></div>
+          <div class="transit"><span class="dash"></span>换乘景区巴士 · 约 45 分钟</div>
+          <div class="info-row" data-spot="2"><span class="ord">⋮⋮</span><span><span class="nm">玉虚宫</span><span class="meta">步行 15 分钟 · 已核验，无需门票</span></span><span class="rt"><span class="st st-verified">已核验</span><span class="mini">2 小时</span></span></div>
+        </div>
+        <div class="card day-card">
+          <div class="day-head"><span class="day-badge">2</span><span class="day-title">周六 · 金顶</span><span class="day-date">11.22</span></div>
+          <div class="info-row" data-spot="3"><span class="ord">⋮⋮</span><span><span class="nm">索道上行 · 金顶</span><span class="meta">建议 7:30 前到站 · 票价待核</span></span><span class="rt"><span class="st st-unknown">票价未知</span><span class="mini">3 小时</span></span></div>
+          <div class="transit"><span class="dash"></span>索道下行 + 景区车 · 约 40 分钟</div>
+          <div class="info-row" data-spot="4"><span class="ord">⋮⋮</span><span><span class="nm">南岩宫 或 紫霄宫</span><span class="meta">2 个候选 · 平票，等你们定</span></span><span class="rt"><span class="st st-pending">待投票</span></span></div>
+        </div>
+        <div class="card day-card">
+          <div class="day-head"><span class="day-badge muted">3</span><span class="day-title">周日 · 紫霄 · 南岩</span><span class="day-date">11.23</span></div>
+          <div class="info-row" data-spot="5"><span class="ord">⋮⋮</span><span><span class="nm">紫霄宫</span><span class="meta">门票未核验，现场为准</span></span><span class="rt"><span class="st st-unknown">票价未知</span></span></div>
+        </div>
+        <p class="mini" style="padding:8px 2px">拖动 ⋮⋮ 调整顺序，跨天移动会重算站间耗时。</p>
+      </div>
+      <div class="peek" id="peek4"><b>选中：玉虚宫</b><span>已核验</span><span class="sp"><button class="btn btn-quiet btn-sm" type="button" data-mode="map">在地图查看 <svg class="ico" aria-hidden="true"><use href="#i-map"/></svg></button></span></div>
+      <nav class="tabbar" aria-label="主导航">
+        <span class="t" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>行程</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-candidate"/></svg>待规划</span>
+        <button class="plus" type="button" data-sheet="open" aria-label="新建行程"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>消息</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-collab"/></svg>我的</span>
+      </nav>
+    </div>
+    <div class="toast" id="toast4"></div></div>
+    <figcaption>04 列表模式</figcaption>
+  </figure>
+
+  <!-- 05 行程详情 · 地图 -->
+  <figure class="unit" id="step5">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><span class="back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg></span><h2>武当山四日</h2><span class="sp mini">4 个点位</span></header>
+      <div class="tabs" role="tablist">
+        <button type="button" aria-selected="false" data-mode="list">列表</button>
+        <button type="button" aria-selected="true" data-mode="map">地图</button>
+        <button type="button" aria-selected="false" data-mode="cal">日历</button>
+      </div>
+      <div class="map-wrap">
+        <div id="map-mobile" class="map-real"></div>
+        <svg class="map-bg" viewBox="0 0 375 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <rect width="375" height="620" fill="#EFEAE0" />
+          <g stroke="#DED7C9" stroke-width="1">
+            <path d="M0 80h375M0 160h375M0 240h375M0 320h375M0 400h375M0 480h375M0 560h375" />
+            <path d="M60 0v620M130 0v620M200 0v620M270 0v620M340 0v620" />
+          </g>
+          <g fill="none" stroke="#C4BAA6" stroke-width="2" stroke-dasharray="5 6">
+            <path d="M92 470C128 410 150 350 186 300s54-90 82-130" />
+            <path d="M186 300c34 30 56 66 76 96" />
+          </g>
+          <text x="20" y="596" font-size="11" fill="#8A8577">未配置 AK · 示意底图</text>
+        </svg>
+        <button class="pin pin-sm" data-spot="1" style="left:78px;top:452px" type="button"><span>1</span></button>
+        <button class="pin pin-sm is-verified" data-spot="2" style="left:112px;top:392px" type="button"><span>2</span></button>
+        <button class="pin pin-sm" data-spot="3" style="left:176px;top:286px" type="button"><span>3</span></button>
+        <button class="pin pin-sm" data-spot="4" style="left:250px;top:180px" type="button"><span>4</span></button>
+        <button class="pin pin-sm" data-spot="5" style="left:252px;top:386px" type="button"><span>5</span></button>
+        <div class="map-legend"><span><i style="background:var(--pine)"></i>待核验</span><span><i style="background:var(--ok)"></i>已核验</span><span id="map-mode-mobile">示意底图</span></div>
+      </div>
+      <div class="peek" id="peek5"><b>选中：玉虚宫</b><span>已核验 · 步行 15 分钟</span><span class="sp"><button class="btn btn-quiet btn-sm" type="button" data-mode="list">看列表 <svg class="ico" aria-hidden="true"><use href="#i-list"/></svg></button></span></div>
+      <nav class="tabbar" aria-label="主导航">
+        <span class="t" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>行程</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-candidate"/></svg>待规划</span>
+        <button class="plus" type="button" data-sheet="open" aria-label="新建行程"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>消息</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-collab"/></svg>我的</span>
+      </nav>
+    </div>
+    <div class="toast" id="toast5"></div></div>
+    <figcaption>05 地图模式</figcaption>
+  </figure>
+
+  <!-- 06 待定与协作：底部滑出抽屉 -->
+  <figure class="unit" id="step6">
+    <div class="phone"><div class="screen">
+      <header class="appbar"><h2>武当山四日</h2><span class="sp mini">行程已保存</span></header>
+      <div class="scroll">
+        <div class="card" style="padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px"><h3>今天要处理</h3><span class="st st-pending">1 项</span></div>
+          <div class="kv" style="margin-top:8px"><span>第 2 天下午候选</span><span class="v">2 : 2 平票</span></div>
+          <div class="kv"><span>票价待核</span><span class="v" style="color:var(--warn)">2 处</span></div>
+          <div class="vote-row"><button class="btn btn-primary btn-sm" type="button" data-sheet="open">打开待定抽屉</button></div>
+        </div>
+        <div class="blk-title"><span>行程概览</span><span>同一份数据</span></div>
+        <div class="card" style="padding:14px">
+          <div class="kv"><span>逐日安排</span><span class="v">3 天 / 5 个点位</span></div>
+          <div class="kv"><span>成员</span><span class="v">3 人</span></div>
+          <div class="kv"><span>费用合计（仅已核验）</span><span class="v">¥1,740</span></div>
+          <div class="kv"><span>时间冲突</span><span class="v" style="color:var(--ok)">0 项</span></div>
+        </div>
+        <div class="blk-title" style="margin-top:14px"><span>随时能改</span></div>
+        <div class="panel" style="padding:12px">
+          <p class="mini">跟 AI 说一句「下雨了，改成室内路线」就能当场重排；删掉一个点位，后续行程会自动顺延。信息从头到尾不用来回搬运。</p>
+          <div class="vote-row"><button class="btn btn-outline btn-sm" type="button" data-next="2">回 AI 对话</button><button class="btn btn-quiet btn-sm" type="button">导出行程单</button></div>
+        </div>
+      </div>
+      <nav class="tabbar" aria-label="主导航">
+        <span class="t" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>行程</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-candidate"/></svg>待规划</span>
+        <button class="plus" type="button" data-sheet="open" aria-label="新建行程"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        <span class="t"><svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>消息</span><span class="t"><svg class="ico" aria-hidden="true"><use href="#i-collab"/></svg>我的</span>
+      </nav>
+    </div>
+    <div class="sheet-mask" id="sheet6"><div class="sheet" style="max-height:74%;overflow-y:auto">
+      <h3>待你定</h3><p class="mini" style="margin-bottom:10px">并列时系统不替你决定，需要成员自己定</p>
+      <div class="blk-title"><span>第 2 天下午 · 2 个候选</span><span id="tally6">2 : 2 并列</span></div>
+      <div class="card cand">
+        <div class="top"><b>南岩宫</b><span class="st st-pending">并列</span></div>
+        <p class="meta">悬空栈道 · 步行 40 分钟 · guest_b 提出</p>
+        <div class="kv"><span>支持 <b id="vA6">2</b> · 反对 0 · 弃权 1</span><span class="mini">已投可改票</span></div>
+        <div class="vote-row"><button class="btn btn-primary btn-sm" type="button" data-vote="a">支持</button><button class="btn btn-outline btn-sm" type="button" data-vote="a-no">反对</button><button class="btn btn-quiet btn-sm" type="button" data-vote="a-del">撤回</button></div>
+      </div>
+      <div class="card cand">
+        <div class="top"><b>紫霄宫</b><span class="st st-pending">并列</span></div>
+        <p class="meta">道教建筑群 · 台阶平缓 · master 提出</p>
+        <div class="kv"><span>支持 <b id="vB6">2</b> · 反对 0 · 弃权 1</span><span class="mini">已投可改票</span></div>
+        <div class="vote-row"><button class="btn btn-outline btn-sm" type="button" data-vote="b">支持</button><button class="btn btn-outline btn-sm" type="button" data-vote="b-no">反对</button></div>
+      </div>
+      <div class="blk-title"><span>待规划地点</span></div>
+      <div class="panel" style="padding:4px 12px">
+        <div class="pool"><span>太子坡</span><span class="sp"><button class="btn btn-quiet btn-sm" type="button" data-add="第 1 天">加入第 1 天</button></span></div>
+        <div class="pool"><span>琼台三观</span><span class="sp"><button class="btn btn-quiet btn-sm" type="button" data-add="第 3 天">加入第 3 天</button></span></div>
+      </div>
+    </div></div>
+    <div class="toast" id="toast6"></div></div>
+    <figcaption>06 待定与协作</figcaption>
+  </figure>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var NAMES = { 1:'十堰东站', 2:'玉虚宫', 3:'索道上行 · 金顶', 4:'南岩宫 或 紫霄宫', 5:'紫霄宫' };
+  var STATE = { 1:'已出票', 2:'已核验 · 步行 15 分钟', 3:'票价未知 · 3 小时', 4:'待投票', 5:'票价未知' };
+  var current = '2';
+
+  function toast(n, msg) {
+    var el = document.getElementById('toast' + n);
+    if (!el) return;
+    el.textContent = msg; el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1800);
+  }
+
+  /* 一处选中，列表与地图同步；切视图不重置上下文 */
+  function selectSpot(id) {
+    current = id;
+    document.querySelectorAll('[data-spot]').forEach(function (el) {
+      el.classList.toggle('is-active', el.getAttribute('data-spot') === id);
+    });
+    ['peek4', 'peek5'].forEach(function (pid) {
+      var p = document.getElementById(pid);
+      if (!p) return;
+      p.querySelector('b').textContent = '选中：' + NAMES[id];
+      p.querySelector('span').textContent = STATE[id];
+    });
+  }
+  document.querySelectorAll('[data-spot]').forEach(function (el) {
+    el.addEventListener('click', function () { selectSpot(el.getAttribute('data-spot')); });
+  });
+  selectSpot(current);
+
+  /* 底部弹层 */
+  document.querySelectorAll('[data-sheet="open"]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var m = b.closest('.phone').querySelector('.sheet-mask');
+      if (m) m.classList.add('open');
+    });
+  });
+  document.querySelectorAll('.sheet-mask').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+  });
+
+  /* 流程跳转：同一份数据在页面间的连续状态 */
+  document.querySelectorAll('[data-next]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var n = b.getAttribute('data-next');
+      var target = document.getElementById('step' + n);
+      var phone = b.closest('.phone');
+      var mask = phone && phone.querySelector('.sheet-mask');
+      if (mask) mask.classList.remove('open');
+      if (target) {
+        var p = target.querySelector('.phone');
+        p.classList.add('is-linked');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        setTimeout(function () { p.classList.remove('is-linked'); }, 2200);
+      }
+      if (n === '3') toast(2, '草案已生成（未写库）');
+      if (n === '4' && b.id === 'saveBtn') {
+        b.textContent = '已保存到行程'; b.disabled = true;
+        toast(3, '已创建行程并写入每日安排');
+      }
+    });
+  });
+
+  /* 追问后：地图留在上半屏，路线就地重绘，DAY 2 标记减量 */
+  var rerouteCount2 = 0;
+  function rerouteMap2() {
+    var mp = document.getElementById('aiMap2');
+    if (!mp) return;
+    rerouteCount2 += 1;
+    var main = document.getElementById('routeMain2');
+    var branch = document.getElementById('routeBranch2');
+    if (main) main.setAttribute('d', rerouteCount2 % 2
+      ? 'M78 250C108 214 132 176 160 140s44-52 66-74'
+      : 'M78 250C104 208 126 166 158 128s48-58 70-80');
+    if (branch) branch.setAttribute('d', rerouteCount2 % 2
+      ? 'M160 140c24 26 44 50 62 68'
+      : 'M158 128c28 22 48 48 68 66');
+    var tag = mp.querySelector('.daytag[data-day="2"]');
+    if (tag) tag.textContent = 'DAY 2 · 4km（已减量）';
+    var meta = document.getElementById('mapPillMeta2');
+    if (meta) meta.textContent = '· 路线已重排';
+    mp.classList.remove('is-rerouting'); void mp.offsetWidth; mp.classList.add('is-rerouting');
+    setTimeout(function () { mp.classList.remove('is-rerouting'); }, 950);
+  }
+
+  /* AI 对话：发送 / 快捷建议都追加到同一条会话 */
+  function appendUser(text) {
+    var th = document.getElementById('thread2');
+    if (!th) return;
+    var fu = document.createElement('div');
+    fu.className = 'followup';
+    fu.innerHTML = '<span></span>';
+    fu.querySelector('span').textContent = text;
+    th.appendChild(fu);
+    var think = document.createElement('div');
+    think.className = 'think';
+    think.innerHTML = '<svg class="ico" aria-hidden="true"><use href="#i-think"/></svg><span>深度思考完成（AI 生成）</span>';
+    th.appendChild(think);
+    var ai = document.createElement('div');
+    ai.className = 'msg msg-ai';
+    ai.innerHTML = '<div class="bubble"><p></p></div>';
+    ai.querySelector('p').textContent = '收到，已按「' + text + '」重排：地图路线同步更新，候选不足的天仍留空，不补景点、不改已锁定的点位。';
+    th.appendChild(ai);
+    th.scrollTop = th.scrollHeight;
+    rerouteMap2();
+    toast(2, '路线已重排（未写库）');
+  }
+  var qc2 = document.getElementById('queryClear2');
+  if (qc2) qc2.addEventListener('click', function () {
+    document.getElementById('queryText2').textContent = '说一句想去哪、几天、和谁、多少预算';
+    toast(2, '已清除当前问题');
+  });
+  var sb2 = document.getElementById('sourceBtn2');
+  if (sb2) sb2.addEventListener('click', function () {
+    var b = document.getElementById('sourceBody2'); b.hidden = !b.hidden;
+  });
+  var mic2 = document.getElementById('mic2');
+  if (mic2) mic2.addEventListener('click', function () { toast(2, '语音输入（演示占位，未接讯飞）'); });
+
+  var send2 = document.getElementById('send2');
+  var prompt2 = document.getElementById('prompt2');
+  if (send2) send2.addEventListener('click', function () {
+    var t = (prompt2.value || '').trim();
+    if (!t) { toast(2, '先说一句，或点上面的建议'); return; }
+    appendUser(t); prompt2.value = '';
+  });
+  if (prompt2) prompt2.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') send2.click();
+  });
+  document.querySelectorAll('[data-quick]').forEach(function (b) {
+    b.addEventListener('click', function () { appendUser(b.dataset.quick); });
+  });
+
+  /* 补问 chips */
+  document.querySelectorAll('.chip-group').forEach(function (g) {
+    g.querySelectorAll('.chip').forEach(function (c) {
+      c.addEventListener('click', function () {
+        g.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+        c.setAttribute('aria-pressed', 'true');
+        toast(2, '已补：' + c.textContent.trim());
+      });
+    });
+  });
+
+  /* 检查项定位 + 折叠 */
+  document.querySelectorAll('.check[data-jump]').forEach(function (c) {
+    c.addEventListener('click', function () {
+      var d = document.getElementById(c.dataset.jump);
+      if (!d) return;
+      d.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      d.style.boxShadow = '0 0 0 2px var(--pine-line)';
+      setTimeout(function () { d.style.boxShadow = ''; }, 1600);
+    });
+  });
+  var foldBtn = document.getElementById('foldBtn');
+  if (foldBtn) foldBtn.addEventListener('click', function () {
+    var rest = document.getElementById('foldRest');
+    var open = rest.hidden;
+    rest.hidden = !open;
+    foldBtn.querySelector('span').textContent = open ? '收起检查提示' : '展开其余 2 项检查提示';
+  });
+
+  /* 列表 / 地图切换保留选中项 */
+  document.querySelectorAll('[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var mode = b.dataset.mode;
+      if (mode === 'cal') { toast(4, '日历视角：按日期查看全程'); return; }
+      var target = document.getElementById('step' + (mode === 'map' ? '5' : '4'));
+      if (target) {
+        var p = target.querySelector('.phone');
+        p.classList.add('is-linked');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        setTimeout(function () { p.classList.remove('is-linked'); }, 1800);
+      }
+      selectSpot(current);
+      toast(mode === 'map' ? 4 : 5, '已切换视图，选中项保持：' + NAMES[current]);
+    });
+  });
+
+  /* 投票改票 */
+  var a = 2, b2 = 2;
+  function tally() {
+    var l = document.getElementById('tally6');
+    if (l) l.textContent = a + ' : ' + b2 + (a === b2 ? ' 并列' : (a > b2 ? ' 南岩领先' : ' 紫霄领先'));
+  }
+  document.querySelectorAll('[data-vote]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var k = btn.dataset.vote;
+      if (k === 'a') { a += 1; toast(6, '已投「南岩宫 · 支持」'); }
+      else if (k === 'a-del') { a = Math.max(0, a - 1); toast(6, '已撤回你的票'); }
+      else if (k === 'a-no') toast(6, '已投「南岩宫 · 反对」');
+      else if (k === 'b') { b2 += 1; toast(6, '已投「紫霄宫 · 支持」'); }
+      else toast(6, '已投「紫霄宫 · 反对」');
+      document.getElementById('vA6').textContent = a;
+      document.getElementById('vB6').textContent = b2;
+      tally();
+    });
+  });
+  document.querySelectorAll('[data-add]').forEach(function (btn) {
+    btn.addEventListener('click', function () { toast(6, '已加入' + btn.dataset.add + '，站间耗时已重算'); });
+  });
+
+  /* 百度地图 BMapGL：AK 从 window.BAIDU_MAP_AK 或 ?ak= 读取 */
+  var params = new URLSearchParams(location.search);
+  var AK = window.BAIDU_MAP_AK || params.get('ak') || '';
+  var POINTS = [
+    { lng: 111.0489, lat: 32.5471, tag: '1' }, { lng: 111.0043, lat: 32.4013, tag: '2' },
+    { lng: 111.0247, lat: 32.4276, tag: '3' }, { lng: 111.0361, lat: 32.4510, tag: '4' }
+  ];
+  function initMap() {
+    if (!window.BMapGL) return;
+    var el = document.getElementById('map-mobile');
+    if (!el) return;
+    var map = new BMapGL.Map(el);
+    map.centerAndZoom(new BMapGL.Point(111.026, 32.47), 12);
+    map.enableScrollWheelZoom(false);
+    POINTS.forEach(function (p) {
+      var label = new BMapGL.Label(p.tag, {
+        position: new BMapGL.Point(p.lng, p.lat), offset: new BMapGL.Size(-12, -12)
+      });
+      label.setStyle({
+        width: '24px', height: '24px', lineHeight: '24px', borderRadius: '50%',
+        background: '#1E4A3E', color: '#FCFAF5', border: '2px solid #FCFAF5',
+        fontSize: '11px', textAlign: 'center', padding: '0'
+      });
+      map.addOverlay(label);
+    });
+    var badge = document.getElementById('map-mode-mobile');
+    if (badge) badge.textContent = '实时地图';
+  }
+  if (!AK) {
+    console.info('[地图] 未配置 AK，保留示意底图。可追加 ?ak=你的AK 或设置 window.BAIDU_MAP_AK。');
+  } else {
+    window.__initBaiduMap = initMap;
+    var s = document.createElement('script');
+    s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' + encodeURIComponent(AK) + '&callback=__initBaiduMap';
+    s.onerror = function () { console.warn('[地图] 脚本加载失败，保留示意底图。'); };
+    document.head.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>

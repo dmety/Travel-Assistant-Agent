@@ -2,11 +2,11 @@
 # 启动 travel-server（从 gitignored .env 注入密钥，绝不回显值）。
 # 背景：Spring Boot 不读 .env；.env 高德键名为 AMAP_API_KEY，应用读 AMAP_KEY。
 # application.yml 已加回退 ${AMAP_KEY:${AMAP_API_KEY:}}，本脚本再做同名导出双保险。
-# 用法：bash tools/run-server.sh [端口，默认 18080]
+# 用法：bash tools/run-server.sh [端口，默认 8080]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PORT="${1:-18080}"
+PORT="${1:-8080}"
 
 # 逐行解析 .env（容忍 CRLF / 行尾注释 / 引号），导出为同名 OS 变量
 if [ -f "$ROOT/.env" ]; then

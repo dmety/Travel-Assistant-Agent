@@ -46,8 +46,12 @@ public class ChatTools {
   private static final Logger log = LoggerFactory.getLogger(ChatTools.class);
 
   /** 回给模型的摘要上限：一个工具的结果不该比提问本身长十倍。 */
-  private static final int MAX_SUMMARY = 1200;
-  private static final int MAX_PLACES = 8;
+  /**
+   * 单条工具结果的字符上限。整段会作为 tool 消息回灌给模型，并且后续每一轮都重发，
+   * 所以这里省下的每个字都会乘上剩余轮数：1200 改成 800，一轮最多省下约 2.4K 字符。
+   */
+  private static final int MAX_SUMMARY = 800;
+  private static final int MAX_PLACES = 6;
   private static final int MAX_FOOD = 8;
   /** 天数与人数上限，口径与 {@code IntentParser} 的 1~30 保持一致：两条链路的边界不能不一样。 */
   private static final int MAX_DAYS = 30;
@@ -87,56 +91,43 @@ public class ChatTools {
    * <p>描述写得像给人看的说明书：「什么时候该用」比「参数是什么」更能决定模型的选择。
    */
   public static final List<Map<String, Object>> SPECS = List.of(
-      fn("resolve_place", "核实一个地名属于哪座城市、是不是具体景点。地名写法不确定、"
-          + "或用户说的可能是景区名时先调它，不要自己猜归属。",
-          Map.of("name", str("地名原文，例如「武当山」「婺源」")), List.of("name")),
-      fn("list_attractions", "按城市列出景点，好评高的排前面，附真实评分、等级、票价原文与"
-          + "人工核验过的官方购票入口；没有票价的明确标「未核验」。"
-          + "问「有什么好玩的」「值不值得去」「门票多少」时用它。",
-          Map.of("city", str("城市名，例如「武汉」"),
-              "limit", Map.of("type", "integer", "description", "最多返回几条，默认 8，上限 12")),
+      fn("resolve_place", "核实地名属于哪座城市、是不是具体景点；不确定归属时先调它。",
+          Map.of("name", str("地名原文，如「武当山」")), List.of("name")),
+      fn("list_attractions", "按城市列景点，含评分、等级、票价原文与官方购票入口；没票价的标"
+          + "「未核验」。问「有什么好玩的」「门票多少」用它。",
+          Map.of("city", str("城市名，如「武汉」"),
+              "limit", Map.of("type", "integer", "description", "默认 6，上限 10")),
           List.of("city")),
-      fn("get_weather", "查某座城市未来几天的天气预报（高德预报，不是实况）。"
-          + "问天气、气温、要不要带伞、穿什么时用它。",
-          Map.of("city", str("城市名，例如「天津」"),
-              "days", Map.of("type", "integer", "description", "查几天，默认 3，最多 4")),
+      fn("get_weather", "查某城市未来几天天气预报（非实况）。问天气、带伞、穿什么用它。",
+          Map.of("city", str("城市名，如「天津」"),
+              "days", Map.of("type", "integer", "description", "默认 3，最多 4")),
           List.of("city")),
-      fn("book_ticket", "按一句自然语言查购票信息：给出经核验的官方购票链接与购票方法、"
-          + "规则匹配景区票种、指出还缺什么条件。"
-          + "用户问「门票怎么买」「在哪买票」「带学生证多少钱」「预订要注意什么」时用它；"
-          + "它只给入口、方法与缺口，不代下单、不查余票、不处理退款。",
-          Map.of("message", str("用户的购票原话，尽量保留年龄、日期、人数等条件，例如"
-              + "「两个成人一个1.2米儿童下周六去黄鹤楼」")), List.of("message")),
-      fn("get_inspiration", "按地名给主题灵感候选，好评高的排前面，附真实评分、等级、"
-          + "票价原文与官方购票入口；没有票价的只说「未核验」，不要补数字。"
-          + "未收录的地名（如区县「黄梅」「婺源」）会自动改用地图实时检索，结果未经核验。"
-          + "用户说「不知道去哪」「随便逛逛」「有什么好玩的推荐一下」时用它；"
-          + "传用户提到的原始地名，不要先替换成地级市。",
-          Map.of("city", str("地名，如「杭州」「黄梅」")), List.of("city")),
-      fn("vote_plan", "让三位评委 Agent（票务/美食/停车视角）对行程方案做两轮投票："
-          + "主 Agent 先汇总本轮所有工具查到的信息整理成一份逐日草案（含官方购票方式），"
-          + "再生成多套侧重不同的候选，评委第二轮按草案内容评分计票选出胜者。"
-          + "用户已经给了目的地和天数、想比较不同侧重（省钱/美食/少走路）怎么安排时用它。"
-          + "先调过查景点、找餐馆、问票务的工具再来投票，汇总的信息才完整；"
-          + "投票比较耗时，用户只是闲聊或问天气时不要调。",
-          Map.of("city", str("目的地城市，例如「武汉」"),
+      fn("book_ticket", "按一句自然语言查购票：官方入口、购票方法、还缺哪些条件。只给入口与"
+          + "方法，不代下单、不查余票、不退款。",
+          Map.of("message", str("购票原话，保留年龄、日期、人数，如「两个成人下周六去黄鹤楼」")),
+          List.of("message")),
+      fn("get_inspiration", "按地名给灵感候选，含评分、等级、票价原文与官方入口；未收录地名"
+          + "自动改用地图实时检索（未经核验）。用户说「不知道去哪」「随便逛逛」用它，传原始地名。",
+          Map.of("city", str("地名，如「黄梅」")), List.of("city")),
+      fn("vote_plan", "三位评委（票务/美食/停车）两轮投票选方案：先汇总本轮工具结果成逐日草案，"
+          + "再生成多套侧重候选评分。用户想比较省钱/美食/少走路时用，先查过景点与餐馆；耗时，闲聊别调。",
+          Map.of("city", str("目的地城市，如「武汉」"),
               "days", Map.of("type", "integer", "description", "游玩天数"),
-              "travelers", Map.of("type", "integer", "description", "同行总人数，含本人"),
+              "travelers", Map.of("type", "integer", "description", "同行人数，含本人"),
               "budget", Map.of("type", "number", "description", "预算上限，单位元"),
               "preferences", Map.of("type", "array", "items", Map.of("type", "string"),
-                  "description", "偏好，只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏")),
+                  "description", "只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏")),
           List.of("city")),
-      fn("find_food", "查某座城市真实的餐馆候选（按该城市一个景点的坐标找周边，含人均、评分、距离）。"
-          + "问吃什么、找馆子、本地小吃时用它。",
-          Map.of("city", str("城市名，例如「武汉」")), List.of("city")),
-      fn("draft_itinerary", "按城市与天数生成逐日行程草案，含候选景点、步行段、预算估算与待补问题。"
-          + "用户要行程、问怎么安排、说「玩几天」时用它。天数没给就先问用户，不要默认填 3。",
-          Map.of("city", str("城市名，例如「武汉」"),
-              "days", Map.of("type", "integer", "description", "游玩天数，1~30"),
-              "travelers", Map.of("type", "integer", "description", "同行总人数，含本人"),
+      fn("find_food", "查某城市真实餐馆候选（人均、评分、距离）。问吃什么、找馆子用它。",
+          Map.of("city", str("城市名，如「武汉」")), List.of("city")),
+      fn("draft_itinerary", "按城市与天数出逐日草案（候选景点、步行段、预算、待补问题）。"
+          + "用户要行程时用它；没给天数先问，别默认 3 天。",
+          Map.of("city", str("城市名，如「武汉」"),
+              "days", Map.of("type", "integer", "description", "1~30"),
+              "travelers", Map.of("type", "integer", "description", "同行人数，含本人"),
               "budget", Map.of("type", "number", "description", "预算上限，单位元"),
               "preferences", Map.of("type", "array", "items", Map.of("type", "string"),
-                  "description", "偏好，只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏"),
+                  "description", "只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏"),
               "departDate", str("出发日期 YYYY-MM-DD，不知道就省略")),
           List.of("city", "days")),
       fn("route_plan", "算两点之间的步行 / 驾车 / 公交距离与耗时（高德路径规划），"
@@ -218,7 +209,7 @@ public class ChatTools {
     if (city == null) {
       return new Outcome(false, "缺少 city 参数。", null);
     }
-    int limit = Math.min(Math.max(number(args, "limit", MAX_PLACES), 1), 12);
+    int limit = Math.min(Math.max(number(args, "limit", MAX_PLACES), 1), 10);
     List<Attraction> found = store.findByCity(city);
     if (found.isEmpty()) {
       // 用户口径：先查知识库，没有就自动调地图工具，不要让用户换个说法再试一遍

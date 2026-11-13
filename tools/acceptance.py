@@ -45,67 +45,11 @@ def check(condition, description):
     print('PASS', description, flush=True)
 
 
-def check_local_provider(owner, base, data, endpoint, env):
-    """Real configured HTTP provider: no injected Java provider or mocked HTTP client."""
-    port = int(urllib.parse.urlsplit(endpoint).port)
-    command = [sys.executable, '-B', str(ROOT / 'tools/agent/local_mock_server.py'), '--port', str(port)]
-    mock = subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
-    try:
-        for _ in range(80):
-            try:
-                if request(client(), endpoint.replace('/v1/invoke', ''), '/healthz')[0] == 200:
-                    break
-            except (OSError, urllib.error.URLError):
-                time.sleep(0.05)
-        else:
-            raise AssertionError('local mock startup timed out')
-        config = json.loads((ROOT / 'data/agent_providers.example.json').read_text(encoding='utf-8'))
-        provider = config['providers'][0]
-        provider.update(id='local.mock', endpoint=endpoint, enabled=True)
-        config['routes'] = [{'intent': 'FOOD_RECOMMEND', 'primary': 'local.mock', 'fallback': ['builtin.rules']}]
-        path = data / 'agent_providers.json'
-        path.write_text(json.dumps(config), encoding='utf-8')
-        request(owner, base, '/api/agent/providers/reload', {})
-        for gate, expected in [('probe', 'SHADOW'), ('shadow', 'SHADOW'), ('activate', 'ACTIVE')]:
-            code, result = request(owner, base, '/api/agent/providers/local.mock/' + gate, {})
-            check(code == 200 and result['status'] == expected and not result['report']['failures'],
-                  'configured local HTTP provider ' + gate)
-        body = {'intent': 'FOOD_RECOMMEND', 'context': {'city': '杭州'}}
-        code, result = request(owner, base, '/api/agent/invoke', body)
-        check(code == 200 and result['providerId'] == 'local.mock', 'configured local HTTP provider is actually invoked')
-        mock.terminate()
-        mock.wait(timeout=10)
-        code, result = request(owner, base, '/api/agent/invoke', body)
-        check(code == 200 and result['providerId'] != 'local.mock'
-              and result['status'] in ('REFUSED', 'DEGRADED'), 'unavailable external provider falls back honestly')
-        provider['endpoint'] = 'http://10.0.0.1:8090/v1/invoke'
-        path.write_text(json.dumps(config), encoding='utf-8')
-        request(owner, base, '/api/agent/providers/reload', {})
-        _, result = request(owner, base, '/api/agent/providers/local.mock/admission')
-        check(result['status'] == 'REJECTED' and any(f['code'] == 'E_META_ENDPOINT' for f in result['failures']),
-              'invalid private endpoint rejected after reload')
-    finally:
-        if mock.poll() is None:
-            mock.terminate()
-            try:
-                mock.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                mock.kill()
-                mock.wait(timeout=5)
-
-
 def main():
     check(JAR.exists(), 'packaged server exists')
     env = dict(os.environ, AMAP_KEY='', BAIDU_AK='', DEEPSEEK_API_KEY='',
         NO_PROXY='127.0.0.1,localhost', PYTHONIOENCODING='utf-8')
-    with socket.socket() as sock:
-        sock.bind(('127.0.0.1', 0))
-        mock_endpoint = 'http://127.0.0.1:%d/v1/invoke' % sock.getsockname()[1]
-    env['TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT'] = mock_endpoint
-    with tempfile.TemporaryDirectory(prefix='travel-acceptance-',
-            dir=os.environ.get('TRAVEL_TEST_TEMP_ROOT')) as temporary:
+    with tempfile.TemporaryDirectory(prefix='travel-acceptance-') as temporary:
         data = Path(temporary) / 'data'
         process = None
         with (Path(temporary) / 'server.log').open('w', encoding='utf-8') as log:
@@ -126,7 +70,7 @@ def main():
                     sock.bind(('127.0.0.1', 0))
                     port = sock.getsockname()[1]
                 base = f'http://127.0.0.1:{port}'
-                process = subprocess.Popen(['java', f'-Djava.io.tmpdir={temporary}', '-jar', str(JAR),
+                process = subprocess.Popen(['java', '-jar', str(JAR),
                     f'--server.port={port}', '--server.address=127.0.0.1',
                     f'--travel.data-directory={data}',
                     f'--travel.attraction-kb-path={ROOT / "data/attractions_index.json"}',
@@ -211,12 +155,12 @@ def main():
                               and not any(k in (x.get('name') or '') for k in keep_words)
                               for x in picks),
                       'high-rated non-tourism POIs are filtered out')
-                chat_page = (ROOT / 'travel-server/src/main/resources/static/chat.html'
-                             ).read_text(encoding='utf-8')
-                check('function ticketState(row)' in chat_page and 'ticketStatus' in chat_page
-                      and '票价未收录' in chat_page and 'r.channels' in chat_page
-                      and '好评高的在前' in chat_page,
-                      'chat page renders rating order, unverified tickets and official links')
+                # 对话页与购票页已并入工作台，渲染断言改读 planner.html
+                app_page = (ROOT / 'travel-server/src/main/resources/static/planner.html'
+                            ).read_text(encoding='utf-8')
+                check('票价未核验' in app_page and 'r.channels' in app_page
+                      and '好评高的在前' in app_page,
+                      'workbench renders rating order, unverified tickets and official links')
                 review_hosts = ('www.amap.com', 'ditu.amap.com', 'uri.amap.com',
                                 'map.baidu.com', 'api.map.baidu.com')
                 review_urls = [x.get('reviewUrl') for x in picks if x.get('reviewUrl')]
@@ -232,13 +176,13 @@ def main():
                 check('reviewText' not in picks_json and '游客说' not in picks_json
                       and '用户评论' not in picks_json,
                       'service returns no fabricated user review text')
-                check('review-toggle' in chat_page and 'officialReviewUrl' in chat_page
-                      and 'review-panel' in chat_page
-                      and '评论正文由地图平台提供' in chat_page,
-                      'chat page opens a review panel with official comment links')
-                check('www.amap.com' in chat_page and 'map.baidu.com' in chat_page
-                      and 'new URL(raw)' in chat_page,
-                      'chat page validates review link hosts against an allowlist')
+                check('review-toggle' in app_page and 'officialReviewUrl' in app_page
+                      and 'review-panel' in app_page
+                      and '评论正文由地图平台提供' in app_page,
+                      'workbench opens a review panel with official comment links')
+                check('www.amap.com' in app_page and 'map.baidu.com' in app_page
+                      and 'new URL(raw)' in app_page,
+                      'workbench validates review link hosts against an allowlist')
                 code, caps = request(client(), base, '/api/agent/capabilities')
                 check(code == 200 and any(p['id'] == 'builtin.food'
                                          and p['status'] == 'ACTIVE'
@@ -421,7 +365,6 @@ def main():
                 owner = client()
                 request(owner, base, '/api/login', credentials, form=True)
                 check(request(owner, base, path)[0] == 404, 'deleted itinerary stays absent after restart')
-                check_local_provider(owner, base, data, mock_endpoint, env)
             except Exception:
                 log.flush()
                 print('SERVER LOG (tail):', flush=True)

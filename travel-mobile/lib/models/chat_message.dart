@@ -1,0 +1,101 @@
+import 'plan_view.dart';
+
+enum MsgRole { user, assistant }
+
+/// 一条消息：正文 + 挂在其下的结构化卡片。
+///
+/// 与 Web 端一致——回复正文用打字机逐字出现，卡片随正文一起挂到同一条
+/// 助手气泡里，而不是拆成多条消息。
+class ChatMessage {
+  final String id;
+  final MsgRole role;
+  final String text;
+  final PlanView? plan;
+  final FoodView? food;
+  final List<ToolCard> cards;
+  final List<String> notices;
+  final List<String> trace;
+  final String time;
+  final bool failed;
+
+  const ChatMessage({
+    required this.id,
+    required this.role,
+    required this.text,
+    this.plan,
+    this.food,
+    this.cards = const [],
+    this.notices = const [],
+    this.trace = const [],
+    required this.time,
+    this.failed = false,
+  });
+
+  bool get hasRichContent =>
+      plan != null || food != null || cards.isNotEmpty || notices.isNotEmpty;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'role': role.name,
+        'text': text,
+        'time': time,
+        'failed': failed,
+        'notices': notices,
+        'trace': trace,
+        // 结构化视图体积大，历史回放只需要正文与提示；
+        // 卡片不落盘，避免本地存档随天数膨胀。
+      };
+
+  static ChatMessage fromJson(Map<String, dynamic> m) => ChatMessage(
+        id: (m['id'] ?? '').toString(),
+        role: m['role'] == 'user' ? MsgRole.user : MsgRole.assistant,
+        text: (m['text'] ?? '').toString(),
+        time: (m['time'] ?? '').toString(),
+        failed: m['failed'] == true,
+        notices: (m['notices'] is List)
+            ? (m['notices'] as List).map((e) => e.toString()).toList()
+            : const [],
+        trace: (m['trace'] is List)
+            ? (m['trace'] as List).map((e) => e.toString()).toList()
+            : const [],
+      );
+}
+
+/// 一个会话（对应 Web 侧栏里的「最近对话」条目）。
+class ChatSession {
+  final String id;
+  String title;
+  final List<ChatMessage> messages;
+  DateTime updatedAt;
+
+  ChatSession({
+    required this.id,
+    required this.title,
+    List<ChatMessage>? messages,
+    DateTime? updatedAt,
+  })  : messages = messages ?? [],
+        updatedAt = updatedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'updatedAt': updatedAt.toIso8601String(),
+        'messages': messages.map((m) => m.toJson()).toList(),
+      };
+
+  static ChatSession fromJson(Map<String, dynamic> m) {
+    final list = <ChatMessage>[];
+    if (m['messages'] is List) {
+      for (final x in (m['messages'] as List)) {
+        if (x is Map) list.add(ChatMessage.fromJson(Map<String, dynamic>.from(x)));
+      }
+    }
+    return ChatSession(
+      id: (m['id'] ?? '').toString(),
+      title: (m['title'] ?? '新的对话').toString(),
+      messages: list,
+      updatedAt: DateTime.tryParse((m['updatedAt'] ?? '').toString()) ??
+          DateTime.now(),
+    );
+  }
+}

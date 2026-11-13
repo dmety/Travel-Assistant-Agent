@@ -1,0 +1,392 @@
+/* ==========================================================================
+   旅行助手 · 设计令牌
+   色板：沿用第一版（暖纸 + 墨绿 + 赤陶），用户已确认这一版整体色调可用。
+   组件：沿用 travel-mobile/lib/theme/tokens.dart 的语义命名与三端同构约定。
+   --------------------------------------------------------------------------
+   本次只重做「功能组织与页面间交互」；颜色不改方向，只把语义变量映射到
+   第一版色板。组件层不写死色值，HTML 结构与交互脚本因此完全不用改。
+   ========================================================================== */
+
+:root {
+  /* ---------- 第一版色板：纸面与文字 ---------- */
+  --paper:        #F7F4EE;
+  --paper-2:      #EFEAE0;
+  --paper-3:      #E7E0D2;
+  --surface-warm: #FCFAF5;
+
+  --ink-warm:     #20241E;
+  --ink-2:        #4A4F46;
+  --muted:        #6E6A5E;
+  --muted-2:      #8A8577;
+
+  --line-warm:    #DED7C9;
+  --line-strong-warm: #C4BAA6;
+  --field-line:   #9C9282;
+
+  /* 深墨绿：主行动、当前选中 */
+  --pine:         #1E4A3E;
+  --pine-hover:   #163A30;
+  --pine-soft:    #E4EDE7;
+  --pine-line:    #BBD0C4;
+
+  /* 赤陶：只给「需要人决断」的地方（待投票、待定） */
+  --clay:         #B4542A;
+  --clay-hover:   #98441F;
+  --clay-soft:    #F6E8DF;
+  --clay-line:    #E3C4B1;
+
+  --gold:         #8A6D2B;
+  --ok:           #2E6B52;
+  --ok-soft:      #E7F0EA;
+  --ok-line:      #BBD0C4;
+  --warn:         #8A6212;
+  --warn-soft:    #F8EFDC;
+  --warn-line:    #E8D6AE;
+  --err:          #A03A2C;
+  --err-soft:     #F8E7E3;
+  --err-line:     #E8C6BE;
+
+  /* ---------- 语义变量：组件层只用这些 ---------- */
+  --primary:       var(--pine);
+  --primary-hover: var(--pine-hover);
+  --primary-soft:  var(--pine-soft);
+  --primary-line:  var(--pine-line);
+
+  --ink:      var(--ink-warm);
+  --text-2:   var(--ink-2);
+  --text-3:   var(--muted);
+  --line:     var(--line-warm);
+  --line-strong: var(--line-strong-warm);
+  --surface:  #FFFFFF;
+  --surface-2: var(--paper-2);
+  --bg:       var(--paper);
+
+  --green:      var(--ok);
+  --green-soft: var(--ok-soft);
+
+  /* 行动色：浅色下与主色同值；深色下主色被提亮成「能当文字看」的绿，
+     白字压不住，所以按钮底色单独走这一组，见深色块 */
+  --action-bg:       var(--pine);
+  --action-bg-hover: var(--pine-hover);
+  --action-fg:       #FFFFFF;
+
+  /* 浮在地图上的半透明底板 */
+  --glass: rgba(252, 250, 245, .95);
+
+  /* 字号 5 级 / 字重只有两档（与 travel-mobile T 一致） */
+  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 25px;
+  --w-body: 400; --w-strong: 600;
+
+  /* 间距 8 级 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+
+  /* 圆角：第一版的有机柔和梯度 */
+  --r-sm: 3px; --r-ctl: 6px; --r-card: 10px; --r-lg: 16px; --r-pill: 999px;
+
+  /* 阴影：带环境绿褐，不用纯黑 */
+  --shadow-1: 0 1px 2px rgba(46, 42, 32, .06), 0 1px 3px rgba(46, 42, 32, .05);
+  --shadow-2: 0 4px 14px rgba(46, 42, 32, .08), 0 2px 4px rgba(46, 42, 32, .04);
+  --shadow-3: 0 18px 48px rgba(46, 42, 32, .12), 0 6px 12px rgba(46, 42, 32, .05);
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Cascadia Mono", monospace;
+}
+
+/* ==========================================================================
+   深色主题
+   --------------------------------------------------------------------------
+   这里只给「显式声明」的深色：页面在 <html> 上写 data-theme="dark" 才生效。
+   刻意不写 @media (prefers-color-scheme: dark) 那一条 —— 本文件的使用者
+   （design/*.html 三张规范稿）是含浅色示意底图与浅色卡片的静态稿，
+   跟随系统变深会把稿子里的浅底文字压成白字，反而更差。
+   需要「跟随系统」的应用页（planner.html / index.html）各自内联同一份
+   令牌，并自行加上媒体查询那一条。
+
+   约定：应用页主题三态为
+     · 无 data-theme        → 跟随系统
+     · data-theme="light"   → 强制浅色
+     · data-theme="dark"    → 强制深色
+   开关状态存 localStorage 的 travel.theme，页面在 <head> 里先读一次，
+   避免首帧闪白。
+   ========================================================================== */
+html[data-theme="dark"] {
+  /* 纸换成夜里的墨 */
+  --paper:        #171A16;
+  --paper-2:      #1F231D;
+  --paper-3:      #262B23;
+  --surface-warm: #1C2019;
+
+  --ink-warm:     #E8E4D8;
+  --ink-2:        #C6C1B2;
+  --muted:        #9A9484;
+  --muted-2:      #7E7969;
+
+  --line-warm:        #333A31;
+  --line-strong-warm: #47503F;
+  --field-line:       #5A6455;
+
+  /* 绿与陶土各提亮一档，压住深色底 */
+  --pine:       #4E8C72;
+  --pine-hover: #5C9C81;
+  --pine-soft:  #22332C;
+  --pine-line:  #3E5C4F;
+  /* --pine-text 专给「绿色当文字用」的场景：--pine 直接做前景对比不足 */
+  --pine-text:  #9ACDB4;
+
+  --clay:       #D9805A;
+  --clay-hover: #E08F6B;
+  --clay-soft:  #33231B;
+  --clay-line:  #4E3628;
+
+  --gold:      #C9A458;
+  --ok:        #6FAF93;
+  --ok-soft:   #1F2E27;
+  --ok-line:   #3E5C4F;
+  --warn:      #D8A85C;
+  --warn-soft: #2E2519;
+  --warn-line: #4A3A22;
+  --err:       #E08C7C;
+  --err-soft:  #33201C;
+  --err-line:  #4E302A;
+
+  /* 语义层：跟随上面自动变的不必重写，字面量必须重写 */
+  --surface:   #212620;
+  --surface-2: #242A23;
+  --bg:        var(--paper);
+
+  /* 绿色当按钮底色时不能直接用 --pine（深底浅绿、白字压不住），走这一组 */
+  --action-bg:       #2F6B57;
+  --action-bg-hover: #38795F;
+  --action-fg:       #F2F7F3;
+  --glass: rgba(28, 32, 25, .94);
+
+  /* 深色下阴影改用纯黑，带绿褐会发灰 */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .42), 0 1px 3px rgba(0, 0, 0, .34);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, .46), 0 2px 4px rgba(0, 0, 0, .30);
+  --shadow-3: 0 18px 48px rgba(0, 0, 0, .56), 0 6px 12px rgba(0, 0, 0, .36);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  font-weight: var(--w-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: var(--w-strong); line-height: 1.4; letter-spacing: -.015em; }
+h1 { font-size: var(--fs-xl); }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-md); }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-hover); }
+img, svg { display: block; max-width: 100%; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ---------- 控件 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 0 14px;
+  border-radius: var(--r-ctl); font-size: var(--fs-sm); font-weight: var(--w-strong);
+  border: 1px solid transparent; white-space: nowrap;
+}
+.btn-primary { background: var(--action-bg); color: var(--action-fg); }
+.btn-primary:hover { background: var(--action-bg-hover); }
+.btn-outline { border-color: var(--line-strong); color: var(--text-2); background: var(--surface); }
+.btn-outline:hover { border-color: var(--pine); color: var(--pine); }
+.btn-quiet { color: var(--text-3); }
+.btn-quiet:hover { color: var(--pine); background: var(--pine-soft); }
+.btn-green { background: var(--action-bg); color: var(--action-fg); }
+.btn-sm { min-height: 28px; padding: 0 10px; font-size: var(--fs-xs); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.field {
+  width: 100%; min-height: 36px; padding: 7px 10px;
+  background: var(--surface); border: 1px solid var(--field-line);
+  border-radius: var(--r-ctl); font-size: var(--fs-sm); outline: none;
+}
+.field:focus { border-color: var(--clay); box-shadow: 0 0 0 3px var(--clay-soft); }
+.field::placeholder { color: var(--muted-2); }
+.lbl { display: block; font-size: var(--fs-xs); color: var(--text-3); margin-bottom: 5px; }
+
+/* 补问 chips（QaCard 同款档位） */
+.chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 32px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-ctl);
+  background: var(--surface); color: var(--text-2); font-size: var(--fs-sm);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--pine); background: var(--pine-soft);
+  color: var(--pine-hover); font-weight: var(--w-strong);
+}
+.chip-group { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* ---------- 卡片 / 次要块 ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--shadow-1);
+}
+.panel {
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line);
+}
+.card-head h3 { font-size: var(--fs-sm); font-weight: var(--w-strong); }
+.card-body { padding: var(--sp-4); }
+.section-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: var(--w-strong); }
+
+.tag {
+  display: inline-flex; align-items: center; padding: 1px 7px;
+  border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: var(--w-strong);
+  background: var(--pine-soft); color: var(--pine-hover);
+}
+.notice-bar {
+  padding: 8px 12px; border-radius: var(--r-ctl);
+  background: var(--pine-soft); border: 1px solid var(--pine-line);
+  font-size: var(--fs-xs); color: var(--text-2);
+}
+
+/* 三态核验：建议 / 已核验 / 已出票，长得必须不一样 */
+.st {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 7px; border-radius: var(--r-sm);
+  font-size: var(--fs-xs); font-weight: var(--w-strong); white-space: nowrap;
+  border: 1px solid transparent;
+}
+.st-suggested{ background: var(--surface); color: var(--text-3); border: 1px dashed var(--line-strong); }
+.st-verified { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.st-booked   { background: var(--action-bg); color: var(--action-fg); }
+.st-unknown  { background: var(--bg); color: var(--text-3); border-color: var(--line-strong); }
+/* 赤陶只落在「要人决断」上 */
+.st-pending  { background: var(--clay-soft); color: var(--clay); border-color: var(--clay-line); }
+
+/* CheckList：severity 决定色，文案里带 suggestion */
+.check {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: var(--r-ctl);
+  font-size: var(--fs-sm); color: var(--text-2);
+  background: var(--warn-soft); border: 1px solid var(--warn-line);
+}
+.check.high { background: var(--err-soft); border-color: var(--err-line); color: var(--err); }
+.check.medium { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+.check.low { background: var(--pine-soft); border-color: var(--pine-line); color: var(--pine-hover); }
+.check .sug { display: block; font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+
+.fold-head {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; min-height: 34px; padding: 0 12px;
+  font-size: var(--fs-xs); color: var(--text-3);
+}
+
+/* ---------- 逐日时间轴 ---------- */
+.day-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.day-badge {
+  width: 24px; height: 24px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: var(--r-sm);
+  background: var(--action-bg); color: var(--action-fg);
+  font-size: var(--fs-xs); font-weight: var(--w-strong);
+}
+.day-badge.muted { background: var(--surface); color: var(--text-3); border: 1px solid var(--line-strong); }
+.day-title { font-size: var(--fs-sm); font-weight: var(--w-strong); }
+.day-date { font-size: var(--fs-xs); color: var(--text-3); margin-left: auto; }
+
+.info-row {
+  display: grid; grid-template-columns: 22px 1fr auto;
+  gap: 10px; align-items: start;
+  padding: 10px 12px; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.info-row:last-child { border-bottom: 0; }
+.info-row:hover, .info-row.is-active { background: var(--pine-soft); }
+.info-row .ord { font-size: var(--fs-xs); color: var(--text-3); padding-top: 2px; }
+.info-row .nm { font-size: var(--fs-sm); font-weight: var(--w-strong); }
+.info-row .meta { display: block; font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+.info-row .rt { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+/* 站间交通单独成行 */
+.transit {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 44px;
+  font-size: var(--fs-xs); color: var(--text-3);
+  background: var(--surface-2); border-bottom: 1px solid var(--line);
+}
+.transit .dash { flex: 0 0 14px; border-top: 1px dashed var(--line-strong); }
+
+/* ---------- 一张与列表联动的地图 ---------- */
+.map-box { position: relative; background: var(--surface-2); overflow: hidden; }
+.map-real { position: absolute; inset: 0; z-index: 2; }
+.pin {
+  position: absolute; z-index: 3;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: 50% 50% 50% 3px; transform: rotate(-45deg);
+  background: var(--surface-warm); border: 2px solid var(--pine);
+  color: var(--pine); font-size: var(--fs-xs); font-weight: var(--w-strong);
+  cursor: pointer; box-shadow: var(--shadow-2);
+}
+.pin > span { transform: rotate(45deg); }
+.pin:hover, .pin.is-active { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-fg); }
+.pin.is-verified { border-color: var(--ok); color: var(--ok); }
+.pin.is-verified.is-active { background: var(--action-bg); border-color: var(--action-bg); color: var(--action-fg); }
+.map-legend {
+  position: absolute; z-index: 4; left: 12px; bottom: 12px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 10px; background: var(--glass);
+  border: 1px solid var(--line); border-radius: var(--r-ctl);
+  font-size: var(--fs-xs); color: var(--text-3);
+}
+.map-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+
+/* ---------- 表格 / 标签页 ---------- */
+.tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.tbl th {
+  text-align: left; font-size: var(--fs-xs); font-weight: var(--w-body); color: var(--text-3);
+  padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
+.tabs button {
+  min-height: 38px; padding: 0 14px; font-size: var(--fs-sm);
+  color: var(--text-3); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--pine); font-weight: var(--w-strong); border-bottom-color: var(--pine); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* 功能图标：由 design/icons.svg 提供符号，1em 跟随控件字号 */
+svg.ico {
+  width: 1em; height: 1em; display: inline-block; vertical-align: -.15em;
+  flex: 0 0 auto; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}

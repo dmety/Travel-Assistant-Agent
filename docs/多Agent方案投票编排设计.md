@@ -177,7 +177,7 @@ Java 侧已有一套 V3 的“候选与投票”，`CandidateService` 和 `VoteT
 
 - `buildDraft` 只排有事实支撑的天（每天最多 3 个名字，`renderedDays = min(请求天数, ceil(名字数 / 3))`），**不再生成「本轮未收集到景点候选」的空天**；差额写进 `draft.dayScope{requestedDays,renderedDays,trimmedDays}` 与 `unknowns` 一条说明。
 - `ChatTools.appendDraftSummary` 只列有内容的天，并明确告诉模型收敛掉的天「不要补景点」，防止模型把空天重新填回对话。
-- 候选方案上限从 5 套收窄到 3 套；`chat.html` 的投票卡默认只给胜出方案与一句口径，排名、主 Agent 草案、官方购票入口点开才看（数据仍在响应里，不删字段）。
+- 候选方案上限从 5 套收窄到 3 套；工作台规划视图（`planner.html#plan`）的投票卡默认只给胜出方案与一句口径，排名、主 Agent 草案、官方购票入口点开才看（数据仍在响应里，不删字段）。
 - 与 `/api/agent/plan` 共用同一套收敛口径与 `dayScope` 字段，详见《Agent 运行时架构设计》「编排层输出收敛」。回归：`VoteDraftFlowTest`、`DraftCondenseTest`、`acceptance.py`。
 
 ## 复核命令

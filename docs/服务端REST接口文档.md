@@ -38,7 +38,8 @@
 | `GET /api/agent/capabilities` | 能力协商：Provider 的 id / 状态 / 能力标签 / 最近拒绝原因码，不含 endpoint、authRef 与凭据（见 §3.22） |
 | `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
-| `GET /chat.html` | AI 对话页（登录后落地页；未登录由页内脚本跳回 `/?next=/chat.html`） |
+| `GET /chat.html`、`GET /ticket-assistant.html` | 旧页面地址，302 到 `/planner.html`，保留以兼容旧书签 |
+| `GET /planner.html`、`GET /planner` | 行程工作台（规划 / 票务 / 我的行程三个视图，靠 hash 切换；未登录由页内脚本跳回 `/?next=/planner.html`） |
 | `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
 | `GET /ticket-assistant.html` | 购票助手页；页面本身公开，其数据接口 `/api/agent/tickets/advice` 仍需登录 |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
@@ -1170,6 +1171,7 @@ POST /api/agent/vote
 - `static/chat.html`：AI 对话页，登录后的落地页；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/chat.html`；
 - `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换；
 - `static/ticket-assistant.html`：景区购票助手页，围绕「一条已保存的行程活动」查官方购票入口，不写正式方案（交互见 §5.2）。
+- `static/planner.html`：行程工作台，一份页面三个视图——规划 `#plan`（AI 对话、草案、投票卡）、票务 `#ticket`（购票需求与建议）、我的行程 `#trips`；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/planner.html`。旧的 `chat.html` 与 `ticket-assistant.html` 已并入此页并删除，原地址 302 到 `/planner.html`；
 
 接口测试台按会话自动切换两种形态，不需要跳转：
 
@@ -1184,7 +1186,8 @@ POST /api/agent/vote
 |---|---|
 | `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（登录 / 注册页；`/login`、`/app` 为历史链接） |
 | `GET /index.html` | 登录页直连 |
-| `GET /chat.html` | AI 对话页直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /planner.html` | 行程工作台直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /chat.html`、`GET /ticket-assistant.html` | 302 到 `/planner.html`（旧地址兼容） |
 | `GET /api-console.html` | 接口测试台直连 |
 | `GET /ticket-assistant.html` | 景区购票助手页直连（页面公开，其调用的接口仍需登录） |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
@@ -1648,7 +1651,7 @@ Content-Type: application/json
 
 ## 9. 北京景区购票助手（首版）
 
-页面 `/ticket-assistant.html` 无需登录即可打开，但 2026-11-08 起「任何购票建议请求都要求登录」：`/api/agent/tickets/advice` 已移出 `permitAll`，匿名返回 401；带行程查询和登记还需相应权限。
+页面 `/planner.html#ticket`（工作台的票务视图）无需登录即可打开，但 2026-11-08 起「任何购票建议请求都要求登录」：`/api/agent/tickets/advice` 已移出 `permitAll`，匿名返回 401；带行程查询和登记还需相应权限。
 现有 `GET /api/tickets` 与 `/channels` 保留；新增 `GET /api/tickets/catalog` 返回人工维护的三景点规则及字段来源。
 `TICKET_RULE_FILE` 指定规则文件，默认 `data/ticket_rules.json`，文件缺失或损坏时停止深度建议，原入口查询不受影响。
 每个字段保存 value、sourceUrl、verifiedAt、validFrom、validTo、note；未知值不视为免费。启动时读取快照，修改后重启生效。

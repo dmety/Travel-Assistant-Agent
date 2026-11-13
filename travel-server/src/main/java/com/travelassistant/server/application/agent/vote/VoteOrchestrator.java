@@ -47,7 +47,14 @@ public class VoteOrchestrator {
   private static final String INTENT = "DECISION_ADVICE";
   /** 候选方案只留三套侧重：五套并列对用户是噪音，评委也判不出更细的差异。 */
   private static final int MAX_PLANS = 3;
-  private static final int MAX_COLLECTED_CARDS = 12;
+  /**
+   * 汇集进事实摘要的卡片上限。摘要会原样拼进那次模型调用的 user 提示，每条事实按
+   * {@link #FACT_DIGEST_CHARS} 截断，所以卡片数直接决定输入长度：12 张改成 8 张，
+   * 提示最多省下约 1.2K 字符。第 9 张之后的卡片仍然进草案，只是不进摘要。
+   */
+  private static final int MAX_COLLECTED_CARDS = 8;
+  /** 单条事实在摘要里的字符上限。模型只需要认出「这是哪条事实」，细节留在草案里。 */
+  private static final int FACT_DIGEST_CHARS = 180;
   private static final int MAX_NAME_SCAN = 12;
   private static final Set<String> FOCUS = Set.of("COST", "FOOD", "WALK", "BALANCED");
   private static final String MODEL_SYSTEM =
@@ -281,7 +288,7 @@ public class VoteOrchestrator {
       sb.append("- ").append(fact.factId()).append(" | ")
           .append(value.getOrDefault("category", "未知")).append(" | ")
           .append(brief(value.containsKey("data")
-              ? describe(value.get("data")) : String.valueOf(value), 260))
+              ? describe(value.get("data")) : String.valueOf(value), FACT_DIGEST_CHARS))
           .append('\n');
     }
     return sb.toString();
