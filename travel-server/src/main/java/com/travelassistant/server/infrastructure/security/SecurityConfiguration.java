@@ -69,7 +69,13 @@ public class SecurityConfiguration {
                 // 同样必须登录后才能访问；它们不在白名单里，由 .anyRequest().authenticated() 拦截。
                 "/chat.html", "/ticket-assistant.html", "/api-console.html",
                 "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico",
-                "/planner.html", "/planner")
+                "/planner.html", "/planner",
+                // 本轮新增网页端页面：页面本身公开，页内 /api/** 仍由 authenticated() 拦截
+                // （同 planner.html 模式：未登录打开页面，JS 读到 401 再跳登录）。
+                "/mobile.html", "/settings.html", "/food.html",
+                // 看板娘与共享静态资源：登录页/移动端/设置头像都引用 /mascot/*.png，
+                // 未登录也需可见，否则看板娘裂图。
+                "/mascot/**")
             .permitAll()
             .anyRequest().authenticated())
 

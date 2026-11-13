@@ -109,6 +109,21 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("本轮新增网页端页面（移动端/设置/美食）与看板娘资源均公开")
+  void newWebPagesAndMascotAssetsArePublic() throws Exception {
+    // 三个新页面与 planner.html 同模式：页面公开，页内 /api/** 仍由 authenticated() 拦截。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/mobile.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"pLogin\"")));
+    mvc.perform(get("/settings.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"themeSeg\"")));
+    mvc.perform(get("/food.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"askInput\"")));
+    // 看板娘 PNG：未登录也需可见，否则登录页/移动端看板娘裂图。
+    mvc.perform(get("/mascot/mascot-v4-front-idle.png")).andExpect(status().isOk());
+  }
+
+  @Test
   @DisplayName("三个能力状态接口匿名可读，且未配置模型时不宣称文字建议")
   void capabilityStatusEndpointsArePublic() throws Exception {
     // 状态接口只返回布尔、统计与能力描述，不含用户数据；未登录时也必须能观察降级原因。
