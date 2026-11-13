@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>旅行助手 · 移动端</title>
-<meta name="description" content="旅行助手移动端视图：对话、美食推荐、设置。主题三态感知。" />
+<meta name="description" content="旅行助手移动端：行程、待规划、消息、我的，主题三态感知。底部导航对齐设计稿。" />
 <link rel="icon" href="/favicon.ico" />
 <link rel="stylesheet" href="tokens.css" />
 <link rel="stylesheet" href="components.css" />
@@ -22,8 +22,8 @@
   <div class="phone" role="application" aria-label="旅行助手移动端">
 
     <div class="appbar" id="appbar" hidden>
-      <span class="back" aria-hidden="true">‹</span>
-      <h2 id="appTitle">对话</h2>
+      <span class="back" id="backBtn" aria-hidden="true" role="button" tabindex="0">‹</span>
+      <h2 id="appTitle">旅行助手</h2>
       <span class="sp"></span>
       <button class="iconbtn" type="button" id="themeBtn" title="外观" aria-label="切换外观" style="width:30px;height:30px">
         <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
@@ -50,7 +50,21 @@
         </div>
       </section>
 
-      <!-- 对话 -->
+      <!-- 行程（真实：GET /api/itineraries?archived=false） -->
+      <section class="panel" id="pTrips">
+        <div class="list-head">我的行程 <span class="muted" id="tripCount"></span></div>
+        <div id="tripList"></div>
+        <div id="tripEmpty" class="empty" hidden>还没有进行中的行程。<br>点下方「＋」让小满帮你规划一个。</div>
+      </section>
+
+      <!-- 待规划（真实：无目的地或未生成日程的进行中行程） -->
+      <section class="panel" id="pPlanning">
+        <div class="list-head">待规划 <span class="muted">还没有排好日程的行程</span></div>
+        <div id="planList"></div>
+        <div id="planEmpty" class="empty" hidden>没有待规划的行程。<br>想去哪儿，直接问小满就行。</div>
+      </section>
+
+      <!-- 问小满（[+] 进入，真实：POST /api/chat） -->
       <section class="panel" id="pChat">
         <div class="m-hero">
           <span class="mascot-mount">
@@ -62,13 +76,17 @@
           </span>
           <div class="cap" id="heroCap">嗨，我是小满。想去哪儿，说一句就行。</div>
         </div>
-        <div style="margin-top:14px">
+        <div id="chatLog" style="margin-top:14px">
           <div class="chat-msg"><div class="who">我</div><div class="m-bubble">帮我规划武当山两天，想看人文古迹。</div></div>
-          <div class="chat-msg"><div class="who">旅行助手</div><div class="m-bubble">好嘞，武当山两天我建议：第一天金顶+紫霄宫，第二天南岩宫+琼台。要我把素斋也排进去吗？</div></div>
+          <div class="chat-msg ai"><div class="who">旅行助手</div><div class="m-bubble">好嘞，武当山两天我建议：第一天金顶+紫霄宫，第二天南岩宫+琼台。要我把素斋也排进去吗？</div></div>
+        </div>
+        <div class="chat-box">
+          <input class="field" id="chatInput" placeholder="问小满：帮我规划…" autocomplete="off" />
+          <button class="btn btn-primary" id="chatSend" type="button">发送</button>
         </div>
       </section>
 
-      <!-- 美食 -->
+      <!-- 美食（与 web 端 food.html 同源内容，移动端由「我的」进入） -->
       <section class="panel" id="pFood">
         <div class="advice" style="margin:0 0 12px">
           <div class="who"><svg class="ico"><use href="#i-bowl"/></svg>美食建议</div>
@@ -91,11 +109,37 @@
         </div>
       </section>
 
-      <!-- 设置 -->
-      <section class="panel" id="pSettings">
+      <!-- 消息（真实：聚合各行程 /changelog） -->
+      <section class="panel" id="pMsgs">
+        <div class="list-head">协作动态</div>
+        <div id="msgList"></div>
+        <div id="msgEmpty" class="empty" hidden>还没有协作动态。<br>规划或调整行程时，这里会显示谁改了什么。</div>
+      </section>
+
+      <!-- 我的（真实：/api/account/me + 设置入口 + 退出） -->
+      <section class="panel" id="pMine">
         <div class="m-pf">
           <span class="av" id="mAvatar">·</span>
           <div><div class="nm" id="mName">未登录</div><div class="rl" id="mRole">—</div></div>
+        </div>
+        <div class="mine-rows">
+          <button class="mine-row" id="mineTrips" type="button"><svg class="ico"><use href="#i-route"/></svg>我的行程<span class="sp">›</span></button>
+          <button class="mine-row" id="mineMsgs" type="button"><svg class="ico"><use href="#i-chat"/></svg>协作消息<span class="sp">›</span></button>
+          <button class="mine-row" id="mineFood" type="button"><svg class="ico"><use href="#i-bowl"/></svg>美食推荐<span class="sp">›</span></button>
+          <button class="mine-row" id="mineSettings" type="button"><svg class="ico"><use href="#i-theme"/></svg>设置<span class="sp">›</span></button>
+          <button class="mine-row" id="mineAbout" type="button"><svg class="ico"><use href="#i-info"/></svg>关于<span class="sp">›</span></button>
+          <button class="mine-row danger" id="mineLogout" type="button"><svg class="ico"><use href="#i-logout"/></svg>退出登录</button>
+        </div>
+      </section>
+
+      <!-- 设置（由「我的」进入；主题/通知为真实本地状态） -->
+      <section class="panel" id="pSettings">
+        <div class="m-set" id="setTrips" role="button" tabindex="0" style="margin-bottom:12px">
+          <svg class="ico"><use href="#i-route"/></svg>我的行程<span class="sp">›</span>
+        </div>
+        <div class="m-pf" style="margin-bottom:12px">
+          <span class="av" id="mAvatar2">·</span>
+          <div><div class="nm" id="mName2">未登录</div><div class="rl" id="mRole2">—</div></div>
         </div>
         <div class="m-set">
           <svg class="ico"><use href="#i-theme"/></svg>主题
@@ -110,16 +154,17 @@
           <svg class="ico"><use href="#i-bell"/></svg>协作通知
           <span class="sp"></span><span class="switch on" id="mSwitch" role="switch" aria-checked="true"></span>
         </div>
-        <div class="m-set"><svg class="ico"><use href="#i-route"/></svg>我的行程<span class="sp">›</span></div>
         <div class="m-set"><svg class="ico"><use href="#i-shield"/></svg>账号安全<span class="sp">›</span></div>
         <div class="m-set"><svg class="ico"><use href="#i-info"/></svg>关于<span class="sp">›</span></div>
       </section>
     </div>
 
     <nav class="tabbar" id="tabbar" role="tablist" aria-label="移动端导航" hidden>
-      <button type="button" role="tab" data-panel="pChat" aria-selected="true"><svg class="ico"><use href="#i-ai"/></svg>对话</button>
-      <button type="button" role="tab" data-panel="pFood" aria-selected="false"><svg class="ico"><use href="#i-bowl"/></svg>美食</button>
-      <button type="button" role="tab" data-panel="pSettings" aria-selected="false"><svg class="ico"><use href="#i-theme"/></svg>设置</button>
+      <button type="button" role="tab" data-panel="pTrips" aria-selected="true"><svg class="ico"><use href="#i-route"/></svg>行程</button>
+      <button type="button" role="tab" data-panel="pPlanning" aria-selected="false"><svg class="ico"><use href="#i-calendar"/></svg>待规划</button>
+      <button type="button" class="fab" id="fabNew" title="问小满 / 新建行程" aria-label="问小满"><svg class="ico"><use href="#i-plus"/></svg></button>
+      <button type="button" role="tab" data-panel="pMsgs" aria-selected="false"><svg class="ico"><use href="#i-chat"/></svg>消息</button>
+      <button type="button" role="tab" data-panel="pMine" aria-selected="false"><svg class="ico"><use href="#i-user"/></svg>我的</button>
     </nav>
 
   </div>
@@ -135,6 +180,11 @@
 <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11 V16"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22 M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5 V19 M5 12 H19"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20 C5 16 8.4 14 12 14 C15.6 14 19 16 19 20"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 9.5 H20 M8 3 V6.5 M16 3 V6.5"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5 H19 V14 H9.5 L6 18 V14 H5 Z"/><path d="M9 9 H15 M9 11.5 H13" opacity=".7"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4 H20 V20 H14.5"/><path d="M9.5 8 L4.5 12 L9.5 16"/><path d="M4.5 12 H14.5"/></symbol>
 </svg>
 
 <script>
@@ -143,7 +193,40 @@
   var $ = function (id) { return document.getElementById(id); };
   var THEME_KEY = 'travel.theme', NOTIFY_KEY = 'travel.notify';
   var ORDER = ['auto', 'light', 'dark'];
-  var TITLES = { pChat: '对话', pFood: '美食推荐', pSettings: '设置' };
+  var TITLES = { pTrips: '行程', pPlanning: '待规划', pChat: '问小满', pFood: '美食推荐', pMsgs: '消息', pMine: '我的', pSettings: '设置' };
+  var MAIN = ['pTrips', 'pPlanning', 'pMsgs', 'pMine'];
+  var ALL = [];           // 行程列表缓存
+  var currentMain = 'pTrips';
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function activeTrips() { return ALL.filter(function (t) { return !t.archived; }); }
+  function dateRange(t) {
+    var p = t.plan;
+    if (p && p.departDate && p.returnDate) return p.departDate + ' ~ ' + p.returnDate;
+    return '未设定日期';
+  }
+  function dayCount(t) {
+    if (t.dailySchedules && t.dailySchedules.length) return t.dailySchedules.length + ' 天';
+    var p = t.plan;
+    if (p && p.departDate && p.returnDate) {
+      var a = new Date(p.departDate), b = new Date(p.returnDate);
+      var d = Math.round((b - a) / 86400000) + 1;
+      if (d > 0) return d + ' 天';
+    }
+    return '—';
+  }
+  function relTime(iso) {
+    if (!iso) return '';
+    var t = new Date(iso).getTime(); if (isNaN(t)) return '';
+    var s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return '刚刚';
+    var m = Math.floor(s / 60); if (m < 60) return m + ' 分钟前';
+    var h = Math.floor(m / 60); if (h < 24) return h + ' 小时前';
+    var dd = Math.floor(h / 24); if (dd < 30) return dd + ' 天前';
+    return new Date(iso).toLocaleDateString('zh-CN');
+  }
+  var SEC = { PLAN: '方案', DAILY: '日程', TRANSPORT: '交通', LODGING: '住宿', EXPENSE: '费用', MEMBER: '成员', COMMENT: '留言' };
 
   /* ---------- 主题三态 ---------- */
   function currentTheme() {
@@ -186,16 +269,155 @@
   sw.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 
   /* ---------- 资料 ---------- */
+  function paintProfile(u) {
+    if (!u || !u.username) return;
+    var letter = u.username.charAt(0).toUpperCase();
+    ['mName', 'mName2'].forEach(function (id) { var e = $(id); if (e) e.textContent = u.username; });
+    ['mRole', 'mRole2'].forEach(function (id) { var e = $(id); if (e) e.textContent = ((u.roles && u.roles[0]) || '用户') + ' · 已登录'; });
+    ['mAvatar', 'mAvatar2'].forEach(function (id) { var e = $(id); if (e) e.textContent = letter; });
+  }
   fetch('/api/account/me', { credentials: 'same-origin' })
     .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (u) {
-      if (!u || !u.username) return;
-      $('mName').textContent = u.username;
-      $('mRole').textContent = (u.role || '用户') + ' · 已登录';
-      var av = $('mAvatar');
-      av.textContent = u.username.charAt(0).toUpperCase();
-    })
+    .then(paintProfile)
     .catch(function () {});
+
+  /* ---------- 行程数据 ---------- */
+  function loadTrips() {
+    return fetch('/api/itineraries', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (list) { ALL = Array.isArray(list) ? list : []; renderTrips(); renderPlanning(); })
+      .catch(function () { ALL = []; renderTrips(); renderPlanning(); });
+  }
+  function tripCard(t) {
+    var b = document.createElement('button');
+    b.className = 'trip-card'; b.type = 'button'; b.dataset.id = t.id;
+    var dest = (t.plan && t.plan.destination) ? t.plan.destination : '未设定目的地';
+    var ppl = ((t.members && t.members.length) || 0) + 1;
+    b.innerHTML =
+      '<div class="tc-top"><span class="tc-title">' + esc(t.title || '未命名行程') + '</span>' +
+      (t.archived ? '<span class="tc-badge arch">已归档</span>' : '<span class="tc-badge">进行中</span>') + '</div>' +
+      '<div class="tc-sub">' + esc(dest) + ' · ' + esc(dateRange(t)) + '</div>' +
+      '<div class="tc-meta"><span>天数 ' + esc(dayCount(t)) + '</span><span>成员 ' + ppl + ' 人</span></div>';
+    b.addEventListener('click', function () { toggleTripDetail(b, t); });
+    return b;
+  }
+  function toggleTripDetail(b, t) {
+    var ex = b.querySelector('.tc-detail');
+    if (ex) { ex.parentNode.removeChild(ex); return; }
+    var dest = (t.plan && t.plan.destination) ? t.plan.destination : '未设定目的地';
+    var members = [t.owner].concat((t.members || []).map(function (m) { return m.username; }))
+      .filter(function (v, i, a) { return v && a.indexOf(v) === i; }).join('、') || '—';
+    var d = document.createElement('div');
+    d.className = 'tc-detail';
+    d.innerHTML =
+      '<div class="row"><span class="k">目的地</span><span>' + esc(dest) + '</span></div>' +
+      '<div class="row"><span class="k">日期</span><span>' + esc(dateRange(t)) + '</span></div>' +
+      '<div class="row"><span class="k">天数</span><span>' + esc(dayCount(t)) + '</span></div>' +
+      '<div class="row"><span class="k">成员</span><span>' + esc(members) + '</span></div>' +
+      '<div class="row"><span class="k">网页版</span><span><a href="/planner.html" target="_blank" rel="noopener">在网页端打开 ›</a></span></div>';
+    b.appendChild(d);
+  }
+  function renderTrips() {
+    var list = $('tripList'); if (!list) return; list.innerHTML = '';
+    var acts = activeTrips();
+    acts.forEach(function (t) { list.appendChild(tripCard(t)); });
+    $('tripCount').textContent = acts.length ? ('共 ' + acts.length + ' 个') : '';
+    $('tripEmpty').hidden = acts.length > 0;
+  }
+  function renderPlanning() {
+    var box = $('planList'); if (!box) return; box.innerHTML = '';
+    var pend = activeTrips().filter(function (t) {
+      var p = t.plan; return !p || !p.destination || !(t.dailySchedules && t.dailySchedules.length);
+    });
+    pend.forEach(function (t) { box.appendChild(tripCard(t)); });
+    $('planEmpty').hidden = pend.length > 0;
+  }
+
+  /* ---------- 协作动态 ---------- */
+  function loadMessages() {
+    var box = $('msgList'); if (!box) return;
+    if (!ALL.length) { box.innerHTML = ''; $('msgEmpty').hidden = false; return; }
+    var ids = activeTrips().slice(0, 6).map(function (t) { return t.id; });
+    Promise.all(ids.map(function (id) {
+      return fetch('/api/itineraries/' + encodeURIComponent(id) + '/changelog?limit=4', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .catch(function () { return []; });
+    })).then(function (lists) {
+      var rows = [];
+      lists.forEach(function (arr, i) { (arr || []).forEach(function (c) { c._title = ALL[i].title; rows.push(c); }); });
+      rows.sort(function (a, b) { return (b.at || '').localeCompare(a.at || ''); });
+      renderMessages(rows.slice(0, 20));
+    }).catch(function () { box.innerHTML = ''; $('msgEmpty').hidden = false; });
+  }
+  function renderMessages(rows) {
+    var box = $('msgList'); if (!box) return; box.innerHTML = '';
+    if (!rows.length) { $('msgEmpty').hidden = false; return; }
+    $('msgEmpty').hidden = true;
+    rows.forEach(function (c) {
+      var r = document.createElement('div'); r.className = 'msg-row';
+      var sec = SEC[c.section] || c.section || '动态';
+      r.innerHTML =
+        '<div class="mr-top"><b>' + esc(c.actor || '某人') + '</b> 在《<span class="mr-title">' + esc(c._title || '行程') + '</span>》' +
+        '<span class="mr-sec">' + esc(sec) + '</span></div>' +
+        '<div class="mr-sum">' + esc(c.summary || '') + '</div>' +
+        '<div class="mr-time">' + esc(relTime(c.at)) + '</div>';
+      box.appendChild(r);
+    });
+  }
+
+  /* ---------- 问小满（对话） ---------- */
+  function appendChat(who, text) {
+    var log = $('chatLog'); if (!log) return;
+    var m = document.createElement('div'); m.className = 'chat-msg' + (who === 'ai' ? ' ai' : '');
+    m.innerHTML = '<div class="who">' + (who === 'ai' ? '旅行助手' : '我') + '</div><div class="m-bubble">' + esc(text) + '</div>';
+    log.appendChild(m); log.scrollTop = log.scrollHeight;
+  }
+  function sendChat() {
+    var inp = $('chatInput'); var v = (inp.value || '').trim(); if (!v) return;
+    appendChat('me', v); inp.value = '';
+    fetch('/api/chat', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: v }) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || (!d.reply && !d.note)) { appendChat('ai', '小满暂时没法回答，换个说法试试？'); return; }
+        appendChat('ai', d.reply || ('（' + d.note + '）'));
+      })
+      .catch(function () { appendChat('ai', '网络好像断了，稍后再试。'); });
+  }
+  $('chatSend').addEventListener('click', sendChat);
+  $('chatInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+
+  /* ---------- 面板切换 ---------- */
+  function showPanel(id) {
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) {
+      p.classList.toggle('active', p.id === id);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tabbar button[data-panel]'), function (b) {
+      b.setAttribute('aria-selected', b.dataset.panel === id ? 'true' : 'false');
+    });
+    $('appTitle').textContent = TITLES[id] || '旅行助手';
+    if (MAIN.indexOf(id) >= 0) currentMain = id;
+    if (id === 'pTrips' || id === 'pPlanning') { if (!ALL.length) loadTrips(); }
+    if (id === 'pMsgs') { loadMessages(); }
+    if (id === 'pChat') { var i = $('chatInput'); if (i) i.focus(); }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button[data-panel]'), function (b) {
+    b.addEventListener('click', function () { showPanel(b.dataset.panel); });
+  });
+  $('fabNew').addEventListener('click', function () { showPanel('pChat'); });
+  $('backBtn').addEventListener('click', function () { showPanel(currentMain); });
+  $('backBtn').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showPanel(currentMain); } });
+
+  /* ---------- 我的 → 各页 ---------- */
+  ['mineTrips', 'setTrips'].forEach(function (id) { var e = $(id); if (e) e.addEventListener('click', function () { showPanel('pTrips'); }); });
+  $('mineMsgs').addEventListener('click', function () { showPanel('pMsgs'); });
+  $('mineFood').addEventListener('click', function () { showPanel('pFood'); });
+  $('mineSettings').addEventListener('click', function () { showPanel('pSettings'); });
+  $('mineLogout').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+      .catch(function () {})
+      .then(function () { location.reload(); });
+  });
 
   /* ---------- 移动端登录（含看板娘聚焦情绪，与 design/account.html 联动） ---------- */
   var loginMascot = $('loginMascot'), loginCap = $('loginCap');
@@ -216,36 +438,16 @@
   });
   var loginBtn = $('loginBtn');
   if (loginBtn) loginBtn.addEventListener('click', function () {
-    var panel = $('pLogin'); if (panel) panel.classList.remove('active');
-    var chat = $('pChat'); if (chat) chat.classList.add('active');
-    var bar = $('appbar'); if (bar) bar.hidden = false;
-    var tb = $('tabbar'); if (tb) tb.hidden = false;
-    var title = $('appTitle'); if (title) title.textContent = '对话';
-    /* 尽力拉资料；失败也不阻断演示流程 */
+    $('pLogin').classList.remove('active');
+    $('appbar').hidden = false;
+    $('tabbar').hidden = false;
+    showPanel('pTrips');
+    /* 登录后拉资料与行程；失败也不阻断演示流程 */
     if (window.fetch) {
-      fetch('/api/account/me', { credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) {
-          if (!d || !d.username) return;
-          var nm = $('mName'); if (nm) nm.textContent = d.username;
-          var rl = $('mRole'); if (rl) rl.textContent = (d.role || '用户') + ' · 已登录';
-          var av = $('mAvatar'); if (av) av.textContent = d.username.charAt(0).toUpperCase();
-        }).catch(function () {});
+      fetch('/api/account/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.username) paintProfile(d); }).catch(function () {});
+      loadTrips();
     }
-  });
-
-  /* ---------- tab 切换 ---------- */
-  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function (b) {
-    b.addEventListener('click', function () {
-      var id = b.dataset.panel;
-      Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function (x) {
-        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) {
-        p.classList.toggle('active', p.id === id);
-      });
-      $('appTitle').textContent = TITLES[id] || '旅行助手';
-    });
   });
 })();
 </script>

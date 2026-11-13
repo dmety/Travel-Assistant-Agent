@@ -245,3 +245,66 @@
     border: 0; border-radius: 0; box-shadow: none;
   }
 }
+
+/* ---------- 5 项导航 + 居中 FAB（对齐 design/mobile.html 底部导航） ---------- */
+.tabbar { position: relative; }
+.tabbar .fab {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -52%);
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--pine); color: #fff; border: 3px solid var(--surface-warm);
+  display: grid; place-items: center; box-shadow: var(--shadow-2); z-index: 3; cursor: pointer;
+}
+.tabbar .fab svg { width: 24px; height: 24px; }
+.tabbar .fab:active { transform: translate(-50%, -52%) scale(.94); }
+
+/* ---------- 通用列表 ---------- */
+.list-head { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 12px; font-size: var(--fs-md); font-weight: var(--w-strong); }
+.list-head .muted { font-size: var(--fs-xs); color: var(--text-3); font-weight: var(--w-body); }
+.empty { text-align: center; color: var(--text-3); font-size: var(--fs-sm); padding: 28px 16px; line-height: 1.8; }
+.empty .btn { margin-top: 14px; }
+
+/* ---------- 行程卡（行程 / 待规划 共用） ---------- */
+.trip-card {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card);
+  padding: 12px 13px; margin-bottom: 10px; color: inherit; font: inherit;
+}
+.trip-card:active { background: var(--surface-2); }
+.tc-top { display: flex; align-items: center; gap: 8px; }
+.tc-title { font-size: var(--fs-md); font-weight: var(--w-strong); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-badge { font-size: var(--fs-xs); color: var(--text-3); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 1px 8px; flex: 0 0 auto; }
+.tc-badge.arch { color: var(--warn); border-color: var(--warn); }
+.tc-sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 5px; }
+.tc-meta { font-size: var(--fs-xs); color: var(--text-3); margin-top: 7px; display: flex; gap: 14px; }
+.tc-detail { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: var(--fs-xs); color: var(--text-2); line-height: 1.8; }
+.tc-detail .row { display: flex; gap: 8px; }
+.tc-detail .k { color: var(--text-3); flex: 0 0 auto; width: 56px; }
+.tc-detail a { color: var(--pine); }
+
+/* ---------- 消息行（协作动态） ---------- */
+.msg-row { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 11px 12px; margin-bottom: 9px; }
+.msg-row .mr-top { font-size: var(--fs-xs); color: var(--text-3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.msg-row .mr-top b { color: var(--text-2); }
+.msg-row .mr-sec { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 0 7px; color: var(--pine); }
+.msg-row .mr-sum { font-size: var(--fs-sm); color: var(--text-2); margin-top: 6px; line-height: 1.6; }
+.msg-row .mr-time { font-size: var(--fs-xs); color: var(--text-3); margin-top: 6px; }
+.msg-row .mr-title { color: var(--pine); }
+
+/* ---------- 我的 ---------- */
+.mine-rows { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; margin-top: 4px; }
+.mine-row {
+  display: flex; align-items: center; gap: 10px; padding: 13px 12px;
+  border-bottom: 1px solid var(--line); font-size: var(--fs-sm); cursor: pointer;
+  background: none; width: 100%; text-align: left; color: inherit; font: inherit;
+}
+.mine-row:last-child { border-bottom: 0; }
+.mine-row:active { background: var(--surface-2); }
+.mine-row .ico { width: 28px; height: 28px; border-radius: var(--r-ctl); background: var(--surface-2); color: var(--pine); display: grid; place-items: center; flex: 0 0 auto; }
+.mine-row .sp { margin-left: auto; color: var(--text-3); }
+.mine-row.danger { color: var(--err); }
+
+/* ---------- 移动端对话输入（[+] 进入问小满） ---------- */
+.chat-box { display: flex; gap: 8px; margin-top: 14px; }
+.chat-box .field { flex: 1; margin: 0; }
+.chat-msg.ai .m-bubble { border-color: var(--pine-line); }
+.chat-empty { color: var(--text-3); font-size: var(--fs-xs); text-align: center; margin-top: 8px; }
