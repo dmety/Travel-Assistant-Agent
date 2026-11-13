@@ -8,20 +8,22 @@
 
 两条原则都从一个外出者的真实需求倒推。外出想体验当地美食，看重的是这些：正宗与本地性、口碑可信度、位置顺路、忌口硬约束、价格预期、营业状态、氛围体验。其中「正宗」和「口碑可信」恰恰是地图 API 给不了的，这决定了信息的获取分三层：位置、价格、营业时段、基础评分走实时 POI 接口；正宗、本地性、老字号走开放数据做轻量底账；真实口碑走外链交还给用户自己看。
 
-## 实现状态（2026-11-09）
+## 实现状态（2026-11-12 复核）
 
 两种形态都已落地，共用《Agent 接入规范》契约 1.0，未升主版本、未新增 `Fact.type` 枚举。
 
 | 形态 | 落点 | 状态 |
 | --- | --- | --- |
 | 内置 Bean | `builtin.food`，`application/agent/food/FoodRecommendationService.java` 与 `FoodProviderConfiguration.java` | 已注册为 `FOOD_RECOMMEND` 默认 primary，走同一套 `ContractValidator`，无需 G1 至 G4 |
-| 外部 HTTP | `tools/agent/food_provider_server.py`（`POST /v1/invoke` 与 `GET /healthz`）+ `data/agent_providers.example.json` 种子 | 参考实现已可运行，离线自测 12/12；本机环回地址被 G0 拒绝，进注册表仍需公网 https 域名并入 allowlist |
+| 外部 HTTP | `tools/agent/food_provider_server.py`（`POST /v1/invoke` 与 `GET /healthz`）+ `data/agent_providers.example.json` 种子 | 参考实现已可运行，离线自测 12/12；默认拒绝环回地址；可按《Agent 接入规范》显式配置一个精确的本机模拟端点，其他外部端点仍需公网 https 域名并入 allowlist |
 | L1 编排入口 | `POST /api/agent/invoke`，`application/agent/orchestration/AgentOrchestrator.java` | 已接通注册表，按 intent 逐个 invoke、失败切兜底；不改 `/api/agent/plan` |
 | 归纳层 | `application/agent/orchestration/SummaryComposer.java` | 已接入编排层：facts 到一句人话，数字校验不过即回退模板 `advice`，见「归纳层：facts 到一句人话」 |
 
 硬前置已补齐：`tools/build_attraction_index.py` 的 `KEEP_FIELDS` 增加 `coordinateSystem`，索引重建为 7745 条（WGS-84 3350 / GCJ-02 4395）；Java `Attraction` 与 `AttractionView` 透传该字段；`infrastructure/geo/CoordinateTransforms.java` 提供 WGS-84 / BD-09LL 到 GCJ-02 的换算与 Haversine，独立基准向量单测锁死 `x_pi = pi * 3000 / 180` 系数。高德新增 `/v3/place/around` + `types=050000` + `extensions=all`，百度第二源 `scope=2` 并先做 GCJ-02 到 BD-09LL 的锚点换算。
 
-**仍未做**，不要按本文正文里「计划」语气误读为已实现：本地开放数据底账（没有它，无 key 时降级为**零候选并如实标注**，不是「本地有什么值得吃」）、Wikivoyage 灵感层与 `includeInspiration`、评价平台外链白名单与 `reviewLinks` 实际生成（`reviewLinks` 恒为空数组）、按 `runId` 的 24 h 幂等缓存与摘要缓存、九条餐饮准入探针、餐饮条目独立 ID 校验、前端实时定位。这些都在正文里保留原设计，列在「待决」。
+**仍未做**，不要按本文正文里「计划」语气误读为已实现：本地开放数据底账（没有它，无 key 时降级为**零候选并如实标注**，不是「本地有什么值得吃」）、Wikivoyage 灵感层与 `includeInspiration`、评价平台外链白名单与 `reviewLinks` 实际生成（`reviewLinks` 恒为空数组）、按 `runId` 的 24 h 幂等缓存与摘要缓存、餐饮条目独立 ID 校验、前端实时定位。这些都在正文里保留原设计，列在「待决」。
+
+2026-11-12 不依赖密钥部分复核：现有 `FoodRecommendationServiceTest` 的 16 例随全量 `mvn verify` 通过，覆盖固定响应、来源与未知项、双源锚点换算、距离、去重和降级；Python Provider 自测 12/12 通过。浏览器主动点击「获取美食推荐」返回 `DEGRADED`、事实 0 条，列出预算/餐次未知及实时数据不可用，并声明直线距离与未编造候选；调用未修改行程。当前本机未配置地图或模型密钥，2026-11-09 的真实接口记录只作历史证据，未在本轮复现。#11 的离线实现与降级验证已完成，真实餐饮数据成功返回仍待配置后复核。
 
 ## 边界与前提
 
@@ -177,7 +179,9 @@
 
 所有参与距离计算的坐标先统一到 GCJ-02。`tools/kb/models.py` 已有 `wgs84_to_gcj02` 与 `gcj02_to_wgs84`，`tools/kb/query.py` 有 `_to_wgs84`，实现时复用同一套转换，不另写公式。
 
-用 Haversine 算直线距离。`distanceMeters` 是直线距离，不是步行距离或步行时间；需要步行时间得另调路径规划接口，本期不做，`notices` 里要说明距离按直线计算。半径由用户选，超出半径的候选写标注、不剔除，见「用户选择权」。
+用 Haversine 算直线距离。`distanceMeters` 是直线距离，不是步行距离或步行时间；要步行时间得另调路径规划，`notices` 里要说明距离按直线计算。半径由用户选，超出半径的候选写标注、不剔除，见「用户选择权」。
+
+> 2026-11-11 补记：对话层的 `route_plan` 工具已接通 `GET /api/location/route`（高德步行 / 驾车 / 公交），美食推荐自身的 `distanceMeters` 口径不变，仍是直线距离；两者不互相替代，页面上不能把直线距离当步行距离展示。
 
 **阻塞已解除（2026-11-09）**：源库里 `coordinateSystem` 是 GCJ-02 4,395 条、WGS-84 3,350 条，原先 `tools/build_attraction_index.py` 的 `KEEP_FIELDS` 只有 20 个字段，索引不带坐标系标签，服务端无法正确下发锚点。现已把该字段加进白名单并重建索引；`AttractionStore` 用 `mapper.treeToValue(node, Attraction.class)` 解析时，因 `Attraction` 是 `@JsonIgnoreProperties(ignoreUnknown = true)` 的 record，必须同步在 record 里加 `@JsonProperty("coordinateSystem")` 才会透传，这一点已用真实服务验收 `/api/attractions/{id}` 复核。锚点标签缺失或无法识别时编排层直接跳过该点，不猜坐标系。
 
@@ -342,7 +346,7 @@ Provider 只返回建议，且不默认勾选任何一条。用户确认后，�
 | G3 影子运行 | 20 次调用零违规，`elapsedMs` 在预算内 |
 | G4 启用 | 人工确认后置 `enabled=true`，状态转 `ACTIVE` |
 
-建议补九条餐饮探针。用例集随规范版本入库，新增用例要同步升规范版本，所以这九条仍列为待决项。机器可读规范源 `tools/agent/provider-contract.json` 与 `tools/agent/gold_cases.json` 已于 2026-11-09 落地，Java 侧的 `ContractValidator` 与 G0 闸门以它们为单一判定依据；下表是新增餐饮用例的设计提案，不是已入库的 gold cases。当前实现用单元自测覆盖其中六条口径，未改契约、未升版本。
+`tools/food_admission_probe.py` 已提供九条离线检查，`--self-test` 已实测：合规样本全通过，违规样本被检出。它尚未作为 G2 gold cases 自动执行，不能据此宣称运行时九条门禁已接线。用例集随规范版本入库，接入自动准入仍列为待决项。机器可读规范源 `tools/agent/provider-contract.json` 与 `tools/agent/gold_cases.json` 已于 2026-11-09 落地，Java 侧的 `ContractValidator` 与 G0 闸门以它们为单一判定依据；下表描述餐饮检查口径，不是已入库的 gold cases；离线探针与单元测试不改变契约版本。
 
 | 建议用例 | 输入特征 | 期望 |
 | --- | --- | --- |

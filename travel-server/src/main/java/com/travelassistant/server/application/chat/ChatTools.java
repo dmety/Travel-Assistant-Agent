@@ -53,6 +53,9 @@ public class ChatTools {
   private static final int MAX_SUMMARY = 800;
   private static final int MAX_PLACES = 6;
   private static final int MAX_FOOD = 8;
+  /** 天数与人数上限，口径与 {@code IntentParser} 的 1~30 保持一致：两条链路的边界不能不一样。 */
+  private static final int MAX_DAYS = 30;
+  private static final int MAX_TRAVELERS = 30;
 
   /** 一次工具执行的结果。{@code card} 为 null 表示这次没有可渲染的卡片。 */
   public record Outcome(boolean ok, String summary, Card card) {
@@ -126,7 +129,17 @@ public class ChatTools {
               "preferences", Map.of("type", "array", "items", Map.of("type", "string"),
                   "description", "只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏"),
               "departDate", str("出发日期 YYYY-MM-DD，不知道就省略")),
-          List.of("city", "days")));
+          List.of("city", "days")),
+      fn("route_plan", "算两点之间的步行 / 驾车 / 公交距离与耗时（高德路径规划），"
+          + "返回值是接口预估，不含等车、排队与检票时间。"
+          + "用户问「怎么走」「多远」「走过去要多久」「打车方便吗」时用它。"
+          + "起点终点填知识库收录的景点名，一次只算两点；一段行程最多调五次，"
+          + "不要为了凑完整就把每天都串一遍，地图额度没有本地限流。",
+          Map.of("origin", str("起点景点名，例如「黄鹤楼」"),
+              "destination", str("终点景点名，例如「东湖听涛景区」"),
+              "mode", str("出行方式：walking 步行 / driving 驾车 / transit 公交，默认 walking"),
+              "city", str("城市名，公交路线请填，例如「武汉」")),
+          List.of("origin", "destination")));
 
   /** 执行一次工具调用；任何异常都收敛成一句可读的失败摘要，不把堆栈丢给模型。 */
   public Outcome execute(String name, String rawArgs) {
@@ -152,6 +165,7 @@ public class ChatTools {
         case "get_weather" -> weather(args);
         case "find_food" -> food(args);
         case "draft_itinerary" -> plan(args);
+        case "route_plan" -> routePlan(args);
         case "book_ticket" -> ticket(args);
         case "get_inspiration" -> inspiration(args);
         case "vote_plan" -> votePlan(args);
@@ -374,6 +388,74 @@ public class ChatTools {
         new Card("weather", null, withoutCategory(value)));
   }
 
+  /**
+   * 两点之间的路线：走编排层的 {@code ROUTE_ADVICE}，与直接调
+   * {@code /api/agent/invoke} 用的是同一个 Provider、同一套契约校验。
+   *
+   * <p>只接受景点名。坐标不开放给模型填——模型给不出可靠的经纬度，
+   * 让它填坐标等于给它一个编造数字的机会；知识库里的坐标由 Provider 自己查。
+   */
+  private Outcome routePlan(JsonNode args) {
+    String origin = text(args, "origin");
+    String destination = text(args, "destination");
+    if (origin == null || destination == null) {
+      return new Outcome(false, "缺少起点或终点景点名。", null);
+    }
+    Map<String, Object> context = new LinkedHashMap<>();
+    context.put("origin", origin);
+    context.put("destination", destination);
+    String mode = text(args, "mode");
+    if (mode != null && !mode.isBlank()) {
+      context.put("mode", mode.strip());
+    }
+    String city = text(args, "city");
+    if (city != null && !city.isBlank()) {
+      context.put("city", city.strip());
+    }
+    DispatchOutcome outcome = orchestrator.dispatch(
+        new DispatchRequest("ROUTE_ADVICE", context, Map.of()));
+    Map<String, Object> value = firstFactOf(outcome, "ROUTE");
+    if (value == null) {
+      String why = outcome.result() == null || outcome.result().notices().isEmpty()
+          ? "编排层没有给出原因" : outcome.result().notices().get(0);
+      return new Outcome(false, origin + " → " + destination + " 的路线没算出来：" + why
+          + "。不要编造距离与耗时，可以如实说明没查到，建议以地图 App 为准。", null);
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append(value.get("origin")).append(" → ").append(value.get("destination"))
+        .append("，").append(value.get("modeLabel")).append("：")
+        .append(value.get("distanceText")).append("，约 ").append(value.get("durationText"))
+        .append("。距离与耗时是路径规划预估，不含等车、排队与检票时间。");
+    Object rawSteps = value.get("steps");
+    if (rawSteps instanceof List<?> list && !list.isEmpty()) {
+      sb.append("\n主要路段：");
+      int shown = 0;
+      for (Object item : list) {
+        if (shown >= 5) {
+          break;
+        }
+        if (item instanceof Map<?, ?> step) {
+          Object instruction = step.get("instruction");
+          Object road = step.get("road");
+          Object distance = step.get("distanceMeters");
+          if (instruction == null) {
+            continue;
+          }
+          sb.append("\n- ").append(instruction);
+          if (road != null && !String.valueOf(road).isBlank()) {
+            sb.append("（").append(road).append("）");
+          }
+          if (distance instanceof Number n) {
+            sb.append(" 约 ").append(n.intValue()).append(" 米");
+          }
+          shown++;
+        }
+      }
+    }
+    return new Outcome(true, cut(sb.toString()),
+        new Card("route", null, withoutCategory(value)));
+  }
+
   private Outcome food(JsonNode args) {
     String city = text(args, "city");
     if (city == null) {
@@ -401,12 +483,18 @@ public class ChatTools {
     if (days == null) {
       return new Outcome(false, "缺少 days 参数。先问用户玩几天，不要默认成 3 天。", null);
     }
+    // 模型给的数字不可信：与意图解析链路同一条边界，超出 1~30 就夹住并说明，
+    // 不能让「999 天」一路排到 Provider 里去生成 999 个逐日条目。
+    int cappedDays = Math.min(Math.max(days, 1), MAX_DAYS);
+    boolean capped = cappedDays != days;
     Map<String, Object> context = new LinkedHashMap<>();
     context.put("destination", city);
-    context.put("days", days);
+    context.put("days", cappedDays);
     Integer travelers = number(args, "travelers", 0) > 0 ? number(args, "travelers", 0) : null;
     if (travelers != null) {
-      context.put("travelers", travelers);
+      int cappedTravelers = Math.min(Math.max(travelers, 1), MAX_TRAVELERS);
+      capped = capped || cappedTravelers != travelers;
+      context.put("travelers", cappedTravelers);
     }
     double budget = decimal(args, "budget", 0);
     if (budget > 0) {
@@ -422,7 +510,13 @@ public class ChatTools {
     }
     DispatchOutcome outcome = orchestrator.dispatch(
         new DispatchRequest("PLAN_DRAFT", context, Map.of()));
-    return envelopeOutcome(outcome, "PLAN_DRAFT", planHighlight(outcome));
+    Outcome result = envelopeOutcome(outcome, "PLAN_DRAFT", planHighlight(outcome));
+    if (!capped) {
+      return result;
+    }
+    return new Outcome(result.ok(),
+        result.summary() + "\n天数与人数已按 1~" + MAX_DAYS + " 的上限夹住，回答时不要重复超出上限的数字。",
+        result.card());
   }
 
   /**

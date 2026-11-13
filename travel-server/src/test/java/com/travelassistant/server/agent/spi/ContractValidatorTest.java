@@ -380,4 +380,22 @@ class ContractValidatorTest {
     Map<String, Object> f = withFact("value", big);
     assertTrue(resultCodes(m -> m.put("facts", List.of(f))).contains("E_SCHEMA_LIMIT"));
   }
+  @Test
+  void localMockRequiresAnExactExplicitEndpointAndNeverAllowsOtherHosts() {
+    String endpoint = "http://127.0.0.1:18090/v1/invoke";
+    Map<String, Object> m = config();
+    m.put("endpoint", endpoint);
+    assertTrue(validator.validateConfig(m, 0, true).blocked());
+    ContractValidator local = new ContractValidator(rules, endpoint);
+    assertFalse(local.validateConfig(m, 0, true).blocked());
+    for (String bad : List.of("http://127.0.0.1:18091/v1/invoke",
+        "http://localhost:18090/v1/invoke", "http://10.0.0.1:18090/v1/invoke",
+        "http://127.0.0.1:18090/other", endpoint + "?key=x", endpoint + "#x",
+        "http://user@127.0.0.1:18090/v1/invoke", "http://127.0.0.1:80/v1/invoke")) {
+      m.put("endpoint", bad);
+      assertTrue(local.validateConfig(m, 0, true).blocked(), bad);
+
+    }
+  }
+
 }

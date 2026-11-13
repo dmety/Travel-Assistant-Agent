@@ -519,6 +519,16 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .places .wx-row .rate{color:var(--primary); font-size:var(--fs-xs); white-space:nowrap; padding-top:2px;}
 .places .wx-row .t{white-space:normal; word-break:break-word; line-height:1.45;}
 .places .wx-row .t.unknown{color:var(--text-3);}
+.places .wx-row .t .tk-badge{
+  display:inline-block; margin-right:4px; padding:0 4px; border-radius:3px;
+  font-size:10px; line-height:1.5; vertical-align:1px;
+  color:var(--text-3); border:1px solid var(--line);
+}
+.places .wx-row .t .tk-badge.ok{color:var(--primary); border-color:var(--primary);}
+.route .route-sum{padding:8px 12px 2px; font-size:var(--fs-sm); line-height:1.5;}
+.route .route-step{display:flex; gap:8px; padding:5px 12px; border-top:1px solid var(--line); align-items:baseline;}
+.route .route-step .route-ix{flex:1 1 auto; min-width:0; font-size:var(--fs-xs); color:var(--text-2); line-height:1.5;}
+.route .route-step .route-meta{flex:0 0 auto; font-size:var(--fs-xs); color:var(--text-3); white-space:nowrap;}
 /* 评价数可点开：说明评分来源，并给地图官方评论页入口（评论正文不在本系统） */
 .places .wx-row .d .sub .review-toggle{
   border:0; background:none; padding:0; margin:0; cursor:pointer;
@@ -2225,6 +2235,39 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     return t.length > n ? t.slice(0, n) + '…' : t;
   }
 
+  /**
+   * 票价原文一律整段显示，不截断也不在括号处分句。
+   * 票价里「旺季」「成人票」这类词后面紧跟的就是数字，切一刀只剩下标签没有价格：
+   * 例如「旺季(1-11月)25元/淡季(12月)20元」按括号切完只剩「旺季」两个字。
+   */
+  function ticketText(v){
+    var t = String(v == null ? '' : v).trim();
+    if(!t || t === '暂无' || t === '未知') return '';
+    return t.replace(/\s+/g, ' ');
+  }
+
+  /** 票价状态只分三种，未收录与未核验不是一回事，不能混成一句话。 */
+  function ticketState(row){
+    if(ticketText(row.ticket)) return String(row.ticketStatus || '') === 'verified' ? 'verified' : 'raw';
+    return (row.ticketStatus === undefined && (row.address !== undefined || row.type !== undefined))
+      ? 'map' : 'absent';
+  }
+
+  function ticketLabel(row){
+    var text = ticketText(row.ticket);
+    var state = ticketState(row);
+    if(state === 'absent') return '票价未收录，以景区公告为准';
+    if(state === 'map') return '地图不提供票价，以景区公告为准';
+    return text;
+  }
+
+  function ticketBadge(row){
+    var state = ticketState(row);
+    if(state === 'verified') return '人工核验';
+    if(state === 'raw') return '原文未核验';
+    return '';
+  }
+
   function escapeHtml(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
       return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
@@ -2371,17 +2414,23 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       b.textContent = d.items.map(function(i){ return i.name; }).join(' · ');
       txt.appendChild(b);
 
-      var bits = d.items.map(function(i){
-        var t = brief(fmt(i.ticket), 14);
-        var o = brief(fmt(i.openTime), 16);
-        var parts = [t === '未知' ? '票价未核验' : '票价 ' + t];
-        if(o !== '未知') parts.push('开放 ' + o);
-        return i.name + '：' + parts.join('，');
-      });
-      if(d.date) bits.push(d.date);
-      var meta = el('span','day-meta');
-      meta.textContent = bits.join('；');
-      txt.appendChild(meta);
+      if(d.items.length){
+        // 一个景点一行：窄屏下把几个景点挤在「；」分隔的一行里很难读。
+        // 票价整段显示，不在括号或分号处截断——截断后会只剩「旺季」这类标签而没有价格。
+        d.items.forEach(function(i){
+          var line = el('span');
+          var parts = ['票价 ' + (ticketText(i.ticket) || '未收录')];
+          var open = brief(fmt(i.openTime), 20);
+          if(open !== '未知') parts.push('开放 ' + open);
+          line.textContent = i.name + '：' + parts.join('，');
+          txt.appendChild(line);
+        });
+        if(d.date){
+          var dd = el('span');
+          dd.textContent = d.date;
+          txt.appendChild(dd);
+        }
+      }
       row.appendChild(txt);
       box.appendChild(row);
     });
@@ -2410,8 +2459,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       if(a.city) bits.push(a.city);
       if(a.level) bits.push(a.level);
       if(a.rating) bits.push('评分 ' + a.rating);
-      bits.push(a.ticket == null || a.ticket === '' ? '票价未核验'
-        : '票价 ' + brief(fmt(a.ticket), 16));
+      bits.push('票价 ' + (ticketText(a.ticket) || '未收录'));
       meta.textContent = bits.join(' · ');
       row.appendChild(name);
       row.appendChild(meta);
@@ -2868,6 +2916,35 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
 
   /** 天气卡：逐日一行，右上角是温度区间与风。数据是高德预报，不是实况。 */
+  /**
+   * 路线卡：距离与耗时是路径规划接口的预估值，卡片里如实标注，
+   * 不写「一定能到」「大概几点到」这类把预估当承诺的话。
+   */
+  function routeBlock(data){
+    var d = data || {};
+    var box = el('div','wx route');
+    var head = el('div','wx-h');
+    head.textContent = fmt(d.origin) + ' → ' + fmt(d.destination) + ' · ' + fmt(d.modeLabel)
+      + (d.source ? ' · 来源' + d.source : '');
+    box.appendChild(head);
+    var sum = el('div','route-sum');
+    sum.appendChild(el('b', null, escapeHtml(d.distanceText || '距离未知') +
+      ' · 约 ' + escapeHtml(d.durationText || '耗时未知')));
+    box.appendChild(sum);
+    var steps = d.steps || [];
+    steps.forEach(function(s){
+      var row = el('div','route-step');
+      row.appendChild(el('span','route-ix', escapeHtml(String(s.instruction || ''))));
+      var meta = [];
+      if(s.road) meta.push(s.road);
+      if(s.distanceMeters != null) meta.push(s.distanceMeters + ' 米');
+      if(meta.length) row.appendChild(el('span','route-meta', escapeHtml(meta.join(' · '))));
+      box.appendChild(row);
+    });
+    box.appendChild(el('div','wx-tip','距离与耗时是路径规划接口的预估，不含等车、排队与检票时间，实际以地图 App 与现场为准。'));
+    return box;
+  }
+
   function weatherBlock(data){
     var box = el('div','wx');
     var head = el('div','wx-h');
@@ -3020,10 +3097,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       row.appendChild(nameBox);
       var rate = (r.rating == null || String(r.rating) === '') ? '' : '★ ' + String(r.rating);
       row.appendChild(el('div','rate', escapeHtml(rate || '暂无评分')));
-      var ticket = (r.ticket == null) ? '' : String(r.ticket);
-      var t = el('div', 't' + (ticket ? '' : ' unknown'),
-          ticket ? escapeHtml(brief(ticket, 26)) : '票价未核验');
-      if(ticket) t.setAttribute('title', ticket);
+      var hasTicket = !!ticketText(r.ticket);
+      var t = el('div', 't' + (hasTicket ? '' : ' unknown'), escapeHtml(ticketLabel(r)));
+      var badge = ticketBadge(r);
+      if(badge){
+        var tag = el('span', 'tk-badge' + (badge === '人工核验' ? ' ok' : ''));
+        tag.textContent = badge;
+        t.insertBefore(tag, t.firstChild);
+      }
       row.appendChild(t);
       (r.channels || []).forEach(function(c){
         var url = String(c.url || '');
@@ -3096,6 +3177,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   function paintCard(card, baseText){
     if(!card) return null;
     if(card.type === 'weather') return weatherBlock(card.data);
+    if(card.type === 'route') return routeBlock(card.data);
     if(card.type === 'places') return placesBlock(card.data);
     if(card.type === 'vote') return voteBlock(card.data);
     if(card.type === 'envelope'){

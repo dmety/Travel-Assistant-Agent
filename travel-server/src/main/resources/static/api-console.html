@@ -1597,6 +1597,22 @@
     // ---- 基础业务闭环：草案 → 确认保存 ----
     let currentDraft = null;
     let currentDraftRequest = null;
+    let draftRevision = 0;
+
+    function invalidateDraft() {
+      draftRevision++;
+      if (!currentDraft) return;
+      currentDraft = null;
+      currentDraftRequest = null;
+      dfUpdateConfirmButton();
+      $('dfOut').textContent = '需求已修改，请重新生成草案后确认保存。';
+      show('需求已修改，请重新生成草案', 'err');
+    }
+    ['dfDestination', 'dfDepart', 'dfReturn', 'dfDays', 'dfTravelers', 'dfBudget',
+      'dfCurrency', 'dfPrefs'].forEach(id => {
+      $(id).addEventListener('input', invalidateDraft);
+      $(id).addEventListener('change', invalidateDraft);
+    });
 
     function dfNum(id) {
       const raw = $(id).value.trim();
@@ -1683,11 +1699,16 @@
       if (!body.destination) { show('请填写目的地', 'err'); return; }
       currentDraft = null; currentDraftRequest = null; dfUpdateConfirmButton();
       $('dfOut').innerHTML = '<span class="muted">生成中…</span>';
+      const revision = ++draftRevision;
       const res = await api('POST', '/api/agent/plan', body, true);
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         $('dfOut').innerHTML = '<span class="muted">生成失败</span>';
         show('生成草案失败 (' + res.status + ')：' + (d.error || ''), 'err');
+        return;
+      }
+      if (revision !== draftRevision || JSON.stringify(body) !== JSON.stringify(draftRequestBody())) {
+        $('dfOut').textContent = '需求已修改，本次生成结果已失效，请重新生成草案。';
         return;
       }
       currentDraft = d; currentDraftRequest = body;
@@ -1699,6 +1720,10 @@
 
     $('dfConfirmBtn').onclick = async () => {
       if (!currentDraft || !currentDraftRequest) return;
+      if (JSON.stringify(currentDraftRequest) !== JSON.stringify(draftRequestBody())) {
+        invalidateDraft();
+        return;
+      }
       const title = $('dfTitle').value.trim() || (currentDraftRequest.destination + '行程');
       const high = (currentDraft.checks || []).filter(c => c.severity === 'HIGH');
       if (high.length && !confirm('草案有 ' + high.length + ' 条高风险提示：\n'
