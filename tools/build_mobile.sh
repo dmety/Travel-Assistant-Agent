@@ -24,14 +24,14 @@ cd "$(dirname "$0")/../travel-mobile"
 AK=""
 LP="android/local.properties"
 if [[ -f "$LP" ]]; then
-  AK="$(grep -aE '^baiduMapAk=' "$LP" | head -1 | cut -d= -f2- | tr -d '\r')"
+  AK="$(grep -aE '^baiduMapAk=' "$LP" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r')" || true
 fi
 
 if [[ -z "$AK" ]]; then
   ENV_FILE="../.env"
   if [[ -f "$ENV_FILE" ]]; then
     # 兼容 BOM/CRLF：去首行 BOM、去回车、按键取值
-    AK="$(grep -aE 'BAIDU_AK_MOBILE=' "$ENV_FILE" | head -1 | cut -d= -f2- | sed '1s/^\xEF\xBB\xBF//' | tr -d '\r')"
+    AK="$(grep -aE 'BAIDU_AK_MOBILE=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | sed '1s/^\xEF\xBB\xBF//' | tr -d '\r')" || true
   fi
 fi
 

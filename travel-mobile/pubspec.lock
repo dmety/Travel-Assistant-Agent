@@ -130,18 +130,18 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_baidu_mapapi_base
-      sha256: "7ed6ae52af9a79d53800bbab621e1020bed98d5bb450c801cfd002cd62e09e02"
+      sha256: "2274014bd3e18fdfe2731fa3f2240dea5b2fa5f0900047c61f51a418a1abfc5b"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.2+1"
+    version: "4.0.2"
   flutter_baidu_mapapi_map:
     dependency: "direct main"
     description:
       name: flutter_baidu_mapapi_map
-      sha256: e0ae59b54c042311c79981af90ccab4fb038496a1993ccd6bed8da36ec496895
+      sha256: "5908c6aa32d6df769cbe35caa5135886a99591cfb2f6fbce683adb985390dc4f"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.2+1"
+    version: "4.0.2"
   flutter_lints:
     dependency: "direct dev"
     description:

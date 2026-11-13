@@ -42,8 +42,10 @@ dependencies:
   # 百度地图官方 Flutter 插件（基础库 + 地图组件）。
   # AK 经 AndroidManifest meta-data（manifestPlaceholders ← 环境变量）注入，
   # 不硬编码进仓库；未配置 AK 时 Dart 侧走 SVG 示意底图降级。
-  flutter_baidu_mapapi_base: ^4.0.2+1
-  flutter_baidu_mapapi_map: ^4.0.2+1
+  # 精确锁定 4.0.2：4.0.2+1 是鸿蒙适配版，引用 TargetPlatform.ohos / OhosView，
+  # 官方 stable Flutter(无 ohos 平台) 编译不过。切勿改成 ^4.0.2，会重新解析到 +1。
+  flutter_baidu_mapapi_base: 4.0.2
+  flutter_baidu_mapapi_map: 4.0.2
 
 dev_dependencies:
   flutter_test:

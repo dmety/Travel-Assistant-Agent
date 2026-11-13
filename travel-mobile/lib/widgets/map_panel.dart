@@ -32,14 +32,14 @@ class MapPanel extends StatelessWidget {
     this.pinCount = 0,
     this.city,
     this.pins = const [],
-    this.client = ApiClient.instance,
+    this.client,
   });
 
   final double height;
   final int pinCount;
   final String? city;
   final List<MapPinRequest> pins;
-  final ApiClient client;
+  final ApiClient? client;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class MapPanel extends StatelessWidget {
       height: height,
       pins: pins,
       city: city,
-      client: client,
+      client: client ?? ApiClient.instance,
     );
   }
 }
@@ -205,7 +205,16 @@ class _RealMapState extends State<_RealMap> {
         borderRadius: BorderRadius.circular(T.rCard),
         child: Stack(
           children: [
-            BMFMapWidget(onBMFMapCreated: _onCreated),
+            // 必须显式传 mapOptions：插件 4.0.2 内部在
+            // bmf_map_view.dart:115 用 `widget.mapOptions!.toMap()` 强解包，
+            // 构造参数虽可选但为 null 时会抛 Null check operator used on a null value。
+            BMFMapWidget(
+              onBMFMapCreated: _onCreated,
+              mapOptions: BMFMapOptions(
+                center: BMFCoordinate(_resolved.first.lat, _resolved.first.lon),
+                zoomLevel: 12,
+              ),
+            ),
             // 左上：城市标签
             Positioned(
               left: T.sp3,
