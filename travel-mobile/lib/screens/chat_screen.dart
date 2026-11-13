@@ -400,6 +400,25 @@ class _ChatScreenState extends State<ChatScreen> {
     return null;
   }
 
+  /// 把当前草案的日程条目聚合成真地图点位请求（name + city）。
+  /// 条目的 city 为空时回退到候选城市；运行时再由 MapPanel 反查坐标。
+  List<MapPinRequest> _planPins() {
+    final plan = _currentPlan();
+    if (plan == null) return const [];
+    final overallCity =
+        plan.candidates.isNotEmpty ? plan.candidates.first.city : null;
+    final pins = <MapPinRequest>[];
+    for (final day in plan.dailySchedules) {
+      for (final it in day.items) {
+        final city = it.city.isNotEmpty ? it.city : (overallCity ?? '');
+        pins.add(
+          MapPinRequest(name: it.name, city: city, dayIndex: day.dayIndex),
+        );
+      }
+    }
+    return pins;
+  }
+
   /// AppBar 副标题：有草案时给「城市 · N 天」，否则给默认说明。
   String _planHint() {
     final v = _currentPlan();
@@ -497,6 +516,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   city: _currentPlan()?.candidates.isNotEmpty == true
                       ? _currentPlan()!.candidates.first.city
                       : null,
+                  pins: _planPins(),
                 ),
                 Expanded(child: _messagesArea()),
                 _composer(),

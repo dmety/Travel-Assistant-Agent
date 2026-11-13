@@ -4,6 +4,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// 百度地图 AK：从 gitignored 的 local.properties(baiduMapAk) 或环境变量
+// BAIDU_MAP_AK 读入，注入 Manifest 的 com.baidu.lbsapi.API_KEY meta-data。
+// 与 Dart 侧 --dart-define=BAIDU_MAP_AK 必须同源（见 tools/build_mobile.*）。
+val localProperties = java.util.Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+val baiduMapAk: String =
+    localProperties.getProperty("baiduMapAk") ?: System.getenv("BAIDU_MAP_AK") ?: ""
+
 android {
     namespace = "com.example.travel_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -28,6 +39,9 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 百度地图 AK 占位符（空值时原生 SDK 不鉴权，对应 Dart 侧 SVG 降级）
+        manifestPlaceholders["BAIDU_MAP_AK"] = baiduMapAk
     }
 
     buildTypes {

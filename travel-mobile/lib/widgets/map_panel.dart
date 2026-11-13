@@ -1,17 +1,284 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_baidu_mapapi_base/flutter_baidu_mapapi_base.dart';
+import 'package:flutter_baidu_mapapi_map/flutter_baidu_mapapi_map.dart';
 
+import '../api/client.dart';
+import '../config/map_config.dart';
+import '../core/coords.dart';
 import '../theme/tokens.dart';
 
-/// 规划页顶部的「行程地图」示意面板（对应 Web `planner.html` 的 `#viewPlan` 上半屏）。
+/// 真地图点位请求：由日程条目聚合成 `name + city`，运行时反查坐标。
+class MapPinRequest {
+  const MapPinRequest({
+    required this.name,
+    required this.city,
+    this.dayIndex,
+  });
+  final String name;
+  final String city;
+  final int? dayIndex;
+}
+
+/// 规划页顶部的「行程地图」面板。
 ///
-/// 不接真实地图 SDK——与 Web 端一致，未注入 AK 时就是 SVG 示意底图，
-/// 点位按当日顺序沿示意路线分布，明确标注「示意底图 · 非导航用」。
-/// 当本次对话已产出草案时，按天数渲染 D1…Dn 的路线点位。
+/// - 配置了百度 Android AK（`--dart-define=BAIDU_MAP_AK`，同源见 [baiduMapAk]）
+///   且能反查出坐标时，渲染真实百度地图，按日程顺序标点 + 连路线；
+/// - 否则（未配置 AK / 网络或坐标缺失）一律降级为 SVG 示意底图，
+///   明确标注「示意底图 · 非导航用」，绝不编造地理信息。
 class MapPanel extends StatelessWidget {
   const MapPanel({
     super.key,
     this.height = 200,
     this.pinCount = 0,
+    this.city,
+    this.pins = const [],
+    this.client = ApiClient.instance,
+  });
+
+  final double height;
+  final int pinCount;
+  final String? city;
+  final List<MapPinRequest> pins;
+  final ApiClient client;
+
+  @override
+  Widget build(BuildContext context) {
+    if (baiduMapAk.isEmpty) {
+      return _SchematicMap(height: height, pinCount: pinCount, city: city);
+    }
+    return _RealMap(
+      height: height,
+      pins: pins,
+      city: city,
+      client: client,
+    );
+  }
+}
+
+/// 真地图：百度地图 SDK 的 [BMFMapWidget]，点位由 [MapPinRequest] 反查坐标后落图。
+///
+/// 若全部点位都查不到坐标（网络/鉴权失败或库里没有该地名），回落到 SVG 示意底图——
+/// 与「未配置 AK」保持同一套降级视觉，不会出现半截空白地图。
+class _RealMap extends StatefulWidget {
+  const _RealMap({
+    required this.height,
+    required this.pins,
+    this.city,
+    required this.client,
+  });
+
+  final double height;
+  final List<MapPinRequest> pins;
+  final String? city;
+  final ApiClient client;
+
+  @override
+  State<_RealMap> createState() => _RealMapState();
+}
+
+class _ResolvedPin {
+  const _ResolvedPin(this.lat, this.lon, this.title);
+  final double lat;
+  final double lon;
+  final String title;
+}
+
+class _RealMapState extends State<_RealMap> {
+  List<_ResolvedPin> _resolved = const [];
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  Future<void> _resolve() async {
+    final out = <_ResolvedPin>[];
+    for (final p in widget.pins) {
+      final bd = await _lookup(p);
+      if (bd != null) out.add(_ResolvedPin(bd.lat, bd.lon, p.name));
+    }
+    if (!mounted) return;
+    setState(() {
+      _resolved = out;
+      _ready = true;
+    });
+  }
+
+  /// 反查坐标：优先精确/包含匹配，统一换算到 BD-09LL（百度 SDK 坐标系）。
+  /// 任何异常都返回 null——坐标缺失就跳过该点，绝不猜、不编造。
+  Future<LatLon?> _lookup(MapPinRequest p) async {
+    try {
+      final data = await widget.client.attractions(
+        city: p.city,
+        name: p.name,
+        limit: 5,
+      );
+      final items = _asItems(data);
+      if (items.isEmpty) return null;
+      Map<String, dynamic>? hit;
+      for (final it in items) {
+        final n = (it['name'] ?? '').toString();
+        if (n == p.name || n.contains(p.name)) {
+          hit = it;
+          break;
+        }
+      }
+      hit ??= items.first;
+      final lat = _toDouble(hit['lat']);
+      final lon = _toDouble(hit['lon']);
+      final cs = hit['coordinateSystem']?.toString();
+      if (lat == null || lon == null) return null;
+      return toBd09(lat, lon, cs);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static List<Map<String, dynamic>> _asItems(dynamic data) {
+    if (data is Map) {
+      final items = data['items'];
+      if (items is List) {
+        return items
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+    if (data is List) {
+      return data
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return [];
+  }
+
+  static double? _toDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
+
+  void _onCreated(BMFMapController c) {
+    if (_resolved.isEmpty) return;
+    // ignore: deprecated_member_use
+    c.addMarkers(
+      _resolved
+          .map((r) => BMFMarker(
+                position: BMFCoordinate(r.lat, r.lon),
+                title: r.title,
+              ))
+          .toList(),
+    );
+    if (_resolved.length > 1) {
+      c.addPolyline(
+        BMFPolyline(
+          coordinates: _resolved
+              .map((r) => BMFCoordinate(r.lat, r.lon))
+              .toList(),
+          width: 5,
+          colors: const [Color(0xFFC8632E)],
+        ),
+      );
+    }
+    c.setNewLatLngZoom(
+      coordinate: BMFCoordinate(_resolved.first.lat, _resolved.first.lon),
+      zoom: 12,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 解析中或解析后无可用坐标：降级示意底图
+    if (!_ready || _resolved.isEmpty) {
+      return _SchematicMap(
+        height: widget.height,
+        pinCount: widget.pins.length,
+        city: widget.city,
+      );
+    }
+    return SizedBox(
+      height: widget.height,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(T.rCard),
+        child: Stack(
+          children: [
+            BMFMapWidget(onBMFMapCreated: _onCreated),
+            // 左上：城市标签
+            Positioned(
+              left: T.sp3,
+              top: T.sp3,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: T.sp3,
+                  vertical: T.sp1,
+                ),
+                decoration: BoxDecoration(
+                  color: T.surface,
+                  borderRadius: BorderRadius.circular(T.rPill),
+                  border: Border.all(color: T.lineStrong),
+                  boxShadow: T.shadow1,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.place_outlined, size: 14, color: T.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.city ?? '行程地图',
+                      style: const TextStyle(
+                        fontSize: T.fsXs,
+                        height: 1.4,
+                        color: T.ink,
+                        fontWeight: T.wStrong,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // 右上：真地图形态徽标
+            Positioned(
+              right: T.sp3,
+              top: T.sp3,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: T.sp2,
+                  vertical: T.sp1,
+                ),
+                decoration: BoxDecoration(
+                  color: T.bg,
+                  borderRadius: BorderRadius.circular(T.rPill),
+                  border: Border.all(color: T.line),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.map, size: 12, color: T.text2),
+                    SizedBox(width: 3),
+                    Text(
+                      '真地图 · 百度',
+                      style: TextStyle(fontSize: 10, height: 1.3, color: T.text3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// SVG 示意底图（降级用）：浅色等高线 + 水域，点位按当日顺序沿示意路线分布。
+/// 不承载真实地理信息。
+class _SchematicMap extends StatelessWidget {
+  const _SchematicMap({
+    required this.height,
+    required this.pinCount,
     this.city,
   });
 
@@ -34,11 +301,8 @@ class MapPanel extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // 底图：浅色等高线 + 一块水域，呼应品牌「等高线 / 方印」语言
           const _MapBackdrop(),
-          // 路线与点位
           if (hasPlan) _RouteLayer(pinCount: pinCount),
-          // 左上：城市标签
           Positioned(
             left: T.sp3,
             top: T.sp3,
@@ -75,9 +339,6 @@ class MapPanel extends StatelessWidget {
               ),
             ),
           ),
-          // 右上：地图形态徽标。这里永远是手绘示意底图，
-          // 不写「未配置 AK」——AK 是后端服务侧配置，与本面板无关，
-          // 写成那样会让人误以为是密钥没配好导致地图加载失败。
           Positioned(
             right: T.sp3,
             top: T.sp3,
@@ -97,7 +358,6 @@ class MapPanel extends StatelessWidget {
               ),
             ),
           ),
-          // 未生成草案时的居中占位
           if (!hasPlan)
             const Center(
               child: Column(
@@ -114,7 +374,6 @@ class MapPanel extends StatelessWidget {
                 ],
               ),
             ),
-          // 左下：图例
           Positioned(
             left: T.sp3,
             bottom: T.sp3,
@@ -191,7 +450,6 @@ class _BackdropPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // 等高线：由外向内收拢的三道弧（呼应品牌印框）
     final line = Paint()
       ..color = T.line
       ..style = PaintingStyle.stroke
@@ -206,8 +464,6 @@ class _BackdropPainter extends CustomPainter {
         line,
       );
     }
-    // 一块水域：只占右下角，避免压住居中的「尚未生成草案」占位文案。
-    // 纯装饰，不承载地理信息；真实地图接入后这一层会被替换掉。
     final water = Paint()..color = T.paper3;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -296,7 +552,6 @@ class _RoutePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     final path = Path()..moveTo(points.first.dx, points.first.dy);
     for (var i = 1; i < points.length; i++) {
-      // 用二阶曲线把相邻点连成柔和折线
       final p0 = points[i - 1];
       final p1 = points[i];
       final mid = Offset((p0.dx + p1.dx) / 2, (p0.dy + p1.dy) / 2);
