@@ -64,3 +64,8 @@ Desktop.ini
 # 购票辅助运行配置与字段级来源（不含用户数据）
 !/data/ticket_channels.json
 !/data/ticket_rules.json
+
+# 设计稿仅本地保留，不入库（原型页、令牌源、Axure 素材与导出图）
+# 页面与移动端已各自内联令牌与图标，运行时不依赖本目录
+# 注意：tools/design_icons.py 以本目录为源，克隆后需自备设计稿才能执行
+/design/
