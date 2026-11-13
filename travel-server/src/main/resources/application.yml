@@ -56,7 +56,13 @@ travel:
   # 百度地图第二数据源。控制台按 IP 白名单授权时无需 SN；AK 缺失时餐饮链路自动降级，
   # 不编造 POI。SK 仅供 Python 侧 SN 校验使用，Java 服务不读取。
   baidu:
+    # 服务端 WebAPI（地点检索）AK：应用类型「服务端」，按 IP 白名单授权。
     ak: ${BAIDU_AK:}
+    # 浏览器端 JS API（行程地图）AK：应用类型「浏览器端」，按 Referer 白名单授权，
+    # 且须在控制台启用 JavaScript API GL 服务。与服务端 ak 不可混用——把服务端 key
+    # 喂给浏览器 JS API 会被百度拒绝并返回「APP服务被禁用了」。留空则地图优雅降级到
+    # SVG 示意底图，不加载 SDK、不弹错误。
+    browser-ak: ${BAIDU_BROWSER_AK:}
     timeout-ms: ${BAIDU_TIMEOUT_MS:4000}
   # DeepSeek 密钥。留空则 Agent 规划接口返回 503 并说明原因（工具层仍可独立测试）。
   ai:
