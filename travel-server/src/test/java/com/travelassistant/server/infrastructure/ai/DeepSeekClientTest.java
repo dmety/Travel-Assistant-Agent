@@ -58,17 +58,17 @@ class DeepSeekClientTest {
             """, MediaType.APPLICATION_JSON));
 
     DeepSeekClient client = client("test-key");
-    assertThat(client.usageSnapshot()).contains("runs=0");
+    assertThat(client.usageSnapshot()).containsEntry("calls", 0L);
     client.complete("system", "user");
     // 只看 prompt_tokens 会高估成本，缓存命中部分单价约为五十分之一，必须单独记
     assertThat(client.usageSnapshot())
-        .contains("runs=1").contains("prompt=1200").contains("completion=80")
-        .contains("cacheHit=960");
+        .containsEntry("calls", 1L).containsEntry("promptTokens", 1200L).containsEntry("completionTokens", 80L)
+        .containsEntry("cachedPromptTokens", 960L);
     server.verify();
   }
 
   @Test
-  @DisplayName("响应没有 usage 字段：照常返回文本，不记用量也不抛错")
+  @DisplayName("响应没有 usage 字段：照常返回文本，记录调用并保持用量为零")
   void missingUsageIsTolerated() {
     server.expect(requestTo("http://mock.local/chat/completions"))
         .andRespond(withSuccess("""
@@ -77,7 +77,7 @@ class DeepSeekClientTest {
 
     DeepSeekClient client = client("test-key");
     assertThat(client.complete("system", "user")).isEqualTo("ok");
-    assertThat(client.usageSnapshot()).contains("runs=0").contains("prompt=0");
+    assertThat(client.usageSnapshot()).containsEntry("calls", 1L).containsEntry("promptTokens", 0L);
     server.verify();
   }
 

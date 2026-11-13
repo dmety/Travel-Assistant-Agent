@@ -1,5 +1,6 @@
 package com.travelassistant.server.application.map;
 
+import com.travelassistant.server.application.place.RatingOrder;
 import com.travelassistant.server.application.place.ReviewLinks;
 import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.infrastructure.amap.AmapClient;
@@ -169,8 +170,15 @@ public class MapTools {
   }
 
   /** 类型或名称里命中噪音词（学校、培训等）的直接剔除；都缺失不算噪音。 */
+  /**
+   * 类型或名称命中噪音词就丢弃。
+   *
+   * <p>名称这一层统一走 {@link RatingOrder#isNonTourismName}，与知识库候选同一口径：
+   * 站前广场、候车室、停车场这类通行空间不该出现在景点候选里。原先这里只看学校词，
+   * 于是「丽江站站前广场」（评分 5.0）在知识库路径被挡住、实时检索又能钻进来。
+   */
   private static boolean isNoise(Place poi) {
-    return hitsNoise(poi.type()) || hitsNoise(poi.name());
+    return hitsNoise(poi.type()) || RatingOrder.isNonTourismName(poi.name());
   }
 
   private static boolean hitsNoise(String text) {

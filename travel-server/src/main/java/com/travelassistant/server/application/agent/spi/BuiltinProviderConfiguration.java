@@ -21,6 +21,9 @@ import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.domain.ticket.TicketAdvice;
 import com.travelassistant.server.domain.ticket.TicketChannel;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
+import com.travelassistant.server.infrastructure.geo.CoordinateTransforms;
+import com.travelassistant.server.domain.location.RouteMode;
+import com.travelassistant.server.domain.location.RouteResult;
 import com.travelassistant.server.domain.location.WeatherResult;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -93,6 +96,26 @@ public class BuiltinProviderConfiguration {
       MapTools mapTools) {
     return new BuiltinServiceProvider(descriptor(rules, "builtin.inspiration", "CONTENT_INSPIRATION"),
         context -> inspiration(store, mapTools, context));
+  }
+
+  /**
+   * 路线子 Agent：包装既有 {@link LocationService#route}，把两点之间的步行 / 驾车 / 公交
+   * 估算变成编排层可调用的一种能力。契约里 {@code ROUTE_ADVICE} 一直在能力枚举中，
+   * 但此前没有任何实现，调用只会落到 {@code builtin.rules} 被拒。
+   *
+   * <p>坐标有三种来源：知识库条目的经纬度（带 {@code coordinateSystem} 标签，按标签换算到
+   * GCJ-02）、调用方直传的经纬度（必须同时给 {@code coordSystem}，无标签一律拒绝，
+   * 不猜坐标系）。知识库查不到坐标就 REFUSED，不用城市中心点顶替——
+   * 那会算出「从市政府到市政府 0 公里」这种看似成功的假结果。
+   *
+   * <p>一次只算两点。A→B→C 需要两次调用，调用方自行控制次数，本类不做批量循环：
+   * 高德免费额度没有本地限流与缓存，批量串联会把额度烧穿。
+   */
+  @Bean
+  public AgentProvider builtinRoute(ContractRules rules, LocationService location,
+      AttractionStore store) {
+    return new BuiltinServiceProvider(descriptor(rules, "builtin.route", "ROUTE_ADVICE"),
+        context -> route(location, store, context));
   }
 
   private static AgentDescriptor descriptor(ContractRules rules, String id, String capability) {
@@ -371,6 +394,159 @@ public class BuiltinProviderConfiguration {
             Instant.now(), "高德天气预报快照，非实况"));
     return result(context, WEATHER_ADVICE, List.of(),
         List.of("天气是预报不是实况，出行前请再确认"), List.of(fact));
+  }
+
+  // ---------------------------------------------------------------- 路线
+
+  /**
+   * 信封 advice 不带距离与耗时数字：S-05 要求 advice 里的每个数字都能在 facts 中找到，
+   * 而具体数值全在 CONTENT fact 里，由前端按 value 渲染。
+   */
+  private static final String ROUTE_ADVICE =
+      "已附两点之间的路线预估。距离与耗时是路径规划接口的估算，不含等车、排队与检票时间，"
+          + "实际用时请留出余量，明细见结构化内容。";
+
+  /** 步骤过多会刷屏；与 {@link RouteResult} 的注释口径一致，最多留 8 步。 */
+  private static final int ROUTE_MAX_STEPS = 8;
+
+  private static AgentResult route(LocationService service, AttractionStore store,
+      AgentContext context) {
+    Map<String, Object> input = values(context);
+    RouteMode mode = routeMode(text(input.get("mode")));
+    if (mode == null) {
+      return AgentResult.refused(facts(context), List.of("mode"),
+          "路线查询需要出行方式：walking（步行）/ driving（驾车）/ transit（公交）");
+    }
+    List<String> missing = new ArrayList<>();
+    Point origin = point(input, "origin", "originLat", "originLng", store);
+    Point destination = point(input, "destination", "destinationLat", "destinationLng", store);
+    if (origin == null) {
+      missing.add("origin");
+    }
+    if (destination == null) {
+      missing.add("destination");
+    }
+    if (!missing.isEmpty()) {
+      // 缺的是哪一端要说清楚：知识库没有坐标时也要能区分「没给」与「给了查不到」
+      return AgentResult.refused(facts(context), missing,
+          "路线查询需要起点与终点：可用知识库收录的景点名（origin / destination），"
+              + "或直传经纬度（originLng + originLat + coordSystem）");
+    }
+    String city = text(input.get("city"));
+    RouteResult result;
+    try {
+      result = service.route(mode, origin.lngLat(), destination.lngLat(),
+          city == null || city.isBlank() ? null : city.strip());
+    } catch (RuntimeException e) {
+      return new AgentResult("DEGRADED", facts(context), null, List.of("route"),
+          List.of("路线查询失败：" + brief(e.getMessage()) + "，未编造距离与耗时"),
+          new Usage(0L, 0));
+    }
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "ROUTE");
+    value.put("mode", result.mode().name());
+    value.put("modeLabel", result.mode().label());
+    value.put("origin", origin.label());
+    value.put("destination", destination.label());
+    value.put("originLngLat", result.originLngLat());
+    value.put("destinationLngLat", result.destinationLngLat());
+    value.put("distanceMeters", result.distanceMeters());
+    value.put("durationSeconds", result.durationSeconds());
+    value.put("distanceText", result.distanceText());
+    value.put("durationText", result.durationText());
+    value.put("source", result.source());
+    value.put("queriedAt", result.queriedAt() == null ? null : result.queriedAt().toString());
+    List<Map<String, Object>> steps = new ArrayList<>();
+    for (RouteResult.Step step : result.steps()) {
+      if (steps.size() >= ROUTE_MAX_STEPS) {
+        break;
+      }
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("instruction", step.instruction());
+      item.put("road", step.road());
+      item.put("distanceMeters", step.distanceMeters());
+      item.put("durationSeconds", step.durationSeconds());
+      steps.add(item);
+    }
+    value.put("steps", steps);
+    Fact fact = new Fact("builtin.route:path", "CONTENT", value,
+        new Evidence("AMAP", "builtin.route", Evidence.UNVERIFIED, Instant.now(),
+            "高德路径规划快照，距离与耗时为接口预估，不含等车与排队"));
+    return result(context, ROUTE_ADVICE, List.of(),
+        List.of("距离与耗时是接口预估，不含等车、排队与检票时间"), List.of(fact));
+  }
+
+  /** 一个端点：{@code lng,lat} 已换算到 GCJ-02，{@code label} 只用于展示。 */
+  private record Point(String lngLat, String label) {
+  }
+
+  /**
+   * 解析一个端点。先看直传坐标（必须带坐标系标签），再看知识库景点名。
+   *
+   * <p>两种都给时以坐标为准备，因为调用方明确给了位置就比名称匹配更可信。
+   * 坐标为 null 表示这一端解析不出来，由调用方归入 unknownFields。
+   */
+  private static Point point(Map<String, Object> input, String nameKey, String latKey,
+      String lngKey, AttractionStore store) {
+    String name = text(input.get(nameKey));
+    Double lat = numeric(input.get(latKey));
+    Double lon = numeric(input.get(lngKey));
+    if (lat != null && lon != null) {
+      String system = text(input.get("coordSystem"));
+      if (system == null || system.isBlank()) {
+        return null;
+      }
+      CoordinateTransforms.LatLon gcj = CoordinateTransforms.toGcj02(lat, lon, system);
+      if (gcj == null) {
+        return null;
+      }
+      return new Point(gcj.lon() + "," + gcj.lat(), name == null ? null : name.strip());
+    }
+    if (name == null || name.isBlank()) {
+      return null;
+    }
+    // 同名景点可能分布在多个城市，取第一个带坐标且坐标系可识别的条目；
+    // 没有坐标标签的条目直接跳过，不做「大概是 GCJ-02」的猜测。
+    for (Attraction a : store.findByName(name.strip())) {
+      if (a.lat() == null || a.lon() == null) {
+        continue;
+      }
+      CoordinateTransforms.LatLon gcj =
+          CoordinateTransforms.toGcj02(a.lat(), a.lon(), a.coordinateSystem());
+      if (gcj == null) {
+        continue;
+      }
+      return new Point(gcj.lon() + "," + gcj.lat(), a.name() + "（" + a.city() + "）");
+    }
+    return null;
+  }
+
+  /** 出行方式只认三个英文枚举与它们的中文名，其余一律拒绝，不默认成步行。 */
+  private static RouteMode routeMode(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    return switch (raw.strip().toLowerCase(java.util.Locale.ROOT)) {
+      case "walking", "walk", "步行" -> RouteMode.WALKING;
+      case "driving", "drive", "驾车", "开车" -> RouteMode.DRIVING;
+      case "transit", "bus", "公交", "地铁" -> RouteMode.TRANSIT;
+      default -> null;
+    };
+  }
+
+  /** 数字参数既可能是 JSON number 也可能是字符串，两种都收。 */
+  private static Double numeric(Object value) {
+    if (value instanceof Number n) {
+      return n.doubleValue();
+    }
+    if (value instanceof String s && !s.isBlank()) {
+      try {
+        return Double.parseDouble(s.strip());
+      } catch (NumberFormatException e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   // ---------------------------------------------------------------- 灵感

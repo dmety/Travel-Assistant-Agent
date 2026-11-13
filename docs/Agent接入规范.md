@@ -552,7 +552,7 @@ public record AdmissionReport(
 | 生产 | `https://agent.example.com/v1/invoke` | M-08：仅 https、域名在 allowlist、无 IP 字面量；由 nginx 或 Caddy 终止 TLS 后转发到本机 Python 进程 |
 | 本地自检 / G1 探针 | `http://127.0.0.1:8090/...`，桩 | 仅在闸门探针里临时放行，不写进正式配置；默认策略拒绝环回与内网段 |
 
-Python 服务监听 `127.0.0.1` 没问题，但注册到 `agent_providers.json` 的地址必须是公网 https 域名。直接把 `http://127.0.0.1:8090` 填进配置会在 G0 被 `E_META_ENDPOINT` 拒绝。凭据只从环境变量读，Python 侧校验 `Authorization`，不回显、不写日志。
+Python 服务监听 `127.0.0.1` 没问题，但注册到 `agent_providers.json` 的地址必须是公网 https 域名。默认直接把 `http://127.0.0.1:8090` 填进配置会在 G0 被 `E_META_ENDPOINT` 拒绝。本地开发可按下方“本地模拟助手”配置精确授权一个地址，仍须走 G1 至 G4。凭据只从环境变量读，Python 侧校验 `Authorization`，不回显、不写日志。
 
 ### A.2 零依赖参考实现
 
@@ -710,3 +710,36 @@ curl -s -X POST http://127.0.0.1:8090/v1/invoke \
 | 配置里写 `token` 字面值、`enabled: true` | M-09 / M-11 | 改 `authRef`；`enabled=false` 等 G4 |
 
 附录 A 的 Python 桩已在本地用标准库实跑，通过 11 项契约自检，覆盖 GC-01、GC-02、T-06、T-07、M-12 与鉴权。它演示的是接入形态。Java 侧的 `HttpAgentAdapter`、`AgentRegistry`、G0 至 G4 已于 2026-11-09 落地，配置走完全部闸门后即可接入外部 Provider。附录 A.4 第 4 步里的 G4 不能由接入方自己完成，需管理员确认并把 `enabled` 置 `true`。
+
+
+## 本地模拟助手（任务 #10）
+
+接入底座保留生产默认拒绝策略。本地联调通过进程配置 `TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT` 精确指定一个 `http://127.0.0.1:端口/路径`（端口 1024—65535），只有完全相同的地址可通过 G0。其他端口、路径、localhost、内网 IP、userinfo、query、fragment 仍被拒绝。不配置此项时，原有 HTTPS 与域名白名单规则不变。Python G0 与 Java 运行时使用同一环境变量。
+
+`tools/agent/local_mock_server.py` 是长期保留的运行工具，用于重复验收配置加载、准入与 HTTP 调用，不生成真实推荐、不联网查询、不保存用户输入。入口如下（在独立 PowerShell 7 窗口启动，Ctrl+C 停止）：
+
+```powershell
+python -B tools/agent/local_mock_server.py --port 8090
+```
+
+服务端启动窗口先配置：
+
+```powershell
+$env:TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT='http://127.0.0.1:8090/v1/invoke'
+java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
+```
+
+将 `data/agent_providers.example.json` 复制为本地运行态 `data/agent_providers.json`，只修改配置：provider 的 `id` 改为 `local.mock`，`endpoint` 改为上述地址，route 的 `primary` 改为 `local.mock`。保留 `fallback: ["builtin.rules"]` 与其他必填字段。无需新增 Java Provider，也不修改契约白名单。
+
+登录应用后依次调用：
+
+1. `POST /api/agent/providers/reload`，确认状态为 `PROBING`。
+2. `POST /api/agent/providers/local.mock/probe`，G1/G2 通过后为 `SHADOW`。
+3. `POST /api/agent/providers/local.mock/shadow`，使用默认 20 次样本。
+4. 将运行态配置的 `enabled` 改为 `true`，调用 `POST /api/agent/providers/local.mock/activate`，确认 `ACTIVE`。
+5. `POST /api/agent/invoke`，请求 `{"intent":"FOOD_RECOMMEND","context":{"city":"杭州"}}`，确认 `providerId=local.mock` 且响应明确标注本地模拟。
+6. 停止模拟助手，再调用同一接口，应回退为内置规则；事实不足时可以返回 `REFUSED`，不能伪造成功建议。
+
+可用 `--provider-id` 指定模拟服务 ID（需与配置一致），用 `--fail` 模拟 HTTP 503。默认只监听 127.0.0.1。接入结束移除本地运行配置及环境变量。服务重启后仍需重新准入，未引入状态持久化或热加载。
+
+自动验收入口仍为 `mvn verify` 和 `python -B tools/acceptance.py`。后者在隔离目录与随机端口启动真实应用和本地模拟进程，通过登录后的 REST 端点验证 G1/G2、G3、G4、实际调用、外部不可用回退及错误配置拒绝，不用注入 Java 测试 Provider 替代整条链路。Windows 可设置 `TRAVEL_TEST_TEMP_ROOT` 为桌面 `Codex临时文件` 根目录；本次运行的子目录及 Java 临时文件随验收结束自动清理。

@@ -23,6 +23,8 @@ spring:
     # 优雅停机每阶段最长等待，超时强制退出；与 server.shutdown=graceful 配套。
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
 travel:
+  # 仅供本地模拟助手联调；精确授权一个 http://127.0.0.1:端口/路径，默认关闭。
+  agent-local-mock-endpoint: ${TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT:}
   data-directory: ${TRAVEL_DATA_DIR:./data}
   # 景点精简索引库（Python 离线构建产物，Java 只读加载，不覆盖）
   attraction-kb-path: ${ATTRACTION_KB_PATH:${travel.data-directory}/attractions_index.json}
@@ -61,4 +63,9 @@ travel:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
-    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:20000}
+    # 读超时。原值 20000 与 ChatAgent 自给的 45 秒总预算互相冲突：模型一旦想得久一点，
+    # 单个请求就在 20 秒被取消，整条链路降级成规则兜底，用户看到的是「信息有限」。
+    # 提到 60 秒，让单次调用走完再判失败；真要限时由 ChatAgent 的总预算兜。
+    timeout-ms: ${DEEPSEEK_TIMEOUT_MS:60000}
+    # 调用预算（max-tool-calls / max-model-calls）随 Agent Provider SPI 落地时再引入：
+    # 此前该键在源码里零引用，留着只会让人误以为限流已生效。

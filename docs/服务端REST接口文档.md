@@ -2,7 +2,8 @@
 
 > 适用版本：`wei`（V1 → V3 全部功能）　|　技术栈：Spring Boot 3.5 + Spring Security 6 + Java 21
 >
-> 本文档覆盖**账号与认证**、**行程管理**、**协作与外部查询**、**团队决策与总结**四套 REST 接口，
+> 本文档覆盖**账号与认证**、**行程管理**、**协作与外部查询**、**团队决策与总结**、
+> **Agent 注册表与投票**五套 REST 接口，
 > 包含请求/响应示例、数据模型、权限模型与乐观锁机制。
 
 ---
@@ -23,7 +24,7 @@
 
 ### 1.3 公开的接口（无需登录）
 
-与 `SecurityConfiguration#permitAll()` 保持一致（按 matcher 计 14 条，含通配）：
+与 `SecurityConfiguration#permitAll()` 保持一致（按 matcher 计 20 条，含通配）：
 
 | 路径 | 说明 |
 |---|---|
@@ -32,16 +33,21 @@
 | `POST /api/login` | 表单登录 |
 | `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
+| `GET /api/location/status` | 高德是否配置（只回布尔与降级原因，无用户数据） |
+| `GET /api/agent/status` | 模型是否配置与本进程用量（见 §3.16.4） |
+| `GET /api/agent/capabilities` | 能力协商：Provider 的 id / 状态 / 能力标签 / 最近拒绝原因码，不含 endpoint、authRef 与凭据（见 §3.22） |
 | `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
 | `GET /chat.html`、`GET /ticket-assistant.html` | 旧页面地址，302 到 `/planner.html`，保留以兼容旧书签 |
 | `GET /planner.html`、`GET /planner` | 行程工作台（规划 / 票务 / 我的行程三个视图，靠 hash 切换；未登录由页内脚本跳回 `/?next=/planner.html`） |
 | `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
+| `GET /ticket-assistant.html` | 购票助手页；页面本身公开，其数据接口 `/api/agent/tickets/advice` 仍需登录 |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
 | `GET /favicon.ico` | 站点图标，避免未登录时打日志噪音 |
 
 其余 `/api/**` 均要求登录，未登录直接返回 **401**（不跳转登录页，便于 JSON 客户端处理）。
-`/api/location/**`（高德）和 `/api/agent/**`（规划）都需要登录：前者按调用量计费，后者消耗模型配额。
+`/api/location/**`（高德）和 `/api/agent/**`（规划）除上表三个状态接口外都需要登录：
+前者按调用量计费，后者消耗模型配额。
 
 > 已修正的历史项：`SecurityConfiguration` 曾放行 `/register.html`，但 `static/` 下并无该文件（注册在页面内切换标签完成）。该放行已于 2026-11-05 随前端整合一并删除。
 
@@ -653,7 +659,7 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 | `/api/agent/plan` | POST | 需登录 | 生成规划草案（补问 / 逐日草案 / 检查），**不落库** |
 | `/api/agent/plan/materialize` | POST | 需登录 | 用户确认后生成行程载荷，**仍不落库** |
 | `/api/agent/invoke` | POST | 需登录 | L1 编排层入口，按 intent 走注册表并做契约校验，见 §3.16.1 |
-| `/api/agent/status` | GET | 公开 | 模型是否配置；规则能力始终列出。只返回布尔与能力描述，匿名可读 |
+| `/api/agent/status` | GET | 无需登录 | 模型是否配置、规则能力清单、本进程模型用量，见 §3.16.4 |
 
 **两条草案接口都只读。** 需求要求「用户确认后才将建议保存到正式方案」，真正落库仍走
 §3.3 `POST /api/itineraries` 与 §3.8 `PUT /api/itineraries/{id}/daily?version=<创建版本号>`，
@@ -841,6 +847,38 @@ POST /api/agent/vote
 
 响应不含 endpoint、authRef 或任何凭据。
 
+#### 3.16.4 能力状态与模型用量（`GET /api/agent/status`）
+
+**无需登录**（`SecurityConfiguration` 的 `permitAll` 白名单内，只回布尔、统计与能力描述）。
+规则能力与模型能力分开列，未配置密钥时不把「补问 / 逐日草案 / 检查 / 确认载荷」
+说成没有，也不把降级路径说成具备「文字建议」能力。
+
+```json
+GET /api/agent/status
+{
+  "modelConfigured": true,
+  "capabilities": ["景点检索", "天气", "购票辅助", "结构化补问", "逐日草案",
+                   "草案日期与预算检查", "确认载荷", "综合决策分析", "文字建议"],
+  "note": "模型已配置；文字建议仅为措辞润色，建议仍需用户确认后才写入正式方案",
+  "usage": {
+    "model": "deepseek-ai/DeepSeek-V3.2",
+    "endpoint": "https://api.siliconflow.cn/v1",
+    "calls": 12,
+    "promptTokens": 8421,
+    "completionTokens": 2103,
+    "cachedPromptTokens": 1024,
+    "totalTokens": 10524,
+    "lastCall": "POST /api/agent/plan",
+    "since": "2026-11-11T09:12:03Z",
+    "balanceAvailable": false
+  }
+}
+```
+
+`usage` 是**本进程**的累计值，重启归零；它给的是用量不是余量——硅基流动的余额接口已下线，
+程序侧查不到账户余额，故 `balanceAvailable` 恒为 `false`。`usage` 字段只在模型客户端存在时出现，
+未配置密钥的部署不返回该键。
+
 ### 3.17 候选与投票（V3 §1）
 
 成员为「要不要去某个地方」提候选并投票。**候选与选票都不进行程聚合**，因此这些操作
@@ -1008,6 +1046,43 @@ GET /api/itineraries/{id}/export
 
 导出**纯文本**而不是 PDF/Word：没有字体与分页依赖，任何编辑器都能打开，也便于贴进群聊。
 服务端不写用户磁盘，落点由调用方决定。
+
+### 3.22 Agent 注册表、准入与投票
+
+三组接口分别负责「有哪些 Agent 可用」「某个 Agent 能不能启用」「多方案怎么投票」。
+契约细节（`AgentProvider` 字段、T-01～T-08 校验规则、G0～G4 状态机）以
+[Agent 接入规范](Agent接入规范.md) 与 [Agent 运行时架构设计](Agent运行时架构设计.md) 为准，
+本节只给端点与鉴权。
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET` | `/api/agent/capabilities` | 匿名 | 契约版本、注册表版本，以及每个 Provider 的 id / 版本 / 能力标签 / `enabled` / `health` / `status` / `lastRejectionCode`；**不含** endpoint、authRef 与凭据 |
+| `GET` | `/api/agent/providers` | 需登录 | 在 capabilities 基础上追加 `routes`：每个 intent 的 `primary` 与 `fallback` |
+| `GET` | `/api/agent/providers/{id}/admission` | 需登录 | 最近一次 `AdmissionReport`；未注册的 id 返回 **404** |
+| `POST` | `/api/agent/providers/reload` | 需登录 | 重载 `agent_providers.json`，回 `reloaded` / `registryVersion` / `providerCount`；重载后立即生效 |
+| `POST` | `/api/agent/providers/{id}/probe` | 需登录 | G1 契约探针 + G2 安全探针，按配置发真实请求，不注入桩 |
+| `POST` | `/api/agent/providers/{id}/shadow?samples=N` | 需登录 | G3 影子比对，`samples` 缺省取规范源的 20 |
+| `POST` | `/api/agent/providers/{id}/activate` | 需登录 | G4 人工启用，需 G3 通过且配置里 `enabled=true` |
+| `POST` | `/api/agent/vote` | 需登录 | 两轮评分投票入口，见 §3.22.1 |
+
+后三个准入 POST（`probe` / `shadow` / `activate`）的响应形状统一为 `report`（`AdmissionReport`）
++ `status`（该 Provider 当前状态）+ `registryVersion` + `shadow`（影子统计）；`reload` 只回
+`reloaded` / `registryVersion` / `registryNote` / `providerCount`。状态机未走到对应关卡时不会
+「跳过前面直接启用」：G1 未过则 G2 不执行，G3 未过时 `activate` 只回拒绝原因码。
+
+#### 3.22.1 两轮投票（`POST /api/agent/vote`）
+
+```json
+POST /api/agent/vote
+{ "intent": "PLAN_DRAFT", "candidates": [ { "id": "c1", "summary": "省钱路线" } ] }
+```
+
+匿名访问返回 **401**（`/api/agent/**` 由 `anyRequest().authenticated()` 拦截，`capabilities`
+是白名单里唯一的例外），缺 `intent` 返回 **400**。响应含各评委的评分、两轮计票结果与
+`draft`；`draft` 只归位本轮事实里真实出现的名字（逐日、餐饮、天气、官方购票入口），
+缺哪类写进 `unknowns`，不补常识、不编景点、不生成链接。信封脱敏，不含 endpoint、authRef 与凭据。
+
+投票只出比较结果，不改动行程、不写库：要落库仍走 §3.3 与 §3.8 的人工确认路径。
 
 ---
 

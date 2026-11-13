@@ -33,7 +33,8 @@ class RestControllerBranchTest {
     PlanningService planning = mock(PlanningService.class);
     when(planning.modelConfigured()).thenReturn(true);
     AgentController controller = new AgentController(planning,
-        mock(DecisionService.class), mock(PlanMaterializer.class));
+        mock(DecisionService.class), mock(PlanMaterializer.class),
+        mock(com.travelassistant.server.infrastructure.ai.DeepSeekClient.class));
 
     Map<String, Object> body = controller.status();
     assertThat(body.get("modelConfigured")).isEqualTo(true);
@@ -48,7 +49,8 @@ class RestControllerBranchTest {
     PlanningService planning = mock(PlanningService.class);
     when(planning.modelConfigured()).thenReturn(false);
     AgentController controller = new AgentController(planning,
-        mock(DecisionService.class), mock(PlanMaterializer.class));
+        mock(DecisionService.class), mock(PlanMaterializer.class),
+        mock(com.travelassistant.server.infrastructure.ai.DeepSeekClient.class));
 
     Map<String, Object> body = controller.status();
     assertThat(body.get("modelConfigured")).isEqualTo(false);

@@ -28,7 +28,7 @@
     "with_level": 1321,
     "with_rating": 4492,
     "with_open_time": 4353,
-    "with_ticket": 874,
+    "with_ticket": 873,
     "with_image": 4630,
     "amap_stats": {
       "fetched": 8053,
@@ -38,13 +38,13 @@
     },
     "enriched_at": "2026-11-07T07:50:44Z",
     "ticket_status_counts": {
-      "verified": 145,
-      "unverified": 729,
-      "pending": 6883
+      "verified": 192,
+      "unverified": 681,
+      "pending": 6884
     },
     "open_time_status_counts": {
-      "verified": 104,
-      "unverified": 4249,
+      "verified": 150,
+      "unverified": 4203,
       "pending": 3404
     }
   },

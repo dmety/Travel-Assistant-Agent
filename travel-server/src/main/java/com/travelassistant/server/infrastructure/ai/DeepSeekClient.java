@@ -3,10 +3,12 @@ package com.travelassistant.server.infrastructure.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.travelassistant.server.application.agent.AgentUnavailableException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,17 +44,16 @@ public class DeepSeekClient {
   private final String model;
 
   /**
-   * 进程级用量累计。此前响应里的 {@code usage} 被整个丢掉，只能按代码常量反推消耗，
-   * 改完提示也不知道到底省了多少。这里只累加、不上报外部，用于日志与本地核对。
+   * 进程内累计用量。每次真实请求都会累加，供 {@code /api/agent/status} 回答
+   * 「这一轮到底调了多少」。进程重启即归零——不落盘，避免把用量数据当成业务数据。
    */
-  private final java.util.concurrent.atomic.AtomicLong promptTokens =
-      new java.util.concurrent.atomic.AtomicLong();
-  private final java.util.concurrent.atomic.AtomicLong completionTokens =
-      new java.util.concurrent.atomic.AtomicLong();
-  private final java.util.concurrent.atomic.AtomicLong cachedTokens =
-      new java.util.concurrent.atomic.AtomicLong();
-  private final java.util.concurrent.atomic.AtomicLong runs =
-      new java.util.concurrent.atomic.AtomicLong();
+  private final AtomicLong callCount = new AtomicLong();
+  private final AtomicLong promptTokens = new AtomicLong();
+  private final AtomicLong completionTokens = new AtomicLong();
+  private final AtomicLong cachedTokens = new AtomicLong();
+  /** 最近一次调用的摘要，形如「ChatAgent：输入 1167 / 输出 210 tokens」。 */
+  private volatile String lastCall = null;
+  private final Instant startedAt = Instant.now();
 
   @org.springframework.beans.factory.annotation.Autowired
   public DeepSeekClient(RestTemplateBuilder builder,
@@ -194,31 +195,64 @@ public class DeepSeekClient {
   }
 
   /**
-   * 记一次用量。DeepSeek 在响应里回 {@code usage.prompt_tokens / completion_tokens /
-   * prompt_cache_hit_tokens}，缓存命中部分按约五十分之一的单价计费，所以缓存命中数
-   * 也要单独记——只看 prompt_tokens 会高估成本。
+   * 记一次调用的 token 用量。
+   *
+   * <p>放在 {@link #post} 里而不是各个调用方：它是 {@code chat} 与 {@code complete}
+   * 两条路径的唯一出口，写在这里不会漏计。调用方是谁不用业务代码传参，
+   * 用栈回溯取最近的业务类名即可，免得为统计去改八个调用点的签名。
    */
   private void recordUsage(JsonNode root) {
     JsonNode usage = root.path("usage");
-    if (usage.isMissingNode()) {
-      return;
-    }
     long prompt = usage.path("prompt_tokens").asLong(0);
     long completion = usage.path("completion_tokens").asLong(0);
-    long cached = usage.path("prompt_cache_hit_tokens").asLong(0);
+    long cached = usage.path("prompt_tokens_details").path("cached_tokens").asLong(usage.path("prompt_cache_hit_tokens").asLong(0));
+    long count = callCount.incrementAndGet();
     promptTokens.addAndGet(prompt);
     completionTokens.addAndGet(completion);
     cachedTokens.addAndGet(cached);
-    runs.incrementAndGet();
-    log.info("模型用量 prompt={}完成={}缓存命中={}累计(prompt={} completion={} cacheHit={} runs={})",
-        prompt, completion, cached, promptTokens.get(), completionTokens.get(),
-        cachedTokens.get(), runs.get());
+    String caller = callerName();
+    lastCall = caller + "：输入 " + prompt + " / 输出 " + completion + " tokens";
+    log.info("模型调用 #{} {} → 输入 {} 输出 {}（缓存命中 {}），本进程累计 输入 {}/输出 {}",
+        count, caller, prompt, completion, cached, promptTokens.get(), completionTokens.get());
   }
 
-  /** 累计用量快照，供自测与本地核对；不含任何请求内容。 */
-  public String usageSnapshot() {
-    return "runs=" + runs.get() + ", prompt=" + promptTokens.get()
-        + ", completion=" + completionTokens.get() + ", cacheHit=" + cachedTokens.get();
+  /** 从调用栈取最近的业务类名，用来区分这次是谁在问模型。 */
+  private static String callerName() {
+    for (StackTraceElement element : new Throwable().getStackTrace()) {
+      String name = element.getClassName();
+      // 跳过本类、JDK 与 Spring 代理层，剩下的第一个就是业务调用方
+      if (name.equals(DeepSeekClient.class.getName()) || name.startsWith("java.")
+          || name.startsWith("jdk.") || name.startsWith("org.springframework.")) {
+        continue;
+      }
+      int dot = name.lastIndexOf('.');
+      String simple = dot < 0 ? name : name.substring(dot + 1);
+      // CGLIB 代理类形如 XxxService$$SpringCGLIB$$0，截掉后缀
+      int proxy = simple.indexOf("$$");
+      return proxy < 0 ? simple : simple.substring(0, proxy);
+    }
+    return "unknown";
+  }
+
+  /**
+   * 本进程的累计用量快照。
+   *
+   * <p>只有用量，没有余量：硅基流动的余额接口 {@code /v1/user/info} 已下线（返回 410），
+   * 其余候选路径均为 404，程序侧拿不到账户余额，只能到控制台看。
+   */
+  public Map<String, Object> usageSnapshot() {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("model", model);
+    body.put("endpoint", baseUrl);
+    body.put("calls", callCount.get());
+    body.put("promptTokens", promptTokens.get());
+    body.put("completionTokens", completionTokens.get());
+    body.put("cachedPromptTokens", cachedTokens.get());
+    body.put("totalTokens", promptTokens.get() + completionTokens.get());
+    body.put("lastCall", lastCall);
+    body.put("since", startedAt.toString());
+    body.put("balanceAvailable", false);
+    return body;
   }
 
   /** 把常见 HTTP 状态翻成可操作的中文，密钥原文不进日志和异常。 */

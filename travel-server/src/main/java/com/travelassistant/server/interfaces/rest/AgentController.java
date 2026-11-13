@@ -36,12 +36,15 @@ public class AgentController {
   private final PlanningService service;
   private final DecisionService decisions;
   private final PlanMaterializer materializer;
+  private final com.travelassistant.server.infrastructure.ai.DeepSeekClient model;
 
   public AgentController(PlanningService service, DecisionService decisions,
-      PlanMaterializer materializer) {
+      PlanMaterializer materializer,
+      com.travelassistant.server.infrastructure.ai.DeepSeekClient model) {
     this.service = service;
     this.decisions = decisions;
     this.materializer = materializer;
+    this.model = model;
   }
 
   /** 生成规划草案（尚未有行程时使用）。 */
@@ -96,6 +99,14 @@ public class AgentController {
     body.put("note", configured
         ? "模型已配置；文字建议仅为措辞润色，建议仍需用户确认后才写入正式方案"
         : "未配置 DEEPSEEK_API_KEY：规划接口只返回确定性检索结果与规则判断，不生成文字建议");
+    // 本进程的模型调用用量：次数、输入输出 token、最近一次是谁调的。
+    // 只给用量不给余量——硅基流动的余额接口已下线，程序侧查不到账户余额。
+    if (model != null) {
+      Map<String, Object> usage = model.usageSnapshot();
+      if (usage != null) {
+        body.put("usage", usage);
+      }
+    }
     return body;
   }
 }
