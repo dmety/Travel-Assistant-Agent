@@ -181,7 +181,35 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   padding:6px 11px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
 .map-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
-.spot-card{position:absolute;z-index:6;right:24px;top:54px;
+/* 状态胶囊：待规划 / 待你定，计数实时，点击开抽屉（样式同设计稿 desktop.html .fabs/.fab） */
+.fabs{position:absolute;z-index:5;right:24px;bottom:176px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.fab{min-height:34px;padding:0 14px;border-radius:var(--r-pill);background:var(--surface);
+  border:1px solid var(--line-strong);box-shadow:var(--shadow-2);font-size:var(--fs-xs);
+  color:var(--text-2);cursor:pointer;transition:border-color .15s ease,color .15s ease,filter .15s ease}
+.fab b{margin-left:3px;font-weight:600}
+.fab:hover{border-color:var(--pine);color:var(--pine-text)}
+.fab.clay{background:var(--clay);border-color:var(--clay);color:#fff}
+.fab.clay:hover{filter:brightness(.93);border-color:var(--clay);color:#fff}
+.drawer-mask{position:fixed;inset:0;z-index:65;background:rgba(32,36,30,.28);display:none}
+.drawer-mask.open{display:block}
+.drawer{position:fixed;z-index:66;top:0;right:0;bottom:0;width:min(380px,92vw);
+  background:var(--surface-warm);border-left:1px solid var(--line);box-shadow:var(--shadow-3);
+  display:flex;flex-direction:column;transform:translateX(105%);visibility:hidden;
+  transition:transform .28s cubic-bezier(.16,1,.3,1),visibility .28s}
+.drawer.open{transform:none;visibility:visible}
+.drawer-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.drawer-head h2{font-size:var(--fs-md)}
+.drawer-head .x{margin-left:auto;width:26px;height:26px;display:grid;place-items:center;
+  border-radius:50%;color:var(--text-3);font-size:18px;line-height:1;cursor:pointer}
+.drawer-head .x:hover{background:var(--paper-2);color:var(--err)}
+.drawer-body{flex:1;min-height:0;overflow-y:auto;padding:6px 18px 18px;scrollbar-width:thin}
+.drawer-body::-webkit-scrollbar{width:6px}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
+.drawer-row{padding:12px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.drawer-row:last-child{border-bottom:0}
+.drawer-row .t{font-size:var(--fs-sm);font-weight:600;color:var(--ink)}
+.drawer-row .m{font-size:var(--fs-xs);color:var(--text-3);line-height:1.6}
+.spot-card{position:absolute;z-index:6;right:140px;top:54px;
   width:min(420px,calc(100vw - 48px));padding:12px 14px;background:var(--surface-warm);
   border:1px solid var(--line-strong);border-radius:var(--r-card);box-shadow:var(--shadow-3);
   display:none}
@@ -306,7 +334,8 @@ html[data-theme="dark"] .msg.ai{
 .hint{padding:0 14px 8px;font-size:11px;color:var(--text-3);flex:0 0 auto}
 
 /* ---------- 底部横向日程卡 ---------- */
-.daystrip{position:absolute;z-index:5;left:440px;right:24px;bottom:22px;
+/* 右侧留 140px 竖栏给状态胶囊与看板娘，日程条/点位卡不伸进去，避免互相遮盖 */
+.daystrip{position:absolute;z-index:5;left:440px;right:140px;bottom:22px;
   display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
 .daystrip:empty{display:none}
 .daystrip::-webkit-scrollbar{height:6px}
@@ -1158,6 +1187,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   .map-note{right:12px;top:10px}
   .map-pill{top:10px}
   .map-legend{left:12px;bottom:10px}
+  .fabs{right:12px;bottom:10px}
   .spot-card{left:50%;right:auto;top:auto;transform:translateX(-50%);bottom:52px}
   .ai-panel{position:relative;inset:auto;flex:1;min-height:0;width:auto;
     margin-top:-14px;border-radius:var(--r-lg) var(--r-lg) 0 0;
@@ -1525,6 +1555,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <span><i style="background:var(--pine)"></i>已排点位</span>
         <span><i style="background:var(--clay)"></i>按天路线</span>
       </div>
+      <div class="fabs">
+        <button class="fab" type="button" id="fabPool" title="候选里还没排进行程的地点">待规划 <b id="fabPoolN">0</b></button>
+        <button class="fab clay" type="button" id="fabCand" title="未回答的补问与平票，等你们定">待你定 <b id="fabCandN">0</b></button>
+      </div>
       <div class="spot-card" id="spotCard">
         <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
         <h3 id="spotName">点位</h3>
@@ -1743,6 +1777,12 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   </section>
 </main>
 
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-head"><h2 id="drawerTitle">待规划地点</h2><button class="x" type="button" id="drawerClose" aria-label="关闭抽屉">×</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
 <div class="mask" id="mask"></div>
 <div class="dialog" id="saveDialog" role="dialog" aria-modal="true" aria-labelledby="saveTitle">
   <h2 id="saveTitle">确认保存行程</h2>
@@ -1953,6 +1993,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     renderMap(view);
     renderDaystrip(view);
     flashMap();
+    updateFabs();
     $('draftState').textContent = '草案未保存';
     if (!view || !(view.dailySchedules || []).length) return;
     var acts = el('div', 'actions');
@@ -2437,6 +2478,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         box.appendChild(el('div', 'trip-empty', '还没有候选。添加一个地点，让大家表态。'));
       }
       b.candidates.forEach(function (t) { box.appendChild(clCandCard(t, b)); });
+      updateFabs();
     } catch (e) {
       box.innerHTML = '';
       box.appendChild(el('div', 'trip-empty', '读取失败：' + esc(e.message)));
@@ -2904,29 +2946,39 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   });
 
   /* ---------- 百度地图（可选）：无 AK 时全程走 SVG 示意底图 ---------- */
+  /* 编号水滴标记：与设计稿 tokens.css .pin 同形（纸白底、松绿描边、编号居中），
+     替换百度默认红水滴；不挂常驻名字标签（多点时互相重叠），名字看点位卡与日程条。 */
+  var bMarkers = [];
+  function pinIcon(n, active, dark) {
+    var fill = active ? (dark ? '#4E8C72' : '#1E4A3E') : (dark ? '#1F231D' : '#FCFAF5');
+    var line = dark ? '#4E8C72' : '#1E4A3E';
+    var txt = active ? '#FCFAF5' : (dark ? '#9ACDB4' : '#1E4A3E');
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">' +
+      '<path d="M15 37C15 37 3 24.6 3 14.5A12 12 0 1 1 27 14.5C27 24.6 15 37 15 37Z" fill="' + fill + '" stroke="' + line + '" stroke-width="2"/>' +
+      '<text x="15" y="19" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="700" fill="' + txt + '">' + n + '</text></svg>';
+    return new window.BMapGL.Icon('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
+      new window.BMapGL.Size(30, 38),
+      { anchor: new window.BMapGL.Size(15, 36), imageSize: new window.BMapGL.Size(30, 38) });
+  }
+  function setActiveMarker(idx) {
+    var dark = mapWantsDark();
+    bMarkers.forEach(function (m, k) { if (m) m.setIcon(pinIcon(k + 1, k === idx, dark)); });
+  }
   function drawBMapPoints() {
     if (!window.__bmap) return;
     var map = window.__bmap;
     map.clearOverlays();
+    bMarkers = [];
     var dark = mapWantsDark();
     var pts = [];
     points.forEach(function (p, i) {
       if (p.lng == null || p.lat == null) return;
       var point = new window.BMapGL.Point(p.lng, p.lat);
       pts.push(point);
-      var open = function () { showSpot(p, document.querySelectorAll('.pin')[i]); };
-      var marker = new window.BMapGL.Marker(point);
-      marker.addEventListener('click', open);
+      var marker = new window.BMapGL.Marker(point, { icon: pinIcon(i + 1, false, dark) });
+      marker.addEventListener('click', function () { setActiveMarker(i); showSpot(p, null); });
       map.addOverlay(marker);
-      var label = new window.BMapGL.Label(String(i + 1) + ' ' + p.name,
-        { position: point, offset: new window.BMapGL.Size(14, -12) });
-      label.setStyle({ color: dark ? '#9ACDB4' : '#1E4A3E',
-        background: dark ? '#1F231D' : '#F7F4EE',
-        border: '1px solid ' + (dark ? '#2A3E35' : '#C6D9CD'),
-        borderRadius: '8px', padding: '2px 8px', fontSize: '12px',
-        boxShadow: '0 2px 8px rgba(46,42,32,.12)' });
-      label.addEventListener('click', open);
-      map.addOverlay(label);
+      bMarkers[i] = marker;
     });
     if (pts.length > 1) map.addOverlay(new window.BMapGL.Polyline(pts,
       { strokeColor: '#B4542A', strokeWeight: 3, strokeOpacity: .8 }));
@@ -3047,6 +3099,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     try {
       window.__bmap.setMapStyleV2({ styleJson: mapWantsDark() ? MAP_STYLE_DARK : MAP_STYLE_LIGHT });
     } catch (e) { /* 个性化样式服务不可用时保留默认底图，不影响点位与路线 */ }
+    setActiveMarker(-1);
   }
   window.__initBaiduMap = function () {
     if (!window.BMapGL) return;
@@ -3091,9 +3144,96 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     $('mapPillMeta').textContent = '· 尚未生成草案';
     $('mapPillTitle').textContent = '行程地图';
     $('spotCard').classList.remove('open');
+    updateFabs();
     toast('已清除当前需求，草案与地图已重置');
   });
   $('spotClose').addEventListener('click', function () { $('spotCard').classList.remove('open'); });
+
+  /* ---------- 状态胶囊：待规划 / 待你定（真实计数 + 抽屉） ---------- */
+  function poolList() {
+    if (!draftView) return [];
+    var used = {};
+    (draftView.dailySchedules || []).forEach(function (d) {
+      (d.items || []).forEach(function (i) { used[i.name] = 1; });
+    });
+    return (draftView.candidates || []).filter(function (c) { return !used[c.name]; });
+  }
+  function pendingList() {
+    var out = [];
+    ((draftView && draftView.questions) || []).forEach(function (q) {
+      out.push({ kind: 'q', title: q.question, meta: q.hint || '' });
+    });
+    if (clBoard && clBoard.tie && (clBoard.candidates || []).length) {
+      out.push({ kind: 'vote', title: '候选投票平票，等你们定',
+        meta: clBoard.candidates.map(function (t) { return t.candidate.name; }).join(' / ') });
+    }
+    return out;
+  }
+  function updateFabs() {
+    $('fabPoolN').textContent = poolList().length;
+    $('fabCandN').textContent = pendingList().length;
+  }
+  function closeDrawer() {
+    $('drawerMask').classList.remove('open');
+    $('drawer').classList.remove('open');
+  }
+  function openDrawer(kind) {
+    $('drawerTitle').textContent = kind === 'pool' ? '待规划地点' : '待你定';
+    var body = $('drawerBody'); body.innerHTML = '';
+    if (kind === 'pool') {
+      var list = poolList();
+      if (!list.length) {
+        body.appendChild(el('div', 'trip-empty', draftView
+          ? '候选都已排入行程，没有待规划地点。'
+          : '还没有草案。先在 AI 规划里说一句需求，候选会出现在这里。'));
+      }
+      list.forEach(function (c) {
+        var row = el('div', 'drawer-row');
+        row.appendChild(el('div', 't', esc(c.name)));
+        var bits = [];
+        if (c.city) bits.push(c.city);
+        if (c.level) bits.push(c.level);
+        if (c.rating) bits.push('评分 ' + c.rating);
+        bits.push(c.ticket ? '票价 ' + c.ticket : '票价未核验');
+        row.appendChild(el('div', 'm', esc(bits.join(' · '))));
+        var b = el('button', 'btn btn-outline', '让 AI 排入');
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          closeDrawer(); showView('plan');
+          sendText('把「' + c.name + '」排进当前行程草案，其余安排尽量不变。');
+        });
+        row.appendChild(b);
+        body.appendChild(row);
+      });
+    } else {
+      var ps = pendingList();
+      if (!ps.length) {
+        body.appendChild(el('div', 'trip-empty', '没有待你定的事项：补问都答了，投票也没平票。'));
+      }
+      ps.forEach(function (p) {
+        var row = el('div', 'drawer-row');
+        row.appendChild(el('div', 't', esc(p.title)));
+        if (p.meta) row.appendChild(el('div', 'm', esc(p.meta)));
+        var b = el('button', 'btn btn-outline', p.kind === 'q' ? '去回答' : '去投票');
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          closeDrawer();
+          if (p.kind === 'q') { showView('plan'); $('prompt').focus(); toast('在下方输入框直接回答即可'); }
+          else { showView('collab'); clSwitchPane('votes'); }
+        });
+        row.appendChild(b);
+        body.appendChild(row);
+      });
+    }
+    $('drawerMask').classList.add('open');
+    $('drawer').classList.add('open');
+  }
+  $('fabPool').addEventListener('click', function () { openDrawer('pool'); });
+  $('fabCand').addEventListener('click', function () { openDrawer('cand'); });
+  $('drawerClose').addEventListener('click', closeDrawer);
+  $('drawerMask').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+  updateFabs();
 
   /* ---------- 浮动面板拖动：AI 面板与日程条共用。仅桌面端（position:absolute）生效，
      位置按 stage 边界钳制并持久化；双击把手或「复位」回到默认布局。 ---------- */

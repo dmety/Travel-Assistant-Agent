@@ -381,11 +381,13 @@ form.active{display:block}
           <label for="lUser">用户名</label>
           <input id="lUser" name="username" autocomplete="username" placeholder="输入用户名" required />
         </div>
-        <div class="field pw">
+        <div class="field">
           <label for="lPass">密码</label>
-          <input id="lPass" name="password" type="password" autocomplete="current-password"
-                 placeholder="输入密码" required />
-          <button class="peek" type="button" data-peek="lPass" aria-pressed="false">显示</button>
+          <div class="pw">
+            <input id="lPass" name="password" type="password" autocomplete="current-password"
+                   placeholder="输入密码" required />
+            <button class="peek" type="button" data-peek="lPass" aria-pressed="false">显示</button>
+          </div>
         </div>
         <button class="submit" type="submit">登录</button>
       </form>
@@ -397,11 +399,13 @@ form.active{display:block}
                  placeholder="3–32 位字母、数字或下划线" aria-describedby="rUserHint" required />
           <span class="hint" id="rUserHint">3–32 位，仅字母 / 数字 / 下划线</span>
         </div>
-        <div class="field pw">
+        <div class="field">
           <label for="rPass">密码</label>
-          <input id="rPass" name="password" type="password" autocomplete="new-password"
-                 placeholder="至少 8 位，含字母和数字" aria-describedby="rPassHint" required />
-          <button class="peek" type="button" data-peek="rPass" aria-pressed="false">显示</button>
+          <div class="pw">
+            <input id="rPass" name="password" type="password" autocomplete="new-password"
+                   placeholder="至少 8 位，含字母和数字" aria-describedby="rPassHint" required />
+            <button class="peek" type="button" data-peek="rPass" aria-pressed="false">显示</button>
+          </div>
           <span class="hint" id="rPassHint">至少 8 位，且同时包含字母和数字</span>
         </div>
         <button class="submit" type="submit">注册并登录</button>
