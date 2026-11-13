@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 移动端</title>
+<meta name="description" content="旅行助手移动端视图：对话、美食推荐、设置。主题三态感知。" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="components.css" />
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('travel.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+</head>
+<body data-float-mascot="off">
+<div class="phone-stage">
+  <div class="phone" role="application" aria-label="旅行助手移动端">
+
+    <div class="appbar">
+      <span class="back" aria-hidden="true">‹</span>
+      <h2 id="appTitle">对话</h2>
+      <span class="sp"></span>
+      <button class="iconbtn" type="button" id="themeBtn" title="外观" aria-label="切换外观" style="width:30px;height:30px">
+        <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+
+    <div class="screen">
+      <!-- 对话 -->
+      <section class="panel active" id="pChat">
+        <div class="m-hero">
+          <span class="mascot-mount">
+            <div class="mascot-svg" aria-hidden="true">
+              <img class="m-idle" src="/mascot/mascot-v4-front-idle.png" alt="">
+              <img class="m-user" src="/mascot/mascot-v4-front-shy.png" alt="">
+              <img class="m-pass" src="/mascot/mascot-v4-front-impatient.png" alt="">
+            </div>
+          </span>
+          <div class="cap" id="heroCap">嗨，我是小满。想去哪儿，说一句就行。</div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="chat-msg"><div class="who">我</div><div class="m-bubble">帮我规划武当山两天，想看人文古迹。</div></div>
+          <div class="chat-msg"><div class="who">旅行助手</div><div class="m-bubble">好嘞，武当山两天我建议：第一天金顶+紫霄宫，第二天南岩宫+琼台。要我把素斋也排进去吗？</div></div>
+        </div>
+      </section>
+
+      <!-- 美食 -->
+      <section class="panel" id="pFood">
+        <div class="advice" style="margin:0 0 12px">
+          <div class="who"><svg class="ico"><use href="#i-bowl"/></svg>美食建议</div>
+          武当山以<b>道家素斋</b>见长，优先「紫霄宫素斋」（人均 ¥45）。
+        </div>
+        <div class="rest" style="margin-bottom:10px">
+          <div class="rh"><span class="nm">紫霄宫素斋</span><span class="sp"></span><span class="tag">推荐</span></div>
+          <div class="rb">
+            <div class="row"><span class="star">★★★★★</span><span class="rating">4.7</span><span>· 人均 ¥45 · 1.2km</span></div>
+            <div class="row">营业 11:00–20:00 · <span class="st st-verified">已核验</span></div>
+          </div>
+        </div>
+        <div class="rest" style="margin-bottom:10px">
+          <div class="rh"><span class="nm">道家斋饭</span></div>
+          <div class="rb"><div class="row"><span class="star">★★★★☆</span><span class="rating">4.5</span><span>· ¥38 · 0.4km</span></div><div class="tag-row"><span class="st st-pending">待核</span></div></div>
+        </div>
+        <div class="rest">
+          <div class="rh"><span class="nm">琼台仙谷茶舍</span></div>
+          <div class="rb"><div class="row"><span class="star">★★★★★</span><span class="rating">4.8</span><span>· ¥30 · 0.3km</span></div><div class="tag-row"><span class="st st-verified">已核验</span></div></div>
+        </div>
+      </section>
+
+      <!-- 设置 -->
+      <section class="panel" id="pSettings">
+        <div class="m-pf">
+          <span class="av" id="mAvatar">·</span>
+          <div><div class="nm" id="mName">未登录</div><div class="rl" id="mRole">—</div></div>
+        </div>
+        <div class="m-set">
+          <svg class="ico"><use href="#i-theme"/></svg>主题
+          <span class="sp"></span>
+          <div class="theme-seg" id="mThemeSeg">
+            <button type="button" data-mode="auto" aria-pressed="false">系统</button>
+            <button type="button" data-mode="light" aria-pressed="false">浅</button>
+            <button type="button" data-mode="dark" aria-pressed="false">深</button>
+          </div>
+        </div>
+        <div class="m-set" id="mNotify">
+          <svg class="ico"><use href="#i-bell"/></svg>协作通知
+          <span class="sp"></span><span class="switch on" id="mSwitch" role="switch" aria-checked="true"></span>
+        </div>
+        <div class="m-set"><svg class="ico"><use href="#i-route"/></svg>我的行程<span class="sp">›</span></div>
+        <div class="m-set"><svg class="ico"><use href="#i-shield"/></svg>账号安全<span class="sp">›</span></div>
+        <div class="m-set"><svg class="ico"><use href="#i-info"/></svg>关于<span class="sp">›</span></div>
+      </section>
+    </div>
+
+    <nav class="tabbar" role="tablist" aria-label="移动端导航">
+      <button type="button" role="tab" data-panel="pChat" aria-selected="true"><svg class="ico"><use href="#i-ai"/></svg>对话</button>
+      <button type="button" role="tab" data-panel="pFood" aria-selected="false"><svg class="ico"><use href="#i-bowl"/></svg>美食</button>
+      <button type="button" role="tab" data-panel="pSettings" aria-selected="false"><svg class="ico"><use href="#i-theme"/></svg>设置</button>
+    </nav>
+
+  </div>
+</div>
+
+<svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/><path d="M3.5 20.5 H20.5"/><circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-bowl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 H20 a8 8 0 0 1 -16 0 Z"/><path d="M8 4 C8 6 6 6 6 8 M12 3 C12 5 10 5 10 7.5 M16 4 C16 6 14 6 14 8" opacity=".6"/></symbol>
+<symbol id="i-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5 A8.5 8.5 0 0 1 12 20.5 Z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17 H18 L16.5 13 V10 a4.5 4.5 0 0 0 -9 0 V13 Z"/><circle cx="12" cy="19.5" r="1.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5 L9 5 L7 11 L14 12 L18 19"/><circle cx="4" cy="5" r="2.1"/><circle cx="18" cy="19" r="2.4" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L19 6 V11 C19 16 16 19.5 12 21 C8 19.5 5 16 5 11 V6 Z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11 V16"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22 M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/></symbol>
+</svg>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var THEME_KEY = 'travel.theme', NOTIFY_KEY = 'travel.notify';
+  var ORDER = ['auto', 'light', 'dark'];
+  var TITLES = { pChat: '对话', pFood: '美食推荐', pSettings: '设置' };
+
+  /* ---------- 主题三态 ---------- */
+  function currentTheme() {
+    try { var t = localStorage.getItem(THEME_KEY); return ORDER.indexOf(t) >= 0 ? t : 'auto'; }
+    catch (e) { return 'auto'; }
+  }
+  function paintIcon(mode) {
+    var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var use = $('themeIcon').firstChild;
+    if (use && use.setAttribute) use.setAttribute('href', '#' + (dark ? 'i-sun' : 'i-moon'));
+  }
+  function applyTheme(mode) {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 忽略 */ }
+    paintIcon(mode);
+    Array.prototype.forEach.call(document.querySelectorAll('#mThemeSeg button'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false');
+    });
+  }
+  applyTheme(currentTheme());
+  $('themeBtn').addEventListener('click', function () {
+    applyTheme(ORDER[(ORDER.indexOf(currentTheme()) + 1) % ORDER.length]);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#mThemeSeg button'), function (b) {
+    b.addEventListener('click', function (e) { e.stopPropagation(); applyTheme(b.dataset.mode); });
+  });
+
+  /* ---------- 通知开关 ---------- */
+  var sw = $('mSwitch');
+  function getNotify() { try { return localStorage.getItem(NOTIFY_KEY) !== 'off'; } catch (e) { return true; } }
+  function paintSwitch(on) { sw.classList.toggle('on', on); sw.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  paintSwitch(getNotify());
+  function toggle() {
+    var on = !getNotify();
+    try { localStorage.setItem(NOTIFY_KEY, on ? 'on' : 'off'); } catch (e) {}
+    paintSwitch(on);
+  }
+  sw.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
+  sw.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+
+  /* ---------- 资料 ---------- */
+  fetch('/api/account/me', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (u) {
+      if (!u || !u.username) return;
+      $('mName').textContent = u.username;
+      $('mRole').textContent = (u.role || '用户') + ' · 已登录';
+      var av = $('mAvatar');
+      av.textContent = u.username.charAt(0).toUpperCase();
+    })
+    .catch(function () {});
+
+  /* ---------- tab 切换 ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.panel;
+      Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function (x) {
+        x.setAttribute('aria-selected', x === b ? 'true' : 'false');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.panel'), function (p) {
+        p.classList.toggle('active', p.id === id);
+      });
+      $('appTitle').textContent = TITLES[id] || '旅行助手';
+    });
+  });
+})();
+</script>
+</body>
+</html>

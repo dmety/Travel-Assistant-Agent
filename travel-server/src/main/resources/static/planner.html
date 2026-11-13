@@ -155,6 +155,9 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 #bmap{position:absolute;inset:0;z-index:2;display:none}
 .map-stage.has-bmap #bmap{display:block}
 .map-stage.has-bmap .map-svg,.map-stage.has-bmap .pin-layer{display:none}
+/* 隐藏百度地图版权水印（logo + © 文字）。注意：百度地图 API 服务条款要求保留 logo 与版权署名，
+   生产环境直接隐藏存在合规风险；如法务要求，请仅保留最小署名或改用合规样式。 */
+.anchorBL,.BMap_cpyCtrl,.BMap_cpyCtrl a{display:none!important}
 .pin-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
 .pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);
   display:flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;
@@ -178,7 +181,7 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   padding:6px 11px;background:var(--glass);border:1px solid var(--line);
   border-radius:var(--r-ctl);font-size:var(--fs-xs);color:var(--text-3)}
 .map-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
-.spot-card{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:86px;
+.spot-card{position:absolute;z-index:6;right:24px;top:54px;
   width:min(420px,calc(100vw - 48px));padding:12px 14px;background:var(--surface-warm);
   border:1px solid var(--line-strong);border-radius:var(--r-card);box-shadow:var(--shadow-3);
   display:none}
@@ -191,12 +194,20 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .ai-panel{position:absolute;z-index:6;left:24px;top:24px;bottom:24px;width:392px;
   display:flex;flex-direction:column;min-height:0;background:var(--surface-warm);
   border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-3)}
-.ai-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex:0 0 auto}
+.ai-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex:0 0 auto;
+  cursor:move;user-select:none;touch-action:none}
 .ai-head .ai-ico{width:26px;height:26px;display:grid;place-items:center;border-radius:var(--r-ctl);
   background:var(--pine-soft);color:var(--pine-text);font-size:15px}
 .ai-head b{font-size:var(--fs-sm)}
 .ai-head .st{margin-left:auto;font-size:11px;padding:1px 7px;border-radius:var(--r-sm);
   background:var(--surface);color:var(--text-3);border:1px dashed var(--line-strong)}
+.panel-reset{display:none;align-items:center;gap:3px;margin-left:8px;padding:1px 9px;
+  border:1px solid var(--line-strong);border-radius:var(--r-pill);background:var(--surface);
+  color:var(--text-3);font-size:11px;cursor:pointer}
+.panel-reset:hover{border-color:var(--pine);color:var(--pine-text)}
+.ai-panel.is-moved .panel-reset{display:inline-flex}
+.ai-panel.dragging,.daystrip.dragging{transition:none;opacity:.97}
+.ai-panel.dragging{box-shadow:var(--shadow-3)}
 .query-bar{display:flex;align-items:center;gap:8px;margin:0 14px 10px;padding:8px 10px;
   background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-pill);
   flex:0 0 auto;font-size:var(--fs-xs)}
@@ -300,6 +311,12 @@ html[data-theme="dark"] .msg.ai{
 .daystrip:empty{display:none}
 .daystrip::-webkit-scrollbar{height:6px}
 .daystrip::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:3px}
+.daystrip-grip{flex:0 0 auto;align-self:stretch;display:grid;place-items:center;width:22px;
+  background:var(--surface-warm);border:1px solid var(--line);border-radius:var(--r-card);
+  color:var(--muted-2);font-size:15px;line-height:1;cursor:grab;user-select:none;
+  touch-action:none;box-shadow:var(--shadow-2)}
+.daystrip-grip:hover{color:var(--pine-text);border-color:var(--pine-line)}
+.daystrip.dragging .daystrip-grip{cursor:grabbing}
 .day-card{flex:0 0 218px;background:var(--surface-warm);border:1px solid var(--line);
   border-radius:var(--r-card);box-shadow:var(--shadow-2);overflow:hidden}
 .day-card .h{display:flex;align-items:center;gap:8px;padding:8px 11px;
@@ -307,11 +324,13 @@ html[data-theme="dark"] .msg.ai{
 .day-card .h b{font-size:var(--fs-xs);color:var(--pine-text)}
 .day-card .h span{font-size:11px;color:var(--text-3);margin-left:auto}
 .day-card ul{padding:4px 0}
-.day-card li{display:flex;gap:7px;align-items:baseline;padding:5px 11px;
+.day-card li{display:flex;flex-direction:column;gap:2px;padding:6px 11px;
   font-size:var(--fs-xs);color:var(--text-2);cursor:pointer}
 .day-card li:hover{background:var(--pine-soft)}
+.day-card li .dn{display:flex;gap:7px;align-items:baseline}
 .day-card li i{font-style:normal;color:var(--clay);font-weight:600;flex:0 0 auto}
-.day-card li em{font-style:normal;color:var(--text-3);font-size:11px;margin-left:auto;white-space:nowrap}
+.day-card li em{font-style:normal;color:var(--text-3);font-size:11px;line-height:1.5;
+  padding-left:18px;white-space:normal;word-break:break-word}
 .day-card .empty{padding:9px 11px;font-size:var(--fs-xs);color:var(--text-3)}
 
 /* ---------- 行程视图 ---------- */
@@ -1139,13 +1158,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   .map-note{right:12px;top:10px}
   .map-pill{top:10px}
   .map-legend{right:12px;bottom:10px}
-  .spot-card{bottom:52px}
+  .spot-card{left:50%;right:auto;top:auto;transform:translateX(-50%);bottom:52px}
   .ai-panel{position:relative;inset:auto;flex:1;min-height:0;width:auto;
     margin-top:-14px;border-radius:var(--r-lg) var(--r-lg) 0 0;
     border-left:0;border-right:0;border-bottom:0;box-shadow:0 -6px 20px rgba(46,42,32,.10)}
   .composer{border-radius:0}
   .daystrip{display:none}
-  .ai-head{padding-top:8px}
+  .ai-head{padding-top:8px;cursor:default;touch-action:auto}
+  .panel-reset{display:none!important}
   .grab{display:block!important}
   #viewTrips{padding:16px 14px 32px}
   .trip-list{grid-template-columns:1fr}
@@ -1460,6 +1480,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
       <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
     </button>
+    <a class="tbtn keep" href="/settings.html" id="settingsBtn">设置</a>
     <button class="tbtn keep" type="button" id="exportBtn" disabled><svg class="ico"><use href="#i-export"/></svg><span>导出</span></button>
     <button class="tbtn keep" type="button" id="logoutBtn">退出</button>
   </div>
@@ -1513,9 +1534,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
     <section class="ai-panel" aria-label="AI 规划对话">
       <div class="grab" aria-hidden="true"></div>
-      <div class="ai-head">
+      <div class="ai-head" id="aiHead" title="拖动移动面板，双击复位">
         <span class="ai-ico"><svg class="ico" style="font-size:17px"><use href="#i-ai"/></svg></span>
         <b>AI 规划</b>
+        <button class="panel-reset" type="button" id="panelReset" title="回到默认位置">复位</button>
         <span class="st" id="draftState">草案未保存</span>
       </div>
       <div class="query-bar" id="queryBar">
@@ -1835,11 +1857,12 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     else document.documentElement.setAttribute('data-theme', mode);
     try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 隐私模式忽略 */ }
     paintThemeIcon(mode);
+    applyMapStyle();
   }
   applyTheme(currentTheme());
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
-    var onScheme = function () { if (currentTheme() === 'auto') paintThemeIcon('auto'); };
+    var onScheme = function () { if (currentTheme() === 'auto') { paintThemeIcon('auto'); applyMapStyle(); } };
     if (mq.addEventListener) mq.addEventListener('change', onScheme);
     else if (mq.addListener) mq.addListener(onScheme);
   }
@@ -1951,7 +1974,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     [33, 74], [42, 62], [50, 54], [58, 46], [65, 38], [72, 30],
     [48, 68], [56, 60], [64, 52], [71, 44], [78, 36], [82, 27]
   ];
+  var geoCache = {}, mapToken = 0;
   function renderMap(d) {
+    mapToken++;
     var layer = $('pinLayer'); layer.innerHTML = '';
     points = [];
     var days = (d && d.dailySchedules) || [];
@@ -1973,19 +1998,21 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     var dest = (convoState && convoState.city) || '行程';
     $('mapPillTitle').textContent = dest + ' · 逐日路线';
     $('mapPillMeta').textContent = '· ' + days.length + ' 天 · ' + points.length + ' 个点位';
-    if (window.__bmap && $('mapStage').classList.contains('has-bmap')) drawBMapPoints();
+    if (window.__bmap && $('mapStage').classList.contains('has-bmap')) geocodeAndDraw();
   }
   function showSpot(pt, pin) {
     Array.prototype.forEach.call(document.querySelectorAll('.pin'), function (p) {
       p.classList.remove('is-active');
     });
-    pin.classList.add('is-active');
+    if (pin) pin.classList.add('is-active');
     $('spotName').textContent = pt.name;
     var bits = ['DAY ' + pt.day];
     if (pt.city) bits.push(pt.city);
     bits.push(pt.ticket ? '票价：' + pt.ticket : '票价：未核验');
     if (pt.openTime) bits.push('开放：' + pt.openTime);
-    bits.push('示意底图，不含真实地理坐标');
+    if (pt.lng != null && pt.lat != null) bits.push('已在地图标注');
+    else if ($('mapStage').classList.contains('has-bmap')) bits.push('地图坐标解析中');
+    else bits.push('示意底图，不含真实地理坐标');
     $('spotMeta').textContent = bits.join(' · ');
     $('spotCard').classList.add('open');
   }
@@ -1995,7 +2022,13 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
   function renderDaystrip(d) {
     var strip = $('daystrip'); strip.innerHTML = '';
-    ((d && d.dailySchedules) || []).forEach(function (day) {
+    var days = (d && d.dailySchedules) || [];
+    if (!days.length) return;
+    var grip = el('div', 'daystrip-grip', '⠿');
+    grip.title = '拖动移动日程，双击复位';
+    grip.setAttribute('aria-hidden', 'true');
+    strip.appendChild(grip);
+    days.forEach(function (day) {
       var c = el('div', 'day-card');
       c.appendChild(el('div', 'h', '<b>DAY ' + esc(day.dayIndex) + '</b><span>' +
         esc(day.date || '日期待定') + '</span>'));
@@ -2004,8 +2037,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       else {
         var ul = el('ul');
         items.forEach(function (it, i) {
-          var li = el('li', null, '<i>' + (i + 1) + '</i>' + esc(it.name) +
-            '<em>' + esc(it.ticket || '票价未知') + '</em>');
+          var li = el('li', null, '<span class="dn"><i>' + (i + 1) + '</i>' + esc(it.name) +
+            '</span><em>' + esc(it.ticket || '票价未知') + '</em>');
           li.addEventListener('click', function () {
             var idx = -1;
             points.forEach(function (p, k) { if (p.name === it.name && idx < 0) idx = k; });
@@ -2875,18 +2908,145 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if (!window.__bmap) return;
     var map = window.__bmap;
     map.clearOverlays();
+    var dark = mapWantsDark();
     var pts = [];
     points.forEach(function (p, i) {
       if (p.lng == null || p.lat == null) return;
       var point = new window.BMapGL.Point(p.lng, p.lat);
       pts.push(point);
-      map.addOverlay(new window.BMapGL.Marker(point));
-      map.addOverlay(new window.BMapGL.Label(String(i + 1) + ' ' + p.name,
-        { position: point, offset: new window.BMapGL.Size(12, -10) }));
+      var open = function () { showSpot(p, document.querySelectorAll('.pin')[i]); };
+      var marker = new window.BMapGL.Marker(point);
+      marker.addEventListener('click', open);
+      map.addOverlay(marker);
+      var label = new window.BMapGL.Label(String(i + 1) + ' ' + p.name,
+        { position: point, offset: new window.BMapGL.Size(14, -12) });
+      label.setStyle({ color: dark ? '#9ACDB4' : '#1E4A3E',
+        background: dark ? '#1F231D' : '#F7F4EE',
+        border: '1px solid ' + (dark ? '#2A3E35' : '#C6D9CD'),
+        borderRadius: '8px', padding: '2px 8px', fontSize: '12px',
+        boxShadow: '0 2px 8px rgba(46,42,32,.12)' });
+      label.addEventListener('click', open);
+      map.addOverlay(label);
     });
     if (pts.length > 1) map.addOverlay(new window.BMapGL.Polyline(pts,
       { strokeColor: '#B4542A', strokeWeight: 3, strokeOpacity: .8 }));
-    if (pts.length) map.centerAndZoom(pts[0], 12);
+    if (pts.length > 1) {
+      try { map.setViewport(pts, { margins: [70, 70, 70, 70] }); }
+      catch (e) { map.centerAndZoom(pts[0], 12); }
+    } else if (pts.length) { map.centerAndZoom(pts[0], 13); }
+  }
+  /* 草案点位 → 真实地图标注：KB 之外的模型生成点位用百度地理编码（直接返回 BD09，
+     无需坐标系换算）；按名称缓存避免重复配额；解析失败的点跳过，不臆造坐标。 */
+  function geocodeAndDraw() {
+    if (!window.__bmap || !$('mapStage').classList.contains('has-bmap')) return;
+    if (!window.BMapGL || !window.BMapGL.Geocoder) { drawBMapPoints(); return; }
+    var tok = mapToken;
+    var pending = points.filter(function (p) { return p.lng == null || p.lat == null; });
+    if (!pending.length) { drawBMapPoints(); return; }
+    var gc = new window.BMapGL.Geocoder();
+    var jobs = pending.map(function (p) {
+      var city = p.city || (convoState && convoState.city) || '';
+      var ck = (p.name || '') + '|' + city;
+      if (geoCache[ck]) { p.lng = geoCache[ck].lng; p.lat = geoCache[ck].lat; return Promise.resolve(); }
+      return new Promise(function (resolve) {
+        var done = false;
+        var t = setTimeout(function () { if (!done) { done = true; resolve(); } }, 6000);
+        try {
+          gc.getPoint(p.name, function (pt) {
+            if (done) return; done = true; clearTimeout(t);
+            if (pt) { p.lng = pt.lng; p.lat = pt.lat; geoCache[ck] = { lng: pt.lng, lat: pt.lat }; }
+            resolve();
+          }, city);
+        } catch (e) { if (!done) { done = true; clearTimeout(t); resolve(); } }
+      });
+    });
+    Promise.all(jobs).then(function () { if (tok === mapToken) drawBMapPoints(); });
+  }
+  /* 个性化底图样式：色值直接取自项目设计令牌（paper/pine/clay），与 CSS 变量同源，
+     浅/深两套随主题切换，保证地图与页面同一套色彩语言；行程路线仍用 clay 描边。
+     仅做色彩与标注密度收敛，不改变地理数据；样式服务不可用时静默保留默认底图。 */
+  var MAP_STYLE_LIGHT = [
+    { featureType: 'land', elementType: 'geometry.fill', stylers: { color: '#F7F4EE' } },
+    { featureType: 'water', elementType: 'geometry.fill', stylers: { color: '#D9E6DE' } },
+    { featureType: 'water', elementType: 'geometry.stroke', stylers: { color: '#C6D9CD' } },
+    { featureType: 'green', elementType: 'geometry.fill', stylers: { color: '#E4EDE7' } },
+    { featureType: 'green', elementType: 'geometry.stroke', stylers: { color: '#D3E2D8' } },
+    { featureType: 'building', elementType: 'geometry.fill', stylers: { color: '#EFEAE0' } },
+    { featureType: 'building', elementType: 'geometry.stroke', stylers: { color: '#E3DBCC' } },
+    { featureType: 'manmade', elementType: 'geometry.fill', stylers: { color: '#EFEAE0' } },
+    { featureType: 'railway', elementType: 'geometry.fill', stylers: { color: '#DED7C9' } },
+    { featureType: 'railway', elementType: 'geometry.stroke', stylers: { color: '#C4BAA6' } },
+    { featureType: 'highway', elementType: 'geometry.fill', stylers: { color: '#EBD9BE' } },
+    { featureType: 'highway', elementType: 'geometry.stroke', stylers: { color: '#D9C09A' } },
+    { featureType: 'arterial', elementType: 'geometry.fill', stylers: { color: '#F3EBDC' } },
+    { featureType: 'arterial', elementType: 'geometry.stroke', stylers: { color: '#DFD3BC' } },
+    { featureType: 'local', elementType: 'geometry.fill', stylers: { color: '#FCFAF5' } },
+    { featureType: 'local', elementType: 'geometry.stroke', stylers: { color: '#E7DFCF' } },
+    { featureType: 'subway', elementType: 'geometry.stroke', stylers: { color: '#BBD0C4' } },
+    { featureType: 'boundary', elementType: 'geometry.stroke', stylers: { color: '#C4BAA6' } },
+    { featureType: 'label', elementType: 'labels.text.fill', stylers: { color: '#4A4F46' } },
+    { featureType: 'label', elementType: 'labels.text.stroke', stylers: { color: '#F7F4EE' } },
+    { featureType: 'districtlabel', elementType: 'labels.text.fill', stylers: { color: '#6E6A5E' } },
+    { featureType: 'citylabel', elementType: 'labels.text.fill', stylers: { color: '#20241E' } },
+    { featureType: 'poi', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'poi', elementType: 'labels.text', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text', stylers: { visibility: 'on' } },
+    { featureType: 'transportlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'airportlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'railwaystationlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'greenlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text.fill', stylers: { color: '#1E4A3E' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text.stroke', stylers: { color: '#F7F4EE' } },
+    { featureType: 'waterslabel', elementType: 'labels.text.fill', stylers: { color: '#5E7A6E' } },
+    { featureType: 'greenlabel', elementType: 'labels.text.fill', stylers: { color: '#4E6B5C' } }
+  ];
+  var MAP_STYLE_DARK = [
+    { featureType: 'land', elementType: 'geometry.fill', stylers: { color: '#171A16' } },
+    { featureType: 'water', elementType: 'geometry.fill', stylers: { color: '#1B2A25' } },
+    { featureType: 'water', elementType: 'geometry.stroke', stylers: { color: '#23362F' } },
+    { featureType: 'green', elementType: 'geometry.fill', stylers: { color: '#22332C' } },
+    { featureType: 'green', elementType: 'geometry.stroke', stylers: { color: '#2A3E35' } },
+    { featureType: 'building', elementType: 'geometry.fill', stylers: { color: '#1F231D' } },
+    { featureType: 'building', elementType: 'geometry.stroke', stylers: { color: '#2A302A' } },
+    { featureType: 'manmade', elementType: 'geometry.fill', stylers: { color: '#1F231D' } },
+    { featureType: 'railway', elementType: 'geometry.fill', stylers: { color: '#333A31' } },
+    { featureType: 'railway', elementType: 'geometry.stroke', stylers: { color: '#47503F' } },
+    { featureType: 'highway', elementType: 'geometry.fill', stylers: { color: '#2A3129' } },
+    { featureType: 'highway', elementType: 'geometry.stroke', stylers: { color: '#3E5C4F' } },
+    { featureType: 'arterial', elementType: 'geometry.fill', stylers: { color: '#242A22' } },
+    { featureType: 'arterial', elementType: 'geometry.stroke', stylers: { color: '#333A31' } },
+    { featureType: 'local', elementType: 'geometry.fill', stylers: { color: '#1C2019' } },
+    { featureType: 'local', elementType: 'geometry.stroke', stylers: { color: '#2A302A' } },
+    { featureType: 'subway', elementType: 'geometry.stroke', stylers: { color: '#3E5C4F' } },
+    { featureType: 'boundary', elementType: 'geometry.stroke', stylers: { color: '#47503F' } },
+    { featureType: 'label', elementType: 'labels.text.fill', stylers: { color: '#C6C1B2' } },
+    { featureType: 'label', elementType: 'labels.text.stroke', stylers: { color: '#171A16' } },
+    { featureType: 'districtlabel', elementType: 'labels.text.fill', stylers: { color: '#9A9484' } },
+    { featureType: 'citylabel', elementType: 'labels.text.fill', stylers: { color: '#E8E4D8' } },
+    { featureType: 'poi', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'poi', elementType: 'labels.text', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text', stylers: { visibility: 'on' } },
+    { featureType: 'transportlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'airportlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'railwaystationlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'greenlabel', elementType: 'labels.icon', stylers: { visibility: 'off' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text.fill', stylers: { color: '#9ACDB4' } },
+    { featureType: 'sceniclabel', elementType: 'labels.text.stroke', stylers: { color: '#171A16' } },
+    { featureType: 'waterslabel', elementType: 'labels.text.fill', stylers: { color: '#7E9A8C' } },
+    { featureType: 'greenlabel', elementType: 'labels.text.fill', stylers: { color: '#86A795' } }
+  ];
+  function mapWantsDark() {
+    var t = currentTheme();
+    return t === 'dark' || (t === 'auto' && window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function applyMapStyle() {
+    if (!window.__bmap || typeof window.__bmap.setMapStyleV2 !== 'function') return;
+    try {
+      window.__bmap.setMapStyleV2({ styleJson: mapWantsDark() ? MAP_STYLE_DARK : MAP_STYLE_LIGHT });
+    } catch (e) { /* 个性化样式服务不可用时保留默认底图，不影响点位与路线 */ }
   }
   window.__initBaiduMap = function () {
     if (!window.BMapGL) return;
@@ -2897,6 +3057,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     window.__bmap.enableScrollWheelZoom(true);
     window.__bmap.centerAndZoom(new window.BMapGL.Point(111.05, 32.55), 11);
     $('mapNote').textContent = '实时地图（BMapGL）';
+    applyMapStyle();
     // flex 布局稳定后按真实尺寸重排一次；窗口/面板尺寸变化也同步重排。
     function resizeBMap() {
       if (!window.__bmap) return;
@@ -2905,19 +3066,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     }
     setTimeout(resizeBMap, 300);
     window.addEventListener('resize', resizeBMap);
-    var city = (convoState && convoState.city) || '';
-    if (city) {
-      api('/api/attractions?city=' + encodeURIComponent(city))
-        .then(function (list) {
-          var byName = {};
-          (list || []).forEach(function (a) { if (a.name) byName[a.name] = a; });
-          points.forEach(function (p) {
-            var a = byName[p.name];
-            if (a && a.lat != null && a.lon != null) { p.lat = a.lat; p.lng = a.lon; }
-          });
-          drawBMapPoints();
-        }).catch(function () { /* 取不到坐标就只显示底图 */ });
-    }
+    // 地图就绪时若已有草案点位，补一次地理编码标注；通常此时还没有草案，
+    // 真正触发在 renderMap → geocodeAndDraw。
+    geocodeAndDraw();
   };
 
   /* ---------- 启动与事件 ---------- */
@@ -2943,6 +3094,88 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     toast('已清除当前需求，草案与地图已重置');
   });
   $('spotClose').addEventListener('click', function () { $('spotCard').classList.remove('open'); });
+
+  /* ---------- 浮动面板拖动：AI 面板与日程条共用。仅桌面端（position:absolute）生效，
+     位置按 stage 边界钳制并持久化；双击把手或「复位」回到默认布局。 ---------- */
+  function makeDraggable(panel, handleSel, key, compact) {
+    var stage = $('viewPlan');
+    if (!panel || !stage) return null;
+    var drag = null;
+    var lastDown = 0;
+    function active() { return getComputedStyle(panel).position === 'absolute' && panel.offsetWidth > 0; }
+    function clamp(l, t, w, h) {
+      var sw = stage.clientWidth, sh = stage.clientHeight;
+      return { left: Math.min(Math.max(0, l), Math.max(0, sw - w)),
+               top: Math.min(Math.max(0, t), Math.max(0, sh - h)) };
+    }
+    function place(l, t) {
+      panel.style.right = 'auto'; panel.style.bottom = 'auto';
+      if (compact) {
+        // 日程条拖动后收成紧凑卡片块（按内容宽，封顶不超出 stage），可自由移动
+        panel.style.width = 'auto'; panel.style.height = 'auto';
+        panel.style.maxWidth = (stage.clientWidth - 16) + 'px';
+      } else {
+        panel.style.width = Math.min(panel.offsetWidth, stage.clientWidth) + 'px';
+        panel.style.height = Math.min(panel.offsetHeight, stage.clientHeight) + 'px';
+      }
+      var c = clamp(l, t, panel.offsetWidth, panel.offsetHeight);
+      panel.style.left = c.left + 'px'; panel.style.top = c.top + 'px';
+      panel.classList.add('is-moved');
+    }
+    function reset() {
+      panel.style.left = panel.style.top = panel.style.right = panel.style.bottom =
+        panel.style.width = panel.style.height = panel.style.maxWidth = '';
+      panel.classList.remove('is-moved');
+      try { localStorage.removeItem(key); } catch (e) {}
+    }
+    try {
+      var saved = JSON.parse(localStorage.getItem(key) || 'null');
+      if (saved && active()) place(saved.left, saved.top);
+    } catch (e) {}
+    panel.addEventListener('pointerdown', function (e) {
+      if (!active()) return;
+      var handle = e.target.closest(handleSel);
+      if (!handle || !panel.contains(handle)) return;
+      if (e.target.closest('button,a,input,li')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      var now = Date.now();
+      if (now - lastDown < 350) { lastDown = 0; reset(); return; }
+      lastDown = now;
+      var r = panel.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      drag = { x: e.clientX, y: e.clientY, left: r.left - sr.left, top: r.top - sr.top };
+      place(drag.left, drag.top);
+      panel.classList.add('dragging');
+      try { panel.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    panel.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var c = clamp(drag.left + (e.clientX - drag.x), drag.top + (e.clientY - drag.y),
+        panel.offsetWidth, panel.offsetHeight);
+      panel.style.left = c.left + 'px'; panel.style.top = c.top + 'px';
+    });
+    function end(e) {
+      if (!drag) return;
+      panel.classList.remove('dragging');
+      try { panel.releasePointerCapture(e.pointerId); } catch (_) {}
+      try {
+        localStorage.setItem(key, JSON.stringify({
+          left: parseFloat(panel.style.left) || 0, top: parseFloat(panel.style.top) || 0 }));
+      } catch (_) {}
+      drag = null;
+    }
+    panel.addEventListener('pointerup', end);
+    panel.addEventListener('pointercancel', end);
+    window.addEventListener('resize', function () {
+      if (active() && panel.classList.contains('is-moved'))
+        place(parseFloat(panel.style.left) || 0, parseFloat(panel.style.top) || 0);
+    });
+    return { reset: reset };
+  }
+  var panelDrag = makeDraggable(document.querySelector('.ai-panel'), '.ai-head', 'travel.aiPanelPos', false);
+  makeDraggable($('daystrip'), '.daystrip-grip', 'travel.daystripPos', true);
+  if (panelDrag) $('panelReset').addEventListener('click', function (e) {
+    e.stopPropagation(); panelDrag.reset();
+  });
   $('mask').addEventListener('click', closeSave);
   $('saveCancel').addEventListener('click', closeSave);
   $('saveConfirm').addEventListener('click', confirmSave);
@@ -3352,6 +3585,15 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     box.appendChild(bodyBox);
     return box;
   }
+
+  // 补问卡控件规格，键须与后端 DraftQuestion.field 对齐（DraftAssembler.collectQuestions）
+  var QA_KINDS = {
+    days:       { kind:'choice', label:'游玩天数', unit:' 天', options:[1,2,3,4,5,6,7] },
+    travelers:  { kind:'choice', label:'同行人数', unit:' 人', options:[1,2,3,4,5,6] },
+    budget:     { kind:'choice', label:'预算上限', unit:' 元', options:[2000,4000,6000,10000] },
+    departDate: { kind:'date',   label:'出发日期' },
+    returnDate: { kind:'date',   label:'返回日期' }
+  };
 
   function qaCard(questions, ctx){
     var baseText = (ctx && ctx.baseText) || '';
@@ -4084,6 +4326,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
 })();
 </script>
+<script>
 /* 票务视图脚本：原样搬自 ticket-assistant.html，包进 IIFE 以隔离 $ / api / el */
 (function () {
       "use strict";
@@ -4469,5 +4712,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         }
       })();
 })();
+</script>
+<script src="mascot-widget.js"></script>
 </body>
 </html>
