@@ -21,7 +21,7 @@
 <div class="phone-stage">
   <div class="phone" role="application" aria-label="旅行助手移动端">
 
-    <div class="appbar">
+    <div class="appbar" id="appbar" hidden>
       <span class="back" aria-hidden="true">‹</span>
       <h2 id="appTitle">对话</h2>
       <span class="sp"></span>
@@ -31,8 +31,27 @@
     </div>
 
     <div class="screen">
+      <!-- 登录（移动端入口，含看板娘，与 design/account.html .m-login 联动） -->
+      <section class="panel active m-login" id="pLogin">
+        <div class="m-login-mount">
+          <div class="mascot-svg" id="loginMascot" aria-hidden="true">
+            <img class="m-idle" src="/mascot/mascot-v4-front-idle.png" alt="">
+            <img class="m-user" src="/mascot/mascot-v4-front-shy.png" alt="">
+            <img class="m-pass" src="/mascot/mascot-v4-front-blink.png" alt="">
+          </div>
+        </div>
+        <div class="mascot-cap-m" id="loginCap">嗨，我是小满。想去哪儿，说一句就行。</div>
+        <div class="login-form">
+          <input class="field" id="loginUser" placeholder="用户名" autocomplete="username" />
+          <input class="field" id="loginPass" type="password" placeholder="密码" autocomplete="current-password" />
+          <button class="btn btn-primary" id="loginBtn" type="button">登录</button>
+          <details class="adv"><summary>高级（服务器地址）</summary><input class="field" id="loginHost" placeholder="https://your-server:8080" /></details>
+          <div class="alt">还没有账号？<a href="#">注册</a></div>
+        </div>
+      </section>
+
       <!-- 对话 -->
-      <section class="panel active" id="pChat">
+      <section class="panel" id="pChat">
         <div class="m-hero">
           <span class="mascot-mount">
             <div class="mascot-svg" aria-hidden="true">
@@ -97,7 +116,7 @@
       </section>
     </div>
 
-    <nav class="tabbar" role="tablist" aria-label="移动端导航">
+    <nav class="tabbar" id="tabbar" role="tablist" aria-label="移动端导航" hidden>
       <button type="button" role="tab" data-panel="pChat" aria-selected="true"><svg class="ico"><use href="#i-ai"/></svg>对话</button>
       <button type="button" role="tab" data-panel="pFood" aria-selected="false"><svg class="ico"><use href="#i-bowl"/></svg>美食</button>
       <button type="button" role="tab" data-panel="pSettings" aria-selected="false"><svg class="ico"><use href="#i-theme"/></svg>设置</button>
@@ -177,6 +196,43 @@
       av.textContent = u.username.charAt(0).toUpperCase();
     })
     .catch(function () {});
+
+  /* ---------- 移动端登录（含看板娘聚焦情绪，与 design/account.html 联动） ---------- */
+  var loginMascot = $('loginMascot'), loginCap = $('loginCap');
+  var CAP_USER = '名字记下了，下回我认得你。';
+  var CAP_PASS = '我不看，你慢慢输。';
+  var CAP_IDLE_M = '嗨，我是小满。想去哪儿，说一句就行。';
+  function loginMood(cls, text) {
+    if (loginMascot) { loginMascot.classList.remove('look-user', 'look-pass'); if (cls) loginMascot.classList.add(cls); }
+    if (loginCap) loginCap.textContent = text;
+  }
+  ['loginUser', 'loginPass'].forEach(function (id) {
+    var el = $(id); if (!el) return;
+    el.addEventListener('focus', function () {
+      if (el.type === 'password') loginMood('look-pass', CAP_PASS);
+      else loginMood('look-user', CAP_USER);
+    });
+    el.addEventListener('blur', function () { loginMood(null, CAP_IDLE_M); });
+  });
+  var loginBtn = $('loginBtn');
+  if (loginBtn) loginBtn.addEventListener('click', function () {
+    var panel = $('pLogin'); if (panel) panel.classList.remove('active');
+    var chat = $('pChat'); if (chat) chat.classList.add('active');
+    var bar = $('appbar'); if (bar) bar.hidden = false;
+    var tb = $('tabbar'); if (tb) tb.hidden = false;
+    var title = $('appTitle'); if (title) title.textContent = '对话';
+    /* 尽力拉资料；失败也不阻断演示流程 */
+    if (window.fetch) {
+      fetch('/api/account/me', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.username) return;
+          var nm = $('mName'); if (nm) nm.textContent = d.username;
+          var rl = $('mRole'); if (rl) rl.textContent = (d.role || '用户') + ' · 已登录';
+          var av = $('mAvatar'); if (av) av.textContent = d.username.charAt(0).toUpperCase();
+        }).catch(function () {});
+    }
+  });
 
   /* ---------- tab 切换 ---------- */
   Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function (b) {

@@ -159,7 +159,7 @@
 .phone .appbar h2 { font-size: var(--fs-md); }
 .phone .appbar .sp { margin-left: auto; }
 .phone .appbar .back { color: var(--text-3); font-size: 20px; line-height: 1; }
-.phone .screen { flex: 1; overflow-y: auto; padding: 12px; }
+.phone .screen { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; }
 .phone .screen::-webkit-scrollbar { width: 4px; }
 .phone .screen::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 2px; }
 .phone .foot { flex: 0 0 auto; padding: 10px 12px 14px; background: var(--surface-warm); border-top: 1px solid var(--line); }
@@ -217,3 +217,31 @@
 /* 面板切换（移动端 tab 内容） */
 .panel { display: none; }
 .panel.active { display: block; }
+
+/* ---------- 移动端登录（与 design/account.html .m-login 联动） ---------- */
+/* 类名对齐设计稿：.m-login / .m-login-mount / .mascot-cap-m / .login-form / .adv / .alt */
+.m-login { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 28px; text-align: center; }
+.panel.active.m-login { display: flex; }
+.m-login .m-login-mount { width: 150px; height: 196px; margin: 0 auto 12px; flex: 0 0 auto; }
+.m-login .mascot-cap-m {
+  max-width: 260px; margin: 0 auto 18px; padding: 7px 14px;
+  border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2);
+  font-size: var(--fs-xs); color: var(--text-2); line-height: 1.6;
+}
+.m-login .login-form { width: 100%; }
+.m-login .field { margin-bottom: 12px; width: 100%; }
+.m-login .btn { width: 100%; margin-top: 8px; }
+.m-login .adv { width: 100%; margin-top: 16px; text-align: left; }
+.m-login .adv summary { font-size: var(--fs-xs); color: var(--text-3); cursor: pointer; }
+.m-login .adv .field { margin-top: 10px; }
+.m-login .alt { font-size: var(--fs-xs); color: var(--text-3); margin-top: 16px; text-align: center; }
+.m-login .alt a { color: var(--pine); }
+
+/* 真机全屏：窄屏去掉桌面预览用的机框，呈现原生 App 体验（机中机问题修复） */
+@media (max-width: 480px) {
+  .phone-stage { padding: 0; min-height: 100vh; }
+  .phone {
+    width: 100%; height: 100vh; max-width: 100%;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+}
