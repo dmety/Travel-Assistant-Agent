@@ -510,6 +510,18 @@ class ChatToolsTest {
         "draft_itinerary", "book_ticket", "get_inspiration", "vote_plan", "route_plan");
   }
 
+  @Test
+  @DisplayName("工具清单：描述总长有预算，别再堆成小作文")
+  void specsStayWithinTokenBudget() {
+    // 工具清单每一轮都要随请求重发，一轮最多 5 次，所以这里的每个字都会乘 5。
+    // 预算是把描述压到「只说什么时候用」之后上下留出的余量，超了就说明又开始写散文了。
+    int chars = ChatTools.SPECS.stream()
+        .mapToInt(spec -> String.valueOf(((Map<?, ?>) spec.get("function")).get("description"))
+            .length())
+        .sum();
+    assertThat(chars).isLessThanOrEqualTo(560);
+  }
+
   private static DispatchOutcome ok(String intent, String provider, Fact fact) {
     return okWithFacts(intent, provider, List.of(fact));
   }

@@ -90,6 +90,24 @@ class ChatAgentTest {
   }
 
   @Test
+  @DisplayName("同一轮里重复触发投票：只投一次，第二次直接引用结果")
+  void voteRunsOncePerTurn() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("c1", "vote_plan", "{\"city\":\"武汉\",\"days\":2}"))
+        .thenReturn(call("c2", "vote_plan", "{\"city\":\"武汉\",\"days\":2}"))
+        .thenReturn(say("三套方案里 A 最省钱，胜出。"));
+    when(tools.execute(eq("vote_plan"), any(), anyList())).thenReturn(
+        new ChatTools.Outcome(true, "两轮投票完成，胜出方案 A", null));
+
+    ChatReply reply = agent.chat("武汉两天，哪个方案更省钱", List.of(), ConversationState.empty());
+
+    // 投票是这条链路上最贵的动作，每多一次就是一次模型调用加六个评委 invoke
+    verify(tools, times(1)).execute(eq("vote_plan"), any(), anyList());
+    assertThat(reply.trace()).hasSize(1);
+    assertThat(reply.reply()).contains("胜出");
+  }
+
+  @Test
   @DisplayName("旧会话存着错城市：第二轮给天数人数也按景点原名排，不跨省")
   void staleCityDoesNotLeakIntoToolCalls() {
     when(model.chat(anyList(), anyList(), anyInt()))

@@ -45,9 +45,13 @@ public class ChatAgent {
   /** 模型最多来回几轮。实测正常问答 2~3 轮足够，多出来的通常是模型在重复查同一件事。 */
   private static final int MAX_STEPS = 5;
   private static final int MAX_TOOL_CALLS = 6;
-  /** 带进模型的历史轮数：再多对指代消解没有帮助，只会拖慢首字。 */
-  private static final int MAX_HISTORY = 10;
-  private static final int REPLY_TOKENS = 900;
+  /**
+   * 带进模型的历史轮数。每一轮历史都会在每一次模型调用里重发，所以这个数字直接
+   * 乘上调用次数：10 轮改成 6 轮，一轮对话最多少发约 3K 字符。
+   */
+  private static final int MAX_HISTORY = 6;
+  /** 回复上限 800 字，800 字中文约 530 token，留 700 的额度已经够，多给只是放宽浪费空间。 */
+  private static final int REPLY_TOKENS = 700;
   private static final int MAX_REPLY = 800;
   private static final long BUDGET_MS = 45_000L;
 
@@ -140,6 +144,7 @@ public class ChatAgent {
     ConversationState carried = known;
     String lastContent = null;
     int calls = 0;
+    boolean voted = false;
     long deadline = System.currentTimeMillis() + BUDGET_MS;
 
     for (int step = 0; step < MAX_STEPS; step++) {
@@ -167,6 +172,13 @@ public class ChatAgent {
               "content", "工具调用次数已达上限，请直接用已有信息回答。"));
           continue;
         }
+        // 一轮只投一次票。模型偶尔会在同一轮里反复触发 vote_plan（换城市名、补参数），
+        // 每多一次就是一次额外模型调用加六个评委 invoke，是这条链路上最贵的重复开销。
+        if ("vote_plan".equals(call.name()) && voted) {
+          messages.add(Map.of("role", "tool", "tool_call_id", call.id(),
+              "content", "本轮已经投过一次票，直接引用上面的投票结果回答，不要再投。"));
+          continue;
+        }
         calls++;
         String args = reconcileArgs(call.arguments(), activePlace);
         // 用户定案：所有子 Agent 收集到的信息全量交给主 Agent 整理草案，再由评委投票。
@@ -174,6 +186,9 @@ public class ChatAgent {
         ChatTools.Outcome outcome = "vote_plan".equals(call.name())
             ? tools.execute(call.name(), args, new ArrayList<>(cards))
             : tools.execute(call.name(), args);
+        if ("vote_plan".equals(call.name())) {
+          voted = true;
+        }
         messages.add(Map.of("role", "tool", "tool_call_id", call.id(),
             "content", outcome.summary()));
         trace.add(new ChatReply.ToolTrace(call.name(), label(call.name()), outcome.ok()));

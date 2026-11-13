@@ -205,7 +205,7 @@ public class DeepSeekClient {
     JsonNode usage = root.path("usage");
     long prompt = usage.path("prompt_tokens").asLong(0);
     long completion = usage.path("completion_tokens").asLong(0);
-    long cached = usage.path("prompt_tokens_details").path("cached_tokens").asLong(0);
+    long cached = usage.path("prompt_tokens_details").path("cached_tokens").asLong(usage.path("prompt_cache_hit_tokens").asLong(0));
     long count = callCount.incrementAndGet();
     promptTokens.addAndGet(prompt);
     completionTokens.addAndGet(completion);

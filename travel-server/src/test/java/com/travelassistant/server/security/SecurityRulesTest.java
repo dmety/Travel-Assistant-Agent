@@ -53,7 +53,7 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("首页（登录页）、对话页与接口测试台均无需登录即可打开")
+  @DisplayName("首页（登录页）、工作台与接口测试台均无需登录即可打开")
   void staticPagesArePublic() throws Exception {
     // 页面本身的响应体用结构标记断言（不用中文文案：MockMvc 按 ISO-8859-1 解码静态资源，
     // 中文断言会因解码方式误报，与页面是否正确无关）。
@@ -63,11 +63,12 @@ class SecurityRulesTest extends ApiTestBase {
         .andExpect(content().string(containsString("id=\"loginForm\"")))
         .andExpect(content().string(containsString("id=\"registerForm\"")));
 
-    // 对话页是登录后的落地页。页面静态资源必须公开（页内 JS 读到 401 再跳回登录页），
-    // 真正的数据仍由 /api/** 拦截。
-    mvc.perform(get("/chat.html"))
-        .andExpect(status().isOk())
-        .andExpect(content().string(containsString("id=\"messages\"")));
+    // 旧的对话页与购票页已并入工作台，只保留 302；旧书签不该撞 404 再被拦成 401。
+    for (String path : new String[] {"/chat.html", "/ticket-assistant.html"}) {
+      mvc.perform(get(path))
+          .andExpect(status().is3xxRedirection())
+          .andExpect(redirectedUrl("/planner.html"));
+    }
 
     // 接口测试台独立成页，仍无需登录即可打开（登录卡就在页面里）。
     mvc.perform(get("/api-console.html"))
@@ -88,6 +89,23 @@ class SecurityRulesTest extends ApiTestBase {
           .andExpect(status().is3xxRedirection())
           .andExpect(redirectedUrl("/"));
     }
+  }
+
+  @Test
+  @DisplayName("行程工作台页面公开，/planner 转发到静态页")
+  void plannerPageIsPublic() throws Exception {
+    // 页面静态资源必须公开，页内 JS 读到 401 再回登录页。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/planner.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"workspace\"")))
+        .andExpect(content().string(containsString("id=\"thread\"")))
+        // 票务视图随页搬进来，标记仍在
+        .andExpect(content().string(containsString("id=\"viewTicket\"")));
+
+    mvc.perform(get("/planner"))
+        .andExpect(status().isOk())
+        .andExpect(forwardedUrl("/planner.html"));
   }
 
   @Test
