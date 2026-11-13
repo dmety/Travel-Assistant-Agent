@@ -67,5 +67,5 @@ travel:
     # 单个请求就在 20 秒被取消，整条链路降级成规则兜底，用户看到的是「信息有限」。
     # 提到 60 秒，让单次调用走完再判失败；真要限时由 ChatAgent 的总预算兜。
     timeout-ms: ${DEEPSEEK_TIMEOUT_MS:60000}
-    # 调用预算（max-tool-calls / max-model-calls）随 Agent Provider SPI 落地时再引入：
-    # 此前该键在源码里零引用，留着只会让人误以为限流已生效。
+    # 调用预算不在此处配置：Agent Provider SPI 已落地，统一走 travel.agent.budget.*
+    # （plan 1/4、vote 2/8，环境变量可调）。
