@@ -41,7 +41,6 @@
 | `GET /chat.html`、`GET /ticket-assistant.html` | 旧页面地址，302 到 `/planner.html`，保留以兼容旧书签 |
 | `GET /planner.html`、`GET /planner` | 行程工作台（规划 / 票务 / 我的行程三个视图，靠 hash 切换；未登录由页内脚本跳回 `/?next=/planner.html`） |
 | `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
-| `GET /ticket-assistant.html` | 购票助手页；页面本身公开，其数据接口 `/api/agent/tickets/advice` 仍需登录 |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
 | `GET /favicon.ico` | 站点图标，避免未登录时打日志噪音 |
 
@@ -1189,14 +1188,13 @@ POST /api/agent/vote
 | `GET /planner.html` | 行程工作台直连（页面公开，数据仍由 `/api/**` 拦截） |
 | `GET /chat.html`、`GET /ticket-assistant.html` | 302 到 `/planner.html`（旧地址兼容） |
 | `GET /api-console.html` | 接口测试台直连 |
-| `GET /ticket-assistant.html` | 景区购票助手页直连（页面公开，其调用的接口仍需登录） |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
 
 页面用左侧竖排栏区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 美食推荐 / Agent 投票 / 归档导出）。
 
 所有请求通过 `fetch` 调用 §2/§3 的真实接口，同源携带 `JSESSIONID`；响应按 UTF-8 编码（服务端已配置 `server.servlet.encoding.force=true`，静态页与 JSON 都带 `charset=UTF-8`）。
 
-### 5.1 对话页的交互约定
+### 5.1 工作台规划视图（`planner.html#plan`）的交互约定
 
 **每条消息先解析再路由**：用户发送后，对话页先调 `POST /api/intent/parse`（§8.9）拿到
 意图与槽位，再按 `intent` 分流：
@@ -1227,7 +1225,7 @@ POST /api/agent/vote
 `departDate`/`returnDate`），不依赖模型从文本里再解析一遍；`builtin.planning` 会把八个
 字段全量透传给 `PlanningRequest`。
 
-### 5.2 购票助手页的交互约定
+### 5.2 工作台票务视图（`planner.html#ticket`）的交互约定
 
 页面以「一条已保存的行程活动」为操作对象，先选行程再选活动；不带参数直接打开时只加载
 `GET /api/tickets/catalog` 的核验目录，不主动读用户数据。支持 `?itineraryId=` 与
