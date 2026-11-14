@@ -130,6 +130,13 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .who{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--text-2)}
 .who .dot{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;
   background:var(--pine-soft);color:var(--pine-text);font-weight:600}
+/* 设计稿 .avatars：行程成员头像叠放，首字母代替真人头像 */
+.avatars{display:flex;align-items:center;margin-left:2px}
+.avatars i{width:24px;height:24px;margin-left:-6px;display:grid;place-items:center;
+  border-radius:50%;background:var(--pine-soft);border:2px solid var(--surface-warm);
+  color:var(--pine);font-style:normal;font-size:11px;font-weight:600}
+.avatars i:first-child{margin-left:0}
+.avatars i.owner{background:var(--action-bg);border-color:var(--action-fg);color:var(--action-fg)}
 .tbtn{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;
   border:1px solid var(--line-strong);border-radius:var(--r-ctl);
   font-size:var(--fs-xs);color:var(--text-2);background:var(--surface)}
@@ -245,6 +252,9 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-3)}
 .ai-head{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;flex:0 0 auto;
   cursor:move;user-select:none;touch-action:none}
+.ai-ava{width:40px;height:40px;flex:0 0 auto;overflow:hidden;border-radius:50%;
+  border:1px solid var(--pine-line);background:var(--pine-soft)}
+.ai-ava img{width:100%;height:100%;object-fit:cover;object-position:50% 12%}
 .ai-head .ai-ico{width:26px;height:26px;display:grid;place-items:center;border-radius:var(--r-ctl);
   background:var(--pine-soft);color:var(--pine-text);font-size:15px}
 .ai-id{display:flex;flex-direction:column;min-width:0;line-height:1.3}
@@ -308,6 +318,9 @@ html[data-theme="dark"] .msg.ai{
 .msg-who{display:flex;align-items:center;gap:6px;margin-bottom:5px;
   font-size:var(--fs-xs);font-weight:600;color:var(--pine-text)}
 .msg-who span{font-weight:400;color:var(--text-3)}
+.msg-who .ava{width:26px;height:26px;flex:0 0 auto;overflow:hidden;border-radius:50%;
+  border:1px solid var(--pine-line);background:var(--pine-soft)}
+.msg-who .ava img{width:100%;height:100%;object-fit:cover;object-position:50% 12%}
 .ai-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
   padding:12px;font-size:var(--fs-sm);color:var(--text-2);line-height:1.75}
 .ai-block + .ai-block{margin-top:8px}
@@ -810,12 +823,40 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 /* ---------- 窄屏：上半地图 + 下半对话 sheet ---------- */
 @media (max-width:900px){
   .topbar{height:52px;padding:0 12px;gap:9px}
-  .brand small,.top-sep,.trip-meta,.who,.tbtn.keep span{display:none}
+  .brand small,.top-sep,.trip-meta,.tbtn.keep span{display:none}
   .trip-name{max-width:120px;font-size:var(--fs-xs)}
   .vtabs button{padding:0 9px}
   .vtabs button span{display:none}
-  .workspace{height:calc(100vh - 52px)}
-  #viewPlan{display:flex;flex-direction:column}
+  /* 移动端：视图切换改为底部 tab 栏，避免顶栏拥挤导致点不到其他视图 */
+  .vtabs{position:fixed;left:0;right:0;bottom:0;z-index:40;flex:1 1 auto;
+    justify-content:space-around;gap:0;padding:7px 2px 8px;box-sizing:border-box;
+    background:var(--surface-warm);border:1px solid var(--line);border-radius:0;
+    border-left:0;border-right:0;box-shadow:0 -3px 14px rgba(46,42,32,.10);
+    overflow-x:auto}
+  /* 窄屏 5 个 tab 必须能压缩到一屏：关掉 flex 默认的 min-width:auto，
+     否则按内容最小宽度算，≤390px 时第 5 个「知识库」会被挤到屏幕外 */
+  .vtabs button{padding:5px 2px;flex:1 1 0;flex-direction:column;gap:2px;
+    min-height:auto;min-width:0;overflow:hidden;font-size:10px;color:var(--text-3);
+    border-radius:11px}
+  .vtabs button span{display:inline;font-size:10px;line-height:1.15;max-width:100%;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* 关闭态用 display:none 而非「transform 推到屏外」：fixed 离屏元素会把视口可滚动
+     区域撑宽（ICB 被拉长），连带把底部固定 tab 栏的 right:0 推到屏幕外，第 5 个
+     「知识库」就被裁掉。display:none 彻底移出布局。仅移动端需要，桌面视口够宽、又
+     没有固定底部栏，保留滑入动画即可。 */
+  .drawer{display:none}
+  .drawer.open{display:flex}
+  .vtabs button[aria-selected="true"]{background:var(--pine-soft);color:var(--pine-text);
+    font-weight:600;box-shadow:none}
+  .workspace{height:calc(100vh - 52px);padding-bottom:0}
+  /* 底部 tab 栏高约 58px 且 fixed 在最底，绝对定位的 .view 用 inset:0 会
+     盖进这 58px、把对话框输入行压在栏下看不见。这里把视图底边抬到 58px 之上，
+     给固定 tab 栏让位（顶栏 52px 同理，.view 顶边本是 0 即贴顶栏底，无需处理）。 */
+  .view{inset:0 0 58px 0}
+  /* 关键修复：窄屏下 #viewPlan 用 ID 选择器设 display:flex，优先级会压过
+     .view[hidden]{display:none}，导致切到别的视图时规划视图根本没隐藏——
+     这就是「点规划以外的都没反应」的根因。加 :not([hidden]) 让它遵守 hidden。 */
+  #viewPlan:not([hidden]){display:flex;flex-direction:column}
   .map-stage{position:relative;inset:auto;flex:0 0 38%;min-height:210px}
   .map-note{right:12px;top:10px}
   .map-pill{top:10px}
@@ -850,8 +891,12 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 @media (max-width:600px){
   .brand b{font-size:var(--fs-sm)}
   .seal{width:27px;height:27px}
-  .trip-name{max-width:84px}
+  /* 窄屏顶栏空间紧：隐藏次级的行程名与设置入口（设置页在桌面端保留），
+     保留品牌、成员头像、身份、外观与退出，避免最后一个按钮被挤出屏幕 */
+  .trip-name{display:none}
+  .topbar .settingsBtn{display:none}
   .top-right{gap:6px}
+  .topbar #exportBtn{display:none}
   .map-stage{flex-basis:34%;min-height:180px}
   .ai-panel{margin-left:0;margin-right:0}
   .dialog{padding:16px}
@@ -1339,6 +1384,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   </nav>
   <div class="trip-name" id="tripName">还没有行程</div>
   <div class="trip-meta" id="tripMeta">说一句话开始规划</div>
+  <div class="avatars" id="avatars" title="行程成员"></div>
   <div class="top-right">
     <span class="who"><span class="dot" id="whoDot">·</span><span id="whoName">加载中</span></span>
     <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
@@ -1407,8 +1453,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <section class="ai-panel" aria-label="AI 规划对话">
       <div class="grab" aria-hidden="true"></div>
       <div class="ai-head" id="aiHead" title="拖动移动面板，双击复位">
-        <span class="ai-ico"><svg class="ico" style="font-size:17px"><use href="#i-ai"/></svg></span>
-        <div class="ai-id"><b>游小满 · AI 规划</b><small>行程搭子 · 慢慢来，不急</small></div>
+        <span class="ai-ava"><img src="/mascot/mascot-v4-front-bust.png" alt="游小满" /></span>
+        <div class="ai-id"><b>游小满</b><small>行程助手</small></div>
         <button class="panel-reset" type="button" id="panelReset" title="回到默认位置">复位</button>
         <span class="st" id="draftState">草案未保存</span>
         <button class="panel-close" type="button" id="panelClose" title="收起对话与浮层，露出整幅地图" aria-label="收起 AI 规划对话与地图浮层">×</button>
@@ -1421,11 +1467,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <div class="thread" id="thread">
         <div class="msg ai" id="welcome">
           <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
-          <div class="msg-who">游小满 <span>行程助手</span></div>
+          <div class="msg-who"><span class="ava"><img src="/mascot/mascot-v4-front-bust.png" alt="游小满" /></span>游小满 <span>行程助手</span></div>
           <div class="ai-block">
-            <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到地图上。</p>
-            <p>缺日期、天数或预算时我会逐条问，不替你猜。草案确认后才会写进行程，之前都只是预览。</p>
-            <p>问天气、问吃什么、问怎么买票也都可以，答案里会带上来源。</p>
+            <p>想去哪、玩几天、预算多少，直接说。我去知识库挑候选、按天排草案、画到地图上。</p>
+            <p>信息不够我先问你，不替你猜；确认前都只是预览，不会写进行程。</p>
           </div>
           <div class="qa">
             <span class="lbl">可以直接点</span>
@@ -1451,7 +1496,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           <button class="btn btn-outline" type="button" id="regenBtn">换一版</button>
           <button class="btn btn-primary" type="button" id="draftSaveBtn"><svg class="ico"><use href="#i-check"/></svg>确认保存到行程</button>
         </div>
-        <p class="hint">回车发送 · 草案与地图共用同一份数据 · 未确认前不写库</p>
+        <p class="hint">回车发送 · 确认前不会写进行程</p>
       </div>
     </section>
 
@@ -1953,6 +1998,33 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if (it.budget) bits.push('¥' + it.budget);
     if (it.departDate) bits.push(it.departDate);
     $('tripMeta').textContent = bits.length ? bits.join(' · ') : '缺项会逐条补问';
+    renderAvatars(it);
+  }
+  /* 顶栏成员头像：创建者 + 协作者叠放，与设计稿 .avatars 一致；有 id 时再补拉成员 */
+  var avatarTripId = null;
+  function renderAvatars(it) {
+    var box = $('avatars'); if (!box || !it) return;
+    box.innerHTML = '';
+    var owner = it.owner || clMe || null;
+    if (owner) {
+      var o = el('i', 'owner', esc(owner.slice(0, 1)));
+      o.title = owner + '（创建者）';
+      box.appendChild(o);
+    }
+    if (it.id && it.id !== avatarTripId) {
+      avatarTripId = it.id;
+      api('/api/itineraries/' + encodeURIComponent(it.id) + '/members')
+        .then(function (ms) {
+          if (it.id !== avatarTripId) return;
+          (ms || []).forEach(function (m) {
+            var u = (m && m.username) || '';
+            if (!u || u === owner) return;
+            var n = el('i', null, esc(u.slice(0, 1)));
+            n.title = u;
+            box.appendChild(n);
+          });
+        }).catch(function () {});
+    }
   }
   function renderAlternatives(it) {
     var alts = it.alternatives || [];
