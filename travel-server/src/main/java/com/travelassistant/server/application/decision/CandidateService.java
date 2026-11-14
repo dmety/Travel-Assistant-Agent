@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,12 +30,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class CandidateService {
 
+  /** 查重写锁分片数：固定长度，避免按 id 建锁导致 Map 无限增长（与 ItineraryService 一致）。 */
+  private static final int LOCK_STRIPES = 64;
+
   private final ItineraryService itineraries;
   private final DecisionStore store;
+  private final Object[] candidateLocks = new Object[LOCK_STRIPES];
 
   public CandidateService(ItineraryService itineraries, DecisionStore store) {
     this.itineraries = itineraries;
     this.store = store;
+    for (int i = 0; i < LOCK_STRIPES; i++) {
+      candidateLocks[i] = new Object();
+    }
   }
 
   /** 添加候选项。同名同类型的重复添加被拒绝，而不是静默产生两条一样的候选。 */
@@ -58,16 +66,17 @@ public class CandidateService {
     }
     CandidateKind actualKind = kind == null ? CandidateKind.ATTRACTION : kind;
     String key = trimmedName.toLowerCase(Locale.ROOT);
-    for (Candidate existing : store.findCandidates(itineraryId)) {
-      if (existing.kind() == actualKind
-          && existing.name().toLowerCase(Locale.ROOT).equals(key)) {
-        throw new InvalidCandidateException("候选列表里已有「" + existing.name() + "」");
+    return inCandidateLock(itineraryId, () -> {
+      for (Candidate existing : store.findCandidates(itineraryId)) {
+        if (existing.kind() == actualKind
+            && existing.name().toLowerCase(Locale.ROOT).equals(key)) {
+          throw new InvalidCandidateException("候选列表里已有「" + existing.name() + "」");
+        }
       }
-    }
-
-    Candidate candidate = Candidate.create(itineraryId, actualKind, trimmedName,
-        blankToNull(city), blankToNull(attractionId), trimmedNote, user);
-    return store.addCandidate(candidate);
+      Candidate candidate = Candidate.create(itineraryId, actualKind, trimmedName,
+          blankToNull(city), blankToNull(attractionId), trimmedNote, user);
+      return store.addCandidate(candidate);
+    });
   }
 
   /** 候选看板：投票结果、排序、并列与未投票提示。 */
@@ -155,6 +164,18 @@ public class CandidateService {
   private void requireEditable(Itinerary itinerary) {
     if (itinerary.archived()) {
       throw new ItineraryArchivedException(itinerary.id());
+    }
+  }
+
+  /**
+   * 在行程维度的写锁内执行「查重 → 添加」，使两段操作成为原子动作（缺陷 F3）。
+   *
+   * <p>锁按 {@code itineraryId} 哈希分片，同一行程的并发添加必然串行；查重失败直接抛异常，
+   * 未写入即释放锁。不同行程之间锁竞争概率低。
+   */
+  private <T> T inCandidateLock(String itineraryId, Supplier<T> action) {
+    synchronized (candidateLocks[Math.floorMod(itineraryId.hashCode(), LOCK_STRIPES)]) {
+      return action.get();
     }
   }
 

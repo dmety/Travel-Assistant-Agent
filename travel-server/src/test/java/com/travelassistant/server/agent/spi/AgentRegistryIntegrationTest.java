@@ -491,7 +491,8 @@ class AgentRegistryIntegrationTest {
           org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
       var runtime = new com.travelassistant.server.application.agent.orchestration.AgentOrchestrator(
           registry, local, rules, anchors,
-          mock(com.travelassistant.server.application.agent.orchestration.SummaryComposer.class));
+          mock(com.travelassistant.server.application.agent.orchestration.SummaryComposer.class),
+          1, 4);
       var request = new com.travelassistant.server.application.agent.orchestration.DispatchRequest(
           "FOOD_RECOMMEND", Map.of("city", "杭州"), Map.of());
       assertEquals("food.recommender", runtime.dispatch(request).providerId());

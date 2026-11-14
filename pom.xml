@@ -4,7 +4,9 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.7</version>
+    <!-- 3.5 线 OSS 支持已于 2026-06-30 结束；3.5.16 是该线最后的开源补丁（已核实中央仓库可得）。
+         此处为止血跟随，非正式升级；4.0.8+/4.1.x 整链迁移属多周工程，路线见 docs/框架升级迁移计划.md。 -->
+    <version>3.5.16</version>
     <relativePath/>
   </parent>
   <groupId>com.travelassistant</groupId>

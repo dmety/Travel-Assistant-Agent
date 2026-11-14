@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -33,6 +34,16 @@ public final class ConsoleUI implements AutoCloseable {
   private static final int MAX_COLUMN_WIDTH = 36;
   private static final int LABEL_WIDTH = 10;
   private static final String GAP = "  ";
+
+  /**
+   * 服务端文本里可能夹带的 ANSI/终端转义序列：CSI（颜色、光标、清屏）、OSC（标题、剪贴板）
+   * 与其余两字符 ESC 序列。先按序列整段剥离，避免留下 {@code [31m} 之类可见残渣；
+   * 兜底再逐个丢弃所有控制字符（见 {@link #sanitize}），保证没有任何 ESC 能到达终端。
+   */
+  private static final Pattern ANSI_ESCAPE = Pattern.compile(
+      "\u001b\\[[0-?]*[ -/]*[@-~]"
+          + "|\u001b\\][^\u0007\u001b]*(?:\u0007|\u001b\\\\)?"
+          + "|\u001b[@-~]");
 
   private final Terminal terminal;
   private final LineReader reader;
@@ -120,11 +131,19 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   public void println(String text) {
-    System.out.println(decorate(text));
+    System.out.println(decorate(sanitize(text)));
   }
 
   public void print(String text) {
-    System.out.print(text == null ? "" : text);
+    System.out.print(sanitize(text));
+  }
+
+  /**
+   * 内部输出：文本已由调用方完成「剥离服务端转义 + 自身着色」，这里不再 sanitize，
+   * 否则会把 paint 生成的合法 ANSI 一并抹掉。仅供本类的着色方法使用。
+   */
+  private void printlnStyled(String text) {
+    System.out.println(text);
   }
 
   /**
@@ -150,56 +169,57 @@ public final class ConsoleUI implements AutoCloseable {
 
   /** 一级标题：上留一行空行，标题加青色粗体，下面一条分隔线。 */
   public void title(String text) {
+    String safe = sanitize(text);
     println();
-    println(paint("  " + text, AttributedStyle.CYAN, true));
-    println("  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(text) + 6))));
+    printlnStyled(paint("  " + safe, AttributedStyle.CYAN, true));
+    printlnStyled("  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(safe) + 6))));
   }
 
   /** 二级小节标题。 */
   public void section(String text) {
-    println(paint("  " + text, AttributedStyle.YELLOW, true));
+    printlnStyled(paint("  " + sanitize(text), AttributedStyle.YELLOW, true));
   }
 
   public void success(String text) {
-    println(paint("  [OK] ", AttributedStyle.GREEN, true) + text);
+    printlnStyled(paint("  [OK] ", AttributedStyle.GREEN, true) + sanitize(text));
   }
 
   public void warn(String text) {
-    println(paint("  [!] ", AttributedStyle.YELLOW, true) + text);
+    printlnStyled(paint("  [!] ", AttributedStyle.YELLOW, true) + sanitize(text));
   }
 
   public void error(String text) {
-    println(paint("  [x] ", AttributedStyle.RED, true) + text);
+    printlnStyled(paint("  [x] ", AttributedStyle.RED, true) + sanitize(text));
   }
 
   public void note(String text) {
-    println("  " + text);
+    printlnStyled("  " + sanitize(text));
   }
 
   /** 键值行：标签按显示宽度补齐，中文标签也不会错位。 */
   public void kv(String label, String value) {
-    println("  " + paint(padRight(label, LABEL_WIDTH), AttributedStyle.CYAN, false)
-        + ": " + (value == null ? "" : value));
+    printlnStyled("  " + paint(padRight(sanitize(label), LABEL_WIDTH), AttributedStyle.CYAN, false)
+        + ": " + sanitize(value));
   }
 
-  /** 打印表格，表头着色，其余行纯文本。 */
+  /** 打印表格，表头着色，其余行纯文本。单元格已在 renderTable 内剥离转义。 */
   public void table(List<String> headers, List<List<String>> rows) {
     String rendered = renderTable(headers, rows);
     String[] lines = rendered.split("\n", -1);
     for (int i = 0; i < lines.length; i++) {
-      println(i == 0 ? paint(lines[i], AttributedStyle.CYAN, true) : lines[i]);
+      printlnStyled(i == 0 ? paint(lines[i], AttributedStyle.CYAN, true) : lines[i]);
     }
   }
 
   /** 首页横幅。 */
   public void banner(String serviceName, String baseUrl) {
     println();
-    println(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
-    println(paint("  |   Travel Assistant  /  控制台客户端        |", AttributedStyle.CYAN, true));
-    println(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
+    printlnStyled(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
+    printlnStyled(paint("  |   Travel Assistant  /  控制台客户端        |", AttributedStyle.CYAN, true));
+    printlnStyled(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
     kv("服务", serviceName);
     kv("地址", baseUrl);
-    println("  输入 help 查看命令，Tab 补全，上下键翻历史，exit 退出。");
+    printlnStyled("  输入 help 查看命令，Tab 补全，上下键翻历史，exit 退出。");
   }
 
   private String paint(String text, int foreground, boolean bold) {
@@ -215,6 +235,30 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   // ---- 纯函数：排版计算，可脱离终端测试 ----
+
+  /**
+   * 剥离服务端文本里的终端转义序列与控制字符，只保留可安全显示的字符。
+   *
+   * <p>先整段移除 ANSI/ESC 序列（CSI、OSC 等），再逐个丢弃其余 C0（保留 {@code \n}、{@code \t}）、
+   * DEL 与 C1 控制字符。即使某个序列未被正则完整匹配，其 ESC 引导符也会在这一步被丢弃，
+   * 终端无法再把后续字节解释成命令——这是防注入的兜底保证。中文、emoji 等正常字符原样保留。
+   */
+  public static String sanitize(String text) {
+    if (text == null || text.isEmpty()) {
+      return text == null ? "" : text;
+    }
+    String stripped = ANSI_ESCAPE.matcher(text).replaceAll("");
+    StringBuilder sb = new StringBuilder(stripped.length());
+    for (int i = 0; i < stripped.length(); i++) {
+      char ch = stripped.charAt(i);
+      boolean keep = ch == '\n' || ch == '\t'
+          || (ch >= 0x20 && ch != 0x7f && !(ch >= 0x80 && ch <= 0x9f));
+      if (keep) {
+        sb.append(ch);
+      }
+    }
+    return sb.toString();
+  }
 
   /**
    * 字符串的终端显示宽度。中文、全角、Hangul、emoji 按 2 格，
@@ -300,31 +344,39 @@ public final class ConsoleUI implements AutoCloseable {
     if (columns == 0) {
       return "";
     }
+    // 单元格可能来自服务端，先剥离转义再算宽度：既防注入，也避免 ANSI 字节把列宽算错。
+    List<String> safeHeaders = new ArrayList<>(columns);
+    for (int c = 0; c < columns; c++) {
+      safeHeaders.add(sanitize(headers.get(c)));
+    }
+    List<List<String>> safeRows = new ArrayList<>(rows.size());
+    for (List<String> row : rows) {
+      List<String> safeRow = new ArrayList<>(columns);
+      for (int c = 0; c < columns; c++) {
+        safeRow.add(sanitize(c < row.size() ? row.get(c) : ""));
+      }
+      safeRows.add(safeRow);
+    }
     int[] widths = new int[columns];
     for (int c = 0; c < columns; c++) {
-      widths[c] = Math.min(MAX_COLUMN_WIDTH, displayWidth(headers.get(c)));
+      widths[c] = Math.min(MAX_COLUMN_WIDTH, displayWidth(safeHeaders.get(c)));
     }
-    for (List<String> row : rows) {
+    for (List<String> row : safeRows) {
       for (int c = 0; c < columns; c++) {
-        String cell = c < row.size() ? row.get(c) : "";
         widths[c] = Math.min(MAX_COLUMN_WIDTH,
-            Math.max(widths[c], displayWidth(cell)));
+            Math.max(widths[c], displayWidth(row.get(c))));
       }
     }
     StringBuilder sb = new StringBuilder();
-    sb.append(renderRow(headers, widths)).append('\n');
+    sb.append(renderRow(safeHeaders, widths)).append('\n');
     int total = 0;
     for (int width : widths) {
       total += width;
     }
     total += GAP.length() * (columns - 1);
     sb.append("-".repeat(Math.max(1, total))).append('\n');
-    for (List<String> row : rows) {
-      List<String> cells = new ArrayList<>();
-      for (int c = 0; c < columns; c++) {
-        cells.add(c < row.size() ? row.get(c) : "");
-      }
-      sb.append(renderRow(cells, widths)).append('\n');
+    for (List<String> row : safeRows) {
+      sb.append(renderRow(row, widths)).append('\n');
     }
     // 只去掉最后一个换行；不能用 stripTrailing()，它会把末行的列填充空格一并删掉，
     // 导致最后一行比其他行窄、右侧无法对齐。

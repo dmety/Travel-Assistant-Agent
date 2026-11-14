@@ -34,7 +34,7 @@
 | `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
 | `GET /api/location/status` | 高德是否配置（只回布尔与降级原因，无用户数据） |
-| `GET /api/agent/status` | 模型是否配置与本进程用量（见 §3.16.2） |
+| `GET /api/agent/status` | 模型是否配置与本进程用量（见 §3.16.4） |
 | `GET /api/agent/capabilities` | 能力协商：Provider 的 id / 状态 / 能力标签 / 最近拒绝原因码，不含 endpoint、authRef 与凭据（见 §3.22） |
 | `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
@@ -561,9 +561,9 @@ GET /api/tickets?name=西湖
 | `/api/location/places` | GET | 需登录 | `keywords` 必填，`city` 可选，`limit` 默认 10 / 上限 25 |
 | `/api/location/weather` | GET | 需登录 | `city` 支持城市名或 adcode |
 | `/api/location/route` | GET | 需登录 | `mode`=WALKING/DRIVING/TRANSIT，`origin`/`destination` 为「经度,纬度」 |
-| `/api/location/status` | GET | 需登录 | 是否已配置密钥 |
+| `/api/location/status` | GET | 公开 | 是否已配置密钥；只返回布尔、不触发计费调用，匿名可读 |
 
-**需要登录**：高德接口按调用量计费，对外开放会让配额被匿名消耗。
+**places / weather / route 需要登录**：高德接口按调用量计费，对外开放会让配额被匿名消耗。`status` 是例外——只返回是否配置密钥、不发起计费调用，故在安全白名单里匿名可读。
 
 **未配置密钥（`AMAP_KEY` 为空）时一律 503，不是 200 + 空结果。**
 那会把「没接服务」表现成「当地没有这个地方」。
@@ -658,7 +658,7 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 | `/api/agent/plan` | POST | 需登录 | 生成规划草案（补问 / 逐日草案 / 检查），**不落库** |
 | `/api/agent/plan/materialize` | POST | 需登录 | 用户确认后生成行程载荷，**仍不落库** |
 | `/api/agent/invoke` | POST | 需登录 | L1 编排层入口，按 intent 走注册表并做契约校验，见 §3.16.1 |
-| `/api/agent/status` | GET | 无需登录 | 模型是否配置、规则能力清单、本进程模型用量，见 §3.16.2 |
+| `/api/agent/status` | GET | 无需登录 | 模型是否配置、规则能力清单、本进程模型用量，见 §3.16.4 |
 
 **两条草案接口都只读。** 需求要求「用户确认后才将建议保存到正式方案」，真正落库仍走
 §3.3 `POST /api/itineraries` 与 §3.8 `PUT /api/itineraries/{id}/daily?version=<创建版本号>`，
@@ -789,7 +789,64 @@ POST /api/agent/invoke
 知识库里的「免费」「全天开放」，会触发 S-03（未知不得写成确定值），
 把整条响应判为 `CONTRACT_VIOLATION`。正文与明细一律进 `value` 由前端渲染。
 
-#### 3.16.2 能力状态与模型用量（`GET /api/agent/status`）
+#### 3.16.2 能力协商与 Provider 管理
+
+注册表对外暴露三档信息：能力协商（公开）、路由与准入明细（需登录）、注册表管理（独立管理令牌）。
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET` | `/api/agent/capabilities` | 公开 | 契约版本、注册表版本与每个 Provider 的状态/能力标签；不含 endpoint、authRef 或凭据 |
+| `GET` | `/api/agent/providers` | 需登录 | capabilities 全量 + 每个 intent 的 `primary` / `fallback` 路由 |
+| `GET` | `/api/agent/providers/{id}/admission` | 管理令牌 | 该 Provider 的准入报告；id 不存在返回 404 |
+| `POST` | `/api/agent/providers/reload` | 管理令牌 | 重新加载配置式 Provider，返回新版本与数量 |
+| `POST` | `/api/agent/providers/{id}/probe` | 管理令牌 | G1 契约探针 + G2 安全探针，按配置发真实请求，不注入桩 |
+| `POST` | `/api/agent/providers/{id}/shadow?samples=N` | 管理令牌 | G3 影子；`samples` 缺省 0 时读规范源 `shadowSamples`（20） |
+| `POST` | `/api/agent/providers/{id}/activate` | 管理令牌 | G4 人工启用：需 G3 通过且配置 `enabled=true` |
+
+**管理令牌与用户会话解耦（F1）**：`reload` / `probe` / `shadow` / `activate` / `admission` 会改注册表状态、携服务端凭据发真实请求、消耗配额或泄漏 endpoint，因此不对任意登录用户开放。`AdminTokenFilter` 只认 `X-Admin-Token` 请求头，令牌经环境变量 `AGENT_ADMIN_TOKEN` 注入（配置键 `travel.agent.admin-token`）；未配置（空）时 fail-closed，一律 **403** `{"error":"管理端点需要有效的管理令牌"}`；比对用常量时间避免计时侧信道。匿名携带正确令牌即可管理，登录但无令牌一律拒绝。这五个路径在 `SecurityConfiguration` 里 `permitAll` 是为了与用户会话解耦，真正的门禁交给本过滤器。
+
+`capabilities` 响应（节选，字段以实际注册表为准）：
+
+```json
+GET /api/agent/capabilities
+{
+  "contractVersion": "1.0", "registryVersion": 3, "registryNote": "…",
+  "providers": [
+    { "id": "builtin.food", "version": "1.0.0", "schemaVersion": "1.0",
+      "capabilities": ["FOOD_RECOMMEND"], "kind": "BEAN", "sideEffect": "NONE",
+      "enabled": true, "status": "ACTIVE", "lastRejectionCode": null }
+  ]
+}
+```
+
+`providers` 在此基础上追加 `routes`，形如 `[ { "intent": "FOOD_RECOMMEND", "primary": "builtin.food", "fallback": ["builtin.rules"] } ]`。`probe` / `shadow` / `activate` 统一返回 `{ report, status, registryVersion, shadow }`：`report` 为准入报告（含原因码、违规规则 id、字段路径、实际值与期望值），`status` 为该 Provider 当前状态（找不到时 `UNREGISTERED`），`shadow` 为影子统计。`reload` 返回 `{ reloaded, registryVersion, registryNote, providerCount }`。
+
+#### 3.16.3 两轮评委投票（`POST /api/agent/vote`）
+
+AI 评委对候选方案做两轮投票并结构化计票，**与 §3.17 的成员人投票是两套接口**，不复用、不写库。**需登录**：会触发模型与地图配额；路径不在安全白名单里，匿名返回 401。
+
+```json
+POST /api/agent/vote
+{ "intent": "DECISION_ADVICE", "context": { "destination": "杭州", "days": 2 } }
+```
+
+`intent` 必填且只接受 `DECISION_ADVICE`：缺失返回 **400** `{"error":"缺少 intent"}`，非法返回 **400** `{"error":"投票只支持 DECISION_ADVICE intent"}`。`context`（Map）、`hints`（Map<String,String>）、`judges`（List<String>）均可省略；`judges` 省略时由注册表解析默认评委集合。
+
+响应是信封加结构化计票：`intent` / `status` / `registryVersion` / `candidateSource` / `judges` / `plans` / `draft` / `collectedFactCount` / `notices`，以及 `result`：
+
+| `result` 字段 | 说明 |
+|---|---|
+| `schemaVersion` / `intent` | 计票契约版本与 intent |
+| `winner` | 胜出方案 id；无胜出时为 `null` |
+| `ranking[]` | 每个方案的 `planId` / `score` / `voterCount` / `weightSum` / `abstained`，及 `breakdown`（各评委 `providerId` / `normalized` / `weight` / `criteria` / `groundingFactIds`） |
+| `excluded[]` | 被剔除方案：`planId` / `reason` / `providers` / `groundingFactIds` |
+| `rejections[]` | 契约拒绝：`providerId` / `factId` / `code`（`E_VOTE_*`）/ `detail`；只在此出现，不进准入报告 |
+| `homogeneous` | 评委同质性标记 |
+| `notices` | 计票过程提示 |
+
+响应不含 endpoint、authRef 或任何凭据。
+
+#### 3.16.4 能力状态与模型用量（`GET /api/agent/status`）
 
 **无需登录**（`SecurityConfiguration` 的 `permitAll` 白名单内，只回布尔、统计与能力描述）。
 规则能力与模型能力分开列，未配置密钥时不把「补问 / 逐日草案 / 检查 / 确认载荷」

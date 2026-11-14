@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 松绿，App 图标底板 / 启动屏底色 -->
+    <color name="ic_launcher_background">#FF1E4A3E</color>
+    <!-- 暖纸，启动屏底色 -->
+    <color name="launch_background">#FFF7F4EE</color>
+</resources>

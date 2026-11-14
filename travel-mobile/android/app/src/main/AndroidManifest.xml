@@ -1,9 +1,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 百度地图 SDK 所需权限 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
-        android:label="travel_mobile"
-        android:name="${applicationName}"
+        android:label="出逃计划"
+        android:name=".TravelApplication"
         android:icon="@mipmap/ic_launcher">
+        <!-- 百度地图 SDK 要求在 Application.onCreate 中 initialize；
+             不在 AndroidManifest 声明自定义 Application 会导致 authManager/mContext
+             为 null，真地图创建时抛 JNIInitializer$InitOptions 空指针、瓦片留白。 -->
+        <!-- 百度地图 AK：值由 build.gradle.kts 经 manifestPlaceholders 注入，
+             来源是 gitignored 的 local.properties(baiduMapAk)。未配置时为空，
+             原生 SDK 不鉴权，对应 Dart 侧走 SVG 示意底图降级。 -->
+        <meta-data
+            android:name="com.baidu.lbsapi.API_KEY"
+            android:value="${BAIDU_MAP_AK}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

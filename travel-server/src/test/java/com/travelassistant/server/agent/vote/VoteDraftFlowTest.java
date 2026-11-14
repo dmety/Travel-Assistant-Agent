@@ -52,7 +52,7 @@ class VoteDraftFlowTest {
     when(registry.find(anyString())).thenAnswer(inv ->
         Optional.ofNullable(beans.get(inv.getArgument(0, String.class))));
     when(registry.version()).thenReturn("test-registry");
-    return new VoteOrchestrator(registry, validator, rules, model, json);
+    return new VoteOrchestrator(registry, validator, rules, model, json, 2, 8);
   }
 
   private static DeepSeekClient absentModel() {

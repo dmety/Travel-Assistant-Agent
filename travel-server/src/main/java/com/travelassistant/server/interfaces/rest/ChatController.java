@@ -25,6 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/chat")
 public class ChatController {
 
+  /** 单条消息上限：再长就不是「一句话」了，也挡住超长请求体打模型与地图配额。 */
+  private static final int MAX_MESSAGE_CHARS = 2000;
+  /** 历史轮数上限：只保留最近若干轮，既够解指代，又不让客户端提供的列表无限膨胀。 */
+  private static final int MAX_HISTORY_TURNS = 50;
+
   private final ChatAgent agent;
 
   public ChatController(ChatAgent agent) {
@@ -48,8 +53,17 @@ public class ChatController {
     if (message.isEmpty()) {
       return ResponseEntity.badRequest().body(Map.of("error", "请提供 message：你想问的那句话"));
     }
-    ChatReply reply = agent.chat(message,
-        request.history() == null ? List.of() : request.history(),
+    if (message.length() > MAX_MESSAGE_CHARS) {
+      return ResponseEntity.badRequest().body(Map.of("error",
+          "message 过长：最多 " + MAX_MESSAGE_CHARS + " 字，请精简后重试"));
+    }
+    List<ConversationTurn> history = request.history() == null ? List.of() : request.history();
+    if (history.size() > MAX_HISTORY_TURNS) {
+      // 只截最近 MAX_HISTORY_TURNS 轮：单轮文本已由 ConversationTurn 限到 240 字，
+      // 这里再限轮数，送给模型的上下文体积就有确定上界。
+      history = history.subList(history.size() - MAX_HISTORY_TURNS, history.size());
+    }
+    ChatReply reply = agent.chat(message, history,
         request.state() == null ? ConversationState.empty() : request.state());
     return ResponseEntity.ok(reply);
   }
