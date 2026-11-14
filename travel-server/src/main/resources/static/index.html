@@ -75,6 +75,8 @@ html[data-theme="dark"] {
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
+/* 台词胶囊已定高；再固定滚动条槽位，避免矮视口下滚动条出现/消失带出第二次位移 */
+html{scrollbar-gutter:stable}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
   font-size:var(--fs-sm);line-height:1.7;-webkit-font-smoothing:antialiased;
   display:flex;flex-direction:column}
@@ -116,9 +118,13 @@ main{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:
 .hero-mascot{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
 .hero-mascot .mascot-mount{width:230px;height:300px;flex:0 0 auto;cursor:pointer;
   filter:drop-shadow(0 16px 28px rgba(0,0,0,.20))}
-.hero-mascot .mascot-cap{max-width:270px;padding:10px 18px;border-radius:var(--r-pill);
+/* 台词胶囊固定高度：focus/blur 会把长句换成短句，若高度随行数变化，
+   .auth-hero 的 justify-content:center 会把整只看板娘重新垂直居中，
+   表现成「点输入框/点空白处往下跳一次」。预留两行高度即可消除位移。 */
+.hero-mascot .mascot-cap{box-sizing:border-box;max-width:270px;width:270px;min-height:68px;
+  padding:10px 18px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;
   border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);
-  color:rgba(255,255,255,.94);font-size:var(--fs-sm);line-height:1.65}
+  color:rgba(255,255,255,.94);font-size:var(--fs-sm);line-height:1.65;text-align:center}
 
 /* 看板娘组件（与 tokens.css / kanban.html 同源；类名契约 .look-user/.look-pass 不要改名） */
 .mascot-svg{position:relative;display:block;width:100%;height:100%}
