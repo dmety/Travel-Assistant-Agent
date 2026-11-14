@@ -43,6 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Gradle 生成的 reports/problems 等中间产物（Android 子工程）
+/android/build/
+/android/.gradle/
 
 # Widget Preview related
 .widget_preview/

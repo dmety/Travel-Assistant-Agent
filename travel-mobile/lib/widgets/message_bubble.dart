@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/chat_message.dart';
 import '../theme/tokens.dart';
+import 'brand_avatar.dart';
 import 'draft_blocks.dart';
 
 /// 一条消息气泡。
@@ -100,32 +101,14 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!_isUser) ...[
-            _avatar(),
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: BrandAvatar(),
+            ),
             const SizedBox(width: T.sp2),
           ],
           Flexible(child: bubble),
         ],
-      ),
-    );
-  }
-
-  Widget _avatar() {
-    return Container(
-      width: 28,
-      height: 28,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: T.primarySoft,
-        borderRadius: BorderRadius.circular(T.rCtl),
-        border: Border.all(color: T.primaryLine),
-      ),
-      child: const Text(
-        '旅',
-        style: TextStyle(
-          fontSize: T.fsXs,
-          color: T.primary,
-          fontWeight: T.wStrong,
-        ),
       ),
     );
   }

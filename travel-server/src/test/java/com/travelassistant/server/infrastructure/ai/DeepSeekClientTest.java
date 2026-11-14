@@ -118,4 +118,49 @@ class DeepSeekClientTest {
         .hasMessageContaining("内容为空");
     server.verify();
   }
+
+  @Test
+  @DisplayName("用量快照含失败数 / 失败率 / 平均时延 / 最近失败原因")
+  void tracksErrorsAndLatencyInSnapshot() {
+    DeepSeekClient client = client("test-key");
+    // 一次成功 + 一次 401 失败：totalRequests=2、errors=1、failureRate=0.5
+    server.expect(requestTo(containsString("/chat/completions")))
+        .andRespond(withSuccess("""
+            {"choices":[{"message":{"role":"assistant","content":"ok"}}],
+             "usage":{"prompt_tokens":100,"completion_tokens":20}}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/chat/completions")))
+        .andRespond(withStatus(HttpStatus.UNAUTHORIZED)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body("{\"error\":\"invalid\"}"));
+
+    assertThat(client.complete("s", "u")).isEqualTo("ok");
+    assertThatThrownBy(() -> client.complete("s", "u"))
+        .isInstanceOf(AgentUnavailableException.class);
+
+    var snapshot = client.usageSnapshot();
+    assertThat(snapshot)
+        .containsEntry("calls", 1L)
+        .containsEntry("errors", 1L)
+        .containsEntry("totalRequests", 2L)
+        .containsEntry("failureRate", 0.5d)
+        .containsEntry("totalTokens", 120L);
+    assertThat(((Number) snapshot.get("avgLatencyMs")).doubleValue()).isGreaterThanOrEqualTo(0d);
+    assertThat(((Number) snapshot.get("lastLatencyMs")).longValue()).isGreaterThanOrEqualTo(0L);
+    assertThat((String) snapshot.get("lastError")).contains("密钥无效");
+    assertThat((String) snapshot.get("lastError")).doesNotContain("test-key");
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("无失败时 failureRate 为 0，避免除以零")
+  void noCallsMeansZeroFailureRate() {
+    var snapshot = client("test-key").usageSnapshot();
+    assertThat(snapshot)
+        .containsEntry("calls", 0L)
+        .containsEntry("errors", 0L)
+        .containsEntry("failureRate", 0d)
+        .containsEntry("avgLatencyMs", 0d);
+    assertThat(snapshot.get("lastError")).isNull();
+  }
 }

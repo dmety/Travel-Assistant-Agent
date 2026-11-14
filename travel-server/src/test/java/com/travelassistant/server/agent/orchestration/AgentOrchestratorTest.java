@@ -61,7 +61,7 @@ class AgentOrchestratorTest {
             context.facts(), List.of("行程建议"), "全部 Provider 不可用，本次只返回已核实事实，不生成建议"))));
     when(anchors.build(any(), any(), any(), any())).thenReturn(List.of());
     orchestrator = new AgentOrchestrator(registry, validator, rules, anchors,
-        mock(SummaryComposer.class));
+        mock(SummaryComposer.class), 1, 4);
   }
 
   private DispatchRequest request() {

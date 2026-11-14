@@ -133,7 +133,7 @@ public class MapTools {
       notices.add("高德密钥未配置，实时景点检索缺少主数据源");
     }
 
-    if (baidu.configured()) {
+    if (baidu.configured() && !baidu.dailyQuotaExhausted()) {
       try {
         for (Place poi : baidu.searchScenicSpots(name, FETCH)) {
           if (isNoise(poi)) {
@@ -145,11 +145,16 @@ public class MapTools {
         }
       } catch (RuntimeException e) {
         sourceFailures++;
-        notices.add("百度实时检索失败：" + brief(e.getMessage()));
+        if (baidu.dailyQuotaExhausted()) {
+          notices.add("百度天配额已用完，已回退高德主源");
+        } else {
+          notices.add("百度实时检索失败：" + brief(e.getMessage()));
+        }
       }
     } else {
       sourceFailures++;
-      notices.add("百度密钥未配置");
+      String reason = baidu.unavailableReason();
+      notices.add(reason != null ? reason : "百度密钥未配置");
     }
 
     // 好评高的放前面；无评分的候选仍按风景名胜优先，稳定且可复现

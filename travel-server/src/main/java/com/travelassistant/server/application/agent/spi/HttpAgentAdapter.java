@@ -2,7 +2,9 @@ package com.travelassistant.server.application.agent.spi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -112,9 +114,9 @@ public class HttpAgentAdapter implements AgentProvider {
       builder.header("Authorization", "Bearer " + token);
     }
 
-    HttpResponse<String> response;
+    HttpResponse<InputStream> response;
     try {
-      response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+      response = client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
     } catch (IOException | InterruptedException e) {
       if (e instanceof InterruptedException) {
         Thread.currentThread().interrupt();
@@ -122,16 +124,23 @@ public class HttpAgentAdapter implements AgentProvider {
       return AgentResult.refused(List.of(), List.of("外部 Agent 响应"), "外部 Agent 调用失败，已切兜底");
     }
 
-    if (response.statusCode() != 200) {
+    // 边读边计数：超过 maxResponseBytes 立即断流，绝不把整个响应先缓冲进内存（F6）。
+    String body;
+    try (InputStream in = response.body()) {
+      if (response.statusCode() != 200) {
+        return AgentResult.refused(List.of(), List.of("外部 Agent 响应"),
+            "外部 Agent 返回非 200 状态，已切兜底");
+      }
+      if (response.headers().firstValue("Set-Cookie").isPresent()) {
+        return AgentResult.refused(List.of(), List.of("外部 Agent 响应"),
+            "外部 Agent 返回 Set-Cookie，违反 T-03");
+      }
+      body = readBounded(in, maxResponseBytes);
+    } catch (IOException e) {
       return AgentResult.refused(List.of(), List.of("外部 Agent 响应"),
-          "外部 Agent 返回非 200 状态，已切兜底");
+          "外部 Agent 响应读取失败，已切兜底");
     }
-    if (response.headers().firstValue("Set-Cookie").isPresent()) {
-      return AgentResult.refused(List.of(), List.of("外部 Agent 响应"),
-          "外部 Agent 返回 Set-Cookie，违反 T-03");
-    }
-    String body = response.body() == null ? "" : response.body();
-    if (body.getBytes(StandardCharsets.UTF_8).length > maxResponseBytes) {
+    if (body == null) {
       return AgentResult.refused(List.of(), List.of("外部 Agent 响应"),
           "外部 Agent 响应超出体积上限，已切兜底");
     }
@@ -262,6 +271,25 @@ public class HttpAgentAdapter implements AgentProvider {
   private static String str(Map<String, Object> map, String key) {
     Object value = map == null ? null : map.get(key);
     return value instanceof String s ? s : null;
+  }
+
+  /**
+   * 从流中最多读 {@code maxBytes} 字节并解码为 UTF-8 字符串；一旦超过上限立即返回 {@code null}，
+   * 不再拉取剩余字节。内存占用因此被限制在「上限 + 一个缓冲块」，恶意端点无法用超大响应耗尽内存。
+   */
+  static String readBounded(InputStream in, int maxBytes) throws IOException {
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    byte[] chunk = new byte[8192];
+    int total = 0;
+    int n;
+    while ((n = in.read(chunk)) != -1) {
+      total += n;
+      if (total > maxBytes) {
+        return null;
+      }
+      buffer.write(chunk, 0, n);
+    }
+    return buffer.toString(StandardCharsets.UTF_8);
   }
 
   private static int intOr(Object value, int fallback) {
