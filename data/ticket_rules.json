@@ -76,6 +76,19 @@
         "validFrom": null,
         "validTo": null,
         "note": null
+      },
+      "priceLabels": {
+        "value": {
+          "peak": "成人票（旺季）",
+          "offPeak": "成人票（淡季）",
+          "studentPeak": "学生票（旺季）",
+          "studentOffPeak": "学生票（淡季）"
+        },
+        "sourceUrl": "https://s.visitbeijing.com.cn/attraction/101406",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "票种呈现名，与 price 字段同源；仅用于展示，不参与资格判断"
       }
     }
   },
@@ -149,6 +162,16 @@
         "validFrom": null,
         "validTo": null,
         "note": null
+      },
+      "priceLabels": {
+        "value": {
+          "regular": "普通票"
+        },
+        "sourceUrl": "https://www.capitalmuseum.org.cn/exhibition/ef6317dda86f4501a29889ae63da663e",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "票种呈现名，与 price 字段同源；仅用于展示，不参与资格判断"
       }
     }
   },
@@ -220,6 +243,21 @@
         "validFrom": null,
         "validTo": null,
         "note": null
+      },
+      "priceLabels": {
+        "value": {
+          "regular": "普通票",
+          "half": "半价票",
+          "combined": "联票",
+          "combinedHalf": "联票（半价）",
+          "flower": "花期票",
+          "flowerHalf": "花期票（半价）"
+        },
+        "sourceUrl": "https://www.zhongshan-park.cn/parkorg/list/menpiaojiage.html",
+        "verifiedAt": "2026-11-06",
+        "validFrom": null,
+        "validTo": null,
+        "note": "票种呈现名，与 price 字段同源；仅用于展示，不参与资格判断"
       }
     }
   }
