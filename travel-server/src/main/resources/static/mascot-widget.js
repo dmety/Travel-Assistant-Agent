@@ -1,19 +1,34 @@
 /* ==========================================================================
-   浮动看板娘 · 游小满 v4.1（前端组件）
+   浮动看板娘 · 游小满 v4.3.1（前端组件）
    --------------------------------------------------------------------------
    自包含：脚本注入所需样式，挂在任何页面都能用，不依赖 tokens.css 是否已加载。
-   行为：
-     · 全身可拖：浮窗任意位置 pointerdown 即拖拽；拖动期间只写 transform
-       （合成层位移，不逐帧改 left/top 触发重排与 drop-shadow 重绘），
-       松手才落位 left/top 并持久化；拖拽中暂停呼吸/指针跟随、隐藏气泡。
-     · 双击切换「徽章档」：正脸头像小圆，少遮地图；再双击恢复立绘。
-     · 周期眨眼：差分帧硬切（不做半透明交叉淡入，避免闪烁感）。
-     · 点击循环四段情绪 idle → 害羞 → 不耐烦 → 生气 → idle；
-       idle/害羞 点头，不耐烦/生气 抖动；指针跟随整窗轻微倾斜。
-   资产：/mascot/mascot-v4-front-*.png（正脸透明底，头像一律正脸）。
-   表情契约类名 .look-user / .look-pass / .look-annoyed / .look-angry 与
-   tokens.css / design/kanban.html 共用，勿改名；.m-idle 为默认。
-   关闭：在 <body data-float-mascot="off"> 时本组件不挂载（登录页有 hero 看板娘，不重复）。
+
+   ★ v4.3 定调：她始终是【完整立绘】。没有头像档、没有徽章档、不会缩小，
+     点击永远不会改变尺寸或裁切身体。要避开地图，靠拖动（位置记忆），不靠变形。
+     v4.2 的 compact 圆形裁切会把腿裁掉，是设计错误，已整体移除。
+     v4.3.1 修差分帧叠帧：基础 img 规则特异性压过隐藏规则，导致 6 帧全不透明
+     叠在一起（闪烁 + 表情永远显示最后一帧），显隐规则统一加 img.m-* 前缀。
+     另加 Esc 一键归位：旧版误拖到地图中央的位置会被记忆，聚焦后按 Esc 可清掉
+     位置记忆并回到右下预留位，避免立绘长期盖住地图点位。
+
+   通道分层（解决「只有脚能拖 / 拖完闪烁回弹」）：
+     dock = 定位层。left/top 落位，拖拽期间独占位移。
+     rig  = 指针跟随层。独占 transform 轻微倾斜，拖拽期间冻结清零。
+     svg  = 表情层。独占 animation（呼吸/点头/抖动），拖拽期间 animation:none。
+     img  = 差分帧。opacity 硬切，不做交叉淡入（半透明叠帧就是闪烁源）。
+   所有 img 设 pointer-events:none，事件直接落到 dock 全矩形；
+   pointermove/up/cancel 挂 window，配合 setPointerCapture 双保险。
+   落位用数值变量，不再正则解析 transform 字符串（解析失败会弹回原位）。
+
+   不遮地图：不自动弹气泡（首帧/情绪切换都不弹），不显示任何白色浮层；
+   立绘 96x124 停靠右下，可拖到任意位置并写入 localStorage 记忆。
+   拖拽期间冻结眨眼调度、情绪切换与指针跟随，松手一次性恢复。
+
+   契约（勿改名，登录页 / kanban.html 共用）：
+     类名 .mascot-svg + .m-idle/.m-user/.m-pass/.m-blink/.m-annoyed/.m-angry；
+     切换类 .look-user/.look-pass/.look-annoyed/.look-angry；
+     资源 /mascot/mascot-v4-front-*.png；localStorage 键 mascotPos；
+     <body data-float-mascot="off"> 时本组件不挂载（登录页有 hero 看板娘）。
    ========================================================================== */
 (function () {
   'use strict';
@@ -30,75 +45,79 @@
     angry: PREFIX + 'angry.png'
   };
   var MOODS = ['idle', 'user', 'annoyed', 'angry'];
-  var CAP = {
-    idle: '需要我帮你想想行程吗？戳我一下～',
-    user: '这页有看不懂的，直接问我就行。',
-    annoyed: '别老戳我啦……',
-    angry: '再戳我可要真生气了！'
-  };
-  // 点头 / 抖动的动效名
   var ANIM = { idle: 'nod', user: 'nod', annoyed: 'shake', angry: 'shake' };
 
-  /* ---------- 注入样式（自包含） ---------- */
-  var css =
-    '.mascot-dock{position:fixed;right:16px;bottom:16px;z-index:60;width:112px;height:144px;' +
-    'cursor:grab;touch-action:none;will-change:transform;' +
-    'filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));}' +
-    '.mascot-dock.dragging{cursor:grabbing;}' +
-    '.mascot-dock.dragging .mascot-svg{animation:none;}' +
-    '.mascot-dock:focus-visible{outline:2px solid var(--clay,#B4542A);outline-offset:4px;}' +
-    '.mascot-dock.compact{width:56px;height:56px;border-radius:50%;overflow:hidden;' +
-    'filter:drop-shadow(0 6px 14px rgba(0,0,0,.22));}' +
-    '.mascot-dock.compact .mascot-svg img{object-fit:cover;object-position:50% 12%;}' +
-    '.mascot-dock.compact .mascot-cap{display:none;}' +
-    '.mascot-dock .mascot-svg{position:relative;display:block;width:100%;height:100%;}' +
-    '.mascot-dock .mascot-svg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .24s ease;}' +
-    '.mascot-dock .m-user,.mascot-dock .m-pass,.mascot-dock .m-blink,.mascot-dock .m-annoyed,.mascot-dock .m-angry{opacity:0;}' +
-    '.mascot-dock .mascot-svg.look-user .m-idle{opacity:0;}.mascot-dock .mascot-svg.look-user .m-user{opacity:1;}' +
-    '.mascot-dock .mascot-svg.look-pass .m-idle{opacity:0;}.mascot-dock .mascot-svg.look-pass .m-pass{opacity:1;}' +
-    '.mascot-dock .mascot-svg.look-annoyed .m-idle{opacity:0;}.mascot-dock .mascot-svg.look-annoyed .m-annoyed{opacity:1;}' +
-    '.mascot-dock .mascot-svg.look-angry .m-idle{opacity:0;}.mascot-dock .mascot-svg.look-angry .m-angry{opacity:1;}' +
-    /* 眨眼硬切：交叉淡入会在两帧半透明时露底，看起来像闪烁 */
-    '.mascot-dock .mascot-svg .m-blink{transition:none;}' +
-    '.mascot-dock .mascot-svg.blink .m-idle{opacity:0;transition:none;}.mascot-dock .mascot-svg.blink .m-blink{opacity:1;}' +
-    /* 气泡默认放在浮窗左上方：右侧竖栏留给状态胶囊与日程条，避免盖住它们 */
-    '.mascot-cap{position:absolute;right:calc(100% + 10px);bottom:calc(100% + 34px);width:max-content;max-width:220px;padding:8px 12px;' +
-    'border-radius:14px;border:1px solid var(--pine-line,#BBD0C4);background:var(--surface,#fff);' +
-    'color:var(--ink,#20241E);font-size:12px;line-height:1.6;box-shadow:var(--shadow-2,0 4px 14px rgba(0,0,0,.1));' +
-    'opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .2s ease,transform .2s ease;}' +
-    '.mascot-cap.flip-x{right:auto;left:calc(100% + 10px);}' +
-    '.mascot-cap.flip-y{bottom:auto;top:calc(100% + 10px);}' +
-    '.mascot-cap.show{opacity:1;transform:translateY(0);}' +
-    '@media (max-width:900px){.mascot-dock{width:76px;height:98px;right:10px;bottom:96px;}' +
-    '.mascot-dock.compact{width:44px;height:44px;}}' +
-    '@media (prefers-reduced-motion:no-preference){' +
-    '@keyframes mgBreath{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}' +
-    '@keyframes mgNod{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(4px) rotate(2deg)}70%{transform:translateY(-2px) rotate(-1deg)}100%{transform:translateY(0) rotate(0)}}' +
-    '@keyframes mgShake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-3px) rotate(-1.5deg)}40%{transform:translateX(3px) rotate(1.5deg)}60%{transform:translateX(-2px) rotate(-1deg)}80%{transform:translateX(2px) rotate(1deg)}}' +
-    '.mascot-dock .mascot-svg{animation:mgBreath 5.6s ease-in-out infinite;}' +
-    '.mascot-dock .mascot-svg.nod{animation:mgNod .55s cubic-bezier(.16,1,.3,1) both;}' +
-    '.mascot-dock .mascot-svg.shake{animation:mgShake .5s cubic-bezier(.16,1,.3,1) both;}}' +
-    '@media (prefers-reduced-motion:reduce){' +
-    '.mascot-dock .mascot-svg,.mascot-dock .mascot-svg img{animation:none!important;transition:none!important;}}';
+  /* ---------- 注入样式（全部限定在 .mascot-dock 下，不污染登录页） ---------- */
+  var css = [
+    '.mascot-dock{position:fixed;right:16px;bottom:16px;z-index:60;width:96px;height:124px;',
+    'cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;',
+    'filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));}',
+    '.mascot-dock:focus-visible{outline:2px solid var(--clay,#B4542A);outline-offset:4px;}',
+    /* 拖拽中冻结一切动效，避免合成层反复重绘造成闪烁 */
+    '.mascot-dock.dragging{cursor:grabbing;}',
+    '.mascot-dock.dragging .mascot-svg{animation:none!important;}',
+    /* rig：指针跟随层，独占 transform */
+    '.mascot-rig{position:absolute;inset:0;will-change:transform;}',
+    /* svg：表情层，独占 animation */
+    '.mascot-dock .mascot-svg{position:absolute;inset:0;display:block;}',
+    /* 立绘始终 object-fit:contain 完整显示，绝不裁身体；
+       pointer-events:none 让整个 dock 矩形都是拖拽热区。
+       差分帧的显隐规则一律写成 img.m-* 形式：基础 img 规则特异性 (0,2,1)
+       会压过 .mascot-dock .m-user (0,2,0)，一旦漏掉 img 就会出现
+       「6 帧全不透明叠在一起」——叠帧正是闪烁与表情错乱的根因。 */
+    '.mascot-dock .mascot-svg img{position:absolute;inset:0;width:100%;height:100%;',
+    'object-fit:contain;pointer-events:none;transition:none!important;}',
+    '.mascot-dock .mascot-svg img.m-idle{opacity:1;}',
+    '.mascot-dock .mascot-svg img.m-user,',
+    '.mascot-dock .mascot-svg img.m-pass,',
+    '.mascot-dock .mascot-svg img.m-blink,',
+    '.mascot-dock .mascot-svg img.m-annoyed,',
+    '.mascot-dock .mascot-svg img.m-angry{opacity:0;}',
+    '.mascot-dock .mascot-svg.look-user img.m-idle{opacity:0;}',
+    '.mascot-dock .mascot-svg.look-user img.m-user{opacity:1;}',
+    '.mascot-dock .mascot-svg.look-pass img.m-idle{opacity:0;}',
+    '.mascot-dock .mascot-svg.look-pass img.m-pass{opacity:1;}',
+    '.mascot-dock .mascot-svg.look-annoyed img.m-idle{opacity:0;}',
+    '.mascot-dock .mascot-svg.look-annoyed img.m-annoyed{opacity:1;}',
+    '.mascot-dock .mascot-svg.look-angry img.m-idle{opacity:0;}',
+    '.mascot-dock .mascot-svg.look-angry img.m-angry{opacity:1;}',
+    /* 眨眼硬切：先压掉其它帧再显示闭眼帧，杜绝叠帧露底 */
+    '.mascot-dock .mascot-svg.blink img.m-idle,.mascot-dock .mascot-svg.blink img.m-user,',
+    '.mascot-dock .mascot-svg.blink img.m-pass,.mascot-dock .mascot-svg.blink img.m-annoyed,',
+    '.mascot-dock .mascot-svg.blink img.m-angry{opacity:0;}',
+    '.mascot-dock .mascot-svg.blink img.m-blink{opacity:1;}',
+    '@media (max-width:900px){',
+    '.mascot-dock{width:76px;height:98px;right:10px;bottom:96px;}}',
+    '@media (prefers-reduced-motion:no-preference){',
+    '@keyframes mgBreath{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}',
+    '@keyframes mgNod{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(4px) rotate(2deg)}',
+    '70%{transform:translateY(-2px) rotate(-1deg)}100%{transform:translateY(0) rotate(0)}}',
+    '@keyframes mgShake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-3px) rotate(-1.5deg)}',
+    '40%{transform:translateX(3px) rotate(1.5deg)}60%{transform:translateX(-2px) rotate(-1deg)}',
+    '80%{transform:translateX(2px) rotate(1deg)}}',
+    '.mascot-dock .mascot-svg{animation:mgBreath 5.6s ease-in-out infinite;}',
+    '.mascot-dock .mascot-svg.nod{animation:mgNod .55s cubic-bezier(.16,1,.3,1) both;}',
+    '.mascot-dock .mascot-svg.shake{animation:mgShake .5s cubic-bezier(.16,1,.3,1) both;}}',
+    '@media (prefers-reduced-motion:reduce){',
+    '.mascot-dock .mascot-svg,.mascot-dock .mascot-svg img{',
+    'animation:none!important;transition:none!important;}}'
+  ].join('');
   var style = document.createElement('style');
   style.id = 'mascotWidgetStyle';
   style.textContent = css;
   document.head.appendChild(style);
 
-  /* ---------- 构建 DOM ---------- */
+  /* ---------- 构建 DOM：dock > rig > svg > 6 帧 ---------- */
   var dock = document.createElement('div');
   dock.id = 'mascotDock';
   dock.className = 'mascot-dock';
   dock.setAttribute('role', 'button');
   dock.setAttribute('tabindex', '0');
-  dock.setAttribute('aria-label', '看板娘 游小满（拖动挪位，双击收起）');
-  dock.title = '拖动挪位 · 双击收起/展开';
+  dock.setAttribute('aria-label', '看板娘 游小满（点击换情绪，拖动挪位，按 Esc 回到角落）');
+  dock.title = '拖动挪位 · 点击换表情 · 按 Esc 回到角落（立绘大小不变）';
 
-  var cap = document.createElement('div');
-  cap.className = 'mascot-cap';
-  cap.setAttribute('role', 'status');
-  cap.setAttribute('aria-live', 'polite');
-  cap.textContent = CAP.idle;
+  var rig = document.createElement('div');
+  rig.className = 'mascot-rig';
 
   var svg = document.createElement('div');
   svg.className = 'mascot-svg';
@@ -111,33 +130,20 @@
     img.draggable = false;
     svg.appendChild(img);
   });
-
-  dock.appendChild(cap);
-  dock.appendChild(svg);
+  rig.appendChild(svg);
+  dock.appendChild(rig);
   document.body.appendChild(dock);
-  var dragging = false, moved = false;
 
-  /* ---------- 台词气泡显隐 ---------- */
-  var capTimer = null;
-  function showCap(text, sticky) {
-    cap.textContent = text;
-    cap.classList.add('show');
-    var dr = dock.getBoundingClientRect();
-    cap.classList.toggle('flip-x', dr.left < cap.offsetWidth + 16);
-    cap.classList.toggle('flip-y', dr.top < cap.offsetHeight + 40);
-    if (capTimer) { clearTimeout(capTimer); capTimer = null; }
-    if (!sticky) capTimer = setTimeout(function () { cap.classList.remove('show'); }, 2600);
-  }
-
-  /* ---------- 情绪切换 ---------- */
+  /* ---------- 情绪：单击永远只换情绪，绝不改变尺寸/形态 ---------- */
   var idx = 0;
   function setMood(mood) {
+    if (dragging) return;
     svg.classList.remove('look-user', 'look-pass', 'look-annoyed', 'look-angry');
     if (mood !== 'idle') svg.classList.add('look-' + mood);
     svg.classList.remove('nod', 'shake');
-    void svg.getBoundingClientRect();
+    /* 强制重排让连点时动画每次都重新起跳，而不是卡在上一帧 */
+    void svg.offsetWidth;
     svg.classList.add(ANIM[mood]);
-    showCap(CAP[mood]);
   }
   svg.addEventListener('animationend', function (e) {
     if (e.animationName === 'mgNod' || e.animationName === 'mgShake') {
@@ -148,56 +154,55 @@
     idx = (idx + 1) % MOODS.length;
     setMood(MOODS[idx]);
   }
-  /* 单击换情绪、双击收起/展开。用点击间隔判定双击：pointerdown 会 preventDefault，
-     部分浏览器不再合成原生 dblclick，但 click 始终触发，按时间判定最稳。 */
-  var lastClick = 0;
+
+  /* 没有双击判定、没有档位切换：连续快速点击只会循环表情，立绘始终完整 */
+  var suppressClick = false;
   dock.addEventListener('click', function (e) {
-    if (moved) { moved = false; e.preventDefault(); e.stopPropagation(); return; }
-    var now = Date.now();
-    if (now - lastClick < 320) { lastClick = 0; toggleCompact(); }
-    else { lastClick = now; advance(); }
+    if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); return; }
+    advance();
   });
+  /* Esc 一键归位：清掉旧版误拖到地图中央的位置记忆，回到右下预留位。
+     不改点击行为、不改尺寸，是可发现性之外的兜底手段。 */
+  function resetPos() {
+    if (dragging) return;
+    try { localStorage.removeItem('mascotPos'); } catch (e2) {}
+    dock.style.left = '';
+    dock.style.top = '';
+    dock.style.right = '';
+    dock.style.bottom = '';
+    dock.style.transform = '';
+    rig.style.transform = '';
+  }
   dock.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); resetPos(); return; }
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); }
   });
 
-  /* ---------- 徽章档：双击收起成头像小圆，少遮地图 ---------- */
-  var compact = false;
-  try { compact = localStorage.getItem('mascotCompact') === '1'; } catch (e) {}
-  function applyCompact() {
-    dock.classList.toggle('compact', compact);
-    dock.setAttribute('aria-label', compact
-      ? '看板娘 游小满 · 徽章档（双击展开）'
-      : '看板娘 游小满（拖动挪位，双击收起）');
-  }
-  applyCompact();
-  function toggleCompact() {
-    compact = !compact;
-    applyCompact();
-    idx = 0;
-    svg.classList.remove('look-user', 'look-pass', 'look-annoyed', 'look-angry', 'nod', 'shake');
-    clampPos();
-    try { localStorage.setItem('mascotCompact', compact ? '1' : '0'); } catch (e2) {}
-  }
-
-  /* ---------- 周期眨眼（硬切） ---------- */
+  /* ---------- 周期眨眼（硬切；拖拽期间跳过本次并重排） ---------- */
   function scheduleBlink() {
     var wait = 4000 + Math.random() * 4000;
     setTimeout(function () {
-      if (document.hidden) { scheduleBlink(); return; }
+      if (document.hidden || dragging) { scheduleBlink(); return; }
       svg.classList.add('blink');
-      setTimeout(function () { svg.classList.remove('blink'); }, 120);
+      setTimeout(function () { svg.classList.remove('blink'); }, 130);
       scheduleBlink();
     }, wait);
   }
   scheduleBlink();
 
-  /* ---------- 拖拽：全身可拖，位移走 transform，松手落位并持久化 ---------- */
+  /* ---------- 拖拽：dock 独占位移，window 级事件，数值落位 ---------- */
+  var dragging = false, moved = false, pointerId = null;
+  var startX = 0, startY = 0, baseL = 0, baseT = 0, curL = 0, curT = 0;
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(v, hi)); }
   function clampPos() {
     var l = parseFloat(dock.style.left), t = parseFloat(dock.style.top);
     if (isNaN(l) || isNaN(t)) return;
-    dock.style.left = Math.max(0, Math.min(l, window.innerWidth - dock.offsetWidth)) + 'px';
-    dock.style.top = Math.max(0, Math.min(t, window.innerHeight - dock.offsetHeight)) + 'px';
+    dock.style.left = clamp(l, 0, Math.max(0, window.innerWidth - dock.offsetWidth)) + 'px';
+    dock.style.top = clamp(t, 0, Math.max(0, window.innerHeight - dock.offsetHeight)) + 'px';
+  }
+  function persist() {
+    try { localStorage.setItem('mascotPos', JSON.stringify({ left: curL, top: curT })); }
+    catch (e) {}
   }
   var savedPos = null;
   try { savedPos = JSON.parse(localStorage.getItem('mascotPos') || 'null'); } catch (e) {}
@@ -210,55 +215,67 @@
   }
   window.addEventListener('resize', clampPos);
 
-  var dragX = 0, dragY = 0, baseL = 0, baseT = 0;
   dock.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    e.preventDefault(); e.stopPropagation();
-    dragging = true; moved = false;
+    e.preventDefault();
+    dragging = true; moved = false; pointerId = e.pointerId;
     var r = dock.getBoundingClientRect();
-    baseL = r.left; baseT = r.top;
+    baseL = r.left; baseT = r.top; curL = baseL; curT = baseT;
+    /* 一次性固化定位：从 right/bottom 切到 left/top，避免首帧跳位 */
     dock.style.left = baseL + 'px';
     dock.style.top = baseT + 'px';
     dock.style.right = 'auto';
     dock.style.bottom = 'auto';
     dock.style.transform = '';
+    rig.style.transform = '';
     if (raf) { cancelAnimationFrame(raf); raf = null; }
     tx = ty = cx = cy = 0;
-    dragX = e.clientX; dragY = e.clientY;
+    startX = e.clientX; startY = e.clientY;
     dock.classList.add('dragging');
-    cap.classList.remove('show');
     try { dock.setPointerCapture(e.pointerId); } catch (e2) {}
   });
-  dock.addEventListener('pointermove', function (e) {
+  function onPointerMove(e) {
     if (!dragging) return;
-    var dx = e.clientX - dragX, dy = e.clientY - dragY;
+    if (pointerId !== null && e.pointerId !== undefined && e.pointerId !== pointerId) return;
+    var dx = e.clientX - startX, dy = e.clientY - startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
-    var nl = Math.max(0, Math.min(baseL + dx, window.innerWidth - dock.offsetWidth));
-    var nt = Math.max(0, Math.min(baseT + dy, window.innerHeight - dock.offsetHeight));
-    dock.style.transform = 'translate3d(' + (nl - baseL) + 'px,' + (nt - baseT) + 'px,0)';
-  });
-  function endDrag() {
-    if (!dragging) return;
-    dragging = false;
-    dock.classList.remove('dragging');
-    var m = /translate3d\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(dock.style.transform || '');
-    var nl = baseL + (m ? +m[1] : 0), nt = baseT + (m ? +m[2] : 0);
-    dock.style.left = nl + 'px';
-    dock.style.top = nt + 'px';
-    dock.style.transform = '';
-    try {
-      localStorage.setItem('mascotPos', JSON.stringify({ left: nl, top: nt }));
-    } catch (e) {}
+    curL = clamp(baseL + dx, 0, Math.max(0, window.innerWidth - dock.offsetWidth));
+    curT = clamp(baseT + dy, 0, Math.max(0, window.innerHeight - dock.offsetHeight));
+    dock.style.left = curL + 'px';
+    dock.style.top = curT + 'px';
   }
-  dock.addEventListener('pointerup', endDrag);
-  dock.addEventListener('pointercancel', endDrag);
+  function onPointerUp(e) {
+    if (!dragging) return;
+    /* 失焦/取消等合成事件没有可靠 pointerId，视为强制收尾，不能卡死拖拽 */
+    var forced = !e || e.pointerId === undefined || e.pointerId === null;
+    if (!forced && pointerId !== null && e.pointerId !== pointerId) return;
+    dragging = false;
+    pointerId = null;
+    dock.classList.remove('dragging');
+    dock.style.left = curL + 'px';
+    dock.style.top = curT + 'px';
+    dock.style.transform = '';
+    rig.style.transform = '';
+    persist();
+    if (moved) {
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 120);
+    }
+    if (!forced && e && typeof e.pointerId === 'number') {
+      try { dock.releasePointerCapture(e.pointerId); } catch (e2) {}
+    }
+  }
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+  window.addEventListener('blur', function () { if (dragging) onPointerUp(null); });
 
-  /* ---------- 指针跟随（整窗轻微倾斜；拖拽期间暂停） ---------- */
+  /* ---------- 指针跟随：只写 rig 的 transform，拖拽期间冻结 ---------- */
   var tx = 0, ty = 0, cx = 0, cy = 0, raf = null;
   function loop() {
     cx += (tx - cx) * 0.12;
     cy += (ty - cy) * 0.12;
-    dock.style.transform = 'translate(' + cx.toFixed(2) + 'px,' + cy.toFixed(2) + 'px)';
+    rig.style.transform = 'translate(' + cx.toFixed(2) + 'px,' + cy.toFixed(2) + 'px)';
     if (Math.abs(tx - cx) > 0.1 || Math.abs(ty - cy) > 0.1) {
       raf = requestAnimationFrame(loop);
     } else { raf = null; }
@@ -268,11 +285,8 @@
     var r = dock.getBoundingClientRect();
     var dx = (e.clientX - (r.left + r.width / 2)) / (window.innerWidth / 2);
     var dy = (e.clientY - (r.top + r.height / 2)) / (window.innerHeight / 2);
-    tx = Math.max(-6, Math.min(6, dx * 6));
-    ty = Math.max(-6, Math.min(6, dy * 6));
+    tx = clamp(dx * 6, -6, 6);
+    ty = clamp(dy * 6, -6, 6);
     if (!raf) raf = requestAnimationFrame(loop);
   }, { passive: true });
-
-  /* 首次进场稍候提示 */
-  setTimeout(function () { showCap(CAP.idle); }, 900);
 })();

@@ -2742,14 +2742,30 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     side.innerHTML = '<div class="kb-search"><input class="field" id="kbQ" placeholder="城市或景点">' +
       '<button class="btn btn-primary btn-sm" id="kbGo">搜</button></div>' +
       '<div class="kb-status ok">知识库已加载 · 覆盖 ' + (st.cityCount || '?') + ' 城 · ' + (st.count || '?') + ' 条</div>' +
-      '<div class="city-grp">常用城市</div>';
-    ['武汉', '北京', '上海', '成都', '西安', '重庆', '杭州', '广州', '深圳'].forEach(function (c) {
-      var ci = el('div', 'city', esc(c)); ci.addEventListener('click', function () { kbSearch(c); }); side.appendChild(ci);
+      '<div class="city-grp">热门城市</div>';
+    /* 数量只取 /api/attractions 的 matched（真实命中数）；取不到就留空，
+       绝不把设计稿里的示意数字（436 / 612 …）当成真实数据写进页面。 */
+    var hot = ['武汉', '北京', '上海', '成都', '西安', '重庆', '杭州', '广州', '深圳'];
+    hot.forEach(function (c) {
+      var ci = el('div', 'city', esc(c) + '<span class="cnt"></span>');
+      ci.addEventListener('click', function () {
+        Array.prototype.forEach.call(side.querySelectorAll('.city'), function (x) {
+          x.removeAttribute('aria-current');
+        });
+        ci.setAttribute('aria-current', 'true');
+        kbSearch(c);
+      });
+      side.appendChild(ci);
+      api('/api/attractions?limit=1&city=' + enc(c)).then(function (res) {
+        if (typeof res.matched === 'number') {
+          ci.querySelector('.cnt').textContent = String(res.matched);
+        }
+      }).catch(function () { /* 数量不可用就不显示，不编造 */ });
     });
     wrap.appendChild(side);
     var main = el('div', 'kb-main');
     main.innerHTML = '<div class="kb-list" id="kbList"><div class="lh">检索城市或景点</div>' +
-      '<div class="trip-empty">输入城市（如 武汉）或景点名开始检索。库只覆盖 81 个城市键，查不到如实提示，不编造。</div></div>' +
+      '<div class="trip-empty">输入城市（如 武汉）或景点名开始检索。库只覆盖已收录城市，查不到如实提示，不编造。</div></div>' +
       '<div class="kb-detail" id="kbDetail"></div>';
     wrap.appendChild(main); box.appendChild(wrap);
     $('kbGo').addEventListener('click', function () { kbSearch($('kbQ').value.trim()); });
@@ -5319,6 +5335,6 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       })();
 })();
 </script>
-<script src="mascot-widget.js"></script>
+<script src="mascot-widget.js?v=4.3.1"></script>
 </body>
 </html>

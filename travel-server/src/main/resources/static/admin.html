@@ -16,11 +16,18 @@
   })();
 </script>
 <style>
+  /* hidden 必须压过下面所有 display:flex 的作者规则：否则 .modal / .gate-wrap
+     被作者样式强制显示，UA 的 [hidden]{display:none} 优先级不够，弹窗与门禁层会常驻。 */
+  [hidden] { display: none !important; }
+
   /* ---- 令牌门禁遮罩 ---- */
   .gate-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .gate { max-width: 480px; width: 100%; background: var(--surface); border: 1px solid var(--line);
     border-radius: var(--r-lg); box-shadow: var(--shadow-2); padding: 40px 32px; text-align: center; }
-  .gate .seal { width: 52px; height: 52px; margin: 0 auto; }
+  /* span 默认 inline，只写 width/height 不生效，内含 SVG 会按 viewBox 撑成整幅空框。 */
+  .gate .seal { display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; margin: 0 auto; }
+  .seal svg { display: block; width: 100%; height: 100%; }
   .gate h2 { font-size: var(--fs-lg); margin-top: 14px; }
   .gate p { color: var(--text-3); font-size: var(--fs-sm); margin-top: 8px; line-height: 1.7; }
   .gate .field { width: 100%; margin-top: 18px; text-align: center; }
@@ -92,6 +99,7 @@
   .rep-list { padding: 12px 16px; font-size: var(--fs-sm); color: var(--text-2); }
   .rep-list li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
   .rep-list li:last-child { border-bottom: 0; }
+  .rep-empty { padding: 14px 4px; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.7; }
 
   .modal { position: fixed; inset: 0; background: rgba(20, 18, 14, .45); display: flex;
     align-items: center; justify-content: center; padding: 24px; z-index: 50; }
@@ -158,7 +166,7 @@
   <div class="box">
     <div class="head"><h2 style="font-size:var(--fs-md)">准入报告</h2><span class="sp"></span>
       <button class="btn btn-quiet btn-sm" id="modalClose">关闭</button></div>
-    <div class="body" id="modalBody"></div>
+    <div class="body" id="modalBody"><p class="rep-empty">暂无准入报告数据。先在 Provider 列表执行探测或查看已有报告。</p></div>
   </div>
 </div>
 
