@@ -159,15 +159,18 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
    生产环境直接隐藏存在合规风险；如法务要求，请仅保留最小署名或改用合规样式。 */
 .anchorBL,.BMap_cpyCtrl,.BMap_cpyCtrl a{display:none!important}
 .pin-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
-.pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);
-  display:flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;
-  background:var(--surface-warm);border:1px solid var(--pine-line);border-radius:var(--r-pill);
-  box-shadow:var(--shadow-2);font-size:var(--fs-xs);color:var(--pine-text);
-  white-space:nowrap;cursor:pointer}
-.pin i{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;
-  background:var(--action-bg);color:var(--action-fg);font-size:11px;font-style:normal;font-weight:600}
-.pin:hover,.pin.is-active{background:var(--action-bg);color:var(--action-fg);border-color:var(--action-bg)}
-.pin:hover i,.pin.is-active i{background:var(--surface-warm);color:var(--pine-text)}
+/* 图钉按设计稿 tokens.css 的泪滴形落地：方形倒转 45°、左下角收成针尖，
+   内部数字反向转正；已核验点位走绿色 is-verified 态，与图例两色一致 */
+.pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%) rotate(-45deg);
+  width:28px;height:28px;display:grid;place-items:center;
+  border-radius:50% 50% 50% 3px;
+  background:var(--surface-warm);border:2px solid var(--pine);
+  box-shadow:var(--shadow-2);font-size:var(--fs-xs);font-weight:600;
+  color:var(--pine);cursor:pointer}
+.pin>span{transform:rotate(45deg);font-weight:600}
+.pin:hover,.pin.is-active{background:var(--action-bg);border-color:var(--action-bg);color:var(--action-fg)}
+.pin.is-verified{border-color:var(--ok);color:var(--ok)}
+.pin.is-verified:hover,.pin.is-verified.is-active{background:var(--action-bg);border-color:var(--action-bg);color:var(--action-fg)}
 .map-pill{position:absolute;z-index:4;left:50%;top:18px;transform:translateX(-50%);
   display:flex;align-items:center;gap:8px;padding:7px 14px;
   background:var(--glass);border:1px solid var(--line);
@@ -1552,8 +1555,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <div class="map-pill"><b id="mapPillTitle">行程地图</b><span id="mapPillMeta">· 尚未生成草案</span></div>
       <div class="map-note" id="mapNote">示意底图 · 非导航用</div>
       <div class="map-legend">
-        <span><i style="background:var(--pine)"></i>已排点位</span>
-        <span><i style="background:var(--clay)"></i>按天路线</span>
+        <span><i style="background:var(--pine)"></i>待核验</span>
+        <span><i style="background:var(--ok)"></i>已核验</span>
       </div>
       <div class="fabs">
         <button class="fab" type="button" id="fabPool" title="候选里还没排进行程的地点">待规划 <b id="fabPoolN">0</b></button>
@@ -2027,10 +2030,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         var a = ANCHORS[n % ANCHORS.length];
         var pt = { day: day.dayIndex, name: item.name || '未命名点位',
           city: item.city || '', ticket: item.ticket, openTime: item.openTime,
+          verified: String(item.ticketStatus || '') === 'verified',
           x: a[0] + (ii % 2) * 2, y: a[1] + di * 1.5 };
         points.push(pt); n++;
-        var pin = el('button', 'pin', '<i>' + esc(n) + '</i>' + esc(pt.name));
+        /* 设计稿图钉只带序号（泪滴形），点位名放 title 与点位卡，不在地图上铺文字 */
+        var pin = el('button', 'pin' + (pt.verified ? ' is-verified' : ''),
+          '<span>' + esc(n) + '</span>');
         pin.type = 'button';
+        pin.title = pt.name;
         pin.style.left = pt.x + '%'; pin.style.top = pt.y + '%';
         pin.addEventListener('click', function () { showSpot(pt, pin); });
         layer.appendChild(pin);
