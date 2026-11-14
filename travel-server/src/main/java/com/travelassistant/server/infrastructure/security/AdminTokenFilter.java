@@ -29,6 +29,7 @@ public class AdminTokenFilter extends OncePerRequestFilter {
 
   private static final AntPathMatcher MATCHER = new AntPathMatcher();
   private static final List<String> ADMIN_PATHS = List.of(
+      "/api/agent/providers",
       "/api/agent/providers/reload",
       "/api/agent/providers/*/probe",
       "/api/agent/providers/*/shadow",

@@ -109,6 +109,21 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("管理后台页面公开，/admin 转发到静态页")
+  void adminPageIsPublic() throws Exception {
+    // 页面静态资源必须公开，页内注册表/准入接口由 AdminTokenFilter 以 X-Admin-Token 鉴权。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/admin.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"gate\"")))
+        .andExpect(content().string(containsString("id=\"console\"")));
+
+    mvc.perform(get("/admin"))
+        .andExpect(status().isOk())
+        .andExpect(forwardedUrl("/admin.html"));
+  }
+
+  @Test
   @DisplayName("本轮新增网页端页面（移动端/设置/美食）与看板娘资源均公开")
   void newWebPagesAndMascotAssetsArePublic() throws Exception {
     // 三个新页面与 planner.html 同模式：页面公开，页内 /api/** 仍由 authenticated() 拦截。
