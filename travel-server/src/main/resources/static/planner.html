@@ -1429,6 +1429,60 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   .kb-main{grid-template-columns:1fr}
   .kb-detail{border-left:0;border-top:1px solid var(--line)}
 }
+
+/* ============================================================
+   购票辅助区 · 严格按 design/ticket.html 版式
+   #viewTicket 是旧页整块搬入的绿主题，局部覆盖了 --ink / --line /
+   --green 等变量。本区一律直接引用 tokens.css 语义变量，避免被旧主题
+   染色（设计稿「配色纪律」：--ok 已核验 / --warn 提示 / --err 风险 /
+   --pine 主操作，不出现脱离色板的色值）。
+   ============================================================ */
+#viewTicket .tk-assist{margin-bottom:22px;padding:20px;border:1px solid var(--line-warm);border-radius:var(--r-card,14px);background:var(--surface-warm);box-shadow:var(--shadow-1,0 1px 2px rgba(0,0,0,.05))}
+#viewTicket .tk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#viewTicket .tk-head .seal{width:30px;height:30px;flex:0 0 auto}
+#viewTicket .tk-head .seal svg{width:100%;height:100%;display:block}
+#viewTicket .tk-head h2{font-size:var(--fs-lg);margin:0;font-weight:var(--w-strong,600);color:var(--ink-warm)}
+#viewTicket .tk-head .sub{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+#viewTicket .tk-head .sp,#viewTicket .tk-card .ch .sp,#viewTicket .tk-detail-h .sp{margin-left:auto}
+#viewTicket .tk-head select{max-width:190px;font-size:var(--fs-xs);padding:6px 8px;border:1px solid var(--field-line);border-radius:var(--r-ctl,10px);background:var(--surface-warm);color:var(--ink-warm)}
+#viewTicket .tk-assist .btn,#viewTicket dialog#tkDetail .btn{background:var(--pine);color:#fff;border:1px solid var(--pine);border-radius:var(--r-ctl,10px);padding:6px 12px;font-size:var(--fs-xs);font-weight:600;cursor:pointer}
+#viewTicket .tk-assist .btn.btn-outline,#viewTicket dialog#tkDetail .btn.btn-outline{background:transparent;color:var(--pine)}
+#viewTicket .tk-assist .btn:disabled,#viewTicket dialog#tkDetail .btn:disabled{opacity:.5;cursor:not-allowed}
+#viewTicket .price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+#viewTicket .price{padding:14px 16px;border:1px solid var(--line-warm);border-radius:var(--r-card,14px);background:var(--surface-warm)}
+#viewTicket .price .lab{font-size:var(--fs-xs);color:var(--text-3)}
+#viewTicket .price .val{font-size:var(--fs-xl);font-weight:var(--w-strong,600);color:var(--ink-warm);margin-top:4px;font-variant-numeric:tabular-nums}
+#viewTicket .price .note{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
+#viewTicket .tk-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+#viewTicket .tk-card{border:1px solid var(--line-warm);border-radius:var(--r-card,14px);background:var(--surface-warm);box-shadow:var(--shadow-1,0 1px 2px rgba(0,0,0,.05))}
+#viewTicket .tk-card .ch{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line-warm);font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink-warm)}
+#viewTicket .tk-card .cb{padding:12px 14px}
+#viewTicket .tk-assist .tag{margin-left:auto;font-size:var(--fs-xs);padding:2px 8px;border-radius:var(--r-pill);background:var(--pine-soft);color:var(--pine-hover);font-weight:var(--w-strong,600)}
+#viewTicket .chan,#viewTicket .station{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-warm);font-size:var(--fs-sm)}
+#viewTicket .chan:last-child,#viewTicket .station:last-child{border-bottom:0}
+#viewTicket .chan .nm,#viewTicket .station .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--pine);text-decoration:none}
+#viewTicket .chan .meta,#viewTicket .station .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+#viewTicket .chan .sp,#viewTicket .station .sp{margin-left:auto}
+#viewTicket .station .dot{width:8px;height:8px;border-radius:50%;background:var(--pine);flex:0 0 auto}
+#viewTicket .tk-empty{font-size:var(--fs-xs);color:var(--text-3);line-height:1.7;padding:6px 0}
+#viewTicket .advice{padding:14px;border-radius:var(--r-card,14px);background:var(--pine-soft);border:1px solid var(--pine-line);font-size:var(--fs-sm);line-height:1.8;color:var(--text-2)}
+#viewTicket .advice .who{font-size:var(--fs-xs);color:var(--pine);font-weight:var(--w-strong,600);margin-bottom:6px}
+#viewTicket .tk-assist .mt,#viewTicket dialog#tkDetail .mt{margin-top:16px}
+#viewTicket dialog#tkDetail{border:1px solid var(--line-warm);border-radius:var(--r-card,14px);background:var(--surface-warm);color:var(--ink-warm);max-width:420px;width:calc(100% - 32px);padding:18px}
+#viewTicket dialog#tkDetail::backdrop{background:rgba(32,36,30,.35)}
+#viewTicket .tk-detail-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+#viewTicket .tk-detail-h b{font-size:var(--fs-md)}
+#viewTicket dialog#tkDetail .m-price{display:flex;gap:8px;flex-wrap:wrap}
+#viewTicket dialog#tkDetail .m-price .p{padding:8px 10px;border:1px solid var(--line-warm);border-radius:var(--r-ctl,10px);flex:1;min-width:86px}
+#viewTicket dialog#tkDetail .m-price .p .l{font-size:var(--fs-xs);color:var(--text-3)}
+#viewTicket dialog#tkDetail .m-price .p .v{font-size:var(--fs-md);font-weight:var(--w-strong,600);font-variant-numeric:tabular-nums}
+@media (max-width:780px){
+  #viewTicket .price-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #viewTicket .tk-cols{grid-template-columns:1fr}
+}
+@media (max-width:420px){
+  #viewTicket .price-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -1729,6 +1783,48 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 <!-- 票务视图：标记原样搬自 ticket-assistant.html，勿手改；脚本见文件末尾 IIFE -->
 <div class="view" id="viewTicket" hidden>
     <div class="ticket-main">
+      <!-- 设计稿 ticket.html 的网页端购票辅助区：票价卡 / 官方入口白名单 /
+           附近售票站点 / AI 购票建议。数据只来自 /api/tickets/catalog 的
+           人工核验快照；设计稿里的 ¥27、美团、携程、售票处全是示意数据，不写入。 -->
+      <div class="tk-assist" id="tkAssist">
+        <div class="tk-head">
+          <span class="seal" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z" fill="var(--surface-warm)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/><circle cx="40" cy="48" r="4.6" fill="var(--clay)"/></svg></span>
+          <div>
+            <h2 id="tkSiteTitle">购票辅助</h2>
+            <div class="sub" id="tkSiteSub">正在读取人工核验快照…</div>
+          </div>
+          <span class="sp"></span>
+          <span class="st st-unknown" id="tkVerified">未核验</span>
+          <select id="tkSite" aria-label="选择景点"></select>
+          <button type="button" class="btn btn-outline" id="tkBack">返回行程</button>
+        </div>
+        <div class="price-grid" id="tkPrices" aria-live="polite"></div>
+        <div class="tk-cols">
+          <div class="tk-card">
+            <div class="ch">官方入口白名单 <span class="tag">可信源</span></div>
+            <div class="cb" id="tkChannels"></div>
+          </div>
+          <div class="tk-card">
+            <div class="ch">附近售票站点</div>
+            <div class="cb" id="tkStations"></div>
+          </div>
+        </div>
+        <div class="tk-card mt">
+          <div class="ch">AI 购票建议 <span class="sp"></span><button type="button" class="btn btn-outline" id="tkDetailBtn">查看购票详情</button></div>
+          <div class="cb"><div class="advice" id="tkAdvice" aria-live="polite"></div></div>
+        </div>
+      </div>
+
+      <!-- 对应设计稿移动端「购票详情页」：窄屏下由「查看购票详情」打开，
+           票价与入口复用同一份真实数据，不复制一份示意数据。 -->
+      <dialog id="tkDetail" aria-label="购票详情">
+        <div class="tk-detail-h"><b>购票详情</b><span class="sp"></span><button type="button" class="btn btn-outline" id="tkDetailClose">关闭</button></div>
+        <div class="m-price" id="tkDetailPrices"></div>
+        <div class="tk-card mt"><div class="ch">官方入口白名单</div><div class="cb" id="tkDetailChannels"></div></div>
+        <div class="advice mt" id="tkDetailAdvice"></div>
+        <div class="mt"><button type="button" class="btn" id="tkCopyLink" disabled>复制官方购票链接</button></div>
+      </dialog>
+
       <p class="muted">
         八达岭长城 · 首都博物馆 · 中山公园。规则为人工核验快照，来源日期可查。
       </p>
@@ -4980,6 +5076,146 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       function status(text) {
         $("status").textContent = text;
       }
+
+      /* ---------- 设计稿 ticket.html：结构化购票辅助区 ----------
+         数据只来自 /api/tickets/catalog 的人工核验快照与 advice 结果。
+         设计稿里的 ¥27 / 美团 / 携程 / 售票处 / 排队 40 分钟全是示意数据，
+         一律不写入；没有真实来源的模块保留槽位与空态说明。 */
+      var TK_PRICE_LABEL = {
+        peak: '成人票（旺季）', offPeak: '成人票（淡季）',
+        studentPeak: '学生票（旺季）', studentOffPeak: '学生票（淡季）',
+        regular: '普通票', half: '半价票',
+        combined: '联票', combinedHalf: '联票（半价）',
+        flower: '花期票', flowerHalf: '花期票（半价）'
+      };
+      var tkBound = false;
+      function tkText(tag, cls, text, parent) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text != null) n.textContent = String(text);
+        if (parent) parent.appendChild(n);
+        return n;
+      }
+      function tkFact(site, key) {
+        return site && site.fields && site.fields[key] ? site.fields[key] : null;
+      }
+      function tkSiteNow() {
+        if (!catalog || !catalog.length) return null;
+        var pick = $("tkSite").value;
+        return catalog.find(function (s) { return s.id === pick || s.name === pick; }) || catalog[0];
+      }
+      function tkPriceCards(site, target, compact) {
+        target.replaceChildren();
+        var fact = tkFact(site, 'price');
+        var v = fact && fact.value;
+        if (!v || typeof v !== 'object') {
+          tkText('div', 'tk-empty', '暂无经核验的票价字段，不编造价格。', target);
+          return;
+        }
+        Object.keys(v).forEach(function (k) {
+          var card = tkText('div', compact ? 'p' : 'price', null, target);
+          tkText('div', compact ? 'l' : 'lab', TK_PRICE_LABEL[k] || k, card);
+          var num = Number(v[k]);
+          var val = isNaN(num) ? String(v[k]) : (num === 0 ? '免费' : '¥' + v[k]);
+          tkText('div', compact ? 'v' : 'val', val, card);
+          if (!compact) {
+            tkText('div', 'note', fact.verifiedAt ? '字段核验 ' + fact.verifiedAt : '核验日期未知', card);
+          }
+        });
+      }
+      function tkChannels(site, target) {
+        target.replaceChildren();
+        var url = (site && site.officialUrl) || '';
+        if (/^https:\/\//.test(url)) {
+          var row = tkText('div', 'chan', null, target);
+          var info = tkText('div', '', null, row);
+          var a = tkText('a', 'nm', (site.name || '景区') + ' · 官方站点', info);
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          tkText('div', 'meta', '人工维护白名单 · 余票未核验', info);
+          tkText('span', 'sp', '', row);
+          tkText('span', 'st st-verified', '推荐', row);
+        } else {
+          tkText('div', 'tk-empty', '暂无经核验的官方入口，不生成猜测链接。', target);
+        }
+        tkText('div', 'tk-empty', '仅收录经人工核验的官方入口；第三方渠道与现场窗口未核验，不在此列出。', target);
+      }
+      function tkStations(target) {
+        /* 设计稿站点目录有版式但后端无数据源：保留 .station 结构，内容空占位 */
+        target.replaceChildren();
+        var row = tkText('div', 'station', null, target);
+        tkText('span', 'dot', '', row);
+        var info = tkText('div', '', null, row);
+        tkText('div', 'nm', '—', info);
+        tkText('div', 'meta', '暂无经核验的附近售票站点数据，不编造 POI', info);
+        tkText('span', 'sp', '', row);
+      }
+      function tkAdviceEmpty(target) {
+        target.replaceChildren();
+        tkText('div', 'who', '旅行助手 · 购票建议', target);
+        tkText('div', '', "填写下方购票需求后点「查看购票建议」，这里会显示按人工核验规则算出的票种、费用与提醒。未核验的项目不会按免费处理。", target);
+      }
+      function tkAdviceFromResult(r, target) {
+        target.replaceChildren();
+        tkText('div', 'who', '旅行助手 · 购票建议', target);
+        var lines = [];
+        if (r.questions && r.questions.length) lines.push('还需确认：' + r.questions.join('；'));
+        lines.push('门票估算：' + (r.estimatedTotal == null ? '未知／资料不全' : r.estimatedTotal + ' 元'));
+        (r.matches || []).forEach(function (m) {
+          lines.push('游客 ' + m.visitor + ' · ' + m.ticket + ' · ' + (m.price == null ? '未知' : m.price + ' 元'));
+        });
+        (r.notices || []).forEach(function (n) { lines.push(n); });
+        lines.forEach(function (t) { tkText('div', '', t, target); });
+      }
+      function renderTicketAssist() {
+        var site = tkSiteNow();
+        var fact = tkFact(site, 'price');
+        var verified = !!(fact && fact.verifiedAt && fact.sourceUrl);
+        $("tkSiteTitle").textContent = (site ? site.name : '未选择景点') + ' · 购票辅助';
+        $("tkSiteSub").textContent = site
+          ? (fact && fact.verifiedAt ? '人工核验快照 · 字段核验于 ' + fact.verifiedAt : '人工核验快照 · 核验日期未知')
+          : '暂无经核验的票务景点';
+        var badge = $("tkVerified");
+        badge.className = 'st ' + (verified ? 'st-verified' : 'st-unknown');
+        badge.textContent = verified ? '已核验' : '未核验';
+        tkPriceCards(site, $("tkPrices"), false);
+        tkChannels(site, $("tkChannels"));
+        tkStations($("tkStations"));
+        if (!$("tkAdvice").dataset.filled) tkAdviceEmpty($("tkAdvice"));
+        tkPriceCards(site, $("tkDetailPrices"), true);
+        tkChannels(site, $("tkDetailChannels"));
+        $("tkDetailAdvice").textContent = $("tkAdvice").textContent;
+        var url = (site && /^https:\/\//.test(site.officialUrl || '')) ? site.officialUrl : '';
+        var copy = $("tkCopyLink");
+        copy.disabled = !url;
+        copy.title = url ? '复制经核验的官方入口' : '暂无经核验的官方入口，不生成链接';
+        copy.dataset.url = url || '';
+      }
+      function bindTicketAssist() {
+        if (tkBound) return;
+        tkBound = true;
+        $("tkSite").addEventListener('change', renderTicketAssist);
+        $("tkBack").onclick = function () {
+          var tab = document.querySelector('.vtabs button[data-view="trips"]');
+          if (tab) tab.click();
+        };
+        $("tkDetailBtn").onclick = function () {
+          $("tkDetailAdvice").textContent = $("tkAdvice").textContent;
+          if (typeof $("tkDetail").showModal === 'function') $("tkDetail").showModal();
+        };
+        $("tkDetailClose").onclick = function () { $("tkDetail").close(); };
+        $("tkCopyLink").onclick = function () {
+          var url = this.dataset.url || '';
+          if (!url) return;
+          if (!navigator.clipboard) { status('当前环境不支持复制，请在官方入口处手动打开。'); return; }
+          navigator.clipboard.writeText(url).then(function () {
+            status('已复制经核验的官方入口：' + url);
+          }).catch(function () {
+            status('复制失败，请手动打开官方入口。');
+          });
+        };
+      }
       async function api(path, body, method) {
         const r = await fetch(path, {
           credentials: "same-origin",
@@ -5173,6 +5409,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           }
         }
         $("registration").hidden = !r.registrationSuggested;
+        tkAdviceFromResult(r, $("tkAdvice"));
+        $("tkAdvice").dataset.filled = "1";
+        $("tkDetailAdvice").textContent = $("tkAdvice").textContent;
       }
       $("addVisitor").onclick = () => addVisitor();
       $("adviceForm").onsubmit = async (e) => {
@@ -5344,10 +5583,18 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       (async () => {
         try {
           catalog = await api("/api/tickets/catalog");
-          catalog.forEach((s) => option($("attraction"), s.name, s.name));
+          catalog.forEach((s) => {
+            option($("attraction"), s.name, s.name);
+            option($("tkSite"), s.id, s.name);
+          });
+          bindTicketAssist();
+          renderTicketAssist();
           if (initialTrip) await loadTrips();
         } catch (e) {
           status(e.message);
+          /* 目录不可用时也渲染空槽位，不能留下半截空白卡片 */
+          bindTicketAssist();
+          renderTicketAssist();
         }
       })();
 })();

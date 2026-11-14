@@ -88,13 +88,20 @@
   .flow .node.err { border-color: var(--err); background: var(--err-soft); color: var(--err); }
   .flow .arr { color: var(--text-3); font-size: var(--fs-xs); }
 
-  .usage { display: flex; gap: 16px; padding: 16px; flex-wrap: wrap; }
+  .usage { display: flex; gap: 16px; padding: 14px 16px; flex-wrap: wrap; }
   .usage .u { flex: 1; min-width: 140px; }
   .usage .u .l { font-size: var(--fs-xs); color: var(--text-3); }
   .usage .u .v { font-size: var(--fs-md); font-weight: var(--w-strong); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  /* 模型用量进度条：结构 / 类名 / 配色照设计稿（pine / warn / err）。 */
+  .bar { height: 8px; border-radius: var(--r-pill); background: var(--surface-2); overflow: hidden; margin-top: 8px; }
+  .bar > i { display: block; height: 100%; background: var(--pine); }
+  .bar > i.warn { background: var(--warn); }
+  .bar > i.err { background: var(--err); }
 
   .token-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--line); }
   .token-row:last-child { border-bottom: 0; }
+  .token-row .mono { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .token-row .meta { font-size: var(--fs-xs); color: var(--text-3); }
 
   .rep-list { padding: 12px 16px; font-size: var(--fs-sm); color: var(--text-2); }
   .rep-list li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
@@ -352,10 +359,10 @@
       '<div class="admin-top"><h2>模型用量</h2><span class="sp"></span>' +
         '<button class="btn btn-outline btn-sm" id="usageRefresh">刷新</button></div>' +
       '<div class="pane"><div class="ph">本进程累计用量 <span class="sp"></span><span class="st unknown">加载中…</span></div>' +
-      '<div class="usage" id="usageBody"><div class="u"><div class="l">调用次数</div><div class="v">—</div></div>' +
-        '<div class="u"><div class="l">Token 消耗</div><div class="v">—</div></div>' +
-        '<div class="u"><div class="l">平均时延</div><div class="v">—</div></div>' +
-        '<div class="u"><div class="l">失败率</div><div class="v">—</div></div></div>' +
+      '<div class="usage" id="usageBody"><div class="u"><div class="l">调用次数</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">Token 消耗</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">平均时延</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">失败率</div><div class="v">—</div><div class="bar"></div></div></div>' +
       '<div class="notice-bar" id="usageNote" style="margin:0 16px 16px">正在读取用量统计…</div></div>';
     const r = await api('/api/agent/metrics/model-usage');
     if (!r.ok) {
@@ -365,13 +372,20 @@
       return;
     }
     const u = r.json || {};
-    const failPct = ((u.failureRate || 0) * 100).toFixed(1) + '%';
+    const fr = u.failureRate || 0;                       /* 真实失败率，0~1 */
+    const failPct = (fr * 100).toFixed(1) + '%';
     const avgMs = (u.avgLatencyMs || 0).toFixed(0) + ' ms';
+    /* 失败率有真实基准，进度条宽度取真实百分比并钳制在 0~100 防溢出。 */
+    const failW = Math.max(0, Math.min(100, fr * 100)).toFixed(1);
+    /* 调用次数 / Token 消耗 / 平均时延无配额上限或基准：保留 .bar 容器，宽度留空、不编造百分比。 */
+    const noBase = '无配额上限，不计算占比';
+    const emptyBar = '<div class="bar" title="' + noBase + '"></div>';
     main.querySelector('#usageBody').innerHTML =
-      '<div class="u"><div class="l">调用次数</div><div class="v">' + (u.calls || 0) + '</div></div>' +
-      '<div class="u"><div class="l">Token 消耗</div><div class="v">' + (u.totalTokens || 0).toLocaleString() + '</div></div>' +
-      '<div class="u"><div class="l">平均时延</div><div class="v">' + avgMs + '</div></div>' +
-      '<div class="u"><div class="l">失败率</div><div class="v ' + ((u.errors || 0) > 0 ? 'warn' : 'ok') + '">' + failPct + '</div></div>';
+      '<div class="u"><div class="l">调用次数</div><div class="v">' + (u.calls || 0) + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">Token 消耗</div><div class="v">' + (u.totalTokens || 0).toLocaleString() + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">平均时延</div><div class="v">' + avgMs + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">失败率</div><div class="v ' + ((u.errors || 0) > 0 ? 'warn' : 'ok') + '">' + failPct +
+        '</div><div class="bar"><i class="err" style="width:' + failW + '%"></i></div></div>';
     const since = u.since ? new Date(u.since).toLocaleString('zh-CN') : '—';
     const tail = u.lastError ? '；最近失败：' + esc(u.lastError)
       : (u.lastCall ? '；最近调用：' + esc(u.lastCall) : '') + '；输入 ' + (u.promptTokens || 0).toLocaleString()
@@ -380,16 +394,30 @@
       '模型 <b>' + esc(u.model || '—') + '</b> · 端点 ' + esc(u.endpoint || '—') + ' · 累计请求 '
       + (u.totalRequests || 0) + '（成功 ' + (u.calls || 0) + ' / 失败 ' + (u.errors || 0) + '）· 自 '
       + esc(since) + ' 起累计' + tail
-      + (u.balanceAvailable === false ? '；账户余额接口已下线，程序侧无法读取余量（请到模型控制台查看）。' : '');
+      + (u.balanceAvailable === false ? '；账户余额接口已下线，程序侧无法读取余量（请到模型控制台查看）。' : '')
+      + '；调用次数 / Token 消耗 / 平均时延无配额上限或基准，进度条宽度留空（' + noBase + '）；失败率进度条按真实失败率 ' + failPct + ' 填充。';
     main.querySelector('#usageRefresh').addEventListener('click', () => renderUsage(main));
   }
 
   function renderTokens() {
     const has = !!STATE.token;
     const masked = has ? esc(STATE.token.slice(0, 4) + '…' + STATE.token.slice(-3)) : '（空）';
+    /* 后端未暴露生成 / 吊销令牌端点：设计稿的「+ 生成新令牌」按钮、活跃令牌列表、
+       吊销按钮照搬结构与位置，但一律 disabled 并给出真实空态说明，绝不伪造令牌串、
+       创建时间或有效期。 */
+    const noEndpoint = '后端暂未暴露生成/吊销令牌端点';
     return '<div class="admin-top"><h2>Admin 令牌</h2><span class="sp"></span>' +
         (has ? '<button class="btn btn-quiet btn-sm" data-act="clearToken">清除本机会话令牌</button>'
-             : '<span class="st unknown">未持有</span>') + '</div>' +
+             : '<span class="st unknown">未持有</span>') +
+        '<button class="btn btn-primary btn-sm" disabled title="' + noEndpoint + '">+ 生成新令牌</button></div>' +
+      /* 设计稿「活跃令牌」列表：仅保留结构与位置，空态 + 禁用吊销按钮 */
+      '<div class="pane"><div class="ph">活跃令牌 <span class="sp"></span><span class="st unknown">无可用数据</span></div>' +
+        '<div class="token-row"><span class="mono">（空态：无可列示的活跃令牌）</span>' +
+        '<span class="meta">' + noEndpoint + '，无法列示活跃令牌。</span>' +
+        '<span class="sp" style="margin-left:auto"></span>' +
+        '<button class="btn btn-quiet btn-sm" disabled title="' + noEndpoint + '">吊销</button></div>' +
+      '</div>' +
+      /* 保留本机会话令牌的真实只读状态（原有功能，不破坏） */
       '<div class="pane"><div class="ph">令牌状态 <span class="sp"></span><span class="st ' + (has ? 'active' : 'suspended') + '">' +
         (has ? '本机已持有' : '未持有') + '</span></div>' +
         '<div class="token-row"><span class="mono">X-Admin-Token: ' + masked + '</span>' +
