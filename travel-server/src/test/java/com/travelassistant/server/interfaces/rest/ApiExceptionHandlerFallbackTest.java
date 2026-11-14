@@ -57,7 +57,7 @@ class ApiExceptionHandlerFallbackTest {
   @BeforeEach
   void setUp() {
     mvc = MockMvcBuilders.standaloneSetup(new ThrowingController())
-        .setControllerAdvice(new ApiExceptionHandler())
+        .setControllerAdvice(new ApiExceptionHandler(new com.fasterxml.jackson.databind.ObjectMapper()))
         .build();
   }
 

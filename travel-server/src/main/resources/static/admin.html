@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 管理后台</title>
+<meta name="description" content="管理后台：Admin 令牌门禁（fail-closed）、Provider 准入状态机、能力状态、意图路由。严格使用 tokens.css 语义变量。" />
+<link rel="stylesheet" href="tokens.css" />
+<script>
+  /* 主题三态：无属性→跟随系统；light/dark→强制。避免首帧闪白。 */
+  (function () {
+    try {
+      var t = localStorage.getItem('travel.theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  /* hidden 必须压过下面所有 display:flex 的作者规则：否则 .modal / .gate-wrap
+     被作者样式强制显示，UA 的 [hidden]{display:none} 优先级不够，弹窗与门禁层会常驻。 */
+  [hidden] { display: none !important; }
+
+  /* ---- 令牌门禁遮罩 ---- */
+  .gate-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .gate { max-width: 480px; width: 100%; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); box-shadow: var(--shadow-2); padding: 40px 32px; text-align: center; }
+  /* span 默认 inline，只写 width/height 不生效，内含 SVG 会按 viewBox 撑成整幅空框。 */
+  .gate .seal { display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; margin: 0 auto; }
+  .seal svg { display: block; width: 100%; height: 100%; }
+  .gate h2 { font-size: var(--fs-lg); margin-top: 14px; }
+  .gate p { color: var(--text-3); font-size: var(--fs-sm); margin-top: 8px; line-height: 1.7; }
+  .gate .field { width: 100%; margin-top: 18px; text-align: center; }
+  .gate .btn { width: 100%; margin-top: 12px; }
+  .gate .hint { font-size: var(--fs-xs); color: var(--err); margin-top: 12px; min-height: 16px; }
+
+  /* ---- 控制台外壳 ---- */
+  .admin-shell { max-width: 1180px; margin: 0 auto; padding: 20px 24px 64px; }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 0 16px;
+    border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .topbar .brand { display: flex; align-items: center; gap: 9px; font-weight: var(--w-strong); }
+  .topbar .seal { width: 26px; height: 26px; }
+  .topbar .sp { margin-left: auto; }
+
+  .admin { display: grid; grid-template-columns: 200px 1fr; gap: 18px; align-items: start; }
+  .nav { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card);
+    padding: 10px; position: sticky; top: 16px; }
+  .nav a { display: block; padding: 9px 10px; border-radius: var(--r-ctl); font-size: var(--fs-sm);
+    color: var(--text-2); cursor: pointer; margin-bottom: 2px; }
+  .nav a:hover { background: var(--pine-soft); color: var(--pine-hover); }
+  .nav a[aria-current="page"] { background: var(--pine-soft); color: var(--pine-hover); font-weight: var(--w-strong); }
+  .nav .grp { font-size: var(--fs-xs); color: var(--text-3); margin: 14px 8px 6px; }
+
+  .admin-main { min-width: 0; }
+  .admin-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .admin-top .sp { margin-left: auto; }
+  .admin-top h2 { font-size: var(--fs-lg); }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); }
+  .kpi .l { font-size: var(--fs-xs); color: var(--text-3); }
+  .kpi .v { font-size: var(--fs-xl); font-weight: var(--w-strong); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .v.ok { color: var(--ok); } .kpi .v.warn { color: var(--warn); } .kpi .v.err { color: var(--err); }
+
+  .pane { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface);
+    overflow: hidden; margin-bottom: 16px; }
+  .pane .ph { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    font-size: var(--fs-sm); font-weight: var(--w-strong); }
+  .pane .ph .sp { margin-left: auto; }
+
+  .row-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mono { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); }
+
+  /* 状态药丸（扩展 tokens.css 的 .st） */
+  .st.g0 { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+  .st.probe { background: var(--pine-soft); color: var(--pine-hover); border-color: var(--pine-line); }
+  .st.shadow { background: var(--surface-2); color: var(--text-2); border-color: var(--line-strong); }
+  .st.active { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+  .st.suspended { background: var(--err-soft); color: var(--err); border-color: var(--err-line); }
+  .st.rejected { background: var(--err-soft); color: var(--err); border-color: var(--err-line); }
+  .st.validating { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+  .st.deprecated { background: var(--surface-2); color: var(--text-3); border-color: var(--line-strong); }
+
+  .flow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .flow .node { font-size: var(--fs-xs); padding: 4px 10px; border-radius: var(--r-pill);
+    border: 1px solid var(--line-strong); color: var(--text-3); background: var(--surface); }
+  .flow .node.ok { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+  .flow .node.err { border-color: var(--err); background: var(--err-soft); color: var(--err); }
+  .flow .arr { color: var(--text-3); font-size: var(--fs-xs); }
+
+  .usage { display: flex; gap: 16px; padding: 14px 16px; flex-wrap: wrap; }
+  .usage .u { flex: 1; min-width: 140px; }
+  .usage .u .l { font-size: var(--fs-xs); color: var(--text-3); }
+  .usage .u .v { font-size: var(--fs-md); font-weight: var(--w-strong); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  /* 模型用量进度条：结构 / 类名 / 配色照设计稿（pine / warn / err）。 */
+  .bar { height: 8px; border-radius: var(--r-pill); background: var(--surface-2); overflow: hidden; margin-top: 8px; }
+  .bar > i { display: block; height: 100%; background: var(--pine); }
+  .bar > i.warn { background: var(--warn); }
+  .bar > i.err { background: var(--err); }
+
+  .token-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--line); }
+  .token-row:last-child { border-bottom: 0; }
+  .token-row .mono { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .token-row .meta { font-size: var(--fs-xs); color: var(--text-3); }
+
+  .rep-list { padding: 12px 16px; font-size: var(--fs-sm); color: var(--text-2); }
+  .rep-list li { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  .rep-list li:last-child { border-bottom: 0; }
+  .rep-empty { padding: 14px 4px; font-size: var(--fs-sm); color: var(--text-3); line-height: 1.7; }
+
+  .modal { position: fixed; inset: 0; background: rgba(20, 18, 14, .45); display: flex;
+    align-items: center; justify-content: center; padding: 24px; z-index: 50; }
+  .modal .box { max-width: 680px; width: 100%; max-height: 86vh; overflow: auto; background: var(--surface);
+    border-radius: var(--r-lg); box-shadow: var(--shadow-3); }
+  .modal .box .head { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .modal .box .head .sp { margin-left: auto; }
+  .modal .body { padding: 18px; }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 10px 16px;
+    border-radius: var(--r-pill); font-size: var(--fs-sm); box-shadow: var(--shadow-2); z-index: 60; max-width: 80vw; }
+  .toast.ok { background: var(--ok); color: #fff; }
+  .toast.err { background: var(--err); color: #fff; }
+  .toast.info { background: var(--ink); color: var(--surface); }
+
+  @media (max-width: 780px) {
+    .admin { grid-template-columns: 1fr; }
+    .nav { position: static; display: flex; flex-wrap: wrap; gap: 6px; }
+    .nav .grp { width: 100%; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== 令牌门禁（fail-closed） ===================== -->
+<div id="gate" class="gate-wrap">
+  <div class="gate">
+    <span class="seal"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z" fill="var(--surface-warm)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/><circle cx="40" cy="48" r="4.6" fill="var(--clay)"/></svg></span>
+    <h2>管理后台</h2>
+    <p>管理接口受 <b>X-Admin-Token</b> 头保护。未配置令牌时所有管理端点返回 <b>403</b>（fail-closed）。请输入管理员令牌以进入。</p>
+    <input id="tokenInput" class="field" type="password" placeholder="Admin Token" autocomplete="off" />
+    <button class="btn btn-primary" id="gateBtn">验证并进入</button>
+    <div class="hint" id="gateHint"></div>
+  </div>
+</div>
+
+<!-- ===================== 控制台 ===================== -->
+<div id="console" class="admin-shell" hidden>
+  <div class="topbar">
+    <span class="brand"><span class="seal"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M15 3.5 H49 A11.5 11.5 0 0 1 60.5 15 V40 L40 60.5 H15 A11.5 11.5 0 0 1 3.5 49 V15 A11.5 11.5 0 0 1 15 3.5 Z" fill="var(--surface-warm)" stroke="var(--pine)" stroke-width="3.2" stroke-linejoin="round"/><circle cx="40" cy="48" r="4.6" fill="var(--clay)"/></svg></span>管理后台</span>
+    <span class="sp"></span>
+    <button class="btn btn-outline btn-sm" id="themeBtn">切换主题</button>
+    <button class="btn btn-quiet btn-sm" id="logoutBtn">退出管理态</button>
+  </div>
+
+  <div class="admin">
+    <nav class="nav" id="nav">
+      <a data-view="admission" aria-current="page">Provider 准入</a>
+      <a data-view="capability">能力状态</a>
+      <a data-view="routes">意图路由</a>
+      <div class="grp">监控</div>
+      <a data-view="usage">模型用量</a>
+      <div class="grp">安全</div>
+      <a data-view="tokens">令牌管理</a>
+      <a data-view="audit">审计日志</a>
+    </nav>
+    <main class="admin-main" id="adminMain"><!-- 视图渲染区 --></main>
+  </div>
+</div>
+
+<!-- ===================== 准入报告弹窗 ===================== -->
+<div id="modal" class="modal" hidden>
+  <div class="box">
+    <div class="head"><h2 style="font-size:var(--fs-md)">准入报告</h2><span class="sp"></span>
+      <button class="btn btn-quiet btn-sm" id="modalClose">关闭</button></div>
+    <div class="body" id="modalBody"><p class="rep-empty">暂无准入报告数据。先在 Provider 列表执行探测或查看已有报告。</p></div>
+  </div>
+</div>
+
+<script>
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  const STATE = {
+    token: sessionStorage.getItem('adminToken') || '',
+    data: null,
+    view: 'admission'
+  };
+
+  function headers() {
+    const h = { 'Content-Type': 'application/json' };
+    if (STATE.token) h['X-Admin-Token'] = STATE.token;
+    return h;
+  }
+  async function api(path, method = 'GET', body) {
+    const res = await fetch(path, {
+      method,
+      headers: headers(),
+      body: body ? JSON.stringify(body) : undefined
+    });
+    let json = null;
+    try { json = await res.json(); } catch (e) {}
+    return { ok: res.ok, status: res.status, json };
+  }
+
+  let toastTimer = null;
+  function toast(msg, kind) {
+    let el = $('#toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+    el.className = 'toast ' + (kind || 'info');
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+  }
+
+  /* ---------- 门禁 ---------- */
+  async function attemptUnlock(tok, silent) {
+    STATE.token = tok;
+    const r = await api('/api/agent/providers');
+    if (r.status === 403) {
+      if (!silent) $('#gateHint').textContent = '令牌无效或缺失：HTTP 403 Forbidden';
+      $('#gate').hidden = false; $('#console').hidden = true;
+      return;
+    }
+    if (!r.ok) {
+      if (!silent) $('#gateHint').textContent = '校验失败：HTTP ' + r.status;
+      $('#gate').hidden = false; $('#console').hidden = true;
+      return;
+    }
+    sessionStorage.setItem('adminToken', tok);
+    STATE.data = r.json;
+    $('#gate').hidden = true; $('#console').hidden = false;
+    render();
+  }
+  function onGateSubmit() {
+    const t = $('#tokenInput').value.trim();
+    if (!t) { $('#gateHint').textContent = '请输入管理员令牌'; return; }
+    attemptUnlock(t, false);
+  }
+
+  /* ---------- 视图渲染 ---------- */
+  function statusMeta(s) {
+    const map = {
+      ACTIVE: { c: 'active', t: '运行中' },
+      PROBING: { c: 'probe', t: '探测中' },
+      SHADOW: { c: 'shadow', t: '影子' },
+      SUSPENDED: { c: 'suspended', t: '已挂起' },
+      REJECTED: { c: 'rejected', t: '已拒绝' },
+      VALIDATING: { c: 'validating', t: '校验中' },
+      DEPRECATED: { c: 'deprecated', t: '已弃用' }
+    };
+    return map[s] || { c: 'unknown', t: s || '未知' };
+  }
+  function statusPill(s) {
+    const m = statusMeta(s);
+    return '<span class="st ' + m.c + '">' + esc(m.t) + '</span>';
+  }
+  function enabledPill(b) {
+    return b ? '<span class="st active">启用</span>' : '<span class="st suspended">禁用</span>';
+  }
+
+  function routeMap() {
+    const m = {};
+    (STATE.data.routes || []).forEach(r => {
+      if (r.primary) (m[r.primary] = m[r.primary] || []).push(r.intent);
+    });
+    return m;
+  }
+  function routeIntent(id) {
+    const a = routeMap()[id];
+    return a && a.length ? a.join('、') : '—';
+  }
+
+  function kpis() {
+    const p = STATE.data.providers || [];
+    const c = k => p.filter(x => x.status === k).length;
+    return [
+      { l: '已激活', v: c('ACTIVE'), cls: 'ok' },
+      { l: '探测中', v: c('PROBING'), cls: 'warn' },
+      { l: '已挂起', v: c('SUSPENDED'), cls: 'err' },
+      { l: '待处理/其他', v: c('VALIDATING') + c('SHADOW') + c('REJECTED') + c('DEPRECATED'), cls: '' }
+    ];
+  }
+
+  function renderAdmission() {
+    const p = STATE.data.providers || [];
+    const k = kpis().map(x =>
+      '<div class="kpi"><div class="l">' + esc(x.l) + '</div><div class="v ' + x.cls + '">' + x.v + '</div></div>'
+    ).join('');
+    const rows = p.map(x => {
+      const acts = ['<button class="btn btn-quiet btn-sm" data-act="report" data-id="' + esc(x.id) + '">报告</button>'];
+      if (['PROBING', 'VALIDATING', 'REJECTED', 'DEPRECATED'].includes(x.status))
+        acts.push('<button class="btn btn-outline btn-sm" data-act="probe" data-id="' + esc(x.id) + '">探测</button>');
+      if (['PROBING', 'SHADOW'].includes(x.status))
+        acts.push('<button class="btn btn-outline btn-sm" data-act="shadow" data-id="' + esc(x.id) + '">影子</button>');
+      if (['PROBING', 'SHADOW'].includes(x.status))
+        acts.push('<button class="btn btn-primary btn-sm" data-act="activate" data-id="' + esc(x.id) + '">启用</button>');
+      return '<tr>' +
+        '<td><b>' + esc(x.id) + '</b><div class="mono">' + esc(x.kind || '') + '</div></td>' +
+        '<td>' + esc(routeIntent(x.id)) + '</td>' +
+        '<td>' + statusPill(x.status) + '</td>' +
+        '<td>' + enabledPill(x.enabled) + '</td>' +
+        '<td class="mono">' + esc(x.lastRejectionCode || '—') + '</td>' +
+        '<td><div class="row-acts">' + acts.join('') + '</div></td>' +
+        '</tr>';
+    }).join('');
+    return '' +
+      '<div class="admin-top"><h2>Provider 准入</h2><span class="sp"></span>' +
+        '<button class="btn btn-outline btn-sm" data-act="reload">热重载注册表</button></div>' +
+      '<div class="cards">' + k + '</div>' +
+      '<div class="pane"><div class="ph">接入状态机 <span class="sp"></span><span class="flow">' +
+        '<span class="node">G0</span><span class="arr">→</span>' +
+        '<span class="node">PROBING</span><span class="arr">→</span>' +
+        '<span class="node">SHADOW</span><span class="arr">→</span>' +
+        '<span class="node ok">ACTIVE</span><span class="arr">/</span>' +
+        '<span class="node err">SUSPENDED</span></span></div>' +
+        '<table class="tbl"><thead><tr>' +
+          '<th>Provider</th><th>意图</th><th>状态</th><th>启用</th><th>最近拒绝码</th><th>操作</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="notice-bar" style="margin-top:14px">注册表版本 <b>' + esc(STATE.data.registryVersion || '') +
+        '</b> · 契约版本 <b>' + esc(STATE.data.contractVersion || '') + '</b> · ' + esc(STATE.data.registryNote || '') + '</div>';
+  }
+
+  function renderCapability() {
+    const p = STATE.data.providers || [];
+    const rows = p.map(x =>
+      '<tr><td><b>' + esc(x.id) + '</b></td>' +
+        '<td>' + ((x.capabilities || []).map(c => '<span class="tag">' + esc(c) + '</span>').join(' ') || '—') + '</td>' +
+        '<td>' + statusPill(x.status) + '</td>' +
+        '<td>' + enabledPill(x.enabled) + '</td>' +
+        '<td class="mono">' + esc(x.version || '') + '</td></tr>'
+    ).join('');
+    return '<div class="admin-top"><h2>能力状态</h2></div>' +
+      '<div class="pane"><div class="ph">能力矩阵</div>' +
+      '<table class="tbl"><thead><tr><th>Provider</th><th>能力</th><th>状态</th><th>启用</th><th>版本</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function renderRoutes() {
+    const r = STATE.data.routes || [];
+    const rows = r.map(x =>
+      '<tr><td><b>' + esc(x.intent) + '</b></td>' +
+        '<td>' + (x.primary ? '<span class="tag">' + esc(x.primary) + '</span>' : '<span class="st unknown">无主</span>') + '</td>' +
+        '<td>' + ((x.fallback || []).map(f => '<span class="tag" style="background:var(--surface-2)">' + esc(f) + '</span>').join(' ') || '—') + '</td></tr>'
+    ).join('');
+    return '<div class="admin-top"><h2>意图路由</h2></div>' +
+      '<div class="pane"><div class="ph">意图 → 主 Provider / 兜底</div>' +
+      '<table class="tbl"><thead><tr><th>意图</th><th>主 Provider</th><th>兜底</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
+  }
+
+  async function renderUsage(main) {
+    main.innerHTML =
+      '<div class="admin-top"><h2>模型用量</h2><span class="sp"></span>' +
+        '<button class="btn btn-outline btn-sm" id="usageRefresh">刷新</button></div>' +
+      '<div class="pane"><div class="ph">本进程累计用量 <span class="sp"></span><span class="st unknown">加载中…</span></div>' +
+      '<div class="usage" id="usageBody"><div class="u"><div class="l">调用次数</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">Token 消耗</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">平均时延</div><div class="v">—</div><div class="bar"></div></div>' +
+        '<div class="u"><div class="l">失败率</div><div class="v">—</div><div class="bar"></div></div></div>' +
+      '<div class="notice-bar" id="usageNote" style="margin:0 16px 16px">正在读取用量统计…</div></div>';
+    const r = await api('/api/agent/metrics/model-usage');
+    if (!r.ok) {
+      main.querySelector('#usageBody').innerHTML =
+        '<div class="u"><div class="l">状态</div><div class="v err">读取失败</div></div>';
+      main.querySelector('#usageNote').textContent = '无法读取用量：HTTP ' + r.status + '（需持有管理员令牌）';
+      return;
+    }
+    const u = r.json || {};
+    const fr = u.failureRate || 0;                       /* 真实失败率，0~1 */
+    const failPct = (fr * 100).toFixed(1) + '%';
+    const avgMs = (u.avgLatencyMs || 0).toFixed(0) + ' ms';
+    /* 失败率有真实基准，进度条宽度取真实百分比并钳制在 0~100 防溢出。 */
+    const failW = Math.max(0, Math.min(100, fr * 100)).toFixed(1);
+    /* 调用次数 / Token 消耗 / 平均时延无配额上限或基准：保留 .bar 容器，宽度留空、不编造百分比。 */
+    const noBase = '无配额上限，不计算占比';
+    const emptyBar = '<div class="bar" title="' + noBase + '"></div>';
+    main.querySelector('#usageBody').innerHTML =
+      '<div class="u"><div class="l">调用次数</div><div class="v">' + (u.calls || 0) + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">Token 消耗</div><div class="v">' + (u.totalTokens || 0).toLocaleString() + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">平均时延</div><div class="v">' + avgMs + '</div>' + emptyBar + '</div>' +
+      '<div class="u"><div class="l">失败率</div><div class="v ' + ((u.errors || 0) > 0 ? 'warn' : 'ok') + '">' + failPct +
+        '</div><div class="bar"><i class="err" style="width:' + failW + '%"></i></div></div>';
+    const since = u.since ? new Date(u.since).toLocaleString('zh-CN') : '—';
+    const tail = u.lastError ? '；最近失败：' + esc(u.lastError)
+      : (u.lastCall ? '；最近调用：' + esc(u.lastCall) : '') + '；输入 ' + (u.promptTokens || 0).toLocaleString()
+      + ' / 缓存命中 ' + (u.cachedPromptTokens || 0).toLocaleString();
+    main.querySelector('#usageNote').innerHTML =
+      '模型 <b>' + esc(u.model || '—') + '</b> · 端点 ' + esc(u.endpoint || '—') + ' · 累计请求 '
+      + (u.totalRequests || 0) + '（成功 ' + (u.calls || 0) + ' / 失败 ' + (u.errors || 0) + '）· 自 '
+      + esc(since) + ' 起累计' + tail
+      + (u.balanceAvailable === false ? '；账户余额接口已下线，程序侧无法读取余量（请到模型控制台查看）。' : '')
+      + '；调用次数 / Token 消耗 / 平均时延无配额上限或基准，进度条宽度留空（' + noBase + '）；失败率进度条按真实失败率 ' + failPct + ' 填充。';
+    main.querySelector('#usageRefresh').addEventListener('click', () => renderUsage(main));
+  }
+
+  function renderTokens() {
+    const has = !!STATE.token;
+    const masked = has ? esc(STATE.token.slice(0, 4) + '…' + STATE.token.slice(-3)) : '（空）';
+    /* 后端未暴露生成 / 吊销令牌端点：设计稿的「+ 生成新令牌」按钮、活跃令牌列表、
+       吊销按钮照搬结构与位置，但一律 disabled 并给出真实空态说明，绝不伪造令牌串、
+       创建时间或有效期。 */
+    const noEndpoint = '后端暂未暴露生成/吊销令牌端点';
+    return '<div class="admin-top"><h2>Admin 令牌</h2><span class="sp"></span>' +
+        (has ? '<button class="btn btn-quiet btn-sm" data-act="clearToken">清除本机会话令牌</button>'
+             : '<span class="st unknown">未持有</span>') +
+        '<button class="btn btn-primary btn-sm" disabled title="' + noEndpoint + '">+ 生成新令牌</button></div>' +
+      /* 设计稿「活跃令牌」列表：仅保留结构与位置，空态 + 禁用吊销按钮 */
+      '<div class="pane"><div class="ph">活跃令牌 <span class="sp"></span><span class="st unknown">无可用数据</span></div>' +
+        '<div class="token-row"><span class="mono">（空态：无可列示的活跃令牌）</span>' +
+        '<span class="meta">' + noEndpoint + '，无法列示活跃令牌。</span>' +
+        '<span class="sp" style="margin-left:auto"></span>' +
+        '<button class="btn btn-quiet btn-sm" disabled title="' + noEndpoint + '">吊销</button></div>' +
+      '</div>' +
+      /* 保留本机会话令牌的真实只读状态（原有功能，不破坏） */
+      '<div class="pane"><div class="ph">令牌状态 <span class="sp"></span><span class="st ' + (has ? 'active' : 'suspended') + '">' +
+        (has ? '本机已持有' : '未持有') + '</span></div>' +
+        '<div class="token-row"><span class="mono">X-Admin-Token: ' + masked + '</span>' +
+        '<span class="meta">' + (has ? '会话级 · 存于 sessionStorage' : '来自 AGENT_ADMIN_TOKEN 环境变量') + '</span></div>' +
+      '</div>' +
+      '<div class="notice-bar" style="margin-top:14px">令牌仅在服务端运行时内存态（由 AGENT_ADMIN_TOKEN 环境变量注入），不落库、不进 Git。本机输入的令牌仅存于当前浏览器会话（sessionStorage），关闭标签页即清除。后端暂未暴露生成 / 吊销令牌的 REST 端点，令牌的发放与轮换在服务端配置完成。</div>';
+  }
+
+  async function renderAudit(main) {
+    main.innerHTML =
+      '<div class="admin-top"><h2>审计日志</h2><span class="sp"></span>' +
+        '<button class="btn btn-outline btn-sm" id="auditRefresh">刷新</button></div>' +
+      '<div class="pane"><div class="ph">管理操作审计 <span class="sp"></span><span class="st unknown" id="auditCount">加载中…</span></div>' +
+      '<div id="auditBody"><div class="notice-bar" style="margin:16px">正在读取审计日志…</div></div></div>';
+    const r = await api('/api/agent/audit-log');
+    if (!r.ok) {
+      main.querySelector('#auditCount').className = 'st suspended';
+      main.querySelector('#auditCount').textContent = '读取失败';
+      main.querySelector('#auditBody').innerHTML =
+        '<div class="notice-bar" style="margin:16px">无法读取审计日志：HTTP ' + r.status + '（需持有管理员令牌）</div>';
+      return;
+    }
+    const data = r.json || {};
+    const entries = data.entries || [];
+    main.querySelector('#auditCount').className = 'st active';
+    main.querySelector('#auditCount').textContent = '共 ' + (data.total || 0) + ' 条';
+    if (!entries.length) {
+      main.querySelector('#auditBody').innerHTML =
+        '<div class="notice-bar" style="margin:16px">暂无管理操作记录。reload / probe / shadow / activate 等动作会自动写入此处。</div>';
+      main.querySelector('#auditRefresh').addEventListener('click', () => renderAudit(main));
+      return;
+    }
+    const rows = entries.map(e => {
+      const t = e.time ? new Date(e.time).toLocaleString('zh-CN') : '—';
+      const ok = e.success
+        ? '<span class="st active">成功</span>'
+        : '<span class="st suspended">失败</span>';
+      return '<tr><td class="mono">' + esc(t) + '</td>' +
+        '<td><b>' + esc(e.action || '') + '</b></td>' +
+        '<td>' + esc(e.target || '—') + '</td>' +
+        '<td class="mono">' + esc(e.remoteAddr || '—') + '</td>' +
+        '<td>' + ok + '</td>' +
+        '<td class="mono">' + esc(e.detail || '') + '</td></tr>';
+    }).join('');
+    main.querySelector('#auditBody').innerHTML =
+      '<table class="tbl"><thead><tr>' +
+        '<th>时间</th><th>动作</th><th>目标</th><th>来源</th><th>结果</th><th>摘要</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="notice-bar" style="margin:14px 16px 16px">审计底账为进程内存态、环形缓冲（上限 500 条），重启即清空、不落盘；记录来源 IP / 动作 / 结果 / 摘要，不含令牌或密钥。</div>';
+    main.querySelector('#auditRefresh').addEventListener('click', () => renderAudit(main));
+  }
+
+  function render() {
+    $$('#nav a').forEach(a => a.setAttribute('aria-current', a.dataset.view === STATE.view ? 'page' : ''));
+    const main = $('#adminMain');
+    if (STATE.view === 'admission') main.innerHTML = renderAdmission();
+    else if (STATE.view === 'capability') main.innerHTML = renderCapability();
+    else if (STATE.view === 'routes') main.innerHTML = renderRoutes();
+    else if (STATE.view === 'tokens') main.innerHTML = renderTokens();
+    else if (STATE.view === 'usage') { renderUsage(main); return; }
+    else if (STATE.view === 'audit') { renderAudit(main); return; }
+    bindActions();
+  }
+
+  /* ---------- 操作 ---------- */
+  function bindActions() {
+    $$('#adminMain [data-act]').forEach(b => {
+      b.addEventListener('click', () => onAct(b.dataset.act, b.dataset.id));
+    });
+  }
+  async function onAct(act, id) {
+    if (act === 'reload') {
+      const r = await api('/api/agent/providers/reload', 'POST');
+      if (r.ok) { STATE.data = (await api('/api/agent/providers')).json; toast('注册表已热重载 · 版本 ' + esc(r.json.registryVersion || ''), 'ok'); render(); }
+      else toast('重载失败：HTTP ' + r.status, 'err');
+      return;
+    }
+    if (act === 'clearToken') { sessionStorage.removeItem('adminToken'); STATE.token = ''; location.reload(); return; }
+    if (act === 'report') { return showReport(id); }
+    const path = act === 'probe' ? '/api/agent/providers/' + encodeURIComponent(id) + '/probe'
+      : act === 'shadow' ? '/api/agent/providers/' + encodeURIComponent(id) + '/shadow'
+      : act === 'activate' ? '/api/agent/providers/' + encodeURIComponent(id) + '/activate' : null;
+    if (!path) return;
+    const r = await api(path, 'POST');
+    if (r.ok) {
+      STATE.data = (await api('/api/agent/providers')).json;
+      toast((act === 'probe' ? '探测' : act === 'shadow' ? '影子' : '启用') + '完成 · 状态 ' + esc(r.json.status || ''), 'ok');
+      render();
+    } else if (r.json && r.json.report) {
+      showReportObj(r.json.report, id);
+    } else {
+      toast('操作失败：HTTP ' + r.status, 'err');
+    }
+  }
+
+  async function showReport(id) {
+    const r = await api('/api/agent/providers/' + encodeURIComponent(id) + '/admission');
+    if (r.ok) showReportObj(r.json, id);
+    else toast('获取报告失败：HTTP ' + r.status, 'err');
+  }
+  function showReportObj(rep, id) {
+    const list = (arr, empty) => ((arr && arr.length) ? arr.map(x => '<li>' + esc(x) + '</li>').join('') : '<li>' + empty + '</li>');
+    const fails = (rep.failures || []).map(f =>
+      '<li><span class="mono">' + esc(f.code || '') + '</span> · ' + esc(f.field || '') + ' — ' + esc(f.message || '') + '</li>').join('') || '<li>无</li>';
+    $('#modalBody').innerHTML =
+      '<div class="cards" style="grid-template-columns:repeat(3,1fr)">' +
+        '<div class="kpi"><div class="l">状态</div><div class="v">' + esc(rep.status || '') + '</div></div>' +
+        '<div class="kpi"><div class="l">阶段</div><div class="v">' + esc(rep.stage || '') + '</div></div>' +
+        '<div class="kpi"><div class="l">是否阻断</div><div class="v ' + (rep.blocked ? 'err' : 'ok') + '">' + (rep.blocked ? '是' : '否') + '</div></div>' +
+      '</div>' +
+      '<div class="pane" style="margin-top:14px"><div class="ph">失败项</div><ul class="rep-list">' + fails + '</ul></div>' +
+      '<div class="pane" style="margin-top:14px"><div class="ph">警告</div><ul class="rep-list">' + list(rep.warnings, '无') + '</ul></div>' +
+      '<div class="pane" style="margin-top:14px"><div class="ph">备注</div><ul class="rep-list">' + list(rep.notes, '无') + '</ul></div>';
+    $('#modal').hidden = false;
+  }
+
+  /* ---------- 主题 ---------- */
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('travel.theme', next); } catch (e) {}
+  }
+
+  /* ---------- 初始化 ---------- */
+  function init() {
+    $('#gateBtn').addEventListener('click', onGateSubmit);
+    $('#tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') onGateSubmit(); });
+    $('#logoutBtn').addEventListener('click', () => { sessionStorage.removeItem('adminToken'); STATE.token = ''; location.reload(); });
+    $('#themeBtn').addEventListener('click', toggleTheme);
+    $('#modalClose').addEventListener('click', () => { $('#modal').hidden = true; });
+    $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) $('#modal').hidden = true; });
+    $$('#nav a').forEach(a => a.addEventListener('click', () => { STATE.view = a.dataset.view; render(); }));
+    // 若 URL 带了 ?token= 方便本地调试，预填但需手动点「进入」（避免误分享 URL）。
+    try {
+      const q = new URLSearchParams(location.search).get('token');
+      if (q) $('#tokenInput').value = q;
+    } catch (e) {}
+    if (STATE.token) attemptUnlock(STATE.token, true);
+  }
+  init();
+</script>
+</body>
+</html>

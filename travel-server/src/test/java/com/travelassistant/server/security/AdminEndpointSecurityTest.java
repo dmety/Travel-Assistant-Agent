@@ -56,4 +56,38 @@ class AdminEndpointSecurityTest extends ApiTestBase {
     mvc.perform(get("/api/agent/providers/no-such-id/admission").header("X-Admin-Token", TOKEN))
         .andExpect(status().isNotFound());
   }
+
+  @Test
+  @DisplayName("模型用量端点：无令牌 → 403，有令牌 → 200 且含用量字段")
+  void modelUsageRequiresToken() throws Exception {
+    mvc.perform(get("/api/agent/metrics/model-usage"))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/agent/metrics/model-usage").header("X-Admin-Token", TOKEN))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalTokens").exists())
+        .andExpect(jsonPath("$.failureRate").exists())
+        .andExpect(jsonPath("$.avgLatencyMs").exists());
+  }
+
+  @Test
+  @DisplayName("审计日志端点：无令牌 → 403，有令牌 → 200 且返回数组")
+  void auditLogRequiresToken() throws Exception {
+    mvc.perform(get("/api/agent/audit-log"))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/agent/audit-log").header("X-Admin-Token", TOKEN))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.entries").isArray());
+  }
+
+  @Test
+  @DisplayName("reload 动作写入审计日志（最新一条为 reload，目标整张注册表）")
+  void reloadIsAudited() throws Exception {
+    mvc.perform(post("/api/agent/providers/reload").header("X-Admin-Token", TOKEN))
+        .andExpect(status().isOk());
+    mvc.perform(get("/api/agent/audit-log").header("X-Admin-Token", TOKEN))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.entries[0].action").value("reload"))
+        .andExpect(jsonPath("$.entries[0].target").value("-"))
+        .andExpect(jsonPath("$.entries[0].success").value(true));
+  }
 }

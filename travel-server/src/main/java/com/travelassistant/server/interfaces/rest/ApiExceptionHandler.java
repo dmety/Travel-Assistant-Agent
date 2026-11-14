@@ -15,6 +15,9 @@ import com.travelassistant.server.application.itinerary.MemberNotFoundException;
 import com.travelassistant.server.application.itinerary.VersionConflictException;
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.ticket.InvalidTicketQueryException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +37,31 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class ApiExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+  private final ObjectMapper json;
+
+  public ApiExceptionHandler(ObjectMapper json) {
+    this.json = json;
+  }
+
+  /**
+   * 直接把错误 JSON 写进原始响应，绕开消息转换器。
+   *
+   * <p>{@code /api/itineraries/{id}/export} 声明了 {@code produces=text/plain}；
+   * 若这里返回 {@code ResponseEntity<Map>}，异常解析时 Spring 仍按原 handler 的
+   * produces 约束协商，JSON 转换器写不出 text/plain —— 越权本该 403，实测却变成
+   * 500 空响应并打满堆栈。直接写响应则任何 Accept 都稳定返回 403/404。
+   */
+  private void writeError(HttpServletResponse response, int status,
+      Map<String, Object> body) throws IOException {
+    response.setStatus(status);
+    response.setContentType("application/json;charset=UTF-8");
+    response.getWriter().write(json.writeValueAsString(body));
+  }
 
   @ExceptionHandler(ItineraryNotFoundException.class)
-  public ResponseEntity<Map<String, Object>> notFound(ItineraryNotFoundException e) {
-    return ResponseEntity.status(404).body(Map.of("error", "行程不存在", "id", e.id()));
+  public void notFound(ItineraryNotFoundException e, HttpServletResponse response)
+      throws IOException {
+    writeError(response, 404, Map.of("error", "行程不存在", "id", e.id()));
   }
 
   @ExceptionHandler(MemberNotFoundException.class)
@@ -65,8 +89,9 @@ public class ApiExceptionHandler {
   }
 
   @ExceptionHandler(ItineraryForbiddenException.class)
-  public ResponseEntity<Map<String, Object>> forbidden(ItineraryForbiddenException e) {
-    return ResponseEntity.status(403).body(Map.of("error", "无权限"));
+  public void forbidden(ItineraryForbiddenException e, HttpServletResponse response)
+      throws IOException {
+    writeError(response, 403, Map.of("error", "无权限"));
   }
 
   @ExceptionHandler(VersionConflictException.class)
