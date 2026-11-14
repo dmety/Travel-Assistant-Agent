@@ -1316,6 +1316,117 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   .cl-select{min-width:0;flex:1}
   .cl-log .when{min-width:0}
 }
+/* ============ 行程管理编辑态 / 知识库浏览（落地设计稿 itinerary.html / knowledge.html） ============ */
+.btn-sm{min-height:26px;padding:0 10px;font-size:var(--fs-xs);border-radius:var(--r-ctl)}
+.btn-quiet{border:1px solid var(--line);background:var(--surface);color:var(--text-2);min-height:26px;padding:0 9px;font-size:var(--fs-xs);border-radius:var(--r-ctl)}
+.btn-quiet:hover{border-color:var(--pine);color:var(--pine-hover)}
+.w-strong{font-weight:600}
+:root{--ok-line:#9FC7B4;--warn-line:#D9BE86;--line-strong-warm:#E6DCC8}
+.st{display:inline-flex;align-items:center;padding:1px 8px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:600;white-space:nowrap}
+.st-verified{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok-line)}
+.st-pending{background:var(--clay-soft);color:var(--clay);border:1px solid #E4C4AE}
+.st-booked{background:var(--pine-soft);color:var(--pine-hover);border:1px solid var(--pine-line)}
+.st-unknown{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line)}
+.tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.tbl th,.tbl td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+.tbl th{color:var(--text-3);font-weight:600;font-size:var(--fs-xs)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr:last-child td{border-bottom:0}
+
+/* 行程编辑工作台 */
+.it{display:flex;flex-direction:column}
+.it-top{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface-warm);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.it-top .seal{width:28px;height:28px;flex:0 0 auto}
+.it-top .nm{font-size:var(--fs-lg);font-weight:600}
+.it-top .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+.it-top .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.kv{display:flex;gap:20px;flex-wrap:wrap}
+.kv .k{font-size:var(--fs-xs);color:var(--text-3)}
+.kv .k b{display:block;font-size:var(--fs-md);color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.daystrip{display:flex;gap:8px;padding:10px 18px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto}
+.daytab{flex:0 0 auto;padding:7px 13px;border:1px solid var(--line-strong);border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-xs);cursor:pointer;color:var(--text-2)}
+.daytab[aria-selected="true"]{border-color:var(--pine);background:var(--pine-soft);color:var(--pine-hover);font-weight:600}
+.it-body{display:grid;grid-template-columns:1fr 300px;min-height:480px}
+.it-main{padding:16px 18px}
+.it-side{border-left:1px solid var(--line);background:var(--paper);padding:14px 16px}
+.block+.block{margin-top:20px}
+.block-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.block-h .t{font-size:var(--fs-sm);font-weight:600}
+.block-h .sp{margin-left:auto}
+.block-h .cnt{font-size:var(--fs-xs);color:var(--text-3)}
+.info-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.info-row:last-child{border-bottom:0}
+.info-row .ord{width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;background:var(--pine-soft);color:var(--pine-hover);font-size:var(--fs-xs);font-weight:600}
+.info-row .nm{flex:1;min-width:0}
+.info-row .nm .ttl{font-weight:600;font-size:var(--fs-sm)}
+.info-row .nm .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+.info-row .rt{display:flex;align-items:center}
+.info-row .act{display:flex;gap:5px;flex:0 0 auto}
+.transit{display:flex;align-items:center;gap:8px;padding:6px 0 6px 32px;font-size:var(--fs-xs);color:var(--text-2)}
+.transit .dash{width:18px;height:0;border-top:2px dashed var(--line-strong)}
+.add-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.add-row .field{flex:1;min-width:120px}
+.field{width:100%;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);font-size:var(--fs-sm);font-family:inherit}
+.field:focus{outline:none;border-color:var(--pine)}
+.side-h{font-size:var(--fs-xs);color:var(--text-3);font-weight:600;margin:4px 0 8px}
+.budget-line{display:flex;justify-content:space-between;padding:6px 0;font-size:var(--fs-sm);border-bottom:1px solid var(--line)}
+.budget-line:last-child{border-bottom:0}
+.budget-line b{font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:var(--pine)}
+.bar>i.warn{background:var(--warn)}
+.bar>i.err{background:var(--err)}
+.check{position:relative;padding:9px 11px 9px 12px;border-radius:var(--r-ctl);font-size:var(--fs-xs);line-height:1.6;background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn);margin-bottom:8px}
+.check.medium{background:#F3E7D0;border-color:#D9BE86;color:#8A6212}
+.check.high{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
+.check .sug{display:block;margin-top:3px;opacity:.85}
+.it-back{margin-right:4px}
+
+/* 知识库浏览 */
+.kb{display:grid;grid-template-columns:260px 1fr;min-height:560px}
+.kb-side{border-right:1px solid var(--line);background:var(--paper);padding:16px}
+.kb-search{display:flex;gap:8px;margin-bottom:12px}
+.kb-status{padding:9px 12px;border-radius:var(--r-ctl);font-size:var(--fs-xs);margin-bottom:12px;line-height:1.5}
+.kb-status.ok{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok)}
+.kb-status.err{background:var(--err-soft);border:1px solid var(--err-line);color:var(--err)}
+.city-grp{font-size:var(--fs-xs);color:var(--text-3);font-weight:600;margin:12px 0 6px}
+.city{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-ctl);font-size:var(--fs-sm);color:var(--text-2);cursor:pointer}
+.city:hover{background:var(--pine-soft);color:var(--pine-hover)}
+.city[aria-current="true"]{background:var(--pine-soft);color:var(--pine-hover);font-weight:600}
+.city .cnt{margin-left:auto;font-size:var(--fs-xs);color:var(--text-3)}
+.kb-main{display:grid;grid-template-columns:1fr 320px}
+.kb-list{padding:16px;overflow-y:auto;max-height:620px}
+.kb-list .lh{font-size:var(--fs-sm);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.kb-detail{border-left:1px solid var(--line);background:var(--paper);padding:16px;overflow-y:auto;max-height:620px}
+.spot{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-ctl);margin-bottom:8px;cursor:pointer;background:var(--surface)}
+.spot:hover,.spot.is-active{border-color:var(--pine);background:var(--pine-soft)}
+.spot .nm{font-size:var(--fs-sm);font-weight:600}
+.spot .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+.spot .sp{margin-left:auto}
+.detail-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.detail-h h3{font-size:var(--fs-md)}
+.detail-meta{font-size:var(--fs-xs);color:var(--text-3);line-height:1.7}
+.detail-sec{margin-top:12px}
+.detail-sec .t{font-size:var(--fs-xs);color:var(--text-3);font-weight:600;margin-bottom:5px}
+.detail-sec p{font-size:var(--fs-sm);line-height:1.8;color:var(--text-2)}
+.m-kb-status{padding:8px 11px;border-radius:var(--r-ctl);font-size:var(--fs-xs);margin-bottom:10px;line-height:1.5}
+.m-kb-status.ok{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok)}
+.m-kb-status.err{background:var(--err-soft);border:1px solid var(--err-line);color:var(--err)}
+.m-spot{padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-ctl);margin-bottom:8px;background:var(--surface)}
+.m-spot .nm{font-size:var(--fs-sm);font-weight:600}
+.m-spot .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:3px}
+.m-detail h3{font-size:var(--fs-md)}
+.m-detail .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px;line-height:1.7}
+
+/* 窄屏：行程工作台与知识库改为单列堆叠 */
+@media (max-width:780px){
+  .it-body{grid-template-columns:1fr}
+  .it-side{border-left:0;border-top:1px solid var(--line)}
+  .kb{grid-template-columns:1fr}
+  .kb-side{border-right:0;border-bottom:1px solid var(--line)}
+  .kb-main{grid-template-columns:1fr}
+  .kb-detail{border-left:0;border-top:1px solid var(--line)}
+}
 </style>
 </head>
 <body>
@@ -1505,6 +1616,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <button type="button" role="tab" data-view="ticket" aria-selected="false"><svg class="ico"><use href="#i-ticket"/></svg><span>票务</span></button>
     <button type="button" role="tab" data-view="trips" aria-selected="false"><svg class="ico"><use href="#i-list"/></svg><span>行程</span></button>
     <button type="button" role="tab" data-view="collab" aria-selected="false"><svg class="ico"><use href="#i-collab"/></svg><span>协作</span></button>
+    <button type="button" role="tab" data-view="kb" aria-selected="false"><svg class="ico"><use href="#i-search"/></svg><span>知识库</span></button>
   </nav>
   <div class="trip-name" id="tripName">还没有行程</div>
   <div class="trip-meta" id="tripMeta">说一句话开始规划</div>
@@ -1749,6 +1861,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <button class="btn btn-outline" type="button" id="tripsRefresh"><svg class="ico"><use href="#i-search"/></svg>刷新</button>
     </div>
     <div id="tripsBox"><div class="trip-empty">正在读取…</div></div>
+    <div id="tripWorkstation" hidden></div>
   </section>
 
   <section class="view" id="viewCollab" hidden aria-label="协作">
@@ -1777,6 +1890,15 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <div class="cl-pane" id="clPaneAdvice" role="tabpanel" hidden></div>
     </div>
     <div class="trip-empty" id="clEmpty"><b>先选一个行程</b>协作围绕行程展开：邀请伙伴、候选投票、留言讨论。没有行程的话，去「规划」聊一个草案并保存。</div>
+  </section>
+
+  <section class="view" id="viewKb" hidden aria-label="景点知识库">
+    <div class="trips-head">
+      <h1>景点知识库</h1>
+      <span class="sub" id="kbMeta">检索城市或景点，查不到如实提示</span>
+      <button class="btn btn-outline" type="button" id="kbRefresh"><svg class="ico"><use href="#i-search"/></svg>刷新状态</button>
+    </div>
+    <div id="kbBox"><div class="trip-empty">正在读取知识库状态…</div></div>
   </section>
 </main>
 
@@ -1912,8 +2034,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
   /* ---------- 视图切换：用 hash，刷新后停在原视图 ---------- */
   function showView(name, silent) {
-    var target = name === 'ticket' || name === 'trips' || name === 'collab' ? name : 'plan';
-    ['plan', 'ticket', 'trips', 'collab'].forEach(function (v) {
+    var target = (name === 'ticket' || name === 'trips' || name === 'collab' || name === 'kb') ? name : 'plan';
+    ['plan', 'ticket', 'trips', 'collab', 'kb'].forEach(function (v) {
       var box = $('view' + v.charAt(0).toUpperCase() + v.slice(1));
       if (box) box.hidden = v !== target;
     });
@@ -1926,6 +2048,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if (target === 'trips') loadTrips();
     if (target === 'collab') initCollab();
     if (target === 'plan' && window.__bmap) { try { window.__bmap.resize(); } catch (e) {} }
+    if (target === 'kb') loadKb();
   }
   Array.prototype.forEach.call(document.querySelectorAll('.vtabs button'), function (b) {
     b.addEventListener('click', function () { showView(b.dataset.view); });
@@ -2333,6 +2456,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           } catch (e) { toast('删除失败：' + e.message); }
         });
         acts.appendChild(exp); acts.appendChild(tick); acts.appendChild(del);
+        var mgr = el('button', 'btn btn-outline', '管理');
+        mgr.type = 'button';
+        mgr.addEventListener('click', function () { openTrip(t.id); });
+        acts.appendChild(mgr);
         card.appendChild(acts);
         grid.appendChild(card);
       });
@@ -2340,6 +2467,337 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     } catch (e) {
       box.innerHTML = '<div class="trip-empty">读取失败：' + esc(e.message) + '</div>';
     }
+  }
+
+  /* ---------- 行程管理编辑态 + 预算体检（落地 design/itinerary.html） ---------- */
+  function enc(s) { return encodeURIComponent(s); }
+  function money(v, cur) {
+    if (v == null || v === '') return '—';
+    var n = Number(v);
+    if (isNaN(n)) return esc(v);
+    return (cur && cur !== 'CNY' ? cur + ' ' : '¥') + n.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  }
+  function statusPill(raw) {
+    if (!raw) return '';
+    var r = String(raw).toUpperCase();
+    if (r.indexOf('VERIF') >= 0) return '<span class="st st-verified">已核验</span>';
+    if (r.indexOf('BOOK') >= 0) return '<span class="st st-booked">待预约</span>';
+    if (r.indexOf('PEND') >= 0 || r.indexOf('待') >= 0) return '<span class="st st-pending">待核</span>';
+    return '<span class="st st-unknown">' + esc(raw) + '</span>';
+  }
+  function sealSvg() {
+    return '<span class="seal"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#mark-full"/></svg></span>';
+  }
+  function kvItem(k, v) { return '<div class="k">' + esc(k) + '<b>' + esc(v) + '</b></div>'; }
+  function budgetLine(k, v) { return '<div class="budget-line"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>'; }
+
+  var wsTrip = null, wsSlice = null, wsDayIdx = 0;
+
+  async function openTrip(id) {
+    var box = $('tripWorkstation');
+    $('tripsBox').hidden = true; box.hidden = false;
+    box.innerHTML = '<div class="trip-empty">正在读取行程…</div>';
+    try {
+      var trip = await api('/api/itineraries/' + enc(id));
+      var base = '/api/itineraries/' + enc(id);
+      var r = await Promise.all([
+        api(base + '/daily').catch(function () { return []; }),
+        api(base + '/transports').catch(function () { return []; }),
+        api(base + '/lodgings').catch(function () { return []; }),
+        api(base + '/expenses').catch(function () { return []; }),
+        api(base + '/budget/analysis').catch(function () { return null; }),
+        api(base + '/checks').catch(function () { return null; }),
+        api(base + '/members').catch(function () { return []; })
+      ]);
+      wsTrip = trip;
+      wsSlice = { daily: r[0] || [], transports: r[1] || [], lodgings: r[2] || [],
+        expenses: r[3] || [], analysis: r[4], checks: r[5], members: r[6] || [] };
+      wsDayIdx = 0;
+      renderWorkstation();
+    } catch (e) {
+      box.innerHTML = '<div class="trip-empty">读取失败：' + esc(e.message) + '</div>';
+    }
+  }
+  async function wsReload() {
+    var base = '/api/itineraries/' + enc(wsTrip.id);
+    var r = await Promise.all([
+      api(base + '/daily').catch(function () { return []; }),
+      api(base + '/transports').catch(function () { return []; }),
+      api(base + '/lodgings').catch(function () { return []; }),
+      api(base + '/expenses').catch(function () { return []; }),
+      api(base + '/budget/analysis').catch(function () { return null; }),
+      api(base + '/checks').catch(function () { return null; }),
+      api(base + '/members').catch(function () { return []; })
+    ]);
+    wsSlice = { daily: r[0] || [], transports: r[1] || [], lodgings: r[2] || [],
+      expenses: r[3] || [], analysis: r[4], checks: r[5], members: r[6] || [] };
+    renderWorkstation();
+  }
+  function renderWorkstation() {
+    var box = $('tripWorkstation'), t = wsTrip, s = wsSlice;
+    var title = t.title || '未命名行程';
+    var metaBits = [];
+    if (t.plan && t.plan.destination) metaBits.push(t.plan.destination);
+    if (t.plan && t.plan.startDate) metaBits.push(t.plan.startDate + (t.plan.endDate ? ' ~ ' + t.plan.endDate : ''));
+    var people = (s.members.length || 0) + 1;
+    metaBits.push(people + ' 人');
+    if (t.owner) metaBits.push('主理人 ' + t.owner);
+    var a = s.analysis || {};
+    var kv = kvItem('总预算', a.limit != null ? money(a.limit) : '—') +
+      kvItem('已花费', a.actualTotal != null ? money(a.actualTotal) : '—');
+    var checkN = (s.checks && s.checks.warnings) ? s.checks.warnings.length : 0;
+    kv += '<div class="k">体检<b' + (checkN ? ' style="color:var(--warn)"' : '') + '>' + checkN + ' 提醒</b></div>';
+    var archived = !!t.archived;
+    var actions = '<button class="btn btn-outline btn-sm it-back" type="button" id="wsBack">← 返回</button>';
+    actions += '<button class="btn btn-outline btn-sm" type="button" id="wsExport">导出</button>';
+    if (!archived) actions += '<button class="btn btn-outline btn-sm" type="button" id="wsArchive">归档</button>';
+    else actions += '<button class="btn btn-outline btn-sm" type="button" id="wsUnarchive">取消归档</button>';
+    box.innerHTML =
+      '<div class="it">' +
+        '<div class="it-top">' + sealSvg() +
+          '<div><div class="nm">' + esc(title) + '</div><div class="meta">' + esc(metaBits.join(' · ')) +
+          (archived ? ' · 已归档（只读）' : '') + '</div></div>' +
+          '<span class="sp"></span><div class="kv">' + kv + '</div><span class="sp"></span>' + actions +
+        '</div>' +
+        '<div class="daystrip" id="wsDays"></div>' +
+        '<div class="it-body"><div class="it-main" id="wsMain"></div><aside class="it-side" id="wsSide"></aside></div>' +
+      '</div>';
+    var days = s.daily || [];
+    var dwrap = $('wsDays');
+    if (!days.length) dwrap.appendChild(el('div', 'daytab', '暂无逐日安排'));
+    days.forEach(function (d, i) {
+      var tab = el('div', 'daytab', '第 ' + (i + 1) + ' 天' + (d.date ? ' · ' + String(d.date).slice(0, 10) : ''));
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', i === wsDayIdx ? 'true' : 'false');
+      tab.addEventListener('click', function () { wsDayIdx = i; renderWorkstation(); });
+      dwrap.appendChild(tab);
+    });
+    renderWsMain(); renderWsSide();
+    $('wsBack').addEventListener('click', function () { box.hidden = true; $('tripsBox').hidden = false; loadTrips(); });
+    $('wsExport').addEventListener('click', function () { window.location = '/api/itineraries/' + enc(t.id) + '/export'; });
+    if (!archived) $('wsArchive').addEventListener('click', async function () {
+      try { await post('/api/itineraries/' + enc(t.id) + '/archive'); toast('已归档'); openTrip(t.id); }
+      catch (e) { toast('归档失败：' + e.message); }
+    });
+    else $('wsUnarchive').addEventListener('click', async function () {
+      try { await post('/api/itineraries/' + enc(t.id) + '/unarchive'); toast('已取消归档'); openTrip(t.id); }
+      catch (e) { toast('失败：' + e.message); }
+    });
+  }
+  function renderWsMain() {
+    var m = $('wsMain'), s = wsSlice, day = (s.daily || [])[wsDayIdx], archived = !!wsTrip.archived;
+    function blockHead(t, cnt) {
+      return '<div class="block-h"><span class="t">' + esc(t) + '</span><span class="sp"></span><span class="cnt">' + esc(cnt) + '</span></div>';
+    }
+    var expSum = 0; (s.expenses || []).forEach(function (x) { expSum += Number(x.amount) || 0; });
+    var html = blockHead('景点安排', (day && day.activities ? day.activities.length : 0) + ' 项') +
+      '<div id="wsActs"></div>' +
+      blockHead('交通', (s.transports || []).length + ' 段') + '<div id="wsTrans"></div>' +
+      blockHead('住宿', (s.lodgings || []).length + ' 晚') + '<div id="wsLodge"></div>' +
+      blockHead('花费', money(expSum)) + '<table class="tbl" id="wsExp"></table>';
+    if (!archived) html += '<div class="add-row"><input class="field" id="wsExpCat" placeholder="类别（如 餐饮）">' +
+      '<input class="field" id="wsExpAmt" placeholder="金额" type="number" step="0.01">' +
+      '<input class="field" id="wsExpNote" placeholder="项目/备注">' +
+      '<button class="btn btn-primary btn-sm" id="wsExpAdd">记一笔</button></div>';
+    m.innerHTML = html;
+    // 景点安排
+    var acts = $('wsActs');
+    if (!day || !day.activities || !day.activities.length) acts.appendChild(el('div', 'trip-empty', '这一天还没有安排。' + (archived ? '' : '点下方添加。')));
+    else (day.activities || []).forEach(function (ac, i) {
+      var row = el('div', 'info-row');
+      row.innerHTML = '<span class="ord">' + (i + 1) + '</span><div class="nm"><div class="ttl">' + esc(ac.title || '未命名') + '</div>' +
+        '<div class="meta">' + esc([ac.time, ac.location, ac.note].filter(Boolean).join(' · ')) + '</div></div>' +
+        (ac.ticketRecord ? '<span class="rt">' + statusPill('VERIFIED') + '</span>' : '');
+      if (!archived) { var act = el('span', 'act'); var del = el('button', 'btn btn-quiet btn-sm', '删'); del.type = 'button';
+        del.addEventListener('click', function () { wsDeleteActivity(wsDayIdx, ac.id); }); act.appendChild(del); row.appendChild(act); }
+      acts.appendChild(row);
+      if (i < day.activities.length - 1) acts.appendChild(el('div', 'transit', ''));
+    });
+    if (!archived) {
+      var add = el('div', 'add-row');
+      add.innerHTML = '<input class="field" id="wsActTitle" placeholder="景点 / 活动名称">' +
+        '<input class="field" id="wsActLoc" placeholder="地点">' +
+        '<input class="field" id="wsActTime" placeholder="时间（可选）">' +
+        '<button class="btn btn-primary btn-sm" id="wsActAdd">添加</button>';
+      acts.appendChild(add);
+      $('wsActAdd').addEventListener('click', wsAddActivity);
+    }
+    // 交通
+    var tr = $('wsTrans');
+    if (!s.transports.length) tr.appendChild(el('div', 'trip-empty', '暂无交通段。'));
+    (s.transports || []).forEach(function (x) {
+      var row = el('div', 'transit');
+      row.innerHTML = '<span class="dash"></span>' + esc([x.mode, (x.from ? x.from + ' → ' + (x.to || '') : ''), x.note].filter(Boolean).join(' · ')) + (x.departTime ? ' · ' + esc(x.departTime) : '');
+      if (!archived) { var act = el('span', 'act'); var del = el('button', 'btn btn-quiet btn-sm', '删'); del.type = 'button';
+        del.addEventListener('click', function () { wsDeleteTransport(x.id); }); act.appendChild(del); row.appendChild(act); }
+      tr.appendChild(row);
+    });
+    // 住宿
+    var lg = $('wsLodge');
+    if (!s.lodgings.length) lg.appendChild(el('div', 'trip-empty', '暂无住宿。'));
+    (s.lodgings || []).forEach(function (x) {
+      var row = el('div', 'info-row');
+      row.innerHTML = '<span class="ord">宿</span><div class="nm"><div class="ttl">' + esc(x.name || '住宿') + '</div>' +
+        '<div class="meta">' + esc([x.checkIn ? x.checkIn + ' 入住' : '', x.checkOut ? x.checkOut + ' 离店' : '', x.roomType, x.note].filter(Boolean).join(' · ')) + '</div></div>';
+      if (!archived) { var act = el('span', 'act'); var del = el('button', 'btn btn-quiet btn-sm', '删'); del.type = 'button';
+        del.addEventListener('click', function () { wsDeleteLodging(x.id); }); act.appendChild(del); row.appendChild(act); }
+      lg.appendChild(row);
+    });
+    // 花费
+    var et = $('wsExp');
+    if (!s.expenses.length) et.innerHTML = '<tbody><tr><td colspan="4" class="trip-empty">还没有花费记录。</td></tr></tbody>';
+    else {
+      var rows = '<thead><tr><th>项目</th><th>类别</th><th class="num">金额</th><th></th></tr></thead><tbody>';
+      s.expenses.forEach(function (x, i) {
+        rows += '<tr><td>' + esc(x.note || '—') + '</td><td>' + esc(x.category || '—') + '</td><td class="num">' +
+          money(x.amount, x.currency) + '</td><td>' + (archived ? '' : '<button class="btn btn-quiet btn-sm" data-exp="' + i + '">删</button>') + '</td></tr>';
+      });
+      rows += '</tbody>'; et.innerHTML = rows;
+      if (!archived) Array.prototype.forEach.call(et.querySelectorAll('button[data-exp]'), function (b) {
+        b.addEventListener('click', function () { wsDeleteExpense(Number(b.dataset.exp)); }); });
+    }
+    if (!archived) $('wsExpAdd').addEventListener('click', wsAddExpense);
+  }
+  function renderWsSide() {
+    var sd = $('wsSide'), s = wsSlice, a = s.analysis || {};
+    var limit = Number(a.limit) || 0, actual = Number(a.actualTotal) || 0;
+    var pct = limit > 0 ? Math.min(100, Math.round(actual / limit * 100)) : 0;
+    var over = (a.overBy != null && Number(a.overBy) > 0);
+    var html = '<div class="side-h">预算分析</div>';
+    html += budgetLine('总预算', a.limit != null ? money(a.limit) : '—');
+    html += budgetLine('预计', a.estimatedTotal != null ? money(a.estimatedTotal) : '—');
+    html += budgetLine('已花费', a.actualTotal != null ? money(a.actualTotal) : '—');
+    html += '<div class="bar"><i' + (over ? ' class="err"' : '') + ' style="width:' + pct + '%"></i></div>';
+    if (a.perPersonActual != null) html += budgetLine('人均花费', money(a.perPersonActual));
+    if (over && a.overBy != null) html += budgetLine('超支', money(a.overBy));
+    else if (a.remaining != null) html += budgetLine('剩余', money(a.remaining));
+    (a.warnings || []).forEach(function (w) { html += '<div class="check">' + esc(w.message || '') + '</div>'; });
+    html += '<div class="side-h" style="margin-top:18px">行程体检</div>';
+    if (s.checks && s.checks.ok && (!s.checks.warnings || !s.checks.warnings.length))
+      html += '<div class="check" style="background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)">未发现明显问题。</div>';
+    else if (s.checks && s.checks.warnings) (s.checks.warnings).forEach(function (w) {
+      html += '<div class="check">' + esc(w.message || '') + '</div>'; });
+    else html += '<div class="check">暂无体检数据。</div>';
+    html += '<div class="side-h" style="margin-top:18px">成员</div>';
+    var names = (s.members || []).map(function (mm) { return mm.username; });
+    html += '<div class="budget-line"><span>我' + (names.length ? ' / ' + esc(names.join(' / ')) : '') + '</span>' +
+      '<button class="btn btn-quiet btn-sm" id="wsMembers">管理</button></div>';
+    sd.innerHTML = html;
+    var mb = $('wsMembers'); if (mb) mb.addEventListener('click', function () { showView('collab'); });
+  }
+  async function wsAddActivity() {
+    var title = $('wsActTitle').value.trim(); if (!title) { toast('名称不能为空'); return; }
+    var day = (wsSlice.daily || [])[wsDayIdx]; var date = day ? String(day.date).slice(0, 10) : null;
+    try {
+      var it = await post('/api/itineraries/' + enc(wsTrip.id) + '/activities?version=' + wsTrip.version,
+        { date: date, title: title, location: $('wsActLoc').value.trim() || null, note: $('wsActTime').value.trim() || null });
+      wsTrip.version = it.version; toast('已添加'); await wsReload();
+    } catch (e) { toast('添加失败：' + e.message); }
+  }
+  async function wsDeleteActivity(dayIdx, actId) {
+    var daily = wsSlice.daily.map(function (d) {
+      return { id: d.id, date: d.date, note: d.note, activities: (d.activities || []).filter(function (a) { return a.id !== actId; }) };
+    });
+    try { var it = await api('/api/itineraries/' + enc(wsTrip.id) + '/daily?version=' + wsTrip.version,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(daily) });
+      wsTrip.version = it.version; await wsReload(); } catch (e) { toast('删除失败：' + e.message); }
+  }
+  async function wsPutList(kind, list) {
+    try { var it = await api('/api/itineraries/' + enc(wsTrip.id) + '/' + kind + '?version=' + wsTrip.version,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(list) });
+      wsTrip.version = it.version; toast('已保存'); await wsReload(); } catch (e) { toast('保存失败：' + e.message); }
+  }
+  function wsDeleteTransport(id) {
+    wsPutList('transports', (wsSlice.transports || []).filter(function (x) { return x.id !== id; }));
+  }
+  function wsDeleteLodging(id) {
+    wsPutList('lodgings', (wsSlice.lodgings || []).filter(function (x) { return x.id !== id; }));
+  }
+  function wsDeleteExpense(i) {
+    var list = (wsSlice.expenses || []).slice(); list.splice(i, 1); wsPutList('expenses', list);
+  }
+  function wsAddExpense() {
+    var amt = parseFloat($('wsExpAmt').value); if (isNaN(amt)) { toast('金额无效'); return; }
+    var list = (wsSlice.expenses || []).slice();
+    list.push({ id: 'e' + Date.now(), category: $('wsExpCat').value.trim() || '其他', amount: amt, note: $('wsExpNote').value.trim() || null });
+    wsPutList('expenses', list);
+  }
+
+  /* ---------- 景点知识库浏览（落地 design/knowledge.html） ---------- */
+  async function loadKb() {
+    var box = $('kbBox');
+    box.innerHTML = '<div class="trip-empty">正在读取知识库状态…</div>';
+    try { var st = await api('/api/attractions/status'); renderKb(st); }
+    catch (e) { box.innerHTML = '<div class="trip-empty">读取失败：' + esc(e.message) + '</div>'; }
+  }
+  function renderKb(st) {
+    var box = $('kbBox'); box.innerHTML = '';
+    if (!st.available) {
+      box.appendChild(el('div', 'kb-status err', '知识库未就绪（不可用）：' + esc(st.reason || '数据目录不可写或服务启动中，请稍后重试。检索与规划依赖知识库，当前不可用。')));
+      return;
+    }
+    $('kbMeta').textContent = '已加载 · 覆盖 ' + (st.cityCount || '?') + ' 城 · ' + (st.count || '?') + ' 条';
+    var wrap = el('div', 'kb');
+    var side = el('aside', 'kb-side');
+    side.innerHTML = '<div class="kb-search"><input class="field" id="kbQ" placeholder="城市或景点">' +
+      '<button class="btn btn-primary btn-sm" id="kbGo">搜</button></div>' +
+      '<div class="kb-status ok">知识库已加载 · 覆盖 ' + (st.cityCount || '?') + ' 城 · ' + (st.count || '?') + ' 条</div>' +
+      '<div class="city-grp">常用城市</div>';
+    ['武汉', '北京', '上海', '成都', '西安', '重庆', '杭州', '广州', '深圳'].forEach(function (c) {
+      var ci = el('div', 'city', esc(c)); ci.addEventListener('click', function () { kbSearch(c); }); side.appendChild(ci);
+    });
+    wrap.appendChild(side);
+    var main = el('div', 'kb-main');
+    main.innerHTML = '<div class="kb-list" id="kbList"><div class="lh">检索城市或景点</div>' +
+      '<div class="trip-empty">输入城市（如 武汉）或景点名开始检索。库只覆盖 81 个城市键，查不到如实提示，不编造。</div></div>' +
+      '<div class="kb-detail" id="kbDetail"></div>';
+    wrap.appendChild(main); box.appendChild(wrap);
+    $('kbGo').addEventListener('click', function () { kbSearch($('kbQ').value.trim()); });
+    $('kbQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') kbSearch($('kbQ').value.trim()); });
+  }
+  async function kbSearch(q) {
+    if (!q) return;
+    var listBox = $('kbList'); listBox.innerHTML = '<div class="lh">检索中…</div>'; $('kbDetail').innerHTML = '';
+    try {
+      var res = await api('/api/attractions?limit=50&city=' + enc(q));
+      var items = res.items || [];
+      if (!items.length) { res = await api('/api/attractions?limit=50&name=' + enc(q)); items = res.items || []; }
+      renderKbList(q, items);
+    } catch (e) { listBox.innerHTML = '<div class="lh">检索失败</div><div class="trip-empty">' + esc(e.message) + '</div>'; }
+  }
+  function renderKbList(q, items) {
+    var listBox = $('kbList'); listBox.innerHTML = '';
+    listBox.appendChild(el('div', 'lh', '“' + esc(q) + '” 检索结果' + (items.length ? ' · ' + items.length + ' 条' : '')));
+    if (!items.length) {
+      listBox.appendChild(el('div', 'trip-empty', '没有匹配结果。库里没有这个地名或景点时不会编造——试试其它城市（武汉 / 北京 / 上海）。'));
+      return;
+    }
+    items.forEach(function (a) {
+      var sp = el('div', 'spot');
+      sp.innerHTML = '<div><div class="nm">' + esc(a.name || '未命名') + '</div><div class="meta">' +
+        (a.level ? esc(a.level) + ' · ' : '') + (a.rating ? '评分 ' + esc(a.rating) + ' · ' : '') +
+        (a.city ? esc(a.city) : '') + '</div></div><span class="sp"></span>' + statusPill(a.ticketStatus);
+      sp.addEventListener('click', function () {
+        Array.prototype.forEach.call(listBox.querySelectorAll('.spot'), function (x) { x.classList.remove('is-active'); });
+        sp.classList.add('is-active'); renderKbDetail(a);
+      });
+      listBox.appendChild(sp);
+    });
+  }
+  function renderKbDetail(a) {
+    var d = $('kbDetail');
+    var meta = [a.city || '', a.province || '', a.level || '', a.rating ? '评分 ' + a.rating : ''].filter(Boolean).join(' · ');
+    var kv = '';
+    if (a.ticketText != null) kv += '<div class="k">门票<b>' + esc(a.ticketText) + '</b></div>';
+    else if (a.ticket != null) kv += '<div class="k">门票<b>' + esc(a.ticket) + '</b></div>';
+    if (a.openTimeText != null) kv += '<div class="k">开放<b>' + esc(a.openTimeText) + '</b></div>';
+    else if (a.openTime != null) kv += '<div class="k">开放<b>' + esc(a.openTime) + '</b></div>';
+    if (a.address) kv += '<div class="k">地址<b>' + esc(a.address) + '</b></div>';
+    var html = '<div class="detail-h">' + sealSvg() + '<h3>' + esc(a.name || '未命名') + '</h3></div>';
+    html += '<div class="detail-meta">' + esc(meta) + (a.ticketStatus ? ' · ' + statusPill(a.ticketStatus) : '') + '</div>';
+    html += '<div class="kv">' + kv + '</div>';
+    if (a.description) html += '<div class="detail-sec"><div class="t">简介</div><p>' + esc(a.description) + '</p></div>';
+    d.innerHTML = html;
   }
 
   /* ---------- 协作视图：邀请 / 成员 / 候选投票 / 留言记录 / 决策建议 ---------- */
@@ -3328,6 +3786,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   $('saveConfirm').addEventListener('click', confirmSave);
   $('exportBtn').addEventListener('click', function () { exportPlan(); });
   $('tripsRefresh').addEventListener('click', loadTrips);
+  $('kbRefresh').addEventListener('click', loadKb);
   $('themeBtn').addEventListener('click', function () {
     var next = THEME_ORDER[(THEME_ORDER.indexOf(currentTheme()) + 1) % THEME_ORDER.length];
     applyTheme(next); toast('外观：' + THEME_TEXT[next]);
