@@ -50,13 +50,17 @@ public class SecurityConfiguration {
                 // /api/agent/capabilities 同理：只含 id / 状态 / 能力标签 / 最近拒绝原因码，
                 // 不含 endpoint、authRef 或任何凭据，前端登录前就能动态渲染可用入口。
                 "/api/location/status", "/api/agent/status", "/api/agent/capabilities",
-                // Provider 管理端点（reload/probe/shadow/activate/admission）改注册表状态、
-                // 携服务端凭据发真实请求、消耗配额或泄漏 endpoint，不能对任意登录用户开放。
-                // 这里放行是为了与「用户会话」解耦：真正的门禁交给 AdminTokenFilter，
+                // Provider 注册表只读快照与管理端点（providers/reload/probe/shadow/activate/admission）
+                // 改注册表状态、携服务端凭据发真实请求、消耗配额或泄漏 endpoint，不能对任意
+                // 登录用户开放。这里放行是为了与「用户会话」解耦：真正的门禁交给 AdminTokenFilter，
                 // 只认环境变量注入的 X-Admin-Token；未配置令牌时 fail-closed，一律 403。
-                "/api/agent/providers/reload", "/api/agent/providers/*/probe",
-                "/api/agent/providers/*/shadow", "/api/agent/providers/*/activate",
-                "/api/agent/providers/*/admission",
+                // 其中 providers（只读快照）现在也走 AdminTokenFilter，使管理后台可令牌单因子进入。
+                "/api/agent/providers", "/api/agent/providers/reload",
+                "/api/agent/providers/*/probe", "/api/agent/providers/*/shadow",
+                "/api/agent/providers/*/activate", "/api/agent/providers/*/admission",
+                // 管理监控端点（模型用量 / 操作审计）同样只认 X-Admin-Token，不放给任意登录用户：
+                // 先在上面 permitAll 与用户会话解耦，真正的门禁交给 AdminTokenFilter（fail-closed）。
+                "/api/agent/metrics/model-usage", "/api/agent/audit-log",
                 // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）。
                 // 业务界面统一在 /planner.html：页面公开，页内读 /api/account/me 判断登录态，
                 // 401 时跳回 /?next=/planner.html；真正的数据与模型配额仍由 /api/** 拦截。
@@ -73,6 +77,8 @@ public class SecurityConfiguration {
                 // 本轮新增网页端页面：页面本身公开，页内 /api/** 仍由 authenticated() 拦截
                 // （同 planner.html 模式：未登录打开页面，JS 读到 401 再跳登录）。
                 "/mobile.html", "/settings.html", "/food.html",
+                // 管理后台：页面本身公开，注册表与准入接口由 AdminTokenFilter 以 X-Admin-Token 鉴权。
+                "/admin.html", "/admin",
                 // 看板娘与共享静态资源：登录页/移动端/设置头像都引用 /mascot/*.png，
                 // 未登录也需可见，否则看板娘裂图。
                 "/mascot/**",
@@ -114,7 +120,11 @@ public class SecurityConfiguration {
 
         // 登录/注册限流置于认证过滤器之前：超限直接 429，不再走认证与业务逻辑（F7）。
         .addFilterBefore(new RateLimitFilter(new RateLimiter(), json, loginLimit, registerLimit),
-            UsernamePasswordAuthenticationFilter.class);
+            UsernamePasswordAuthenticationFilter.class)
+
+        // 身份漂移探针：必须放在授权之后，此时 SecurityContext 才是本次请求的最终身份。
+        // 每个 API 响应都带 X-Auth-User，前端据此发现「第二个窗口登录后本页已换了账号」。
+        .addFilterAfter(new AuthUserHeaderFilter(), AuthorizationFilter.class);
 
     return http.build();
   }
