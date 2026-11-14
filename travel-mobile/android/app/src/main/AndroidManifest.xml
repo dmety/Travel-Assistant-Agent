@@ -9,7 +9,10 @@
     <application
         android:label="出逃计划"
         android:name=".TravelApplication"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config">
+        <!-- 明文 HTTP 边界：release 只允许 HTTPS（例外仅回环/模拟器），debug 放开局域网明文。
+             不声明时 Android 9+ 默认拦明文，adb reverse 调试链路会整个不通。 -->
         <!-- 百度地图 SDK 要求在 Application.onCreate 中 initialize；
              不在 AndroidManifest 声明自定义 Application 会导致 authManager/mContext
              为 null，真地图创建时抛 JNIInitializer$InitOptions 空指针、瓦片留白。 -->
