@@ -1409,6 +1409,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .detail-sec{margin-top:12px}
 .detail-sec .t{font-size:var(--fs-xs);color:var(--text-3);font-weight:600;margin-bottom:5px}
 .detail-sec p{font-size:var(--fs-sm);line-height:1.8;color:var(--text-2)}
+/* 知识库空槽位：后端暂无 suggestedDuration / tips 字段时只占位，弱化显示 */
+.kb-detail .kb-ph{color:var(--text-3);font-weight:400;font-size:var(--fs-sm)}
 .m-kb-status{padding:8px 11px;border-radius:var(--r-ctl);font-size:var(--fs-xs);margin-bottom:10px;line-height:1.5}
 .m-kb-status.ok{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok)}
 .m-kb-status.err{background:var(--err-soft);border:1px solid var(--err-line);color:var(--err)}
@@ -2800,6 +2802,13 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       listBox.appendChild(sp);
     });
   }
+  /* 设计稿槽位契约：后端补数据时用 suggestedDuration（字符串，如「2h」）与
+     tips（纯文本）。字段缺失时只显示空占位，绝不写示意时长或示例贴士。 */
+  var KB_STAY_KEY = 'suggestedDuration', KB_TIPS_KEY = 'tips';
+  function kbField(a, key) {
+    var v = a[key];
+    return typeof v === 'string' && v.trim() ? v : '';
+  }
   function renderKbDetail(a) {
     var d = $('kbDetail');
     var meta = [a.city || '', a.province || '', a.level || '', a.rating ? '评分 ' + a.rating : ''].filter(Boolean).join(' · ');
@@ -2808,11 +2817,19 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     else if (a.ticket != null) kv += '<div class="k">门票<b>' + esc(a.ticket) + '</b></div>';
     if (a.openTimeText != null) kv += '<div class="k">开放<b>' + esc(a.openTimeText) + '</b></div>';
     else if (a.openTime != null) kv += '<div class="k">开放<b>' + esc(a.openTime) + '</b></div>';
+    /* 「建议游」槽位：先空着占位，字段一旦补齐自动显示真实值 */
+    var stay = kbField(a, KB_STAY_KEY);
+    kv += '<div class="k">建议游<b' + (stay ? '' : ' class="kb-ph"') + '>' +
+      (stay ? esc(stay) : '<span title="数据源暂无此字段">—</span>') + '</b></div>';
     if (a.address) kv += '<div class="k">地址<b>' + esc(a.address) + '</b></div>';
     var html = '<div class="detail-h">' + sealSvg() + '<h3>' + esc(a.name || '未命名') + '</h3></div>';
     html += '<div class="detail-meta">' + esc(meta) + (a.ticketStatus ? ' · ' + statusPill(a.ticketStatus) : '') + '</div>';
     html += '<div class="kv">' + kv + '</div>';
     if (a.description) html += '<div class="detail-sec"><div class="t">简介</div><p>' + esc(a.description) + '</p></div>';
+    /* 「贴士」槽位：同样先空着占位，不编造任何游玩建议 */
+    var tips = kbField(a, KB_TIPS_KEY);
+    html += '<div class="detail-sec"><div class="t">贴士</div>' +
+      (tips ? '<p>' + esc(tips) + '</p>' : '<p class="kb-ph" title="数据源暂无此字段">—</p>') + '</div>';
     d.innerHTML = html;
   }
 
