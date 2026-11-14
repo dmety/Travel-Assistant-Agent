@@ -97,8 +97,10 @@ public final class DraftAssembler {
    * 按候选顺序把景点分配到每一天，最多 {@link #MAX_PER_DAY} 个/天，**只输出排得到
    * 候选的天**。
    *
-   * <p>这是确定性排序的延续：{@code PlanningTools} 已按「等级 → 评分 → 名称」排好序，
-   * 这里只做等分，不引入新的推荐判断。日期由出发日期顺序推算，超出返回日期的那些天
+   * <p>等分前先经 {@link DraftRouteOptimizer} 按点位间直线距离就近重排，避免
+   * 「跑老远再跑回来」；重排只改顺序，不引入新的推荐判断、不生成游览时刻或耗时，
+   * 坐标缺失时自动降级为 {@code PlanningTools} 原有的「等级 → 评分 → 名称」顺序。
+   * 日期由出发日期顺序推算，超出返回日期的那些天
    * 只留 dayIndex、不给 date，避免把行程写到旅行区间之外。
    *
    * <p>编排层收敛口径：用户要 10 天、本地只查到 4 个景点时，只给 2 天有内容的草案，
@@ -114,6 +116,8 @@ public final class DraftAssembler {
     }
     int supported = (safe.size() + MAX_PER_DAY - 1) / MAX_PER_DAY;
     int count = Math.min(Math.min(effective, MAX_DAYS), supported);
+    // 展示与确认保存都走这里，重排一次即可保证「看到什么就存什么」。
+    List<Attraction> ordered = DraftRouteOptimizer.optimize(safe);
     LocalDate depart = request.departDate();
     LocalDate ret = request.returnDate();
     boolean validRange = depart != null && ret != null && !ret.isBefore(depart);
@@ -122,10 +126,10 @@ public final class DraftAssembler {
     List<DraftDay> days = new ArrayList<>();
     for (int i = 0; i < count; i++) {
       int from = i * MAX_PER_DAY;
-      int to = Math.min(from + MAX_PER_DAY, safe.size());
+      int to = Math.min(from + MAX_PER_DAY, ordered.size());
       List<DraftDay.Item> items = new ArrayList<>();
       for (int j = from; j < to; j++) {
-        items.add(itemOf(safe.get(j)));
+        items.add(itemOf(ordered.get(j)));
       }
       if (items.isEmpty()) {
         continue;  // 不生成「暂无候选」空行

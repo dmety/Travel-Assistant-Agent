@@ -84,6 +84,22 @@ class AccountApiTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("空白用户名/密码由控制器层 Bean Validation 拦截（P8：@Valid 接线，声明的约束真正生效）")
+  void blankCredentialsRejectedByBeanValidation() throws Exception {
+    mvc.perform(post("/api/account/register")
+            .contentType("application/json")
+            .content(json.writeValueAsString(Map.of("username", "", "password", DEFAULT_PASSWORD))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("用户名不能为空"));
+    mvc.perform(post("/api/account/register")
+            .contentType("application/json")
+            .content(json.writeValueAsString(
+                Map.of("username", uniqueUsername("blankpw"), "password", ""))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("密码不能为空"));
+  }
+
+  @Test
   @DisplayName("密码以 BCrypt 哈希落盘，文件中不存在明文")
   void passwordIsStoredAsBcryptHash() throws Exception {
     String username = uniqueUsername("hash");

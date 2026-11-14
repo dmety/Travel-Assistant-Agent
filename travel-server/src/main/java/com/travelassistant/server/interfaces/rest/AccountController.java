@@ -4,6 +4,7 @@ import com.travelassistant.server.application.account.AccountService;
 import com.travelassistant.server.application.account.DuplicateAccountException;
 import com.travelassistant.server.application.account.InvalidAccountException;
 import com.travelassistant.server.interfaces.rest.dto.RegisterRequest;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,7 +31,7 @@ public class AccountController {
 
   /** 公开注册：写入服务端 JSON。用户名重复返回 409，格式不合法返回 400。 */
   @PostMapping("/register")
-  public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
+  public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
     try {
       accountService.register(request.username(), request.password());
       return ResponseEntity.status(HttpStatus.CREATED)

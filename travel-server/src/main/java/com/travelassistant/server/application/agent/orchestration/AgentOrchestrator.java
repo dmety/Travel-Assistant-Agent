@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,14 +48,20 @@ public class AgentOrchestrator {
   private final ContractRules rules;
   private final AnchorFactService anchors;
   private final SummaryComposer summaries;
+  private final int maxModelCalls;
+  private final int maxToolCalls;
 
   public AgentOrchestrator(AgentRegistry registry, ContractValidator validator,
-      ContractRules rules, AnchorFactService anchors, SummaryComposer summaries) {
+      ContractRules rules, AnchorFactService anchors, SummaryComposer summaries,
+      @Value("${travel.agent.budget.plan-max-model-calls:1}") int maxModelCalls,
+      @Value("${travel.agent.budget.plan-max-tool-calls:4}") int maxToolCalls) {
     this.registry = registry;
     this.validator = validator;
     this.rules = rules;
     this.anchors = anchors;
     this.summaries = summaries;
+    this.maxModelCalls = maxModelCalls;
+    this.maxToolCalls = maxToolCalls;
   }
 
   public DispatchOutcome dispatch(DispatchRequest request) {
@@ -73,7 +80,7 @@ public class AgentOrchestrator {
     Instant deadline = Instant.now().plusMillis(timeoutMs);
     AgentContext agentContext = new AgentContext("run-" + UUID.randomUUID(), null, intent,
         context, inputFacts, hints, deadline);
-    RunBudget budget = new RunBudget(deadline, 1, 4);
+    RunBudget budget = new RunBudget(deadline, maxModelCalls, maxToolCalls);
 
     List<String> chain = chain(intent);
     List<DispatchOutcome.Attempt> attempts = new ArrayList<>();

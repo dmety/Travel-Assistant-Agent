@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfiguration {
@@ -26,12 +29,17 @@ public class SecurityConfiguration {
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(HttpSecurity http,
+      @Value("${travel.agent.admin-token:}") String adminToken,
+      @Value("${travel.rate-limit.login-per-minute:8}") int loginLimit,
+      @Value("${travel.rate-limit.register-per-minute:20}") int registerLimit) throws Exception {
     ObjectMapper json = new ObjectMapper();
 
     http
-        // 客户端为第一方控制台程序（非浏览器），且会话 Cookie 已 HttpOnly + SameSite=Strict，
-        // 跨站无法读取/携带。生产务必启用 HTTPS 避免明文传输凭据。
+        // 客户端为第一方控制台程序与浏览器 SPA（planner.html / index.html）。会话 Cookie 已
+        // HttpOnly + SameSite=Strict（见 application.yml），跨站请求无法携带会话，故禁用 CSRF 令牌
+        // ——这是已记录的可接受风险，非缺陷。生产务必启用 HTTPS（SESSION_COOKIE_SECURE=true）
+        // 避免明文传输凭据；若将来放宽 SameSite 或引入第三方跨站调用，必须重新启用 CSRF 防护。
         .csrf(csrf -> csrf.disable())
 
         .authorizeHttpRequests(auth -> auth
@@ -42,6 +50,17 @@ public class SecurityConfiguration {
                 // /api/agent/capabilities 同理：只含 id / 状态 / 能力标签 / 最近拒绝原因码，
                 // 不含 endpoint、authRef 或任何凭据，前端登录前就能动态渲染可用入口。
                 "/api/location/status", "/api/agent/status", "/api/agent/capabilities",
+                // Provider 注册表只读快照与管理端点（providers/reload/probe/shadow/activate/admission）
+                // 改注册表状态、携服务端凭据发真实请求、消耗配额或泄漏 endpoint，不能对任意
+                // 登录用户开放。这里放行是为了与「用户会话」解耦：真正的门禁交给 AdminTokenFilter，
+                // 只认环境变量注入的 X-Admin-Token；未配置令牌时 fail-closed，一律 403。
+                // 其中 providers（只读快照）现在也走 AdminTokenFilter，使管理后台可令牌单因子进入。
+                "/api/agent/providers", "/api/agent/providers/reload",
+                "/api/agent/providers/*/probe", "/api/agent/providers/*/shadow",
+                "/api/agent/providers/*/activate", "/api/agent/providers/*/admission",
+                // 管理监控端点（模型用量 / 操作审计）同样只认 X-Admin-Token，不放给任意登录用户：
+                // 先在上面 permitAll 与用户会话解耦，真正的门禁交给 AdminTokenFilter（fail-closed）。
+                "/api/agent/metrics/model-usage", "/api/agent/audit-log",
                 // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）。
                 // 业务界面统一在 /planner.html：页面公开，页内读 /api/account/me 判断登录态，
                 // 401 时跳回 /?next=/planner.html；真正的数据与模型配额仍由 /api/** 拦截。
@@ -54,7 +73,20 @@ public class SecurityConfiguration {
                 // 同样必须登录后才能访问；它们不在白名单里，由 .anyRequest().authenticated() 拦截。
                 "/chat.html", "/ticket-assistant.html", "/api-console.html",
                 "/", "/login", "/app", "/login.html", "/app.html", "/index.html", "/favicon.ico",
-                "/planner.html", "/planner")
+                "/planner.html", "/planner",
+                // 本轮新增网页端页面：页面本身公开，页内 /api/** 仍由 authenticated() 拦截
+                // （同 planner.html 模式：未登录打开页面，JS 读到 401 再跳登录）。
+                "/mobile.html", "/settings.html", "/food.html",
+                // 管理后台：页面本身公开，注册表与准入接口由 AdminTokenFilter 以 X-Admin-Token 鉴权。
+                "/admin.html", "/admin",
+                // 看板娘与共享静态资源：登录页/移动端/设置头像都引用 /mascot/*.png，
+                // 未登录也需可见，否则看板娘裂图。
+                "/mascot/**",
+                // 根目录共享静态资源：tokens.css / components.css 被 settings / food /
+                // mobile 等页引用，mascot-widget.js 是挂到 planner/settings/food 的浮动
+                // 看板娘脚本。这些资源若不放行，未登录页面会 401 导致样式与脚本加载失败、
+                // 页面渲染崩坏（实测 401 会让 settings 主题控件截断、看板娘不出现）。
+                "/tokens.css", "/components.css", "/mascot-widget.js")
             .permitAll()
             .anyRequest().authenticated())
 
@@ -80,7 +112,19 @@ public class SecurityConfiguration {
             .invalidateHttpSession(true)
             .deleteCookies("JSESSIONID")
             .logoutSuccessHandler((req, res, ex) -> writeJson(res, json, HttpStatus.OK,
-                Map.of("loggedOut", true))));
+                Map.of("loggedOut", true))))
+
+        // 管理令牌门禁置于授权过滤器之前：管理路径已在上面 permitAll 与会话解耦，
+        // 由本过滤器独立校验 X-Admin-Token；未配置或令牌不符一律 403。
+        .addFilterBefore(new AdminTokenFilter(adminToken, json), AuthorizationFilter.class)
+
+        // 登录/注册限流置于认证过滤器之前：超限直接 429，不再走认证与业务逻辑（F7）。
+        .addFilterBefore(new RateLimitFilter(new RateLimiter(), json, loginLimit, registerLimit),
+            UsernamePasswordAuthenticationFilter.class)
+
+        // 身份漂移探针：必须放在授权之后，此时 SecurityContext 才是本次请求的最终身份。
+        // 每个 API 响应都带 X-Auth-User，前端据此发现「第二个窗口登录后本页已换了账号」。
+        .addFilterAfter(new AuthUserHeaderFilter(), AuthorizationFilter.class);
 
     return http.build();
   }

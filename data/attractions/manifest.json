@@ -119,22 +119,22 @@
     {
       "file": "上海市.json",
       "province": "上海市",
-      "count": 477
+      "count": 468
     },
     {
       "file": "云南省.json",
       "province": "云南省",
-      "count": 380
+      "count": 363
     },
     {
       "file": "内蒙古自治区.json",
       "province": "内蒙古自治区",
-      "count": 93
+      "count": 91
     },
     {
       "file": "北京市.json",
       "province": "北京市",
-      "count": 411
+      "count": 407
     },
     {
       "file": "四川省.json",
@@ -144,57 +144,57 @@
     {
       "file": "天津市.json",
       "province": "天津市",
-      "count": 120
+      "count": 117
     },
     {
       "file": "宁夏回族自治区.json",
       "province": "宁夏回族自治区",
-      "count": 91
+      "count": 85
     },
     {
       "file": "安徽省.json",
       "province": "安徽省",
-      "count": 126
+      "count": 123
     },
     {
       "file": "山东省.json",
       "province": "山东省",
-      "count": 515
+      "count": 511
     },
     {
       "file": "山西省.json",
       "province": "山西省",
-      "count": 123
+      "count": 117
     },
     {
       "file": "广东省.json",
       "province": "广东省",
-      "count": 728
+      "count": 718
     },
     {
       "file": "广西壮族自治区.json",
       "province": "广西壮族自治区",
-      "count": 304
+      "count": 299
     },
     {
       "file": "新疆维吾尔自治区.json",
       "province": "新疆维吾尔自治区",
-      "count": 82
+      "count": 77
     },
     {
       "file": "江苏省.json",
       "province": "江苏省",
-      "count": 529
+      "count": 525
     },
     {
       "file": "江西省.json",
       "province": "江西省",
-      "count": 291
+      "count": 287
     },
     {
       "file": "河北省.json",
       "province": "河北省",
-      "count": 134
+      "count": 132
     },
     {
       "file": "河南省.json",
@@ -204,67 +204,67 @@
     {
       "file": "浙江省.json",
       "province": "浙江省",
-      "count": 363
+      "count": 357
     },
     {
       "file": "海南省.json",
       "province": "海南省",
-      "count": 215
+      "count": 188
     },
     {
       "file": "湖北省.json",
       "province": "湖北省",
-      "count": 436
+      "count": 333
     },
     {
       "file": "湖南省.json",
       "province": "湖南省",
-      "count": 166
+      "count": 159
     },
     {
       "file": "甘肃省.json",
       "province": "甘肃省",
-      "count": 110
+      "count": 105
     },
     {
       "file": "福建省.json",
       "province": "福建省",
-      "count": 533
+      "count": 523
     },
     {
       "file": "西藏自治区.json",
       "province": "西藏自治区",
-      "count": 145
+      "count": 143
     },
     {
       "file": "贵州省.json",
       "province": "贵州省",
-      "count": 100
+      "count": 96
     },
     {
       "file": "辽宁省.json",
       "province": "辽宁省",
-      "count": 169
+      "count": 163
     },
     {
       "file": "重庆市.json",
       "province": "重庆市",
-      "count": 273
+      "count": 272
     },
     {
       "file": "陕西省.json",
       "province": "陕西省",
-      "count": 112
+      "count": 111
     },
     {
       "file": "青海省.json",
       "province": "青海省",
-      "count": 106
+      "count": 95
     },
     {
       "file": "黑龙江省.json",
       "province": "黑龙江省",
-      "count": 170
+      "count": 169
     }
   ],
   "serialization": {

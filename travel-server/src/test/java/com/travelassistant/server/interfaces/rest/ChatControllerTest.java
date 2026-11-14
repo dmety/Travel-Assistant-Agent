@@ -1,7 +1,9 @@
 package com.travelassistant.server.interfaces.rest;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,10 +14,12 @@ import com.travelassistant.server.application.chat.ChatAgent;
 import com.travelassistant.server.application.chat.ChatReply;
 import com.travelassistant.server.application.chat.ChatTools;
 import com.travelassistant.server.application.intent.ConversationState;
+import com.travelassistant.server.application.intent.ConversationTurn;
 import com.travelassistant.server.infrastructure.security.SecurityConfiguration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -78,5 +82,44 @@ class ChatControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"message\":\"武汉三天\"}"))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("message 超过 2000 字：400，挡住超长请求打模型（F5）")
+  void oversizedMessageIsRejected() throws Exception {
+    String tooLong = "x".repeat(2001);
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"" + tooLong + "\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").exists());
+  }
+
+  @Test
+  @DisplayName("history 超过 50 轮：只把最近 50 轮送给模型，不全量转发（F5）")
+  void historyIsCappedToRecentTurns() throws Exception {
+    when(agent.chat(anyString(), any(), any())).thenReturn(sample());
+    StringBuilder body = new StringBuilder("{\"message\":\"继续\",\"history\":[");
+    for (int i = 0; i < 60; i++) {
+      if (i > 0) {
+        body.append(',');
+      }
+      body.append("{\"role\":\"user\",\"text\":\"第").append(i).append("句\"}");
+    }
+    body.append("]}");
+
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body.toString()))
+        .andExpect(status().isOk());
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<ConversationTurn>> captor = ArgumentCaptor.forClass(List.class);
+    verify(agent).chat(anyString(), captor.capture(), any());
+    List<ConversationTurn> sent = captor.getValue();
+    assertEquals(50, sent.size());
+    // 保留的是最近 50 轮（第 10..59 句），最早的 10 句被丢弃。
+    assertEquals("第59句", sent.get(sent.size() - 1).text());
+    assertEquals("第10句", sent.get(0).text());
   }
 }
