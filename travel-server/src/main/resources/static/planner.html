@@ -648,6 +648,18 @@ html[data-theme="dark"] .msg.ai{
    --warn 提示 / --err 风险 / --clay 仅决断），不出现脱离色板的色值。
    ============================================================ */
 #viewTicket [hidden]{display:none!important}
+/* 加载 / 空 / 失败三态都要像一张明确的「状态卡片」，而不是一行淡色小字；
+   加载未完成前绝不显示「没有景点」这类结论。 */
+#viewTicket #tkEmptyState{max-width:640px;padding:18px 20px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-1);color:var(--text-2)}
+#viewTicket #tkEmptyState>b{display:block;font-size:var(--fs-md);margin-bottom:8px}
+#viewTicket #tkEmptyState>span{display:block;line-height:1.8}
+#viewTicket .tk-loading{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:14px 16px;border:1px solid var(--pine-line);border-radius:var(--r-card);background:var(--pine-soft);color:var(--pine);font-size:var(--fs-md);font-weight:var(--w-strong,600)}
+#viewTicket .tk-loadbar{position:relative;flex:0 0 auto;width:104px;height:6px;border-radius:3px;background:var(--surface);border:1px solid var(--pine-line);overflow:hidden}
+#viewTicket .tk-loadbar::after{content:"";position:absolute;inset:0;width:42%;border-radius:3px;background:var(--pine);animation:tkSlide 1.1s ease-in-out infinite}
+@keyframes tkSlide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){#viewTicket .tk-loadbar::after{animation:none;width:100%;opacity:.6}}
+#viewTicket .tk-empty-list{margin-top:10px;font-size:var(--fs-xs);color:var(--text-3);line-height:1.8}
+#viewTicket .tk-empty-list b{display:block;color:var(--text-2);margin-bottom:2px}
 #viewTicket .tk{padding:22px}
 #viewTicket .tk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 #viewTicket .tk-head .seal{width:30px;height:30px;flex:0 0 auto}
@@ -1277,10 +1289,18 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 <div class="view" id="viewTicket" hidden>
   <div class="tk">
     <!-- 无行程空态：默认显示，绝不凭空渲染一个景点的票价 -->
-    <div class="trip-empty" id="tkEmptyState">
-      <b>当前行程里还没有可查询购票信息的景点</b>
-      <span id="tkEmptyText">正在读取你的行程…</span>
-      <div style="margin-top:12px"><button type="button" class="btn btn-outline btn-sm" id="tkGoPlan">去规划行程</button></div>
+    <div class="trip-empty" id="tkEmptyState" aria-live="polite">
+      <div class="tk-loading" id="tkLoading">
+        <span class="tk-loadbar" aria-hidden="true"></span>
+        <span id="tkLoadingText">正在读取你的行程…</span>
+      </div>
+      <b id="tkEmptyTitle">正在读取行程</b>
+      <span id="tkEmptyText">正在从后端获取行程与已核验票价，请稍候…</span>
+      <div class="tk-empty-list" id="tkEmptyList" hidden></div>
+      <div style="margin-top:12px">
+        <button type="button" class="btn btn-outline btn-sm" id="tkRetry" hidden>重新加载</button>
+        <button type="button" class="btn btn-outline btn-sm" id="tkGoPlan">去规划行程</button>
+      </div>
     </div>
 
     <div class="tk-head" id="tkHead" hidden>
@@ -1521,12 +1541,16 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       try { history.replaceState(null, '', '#' + target); } catch (e) { /* file:// 忽略 */ }
     }
     if (target === 'trips') loadTrips();
+    if (target === 'ticket' && window.__refreshTicketView) window.__refreshTicketView();
     if (target === 'collab') initCollab();
     if (target === 'plan' && window.__bmap) { try { window.__bmap.resize(); } catch (e) {} }
     if (target === 'kb') loadKb();
   }
   Array.prototype.forEach.call(document.querySelectorAll('.vtabs button'), function (b) {
-    b.addEventListener('click', function () { showView(b.dataset.view); });
+    b.addEventListener('click', function () {
+      if (b.dataset.view === 'ticket') window.__ticketTrip = null;
+      showView(b.dataset.view);
+    });
   });
 
   /* ---------- 会话渲染 ---------- */
@@ -1917,8 +1941,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         var tick = el('button', 'btn btn-outline', '按此行程购票');
         tick.type = 'button';
         tick.addEventListener('click', function () {
+          // 把「此行程」真正传给票务视图，否则跳过去只会汇总全部行程，
+          // 用户会看到一份和自己刚点的行程无关的页面（或不明所以的空态）。
+          window.__ticketTrip = { id: t.id, title: t.title || '' };
           showView('ticket');
-          toast('在票务里点「加载我的行程」，选「' + (t.title || '') + '」');
         });
         var del = el('button', 'btn btn-outline', '删除');
         del.type = 'button';
@@ -4484,9 +4510,54 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   /* 空态 / 数据区互斥：没有行程景点时页面上不出现任何票价、渠道或建议 */
   function showData(on) {
     $('tkEmptyState').hidden = !!on;
+    if (on) $('tkLoading').hidden = true;   // 数据区出现时加载条必须收起
     DATA_BLOCKS.forEach(function (id) { $(id).hidden = !on; });
   }
   function emptyText(t) { $('tkEmptyText').textContent = t; }
+
+  /* 任何空态都要清掉上一轮残留的票价/渠道 DOM，避免 DOM 里还留着旧价格 */
+  function clearData() {
+    ['tkPrices', 'tkDetailPrices', 'tkChannels', 'tkDetailChannels', 'tkStations']
+      .forEach(function (id) { var n = $(id); if (n) n.replaceChildren(); });
+    $('tkSite').replaceChildren();
+    $('tkAdvice').textContent = '';
+    $('tkDetailAdvice').textContent = '';
+    $('tkCopyLink').disabled = true;
+    delete $('tkCopyLink').dataset.url;
+  }
+
+  /* 加载中 / 无数据 / 读取失败 三态分离：加载未结束不下「没有景点」的结论。
+     detail 是 DOM 节点（用 textContent 构建，绝不拼 HTML，避免行程文本注入）。 */
+  function setEmpty(mode, title, text, detail) {
+    clearData();
+    showData(false);
+    $('tkLoading').hidden = mode !== 'loading';
+    $('tkRetry').hidden = mode !== 'error';
+    $('tkGoPlan').hidden = mode === 'loading';
+    $('tkEmptyTitle').textContent = title;
+    emptyText(text);
+    var box = $('tkEmptyList');
+    box.replaceChildren();
+    if (detail) box.appendChild(detail);
+    box.hidden = !detail;
+  }
+  function loadingState(text) {
+    $('tkLoadingText').textContent = text || '正在读取你的行程…';
+    setEmpty('loading', '正在读取行程',
+      '正在从后端获取行程与已核验票价，请稍候…', null);
+  }
+  function spotList(spots) {
+    var box = document.createElement('div');
+    node('b', '', '本次从行程里读到的景点：', box);
+    var seen = {}, n = 0;
+    spots.forEach(function (t) {
+      if (!t || seen[t] || n >= 6) return;
+      seen[t] = 1; n += 1;
+      node('div', '', '· ' + t, box);
+    });
+    if (!n) node('div', '', '· （该行程还没有填入景点）', box);
+    return box;
+  }
   function currentEntry() {
     var pick = $('tkSite').value;
     return itinerarySites.find(function (e) { return e.site.id === pick; }) || itinerarySites[0] || null;
@@ -4599,16 +4670,23 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     copy.title = url ? '复制后端返回的官方入口' : '后端未返回经核验的官方入口，不生成链接';
     copy.dataset.url = url || '';
   }
-  function noSiteState() {
-    showData(false);
-    emptyText('票务信息只针对你实际安排的景点展示，不预置任何景点。先到「规划」生成行程，或在「行程」里添加景点。');
+  function noSiteState(tripCount, spots) {
+    var scope = activeTrip();
+    var title = scope ? '所选行程暂无已核验购票信息' : '暂无可查询购票信息的行程景点';
+    var text = scope
+      ? '已从后端读到行程「' + (scope.title || '未命名行程') + '」，其中 ' + (spots || []).length +
+        ' 个活动景点都没有人工核验票价（后端当前只收录少量已核验景点）。为不编造票价，这里不显示任何价格。'
+      : (tripCount
+          ? '已从后端读到 ' + tripCount + ' 个行程，其中没有匹配到已核验票价的景点，因此不显示任何价格。'
+          : '后端当前没有你的进行中行程。先到「规划」生成行程，再来这里查看购票信息。');
+    setEmpty('empty', title, text, spotList(spots || []));
   }
 
   function render() {
     var entry = currentEntry();
     var site = entry ? entry.site : null;
     var my = ++seq;
-    if (!site) { noSiteState(); return; }
+    if (!site) { noSiteState(0, []); return; }
     showData(true);
     priceCards(site, $('tkPrices'), false);
     priceCards(site, $('tkDetailPrices'), true);
@@ -4641,16 +4719,31 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     });
   }
 
+  /* 「按此行程购票」把行程 id/标题放进 window.__ticketTrip；直接点 tab 时不设置，
+     就汇总所有进行中行程。主脚本的 showView 负责在切到 ticket 时调用刷新。 */
+  function activeTrip() { return window.__ticketTrip || null; }
+
   /* 行程驱动：只把用户行程里真实出现、且后端有核验票价的景点列出来。
      精确匹配：活动文本含完整景点名，或景点名含活动文本（活动文本至少 3 字）。 */
+  var pending = null;
   function refreshItinerary() {
-    return api('/api/itineraries?archived=false').then(function (trips) {
-      var found = [], seen = {};
+    if (pending) return pending;              // 防抖：showView 与重复点击不叠加请求
+    loadingState(activeTrip() ? '正在读取所选行程…' : '正在读取你的行程…');
+    var mySeq = ++seq;
+    pending = api('/api/itineraries?archived=false').then(function (trips) {
+      if (mySeq !== seq) return;
+      var found = [], seen = {}, spots = [], scope = activeTrip(), tripCount = 0;
       (Array.isArray(trips) ? trips : []).forEach(function (t) {
+        if (scope && t.id !== scope.id) return;   // 指定行程时只查这个行程
+        tripCount += 1;
         (t.dailySchedules || []).forEach(function (d) {
           (d.activities || []).forEach(function (a) {
-            var text = [a.title, a.location].filter(Boolean).join(' ').trim();
+            var parts = [a.title, a.location].filter(Boolean)
+              .map(function (x) { return String(x).trim(); });
+            // title 与 location 常常写成同一个地名，去重后再拼，避免清单里出现「武当山 武当山」
+            var text = parts.filter(function (x, i) { return x && parts.indexOf(x) === i; }).join(' ').trim();
             if (!text) return;
+            spots.push(text);
             catalog.forEach(function (s) {
               if (seen[s.id]) return;
               var hit = text.indexOf(s.name) >= 0 ||
@@ -4672,14 +4765,16 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         o.textContent = e.site.name + ' · ' + e.trip;
         sel.appendChild(o);
       });
-      if (!found.length) { noSiteState(); return; }
+      if (!found.length) { noSiteState(tripCount, spots); return; }
       sel.value = found[0].site.id;
       render();
     }).catch(function (e) {
       itinerarySites = [];
-      noSiteState();
-      emptyText('行程读取失败（' + e.message + '），页面不预置任何景点，也不显示票价。');
-    });
+      setEmpty('error', '行程读取失败',
+        '后端 /api/itineraries 返回 ' + e.message + '。页面不预置任何景点，也不显示票价。', null);
+      notice('行程读取失败：' + e.message + '；可点「重新加载」重试。');
+    }).then(function () { pending = null; });
+    return pending;
   }
   window.__refreshTicketView = refreshItinerary;
 
@@ -4693,6 +4788,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       var tab = document.querySelector('.vtabs button[data-view="plan"]');
       if (tab) tab.click();
     };
+    $('tkRetry').onclick = function () { refreshItinerary(); };
     $('tkDetailBtn').onclick = function () {
       $('tkDetailAdvice').textContent = $('tkAdvice').textContent;
       if (typeof $('tkDetail').showModal === 'function') $('tkDetail').showModal();
@@ -4727,21 +4823,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
 
   bind();
-  showData(false);
-  emptyText('正在读取你的行程…');
+  loadingState();
   api('/api/tickets/catalog').then(function (list) {
     catalog = Array.isArray(list) ? list : [];
   }).catch(function () { catalog = []; })
     .then(refreshItinerary);
 
-  /* 工作台切 tab 只改 hidden，用 MutationObserver 在进入票务时重新读行程，
-     避免用户先建行程再回到票务时看到过期数据；不改动主脚本的 showView。 */
-  var box = $('viewTicket');
-  if (window.MutationObserver) {
-    new MutationObserver(function () {
-      if (!box.hidden) refreshItinerary();
-    }).observe(box, { attributes: true, attributeFilter: ['hidden'] });
-  }
+  /* 刷新统一由主脚本 showView('ticket') 调用 window.__refreshTicketView，
+     不再用 MutationObserver：后者与 showView 会重复发同一请求。 */
 })();
 </script>
 <script src="mascot-widget.js?v=4.3.1"></script>
