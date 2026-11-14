@@ -58,6 +58,9 @@ public class SecurityConfiguration {
                 "/api/agent/providers", "/api/agent/providers/reload",
                 "/api/agent/providers/*/probe", "/api/agent/providers/*/shadow",
                 "/api/agent/providers/*/activate", "/api/agent/providers/*/admission",
+                // 管理监控端点（模型用量 / 操作审计）同样只认 X-Admin-Token，不放给任意登录用户：
+                // 先在上面 permitAll 与用户会话解耦，真正的门禁交给 AdminTokenFilter（fail-closed）。
+                "/api/agent/metrics/model-usage", "/api/agent/audit-log",
                 // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）。
                 // 业务界面统一在 /planner.html：页面公开，页内读 /api/account/me 判断登录态，
                 // 401 时跳回 /?next=/planner.html；真正的数据与模型配额仍由 /api/** 拦截。

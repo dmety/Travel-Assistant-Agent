@@ -51,7 +51,15 @@ public class DeepSeekClient {
   private final AtomicLong promptTokens = new AtomicLong();
   private final AtomicLong completionTokens = new AtomicLong();
   private final AtomicLong cachedTokens = new AtomicLong();
-  /** 最近一次调用的摘要，形如「ChatAgent：输入 1167 / 输出 210 tokens」。 */
+  /** 失败（抛 AgentUnavailableException）次数，用于失败率。 */
+  private final AtomicLong errorCount = new AtomicLong();
+  /** 成功调用的累计时延，用于平均时延。 */
+  private final AtomicLong totalLatencyMs = new AtomicLong();
+  /** 最近一次成功调用的时延（ms）。 */
+  private volatile long lastLatencyMs = 0;
+  /** 最近一次失败原因（不含密钥等敏感信息）；null 表示尚未失败。 */
+  private volatile String lastError = null;
+  /** 最近一次调用的摘要，形如「ChatAgent：输入 1167 / 输出 210 tokens（320ms）」。 */
   private volatile String lastCall = null;
   private final Instant startedAt = Instant.now();
 
@@ -178,6 +186,7 @@ public class DeepSeekClient {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setBearerAuth(apiKey);
+    long started = System.nanoTime();
     try {
       ResponseEntity<JsonNode> response = restTemplate.postForEntity(
           baseUrl + "/chat/completions", new HttpEntity<>(body, headers), JsonNode.class);
@@ -185,23 +194,34 @@ public class DeepSeekClient {
       if (root == null) {
         throw new AgentUnavailableException("模型返回空响应");
       }
-      recordUsage(root);
+      long elapsedMs = (System.nanoTime() - started) / 1_000_000;
+      recordUsage(root, elapsedMs);
       return root;
     } catch (HttpStatusCodeException e) {
-      throw new AgentUnavailableException(explain(e), e);
+      String why = explain(e);
+      recordError(why);
+      throw new AgentUnavailableException(why, e);
     } catch (RestClientException e) {
-      throw new AgentUnavailableException("模型服务请求失败：" + brief(e.getMessage()), e);
+      String why = "模型服务请求失败：" + brief(e.getMessage());
+      recordError(why);
+      throw new AgentUnavailableException(why, e);
     }
   }
 
+  /** 记一次失败（用于失败率统计）；不记录密钥等敏感细节。 */
+  private void recordError(String why) {
+    errorCount.incrementAndGet();
+    lastError = why;
+  }
+
   /**
-   * 记一次调用的 token 用量。
+   * 记一次成功调用的 token 用量与时延。
    *
    * <p>放在 {@link #post} 里而不是各个调用方：它是 {@code chat} 与 {@code complete}
    * 两条路径的唯一出口，写在这里不会漏计。调用方是谁不用业务代码传参，
    * 用栈回溯取最近的业务类名即可，免得为统计去改八个调用点的签名。
    */
-  private void recordUsage(JsonNode root) {
+  private void recordUsage(JsonNode root, long elapsedMs) {
     JsonNode usage = root.path("usage");
     long prompt = usage.path("prompt_tokens").asLong(0);
     long completion = usage.path("completion_tokens").asLong(0);
@@ -210,10 +230,12 @@ public class DeepSeekClient {
     promptTokens.addAndGet(prompt);
     completionTokens.addAndGet(completion);
     cachedTokens.addAndGet(cached);
+    totalLatencyMs.addAndGet(elapsedMs);
+    lastLatencyMs = elapsedMs;
     String caller = callerName();
-    lastCall = caller + "：输入 " + prompt + " / 输出 " + completion + " tokens";
-    log.info("模型调用 #{} {} → 输入 {} 输出 {}（缓存命中 {}），本进程累计 输入 {}/输出 {}",
-        count, caller, prompt, completion, cached, promptTokens.get(), completionTokens.get());
+    lastCall = caller + "：输入 " + prompt + " / 输出 " + completion + " tokens（" + elapsedMs + "ms）";
+    log.info("模型调用 #{} {} → 输入 {} 输出 {}（缓存命中 {}），本进程累计 输入 {}/输出 {}，耗时 {}ms",
+        count, caller, prompt, completion, cached, promptTokens.get(), completionTokens.get(), elapsedMs);
   }
 
   /** 从调用栈取最近的业务类名，用来区分这次是谁在问模型。 */
@@ -242,14 +264,23 @@ public class DeepSeekClient {
    */
   public Map<String, Object> usageSnapshot() {
     Map<String, Object> body = new LinkedHashMap<>();
+    long calls = callCount.get();
+    long errors = errorCount.get();
+    long totalRequests = calls + errors;
     body.put("model", model);
     body.put("endpoint", baseUrl);
-    body.put("calls", callCount.get());
+    body.put("calls", calls);
+    body.put("errors", errors);
+    body.put("totalRequests", totalRequests);
+    body.put("failureRate", totalRequests == 0 ? 0d : (double) errors / totalRequests);
     body.put("promptTokens", promptTokens.get());
     body.put("completionTokens", completionTokens.get());
     body.put("cachedPromptTokens", cachedTokens.get());
     body.put("totalTokens", promptTokens.get() + completionTokens.get());
+    body.put("avgLatencyMs", calls == 0 ? 0d : (double) totalLatencyMs.get() / calls);
+    body.put("lastLatencyMs", lastLatencyMs);
     body.put("lastCall", lastCall);
+    body.put("lastError", lastError);
     body.put("since", startedAt.toString());
     body.put("balanceAvailable", false);
     return body;

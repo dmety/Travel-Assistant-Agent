@@ -34,7 +34,9 @@ public class AdminTokenFilter extends OncePerRequestFilter {
       "/api/agent/providers/*/probe",
       "/api/agent/providers/*/shadow",
       "/api/agent/providers/*/activate",
-      "/api/agent/providers/*/admission");
+      "/api/agent/providers/*/admission",
+      "/api/agent/metrics/model-usage",
+      "/api/agent/audit-log");
 
   private final String adminToken;
   private final ObjectMapper json;

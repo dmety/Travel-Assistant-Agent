@@ -339,17 +339,41 @@
       '<tbody>' + rows + '</tbody></table></div>';
   }
 
-  function renderUsage() {
-    return '<div class="admin-top"><h2>模型用量</h2><span class="sp"></span><span class="st suspended">未接入</span></div>' +
-      '<div class="pane"><div class="ph">近 24h 用量</div>' +
-      '<div class="usage">' +
-        '<div class="u"><div class="l">调用次数</div><div class="v">—</div></div>' +
+  async function renderUsage(main) {
+    main.innerHTML =
+      '<div class="admin-top"><h2>模型用量</h2><span class="sp"></span>' +
+        '<button class="btn btn-outline btn-sm" id="usageRefresh">刷新</button></div>' +
+      '<div class="pane"><div class="ph">本进程累计用量 <span class="sp"></span><span class="st unknown">加载中…</span></div>' +
+      '<div class="usage" id="usageBody"><div class="u"><div class="l">调用次数</div><div class="v">—</div></div>' +
         '<div class="u"><div class="l">Token 消耗</div><div class="v">—</div></div>' +
         '<div class="u"><div class="l">平均时延</div><div class="v">—</div></div>' +
-        '<div class="u"><div class="l">失败率</div><div class="v">—</div></div>' +
-      '</div>' +
-      '<div class="notice-bar" style="margin:0 16px 16px">后端暂未暴露用量统计端点（调用次数 / Token 消耗 / 时延 / 失败率）。本看板为占位，不编造数据；接入监控后再填充真实值。</div>' +
-      '</div>';
+        '<div class="u"><div class="l">失败率</div><div class="v">—</div></div></div>' +
+      '<div class="notice-bar" id="usageNote" style="margin:0 16px 16px">正在读取用量统计…</div></div>';
+    const r = await api('/api/agent/metrics/model-usage');
+    if (!r.ok) {
+      main.querySelector('#usageBody').innerHTML =
+        '<div class="u"><div class="l">状态</div><div class="v err">读取失败</div></div>';
+      main.querySelector('#usageNote').textContent = '无法读取用量：HTTP ' + r.status + '（需持有管理员令牌）';
+      return;
+    }
+    const u = r.json || {};
+    const failPct = ((u.failureRate || 0) * 100).toFixed(1) + '%';
+    const avgMs = (u.avgLatencyMs || 0).toFixed(0) + ' ms';
+    main.querySelector('#usageBody').innerHTML =
+      '<div class="u"><div class="l">调用次数</div><div class="v">' + (u.calls || 0) + '</div></div>' +
+      '<div class="u"><div class="l">Token 消耗</div><div class="v">' + (u.totalTokens || 0).toLocaleString() + '</div></div>' +
+      '<div class="u"><div class="l">平均时延</div><div class="v">' + avgMs + '</div></div>' +
+      '<div class="u"><div class="l">失败率</div><div class="v ' + ((u.errors || 0) > 0 ? 'warn' : 'ok') + '">' + failPct + '</div></div>';
+    const since = u.since ? new Date(u.since).toLocaleString('zh-CN') : '—';
+    const tail = u.lastError ? '；最近失败：' + esc(u.lastError)
+      : (u.lastCall ? '；最近调用：' + esc(u.lastCall) : '') + '；输入 ' + (u.promptTokens || 0).toLocaleString()
+      + ' / 缓存命中 ' + (u.cachedPromptTokens || 0).toLocaleString();
+    main.querySelector('#usageNote').innerHTML =
+      '模型 <b>' + esc(u.model || '—') + '</b> · 端点 ' + esc(u.endpoint || '—') + ' · 累计请求 '
+      + (u.totalRequests || 0) + '（成功 ' + (u.calls || 0) + ' / 失败 ' + (u.errors || 0) + '）· 自 '
+      + esc(since) + ' 起累计' + tail
+      + (u.balanceAvailable === false ? '；账户余额接口已下线，程序侧无法读取余量（请到模型控制台查看）。' : '');
+    main.querySelector('#usageRefresh').addEventListener('click', () => renderUsage(main));
   }
 
   function renderTokens() {
@@ -366,10 +390,48 @@
       '<div class="notice-bar" style="margin-top:14px">令牌仅在服务端运行时内存态（由 AGENT_ADMIN_TOKEN 环境变量注入），不落库、不进 Git。本机输入的令牌仅存于当前浏览器会话（sessionStorage），关闭标签页即清除。后端暂未暴露生成 / 吊销令牌的 REST 端点，令牌的发放与轮换在服务端配置完成。</div>';
   }
 
-  function renderAudit() {
-    return '<div class="admin-top"><h2>审计日志</h2><span class="sp"></span><span class="st suspended">未接入</span></div>' +
-      '<div class="pane"><div class="ph">操作审计</div>' +
-      '<div class="notice-bar" style="margin:16px">尚未接入审计日志端点。reload / probe / shadow / activate / admission 等管理操作目前不落审计记录；接入后再在此展示时间线。</div></div>';
+  async function renderAudit(main) {
+    main.innerHTML =
+      '<div class="admin-top"><h2>审计日志</h2><span class="sp"></span>' +
+        '<button class="btn btn-outline btn-sm" id="auditRefresh">刷新</button></div>' +
+      '<div class="pane"><div class="ph">管理操作审计 <span class="sp"></span><span class="st unknown" id="auditCount">加载中…</span></div>' +
+      '<div id="auditBody"><div class="notice-bar" style="margin:16px">正在读取审计日志…</div></div></div>';
+    const r = await api('/api/agent/audit-log');
+    if (!r.ok) {
+      main.querySelector('#auditCount').className = 'st suspended';
+      main.querySelector('#auditCount').textContent = '读取失败';
+      main.querySelector('#auditBody').innerHTML =
+        '<div class="notice-bar" style="margin:16px">无法读取审计日志：HTTP ' + r.status + '（需持有管理员令牌）</div>';
+      return;
+    }
+    const data = r.json || {};
+    const entries = data.entries || [];
+    main.querySelector('#auditCount').className = 'st active';
+    main.querySelector('#auditCount').textContent = '共 ' + (data.total || 0) + ' 条';
+    if (!entries.length) {
+      main.querySelector('#auditBody').innerHTML =
+        '<div class="notice-bar" style="margin:16px">暂无管理操作记录。reload / probe / shadow / activate 等动作会自动写入此处。</div>';
+      main.querySelector('#auditRefresh').addEventListener('click', () => renderAudit(main));
+      return;
+    }
+    const rows = entries.map(e => {
+      const t = e.time ? new Date(e.time).toLocaleString('zh-CN') : '—';
+      const ok = e.success
+        ? '<span class="st active">成功</span>'
+        : '<span class="st suspended">失败</span>';
+      return '<tr><td class="mono">' + esc(t) + '</td>' +
+        '<td><b>' + esc(e.action || '') + '</b></td>' +
+        '<td>' + esc(e.target || '—') + '</td>' +
+        '<td class="mono">' + esc(e.remoteAddr || '—') + '</td>' +
+        '<td>' + ok + '</td>' +
+        '<td class="mono">' + esc(e.detail || '') + '</td></tr>';
+    }).join('');
+    main.querySelector('#auditBody').innerHTML =
+      '<table class="tbl"><thead><tr>' +
+        '<th>时间</th><th>动作</th><th>目标</th><th>来源</th><th>结果</th><th>摘要</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="notice-bar" style="margin:14px 16px 16px">审计底账为进程内存态、环形缓冲（上限 500 条），重启即清空、不落盘；记录来源 IP / 动作 / 结果 / 摘要，不含令牌或密钥。</div>';
+    main.querySelector('#auditRefresh').addEventListener('click', () => renderAudit(main));
   }
 
   function render() {
@@ -378,9 +440,9 @@
     if (STATE.view === 'admission') main.innerHTML = renderAdmission();
     else if (STATE.view === 'capability') main.innerHTML = renderCapability();
     else if (STATE.view === 'routes') main.innerHTML = renderRoutes();
-    else if (STATE.view === 'usage') main.innerHTML = renderUsage();
     else if (STATE.view === 'tokens') main.innerHTML = renderTokens();
-    else if (STATE.view === 'audit') main.innerHTML = renderAudit();
+    else if (STATE.view === 'usage') { renderUsage(main); return; }
+    else if (STATE.view === 'audit') { renderAudit(main); return; }
     bindActions();
   }
 
