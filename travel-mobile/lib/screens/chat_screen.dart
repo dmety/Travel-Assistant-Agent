@@ -8,6 +8,7 @@ import '../services/chat_store.dart';
 import '../services/place_guess.dart';
 import '../theme/tokens.dart';
 import '../widgets/map_panel.dart';
+import '../widgets/mascot_avatar.dart';
 import '../widgets/message_bubble.dart';
 
 /// 主对话页：与 Web `chat.html` 同一套信息架构，换成移动端形态。
@@ -36,6 +37,15 @@ class _ChatScreenState extends State<ChatScreen> {
   ChatSession? _current;
   bool _busy = false;
   bool _loading = true;
+
+  /// 发送成功后 +1，让 appbar 的游小满点一次头（设计稿 02 屏契约）。
+  int _nodToken = 0;
+
+  /// 固定 query bar：显示最近一句需求，可清除。清除只改显示，不删会话。
+  String _lastQuery = '';
+
+  /// 追问后短暂显示「路线已重排」，对应设计稿 02 屏的就地重排反馈。
+  bool _rerouted = false;
 
   /// 跨轮沿用的槽位（城市/天数/人数/预算/偏好），供下一句省略时补全。
   final Map<String, dynamic> _slots = {};
@@ -152,9 +162,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _send(String raw, {Map<String, dynamic>? extra}) async {
     final text = raw.trim();
     if (text.isEmpty || _busy) return;
+    // 已有草案时再问一句，属于「追问」：地图留在原位，路线就地重排。
+    final hadPlan = _currentPlan() != null;
     _input.clear();
     _addUser(text);
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _lastQuery = text;
+    });
 
     try {
       // 1) 模型驱动的对话（会自己在工具里规划/查景点/查天气）
@@ -177,10 +192,23 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       _addAssistant('这条没处理成功：$e');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _nodToken++;
+        });
+        if (hadPlan && _currentPlan() != null) _flashReroute();
+      }
       await _persist();
       _scrollToBottom();
     }
+  }
+
+  void _flashReroute() {
+    setState(() => _rerouted = true);
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _rerouted = false);
+    });
   }
 
   /// 模型驱动：`reply` 非空即算处理完（卡片可能是行程/天气/景点/投票）。
@@ -470,23 +498,33 @@ class _ChatScreenState extends State<ChatScreen> {
       drawer: _drawer(),
       appBar: AppBar(
         titleSpacing: T.sp4,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        title: Row(
           children: [
-            const Text(
-              'AI 规划',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: T.fsMd,
-                color: T.ink,
-                fontWeight: T.wStrong,
+            MascotAvatar(size: 40, nodToken: _nodToken),
+            const SizedBox(width: T.sp2),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '游小满',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: T.fsMd,
+                      color: T.ink,
+                      fontWeight: T.wStrong,
+                    ),
+                  ),
+                  Text(
+                    _planHint(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: T.fsXs, color: T.text3),
+                  ),
+                ],
               ),
-            ),
-            Text(
-              _planHint(),
-              style: const TextStyle(fontSize: T.fsXs, color: T.text3),
             ),
           ],
         ),
@@ -518,10 +556,60 @@ class _ChatScreenState extends State<ChatScreen> {
                       : null,
                   pins: _planPins(),
                 ),
+                if (_rerouted)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: T.sp4, vertical: T.sp1),
+                    color: T.pineSoft,
+                    child: const Text(
+                      '路线已重排 · 草案按新需求更新',
+                      style: T.tXs,
+                    ),
+                  ),
+                if (_lastQuery.isNotEmpty) _queryBar(),
                 Expanded(child: _messagesArea()),
                 _composer(),
               ],
             ),
+    );
+  }
+
+  /// 固定 query bar：设计稿 02 屏「一句话需求 + 清除 ×」。
+  /// 只回显最近一句，不参与发送；清除也只是收起这一条，不删历史消息。
+  Widget _queryBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(T.sp4, T.sp2, T.sp2, T.sp2),
+      decoration: const BoxDecoration(
+        color: T.surfaceWarm,
+        border: Border(bottom: BorderSide(color: T.line)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.chat_bubble_outline, size: 14, color: T.text3),
+          const SizedBox(width: T.sp2),
+          Expanded(
+            child: Text(
+              _lastQuery,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: T.tXs,
+            ),
+          ),
+          Semantics(
+            button: true,
+            label: '清除问题',
+            child: IconButton(
+              tooltip: '清除问题',
+              icon: const Icon(Icons.close, size: 16, color: T.text3),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              onPressed: () => setState(() => _lastQuery = ''),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -948,25 +1036,11 @@ class _TypingRowState extends State<_TypingRow>
     return Padding(
       padding: const EdgeInsets.only(bottom: T.sp3),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: T.primarySoft,
-              borderRadius: BorderRadius.circular(T.rCtl),
-              border: Border.all(color: T.primaryLine),
-            ),
-            child: const Text(
-              '出',
-              style: TextStyle(
-                fontSize: T.fsXs,
-                color: T.primary,
-                fontWeight: T.wStrong,
-              ),
-            ),
-          ),
+          const MascotBust(),
+          const SizedBox(width: T.sp2),
+          const Text('小满想了想（AI 生成）', style: T.tXs),
           const SizedBox(width: T.sp2),
           Container(
             padding: const EdgeInsets.symmetric(

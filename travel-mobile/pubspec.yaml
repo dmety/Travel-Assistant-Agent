@@ -69,10 +69,15 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # 看板娘游小满 v4.1 正脸差分（与 design/export/png、static/mascot 同源）。
+  # 头像用 front-bust，appbar 活头像用其余五帧做眨眼与点击情绪循环。
+  assets:
+    - assets/mascot/mascot-v4-front-idle.png
+    - assets/mascot/mascot-v4-front-blink.png
+    - assets/mascot/mascot-v4-front-shy.png
+    - assets/mascot/mascot-v4-front-impatient.png
+    - assets/mascot/mascot-v4-front-angry.png
+    - assets/mascot/mascot-v4-front-bust.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

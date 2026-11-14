@@ -20,8 +20,16 @@ Future<void> main() async {
   runApp(const TravelApp());
 }
 
-class TravelApp extends StatelessWidget {
+class TravelApp extends StatefulWidget {
   const TravelApp({super.key});
+
+  @override
+  State<TravelApp> createState() => _TravelAppState();
+}
+
+class _TravelAppState extends State<TravelApp> {
+  /// 设计稿 account.html 的主题三态。会话级保存，重启回到跟随系统。
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +37,20 @@ class TravelApp extends StatelessWidget {
       title: '出逃计划',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const BootGate(),
+      // 静态令牌 T.* 仍是浅色常量，深色主题只覆盖框架级表面色；
+      // 页面内逐屏对比度尚未校验，见 travel-mobile/README.md 的已知限制。
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: const Color(0xFF4E8C72),
+        scaffoldBackgroundColor: const Color(0xFF171A16),
+        cardColor: const Color(0xFF212620),
+      ),
+      themeMode: _themeMode,
+      home: BootGate(
+        themeMode: _themeMode,
+        onThemeChanged: (mode) => setState(() => _themeMode = mode),
+      ),
     );
   }
 }
@@ -39,7 +60,14 @@ class TravelApp extends StatelessWidget {
 /// 不用本地布尔值判断登录态——session 是后端内存态的，
 /// 只有 `/api/account/me` 说活着才算活着。
 class BootGate extends StatefulWidget {
-  const BootGate({super.key});
+  const BootGate({
+    super.key,
+    required this.themeMode,
+    required this.onThemeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeChanged;
 
   @override
   State<BootGate> createState() => _BootGateState();
@@ -87,6 +115,11 @@ class _BootGateState extends State<BootGate> {
         },
       );
     }
-    return HomeScreen(username: a.username, onLogout: _logout);
+    return HomeScreen(
+      username: a.username,
+      onLogout: _logout,
+      themeMode: widget.themeMode,
+      onThemeChanged: widget.onThemeChanged,
+    );
   }
 }

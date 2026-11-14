@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
+import 'food_screen.dart';
+import 'knowledge_screen.dart';
+import 'saved_trips_screen.dart';
+import 'settings_screen.dart';
+import 'ticket_screen.dart';
 
 /// 「我的」页：账号信息与退出登录。
 ///
@@ -11,12 +16,20 @@ class ProfileScreen extends StatelessWidget {
     super.key,
     required this.username,
     required this.onLogout,
+    required this.themeMode,
+    required this.onThemeChanged,
     this.onGoTrips,
   });
 
   final String username;
   final Future<void> Function() onLogout;
   final VoidCallback? onGoTrips;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeChanged;
+
+  void _open(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +81,42 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.luggage_outlined,
             label: '我的行程',
             onTap: onGoTrips,
+          ),
+          const SizedBox(height: T.sp2),
+          _Row(
+            icon: Icons.cloud_done_outlined,
+            label: '已保存的行程 · 待定与协作',
+            onTap: () => _open(context, const SavedTripsScreen()),
+          ),
+          const SizedBox(height: T.sp2),
+          _Row(
+            icon: Icons.restaurant_outlined,
+            label: '找吃的',
+            onTap: () => _open(context, const FoodScreen()),
+          ),
+          const SizedBox(height: T.sp2),
+          _Row(
+            icon: Icons.confirmation_number_outlined,
+            label: '购票辅助',
+            onTap: () => _open(context, const TicketScreen()),
+          ),
+          const SizedBox(height: T.sp2),
+          _Row(
+            icon: Icons.museum_outlined,
+            label: '景点知识库',
+            onTap: () => _open(context, const KnowledgeScreen()),
+          ),
+          const SizedBox(height: T.sp2),
+          _Row(
+            icon: Icons.settings_outlined,
+            label: '设置 · 主题与服务状态',
+            onTap: () => _open(
+              context,
+              SettingsScreen(
+                themeMode: themeMode,
+                onThemeChanged: onThemeChanged,
+              ),
+            ),
           ),
           const SizedBox(height: T.sp3),
           Container(
