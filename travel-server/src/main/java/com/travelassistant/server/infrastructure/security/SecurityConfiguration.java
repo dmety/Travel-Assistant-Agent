@@ -120,7 +120,11 @@ public class SecurityConfiguration {
 
         // 登录/注册限流置于认证过滤器之前：超限直接 429，不再走认证与业务逻辑（F7）。
         .addFilterBefore(new RateLimitFilter(new RateLimiter(), json, loginLimit, registerLimit),
-            UsernamePasswordAuthenticationFilter.class);
+            UsernamePasswordAuthenticationFilter.class)
+
+        // 身份漂移探针：必须放在授权之后，此时 SecurityContext 才是本次请求的最终身份。
+        // 每个 API 响应都带 X-Auth-User，前端据此发现「第二个窗口登录后本页已换了账号」。
+        .addFilterAfter(new AuthUserHeaderFilter(), AuthorizationFilter.class);
 
     return http.build();
   }

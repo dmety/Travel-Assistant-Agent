@@ -937,6 +937,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .cl-status.PENDING{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
 .cl-status.ACCEPTED{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
 .cl-status.REJECTED,.cl-status.CANCELLED{color:var(--text-3)}
+.cl-scope{font-size:var(--fs-xs);color:var(--text-3);line-height:1.6;
+  padding:6px 0 10px;border-bottom:1px dashed var(--line);margin-bottom:6px}
 .cl-comment{padding:10px 0;border-bottom:1px solid var(--line)}
 .cl-comment:last-child{border-bottom:none}
 .cl-comment .when{font-size:var(--fs-xs);color:var(--text-3);margin-left:8px;font-weight:400}
@@ -1644,13 +1646,33 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   var points = [];
   var itineraryId = null;
 
+  /* 会话是浏览器级单 JSESSIONID：另一个窗口登录别的账号会把 Cookie 覆盖掉。
+     切号必须清 sessionStorage（adminToken、按用户分区的协作选中行程等会话级状态）；
+     localStorage 里的主题/看板娘位置/面板摆位是设备级偏好，不带用户语义，保留不重置。 */
+  function authWipe() {
+    try { sessionStorage.clear(); } catch (e) { /* 隐私模式下存储不可用，忽略 */ }
+  }
+
   /* ---------- 统一请求：401 回登录页，文本与 JSON 都能读 ---------- */
   async function api(path, opts) {
     var res = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
     if (res.status === 401) {
+      authWipe();
       location.replace('/?next=' + encodeURIComponent(location.pathname + location.hash));
       throw new Error('登录已过期');
     }
+    /* 后端在授权之后给每个响应带 X-Auth-User。若与页面初始化时的身份不同，
+       说明同一浏览器另一个窗口换了账号：清状态并显式刷新，绝不让旧界面继续以新身份发请求。 */
+    var serverUser = res.headers.get('X-Auth-User') || '';
+    if (window.__authUser && serverUser && serverUser !== window.__authUser) {
+      var from = window.__authUser;
+      window.__authUser = serverUser;
+      authWipe();
+      try { sessionStorage.setItem('authSwitchedFrom', from); } catch (e) {}
+      location.reload();
+      throw new Error('账号已切换，页面正在刷新');
+    }
+    if (serverUser) window.__authUser = serverUser;
     var ct = res.headers.get('content-type') || '';
     var body = null;
     if (ct.indexOf('json') >= 0) { try { body = await res.json(); } catch (e) { /* 空响应 */ } }
@@ -2503,6 +2525,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   var CL_CHOICE_TEXT = { SUPPORT: '支持', OPPOSE: '反对', ABSTAIN: '弃权' };
   var CL_INV_TEXT = { PENDING: '待处理', ACCEPTED: '已接受', REJECTED: '已拒绝', CANCELLED: '已撤回' };
   var clMe = null, clTrip = null, clBoard = null, clPane = 'votes', clApplyTarget = null;
+  /* 协作讨论的轻量轮询：后端留言是全行程共享的，但 SPA 不刷新的话对方永远看不到新留言。
+     只比较留言 id 序列，变化才重绘，且重绘前保存 textarea 草稿。 */
+  var clDiscussSig = '', clPollTimer = null;
 
   function clBase() { return '/api/itineraries/' + encodeURIComponent(clTrip.id); }
   function clOwner() { return !!clTrip && clTrip.owner === clMe; }
@@ -2549,6 +2574,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   async function initCollab() {
     try {
       if (!clMe) { var me = await api('/api/account/me'); clMe = me.username; }
+      clStartPolling();
       await clLoadTrips();
       clLoadInvCount();
     } catch (e) { clErr(e); }
@@ -2556,7 +2582,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   async function clLoadTrips() {
     var list = await api('/api/itineraries');
     var sel = $('clTripSel');
-    var keep = clTrip ? clTrip.id : sel.value;
+    var stored = '';
+    try { stored = sessionStorage.getItem('u:' + (clMe || 'anon') + ':clTrip') || ''; } catch (e) {}
+    var keep = clTrip ? clTrip.id : (sel.value || stored);
     sel.innerHTML = '';
     if (!list || !list.length) {
       sel.appendChild(el('option', null, '（没有行程）'));
@@ -2576,6 +2604,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     try {
       clTrip = await api('/api/itineraries/' + encodeURIComponent(id));
       clBoard = null;
+      try { sessionStorage.setItem('u:' + (clMe || 'anon') + ':clTrip', id); } catch (e) {}
       $('clEmpty').hidden = true; $('clBody').hidden = false;
       clHeader(); clSwitchPane(clPane);
     } catch (e) { clTrip = null; clShowEmpty(); toast(e.message); }
@@ -2895,8 +2924,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     var box = $('clPaneDiscuss');
     box.innerHTML = '<div class="trip-empty">正在读取留言与记录…</div>';
     try {
-      var comments = await api(clBase() + '/comments');
+      var comments = (await api(clBase() + '/comments')) || [];
       var changes = await api(clBase() + '/changelog?limit=50');
+      clDiscussSig = comments.map(function (c) { return c.id; }).join('|');
       box.innerHTML = '';
       if (!clReadonly()) {
         var form = el('div', 'cl-form');
@@ -2922,6 +2952,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       }
       var cc = el('div', 'cl-card');
       cc.appendChild(el('h3', 'cl-h', '留言（' + comments.length + '）'));
+      cc.appendChild(el('div', 'cl-scope', '当前讨论：' + (clTrip.title || '未命名行程') +
+        ' · 新留言约 4 秒自动出现。对方看不到时，请确认两人选的是同一个行程，且已把对方加为成员。'));
       if (!comments.length) cc.appendChild(el('div', 'm', '还没有留言。'));
       comments.forEach(function (c) {
         var n = el('div', 'cl-comment');
@@ -2947,6 +2979,26 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       box.innerHTML = '';
       box.appendChild(el('div', 'trip-empty', '读取失败：' + esc(e.message)));
     }
+  }
+
+  /* 讨论区自动刷新：后端留言按行程共享，SPA 不主动拉就永远看不到对方的新留言。
+     只在讨论页可见时轮询，且留言 id 序列没变化就不重绘，避免打断正在输入的草稿。 */
+  function clStartPolling() {
+    if (clPollTimer) return;
+    clPollTimer = setInterval(async function () {
+      var view = $('viewCollab');
+      if (clPane !== 'discuss' || !clTrip || !view || view.hidden || document.hidden) return;
+      try {
+        var latest = (await api(clBase() + '/comments')) || [];
+        var sig = latest.map(function (c) { return c.id; }).join('|');
+        if (sig === clDiscussSig) return;
+        var old = $('clCommentText');
+        var draft = old ? old.value : '';
+        await clRenderDiscuss();
+        var now = $('clCommentText');
+        if (now && draft) now.value = draft;
+      } catch (e) { /* 单次失败不打断，下一轮再试 */ }
+    }, 4000);
   }
 
   /* ---- 综合决策建议 ---- */
@@ -3524,7 +3576,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   $('logoutBtn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
       .catch(function () { /* 会话已失效也回登录页 */ })
-      .then(function () { location.replace('/'); });
+      .then(function () { authWipe(); location.replace('/'); });
   });
   window.addEventListener('hashchange', function () {
     showView((location.hash || '#plan').slice(1), true);
@@ -3540,8 +3592,17 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     })
     .then(function (u) {
       if (u && u.username) {
+        window.__authUser = u.username;
         $('whoName').textContent = u.username;
         $('whoDot').textContent = u.username.slice(0, 1).toUpperCase();
+        var from = '';
+        try {
+          from = sessionStorage.getItem('authSwitchedFrom') || '';
+          if (from) sessionStorage.removeItem('authSwitchedFrom');
+        } catch (e) {}
+        if (from && from !== u.username) {
+          toast('检测到账号已从 ' + from + ' 切换为 ' + u.username + '，页面已刷新');
+        }
       }
     })
     .catch(function () { /* 服务未就绪时停在本页，避免跳转循环 */ });

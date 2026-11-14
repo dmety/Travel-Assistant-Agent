@@ -603,6 +603,9 @@ form.active{display:block}
       return res.json().catch(function () { return {}; }).then(function (d) {
         if (res.ok) {
           $('lPass').value = '';
+          /* 换账号登录后清掉上一个账号的会话级状态（含 adminToken），
+             避免同浏览器下一个用户直接带着别人的管理令牌进后台。 */
+          try { sessionStorage.clear(); } catch (err) { /* 忽略存储不可用 */ }
           show('登录成功，正在进入…', 'ok');
           location.replace(NEXT);
           return;
