@@ -146,8 +146,26 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .view{position:absolute;inset:0}
 .view[hidden]{display:none}
 #viewPlan{overflow:hidden}
-#viewTicket{overflow:auto;background:var(--bg)}
-#viewTrips{overflow:auto;padding:22px 24px 40px}
+
+/* ---------- 业务视图：全宽自适应 + 撑满高度 ----------
+   design/*.html 里的 .browser/.board{max-width:1180px;margin:0 auto} 是展示稿
+   为「模拟一个浏览器窗口」套的外壳，不是真实产品的版心。SPA 工作台本身就在
+   浏览器里，再夹一层 1180 版心会把内容锁成大屏中间一小条，两侧与底部整片留白。
+   这里改为：横向只留统一 gutter、铺满可用宽度；纵向让知识库 / 行程编辑面板
+   flex:1 吃掉剩余高度，长列表在各自面板内滚动，不再用固定 max-height 截断。
+   .workspace 是 overflow:hidden，视图必须各自可滚动，否则协作投票板、
+   知识库列表的长内容会被裁掉且滚不到。规划视图是整幅地图，故意铺满。
+   注意：给 ID 写 display 会盖过 .view[hidden]（ID 优先级更高），所以一律用
+   :not([hidden]) 并给可切换的容器补 [hidden] 显式覆盖。 */
+#viewTicket,#viewTrips,#viewCollab,#viewKb{overflow:auto;padding:22px 28px 32px}
+#viewTicket{background:var(--bg)}
+#viewTrips:not([hidden]),#viewKb:not([hidden]){display:flex;flex-direction:column}
+/* 行程列表是变长内容：容器自己滚动，不用 flex 把网格压扁导致卡片被裁 */
+#tripsBox{flex:1 1 auto;min-height:0;overflow-y:auto}
+/* 知识库 / 行程编辑面板占满剩余高度，滚动交给面板内部各栏 */
+#tripWorkstation,#kbBox{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#tripsBox[hidden],#tripWorkstation[hidden]{display:none}
+#kbBox>.kb,#tripWorkstation>.it{flex:1 1 auto;min-height:0}
 
 /* ---------- 规划视图：整幅地图铺满，AI 面板浮在左侧 ---------- */
 .map-stage{position:absolute;inset:0;overflow:hidden;background:var(--paper-2)}
@@ -370,7 +388,7 @@ html[data-theme="dark"] .msg.ai{
 .trips-head h1{font-size:var(--fs-lg)}
 .trips-head .sub{font-size:var(--fs-xs);color:var(--text-3)}
 .trips-head .btn{margin-left:auto}
-.trip-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;max-width:1180px}
+.trip-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-content:start}
 .trip-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
   padding:14px 16px;box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:8px}
 .trip-card h3{font-size:var(--fs-sm)}
@@ -660,7 +678,8 @@ html[data-theme="dark"] .msg.ai{
 @media (prefers-reduced-motion:reduce){#viewTicket .tk-loadbar::after{animation:none;width:100%;opacity:.6}}
 #viewTicket .tk-empty-list{margin-top:10px;font-size:var(--fs-xs);color:var(--text-3);line-height:1.8}
 #viewTicket .tk-empty-list b{display:block;color:var(--text-2);margin-bottom:2px}
-#viewTicket .tk{padding:22px}
+/* 左右留白由视图版心统一提供，避免票务比其他三个视图再缩进 22px、切页时内容跳动 */
+#viewTicket .tk{padding:0}
 #viewTicket .tk-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 #viewTicket .tk-head .seal{width:30px;height:30px;flex:0 0 auto}
 #viewTicket .tk-head .seal svg{width:100%;height:100%;display:block}
@@ -668,12 +687,13 @@ html[data-theme="dark"] .msg.ai{
 #viewTicket .tk-head .sub{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
 #viewTicket .tk-head .sp,#viewTicket .tk-card .ch .sp,#viewTicket .tk-detail-h .sp{margin-left:auto}
 #viewTicket .tk-head select{max-width:190px;font-size:var(--fs-xs);padding:6px 8px;border:1px solid var(--field-line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink)}
-#viewTicket .price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+#viewTicket .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}
 #viewTicket .price{padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
 #viewTicket .price .lab{font-size:var(--fs-xs);color:var(--text-3)}
 #viewTicket .price .val{font-size:var(--fs-xl);font-weight:var(--w-strong,600);color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
 #viewTicket .price .note{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
-#viewTicket .tk-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+#viewTicket .tk-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:16px;margin-top:8px;align-items:stretch}
 #viewTicket .tk-card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-1)}
 #viewTicket .tk-card .ch{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink)}
 #viewTicket .tk-card .cb{padding:12px 14px}
@@ -699,7 +719,7 @@ html[data-theme="dark"] .msg.ai{
 #viewTicket dialog#tkDetail .m-price .p .l{font-size:var(--fs-xs);color:var(--text-3)}
 #viewTicket dialog#tkDetail .m-price .p .v{font-size:var(--fs-md);font-weight:var(--w-strong,600);font-variant-numeric:tabular-nums}
 @media (max-width:760px){
-  #viewTicket .tk{padding:14px}
+  #viewTicket .tk{padding:0}
   #viewTicket .price-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   #viewTicket .tk-cols{grid-template-columns:1fr}
 }
@@ -751,11 +771,21 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     margin-top:-14px;border-radius:var(--r-lg) var(--r-lg) 0 0;
     border-left:0;border-right:0;border-bottom:0;box-shadow:0 -6px 20px rgba(46,42,32,.10)}
   .composer{border-radius:0}
+  /* 规划视图的地图浮层日程条窄屏收起；行程编辑态已改用 .ws-days，不受影响 */
   .daystrip{display:none}
   .ai-head{padding-top:8px;cursor:default;touch-action:auto}
   .panel-reset{display:none!important}
   .grab{display:block!important}
-  #viewTrips{padding:16px 14px 32px}
+  /* 窄屏统一 14px 留白；退回自然文档流，让整页滚动代替面板内滚动
+     （多栏已堆叠，再强制撑满高度会把内容压扁） */
+  #viewTicket,#viewTrips,#viewCollab,#viewKb{padding:16px 14px 32px}
+  #viewTrips:not([hidden]),#viewKb:not([hidden]){display:block}
+  #tripsBox,#tripWorkstation,#kbBox{display:block}
+  #tripsBox{overflow:visible}
+  #tripsBox[hidden],#tripWorkstation[hidden]{display:none}
+  .kb,.kb-main,.it-body{grid-template-rows:auto}
+  .kb-main{overflow:visible}
+  .kb-side,.kb-list,.kb-detail,.it-main,.it-side{overflow:visible}
   .trip-list{grid-template-columns:1fr}
 }
 @media (max-width:600px){
@@ -783,7 +813,13 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   font-size:var(--fs-sm);cursor:pointer}
 .cl-subtabs button .ico{width:16px;height:16px}
 .cl-subtabs button[aria-selected="true"]{color:var(--pine-text);border-bottom-color:var(--pine);font-weight:600}
-.cl-pane{max-width:1180px}
+.cl-pane{max-width:none}
+/* 宽屏把候选卡排成多列，铺满整幅工作区而不是挤成左侧一条 */
+#clPaneVotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  gap:0 14px;align-content:start}
+#clPaneVotes[hidden]{display:none}
+#clPaneVotes>.cl-stats,#clPaneVotes>.cl-notes,#clPaneVotes>.cl-form,
+#clPaneVotes>.trip-empty{grid-column:1/-1}
 .cl-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--text-3);margin-bottom:8px}
 .cl-stats b{color:var(--ink)}
 .cl-notes{font-size:var(--fs-xs);color:var(--warn);margin:0 0 12px}
@@ -888,8 +924,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .tbl .num{text-align:right;font-variant-numeric:tabular-nums}
 .tbl tr:last-child td{border-bottom:0}
 
-/* 行程编辑工作台 */
-.it{display:flex;flex-direction:column}
+/* 行程编辑工作台 / 知识库三栏：对齐 design/*.html 的 .browser 外壳，给内容一个明确边界 */
+.it,.kb{border:1px solid var(--line-strong);border-radius:var(--r-lg);
+  overflow:hidden;box-shadow:var(--shadow-2);background:var(--surface);min-height:0}
+.it{display:flex;flex-direction:column;min-height:0}
 .it-top{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface-warm);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .it-top .seal{width:28px;height:28px;flex:0 0 auto}
 .it-top .nm{font-size:var(--fs-lg);font-weight:600}
@@ -898,12 +936,18 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .kv{display:flex;gap:20px;flex-wrap:wrap}
 .kv .k{font-size:var(--fs-xs);color:var(--text-3)}
 .kv .k b{display:block;font-size:var(--fs-md);color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
-.daystrip{display:flex;gap:8px;padding:10px 18px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto}
+/* 行程编辑态的日期条：必须用独立类名，不能复用规划视图的 .daystrip。
+   后者是 position:absolute;left:440px;bottom:22px 的地图浮层，复用会继承浮层定位
+   并被 900px 媒体查询的 .daystrip{display:none} 一并隐藏（窄屏无法切换天数）。 */
+.ws-days{position:static;display:flex;gap:8px;padding:10px 18px;background:var(--paper);
+  border-bottom:1px solid var(--line);overflow-x:auto}
 .daytab{flex:0 0 auto;padding:7px 13px;border:1px solid var(--line-strong);border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-xs);cursor:pointer;color:var(--text-2)}
 .daytab[aria-selected="true"]{border-color:var(--pine);background:var(--pine-soft);color:var(--pine-hover);font-weight:600}
-.it-body{display:grid;grid-template-columns:1fr 300px;min-height:480px}
-.it-main{padding:16px 18px}
-.it-side{border-left:1px solid var(--line);background:var(--paper);padding:14px 16px}
+.it-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(280px,22%,360px);
+  grid-template-rows:minmax(0,1fr);flex:1 1 auto;min-height:0}
+.it-main{padding:16px 18px;min-height:0;overflow-y:auto}
+.it-side{border-left:1px solid var(--line);background:var(--paper);padding:14px 16px;
+  min-height:0;overflow-y:auto}
 .block+.block{margin-top:20px}
 .block-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .block-h .t{font-size:var(--fs-sm);font-weight:600}
@@ -937,9 +981,12 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .check .sug{display:block;margin-top:3px;opacity:.85}
 .it-back{margin-right:4px}
 
-/* 知识库浏览 */
-.kb{display:grid;grid-template-columns:260px 1fr;min-height:560px}
-.kb-side{border-right:1px solid var(--line);background:var(--paper);padding:16px}
+/* 知识库浏览：三栏按可用宽度伸缩，整块 flex:1 撑满工作区高度，
+   栏内各自滚动，避免「固定 620px 高度 + 下方一大片空白」。 */
+.kb{display:grid;grid-template-columns:clamp(240px,17%,320px) minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr);min-height:0}
+.kb-side{border-right:1px solid var(--line);background:var(--paper);padding:16px;
+  min-height:0;overflow-y:auto}
 .kb-search{display:flex;gap:8px;margin-bottom:12px}
 .kb-status{padding:9px 12px;border-radius:var(--r-ctl);font-size:var(--fs-xs);margin-bottom:12px;line-height:1.5}
 .kb-status.ok{background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok)}
@@ -949,10 +996,16 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 .city:hover{background:var(--pine-soft);color:var(--pine-hover)}
 .city[aria-current="true"]{background:var(--pine-soft);color:var(--pine-hover);font-weight:600}
 .city .cnt{margin-left:auto;font-size:var(--fs-xs);color:var(--text-3)}
-.kb-main{display:grid;grid-template-columns:1fr 320px}
-.kb-list{padding:16px;overflow-y:auto;max-height:620px}
+.kb-main{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,26%,440px);
+  grid-template-rows:minmax(0,1fr);min-height:0;overflow:hidden}
+/* 结果列表在大屏排成多列卡片，右侧详情同步变宽，横向才用得满 */
+.kb-list{padding:16px;min-height:0;overflow-y:auto;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;align-content:start}
+.kb-list>.lh,.kb-list>.trip-empty{grid-column:1/-1}
 .kb-list .lh{font-size:var(--fs-sm);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.kb-detail{border-left:1px solid var(--line);background:var(--paper);padding:16px;overflow-y:auto;max-height:620px}
+.kb-list .spot{margin-bottom:0}
+.kb-detail{border-left:1px solid var(--line);background:var(--paper);padding:16px;
+  min-height:0;overflow-y:auto}
 .spot{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-ctl);margin-bottom:8px;cursor:pointer;background:var(--surface)}
 .spot:hover,.spot.is-active{border-color:var(--pine);background:var(--pine-soft)}
 .spot .nm{font-size:var(--fs-sm);font-weight:600}
@@ -983,6 +1036,47 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   .kb-side{border-right:0;border-bottom:1px solid var(--line)}
   .kb-main{grid-template-columns:1fr}
   .kb-detail{border-left:0;border-top:1px solid var(--line)}
+}
+
+/* ---------- 空态：整幅工作区的面板 + 内容居中 ----------
+   无数据时不该只剩左上角一小坨文字、右侧与下方全空。空态改为占满剩余
+   高度的一块面板、内容居中，大屏上是「有意留白」而不是「没渲染完」。
+   选择器限定为视图 / 容器的直接子级，不影响列表内、投票板内的空提示。 */
+#viewTicket:not([hidden]){display:flex;flex-direction:column}
+#viewTicket>.tk{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow-y:auto}
+#viewTicket>.tk>*{flex:0 0 auto}
+#viewCollab:not([hidden]){display:flex;flex-direction:column}
+#clBody{flex:1 1 auto;min-height:0;overflow-y:auto}
+#viewTicket #tkEmptyState,
+#viewTrips>#tripsBox>.trip-empty,
+#viewCollab>#clEmpty,
+#viewKb>#kbBox>.trip-empty,
+#viewKb>#kbBox>.kb-status{
+  box-sizing:border-box;max-width:none;margin:0;padding:32px 36px;
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  background:var(--surface);box-shadow:var(--shadow-1);
+  color:var(--text-2);font-size:var(--fs-sm);text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+#viewTicket #tkEmptyState{flex:1 1 auto;min-height:300px}
+#viewTrips>#tripsBox>.trip-empty{min-height:100%}
+#viewCollab>#clEmpty{flex:1 1 auto;min-height:300px}
+#viewKb>#kbBox>.trip-empty,#viewKb>#kbBox>.kb-status{flex:1 1 auto;min-height:300px}
+/* ID 选择器优先级更高，hidden 必须显式覆盖，否则空态面板收不起来 */
+#viewCollab>#clEmpty[hidden]{display:none}
+
+/* 窄屏退回自然文档流，空态恢复紧凑左对齐 */
+@media (max-width:900px){
+  #viewTicket:not([hidden]),#viewCollab:not([hidden]){display:block}
+  #viewTicket>.tk{display:block;overflow:visible}
+  #viewTicket>.tk>*{flex:none}
+  #clBody{flex:none;overflow:visible}
+  #viewTicket #tkEmptyState,
+  #viewTrips>#tripsBox>.trip-empty,
+  #viewCollab>#clEmpty,
+  #viewKb>#kbBox>.trip-empty,
+  #viewKb>#kbBox>.kb-status{
+    display:block;text-align:left;min-height:0;max-width:none;
+    margin:8px 0 0;padding:16px}
 }
 
 </style>
@@ -2060,7 +2154,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           (archived ? ' · 已归档（只读）' : '') + '</div></div>' +
           '<span class="sp"></span><div class="kv">' + kv + '</div><span class="sp"></span>' + actions +
         '</div>' +
-        '<div class="daystrip" id="wsDays"></div>' +
+        '<div class="ws-days" id="wsDays"></div>' +
         '<div class="it-body"><div class="it-main" id="wsMain"></div><aside class="it-side" id="wsSide"></aside></div>' +
       '</div>';
     var days = s.daily || [];
