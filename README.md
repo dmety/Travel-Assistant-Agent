@@ -49,6 +49,8 @@ Agent 由模型看着工具清单自己决定查什么，工具执行仍在 Java
 
 以上说明当前代码提供的能力；版本设计、自动化检查与团队正式验收分别管理，不代表所有规划功能均已完成。
 
+> 统计口径：截至 2026-11-15，`origin/main`（`4fe10c5`）共 100 个测试类、717 个 `@Test`，比 11-12 多 24 个；`tools/acceptance.py` 为 77 处 `check()`。新增用例**尚未在文档侧重跑** `mvn verify`，最新一次完整通过记录仍是 11-12 的 693 个。
+
 ## 快速开始
 
 ### 1. 准备环境
@@ -67,7 +69,7 @@ mvn clean verify
 java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 ```
 
-构建成功后启动服务，浏览器打开 `http://localhost:8080/` 为登录页（`index.html`）；登录后进入对话页 `chat.html`，接口测试台为 `api-console.html`。默认端口为 `8080`，运行数据默认存放在项目根目录的 `data/` 下。
+构建成功后启动服务，浏览器打开 `http://localhost:8080/` 为登录页（`index.html`）；登录后默认落到行程工作台 `planner.html`，接口测试台为 `api-console.html`，管理后台为 `/admin`（要 `X-Admin-Token`）。另有 `mobile.html`（窄屏布局）、`settings.html`（个人中心）、`food.html`（美食推荐）三个页面。默认端口为 `8080`，运行数据默认存放在项目根目录的 `data/` 下。
 
 行程工作台在 [`/planner.html`](http://localhost:8080/planner.html)：桌面是整幅地图加浮动的 AI 规划面板，窄屏切成上半地图加下半对话。工作台一份页面三个视图（规划 `#plan`、票务 `#ticket`、我的行程 `#trips`），靠 hash 切换。登录/注册页为 `/`，登录后默认落到工作台；页面本身公开，页内检查登录态，未登录时带 `next` 参数回登录页，登录后自动返回。旧的 `chat.html` 与 `ticket-assistant.html` 已并入工作台，原地址 302 到 `/planner.html`。
 
