@@ -57,7 +57,8 @@ public final class DraftAssembler {
   }
 
   public static Draft assemble(PlanningRequest request, List<Attraction> candidates) {
-    List<Attraction> safe = candidates == null ? List.of() : candidates;
+    List<Attraction> safe = uniqueAttractions(candidates).stream()
+        .filter(a -> !excluded(request, a)).toList();
     List<DraftQuestion> questions = new ArrayList<>();
     List<DraftCheck> checks = new ArrayList<>();
     List<String> notices = new ArrayList<>();
@@ -107,25 +108,25 @@ public final class DraftAssembler {
    * 出现一次，不逐天重复。确认保存走同一个方法，因此正式行程里也不会写进空天。
    */
   public static List<DraftDay> arrange(PlanningRequest request, List<Attraction> selected) {
-    List<Attraction> safe = selected == null ? List.of() : selected;
+    List<Attraction> safe = uniqueAttractions(selected);
     Integer effective = request.effectiveDays();
     if (effective == null || effective <= 0 || safe.isEmpty()) {
       return List.of();
     }
-    int supported = (safe.size() + MAX_PER_DAY - 1) / MAX_PER_DAY;
+    List<List<Attraction>> groups = geographicGroups(request, safe);
+    int supported = groups.size();
     int count = Math.min(Math.min(effective, MAX_DAYS), supported);
     LocalDate depart = request.departDate();
     LocalDate ret = request.returnDate();
-    boolean validRange = depart != null && ret != null && !ret.isBefore(depart);
-    String baseNote = "游览时刻待确认，景点信息来自本地知识库快照";
+    boolean validRange = depart != null && (ret == null || !ret.isBefore(depart));
+    String baseNote = "首站按景点候选排序，第二站优先取同城坐标较近候选；同日仅组合坐标可比且直线距离不超过15公里的点，路线工具另行核验；游览时长、预约与景区内部步行仍待确认";
 
     List<DraftDay> days = new ArrayList<>();
     for (int i = 0; i < count; i++) {
-      int from = i * MAX_PER_DAY;
-      int to = Math.min(from + MAX_PER_DAY, safe.size());
+      List<Attraction> group = groups.get(i);
       List<DraftDay.Item> items = new ArrayList<>();
-      for (int j = from; j < to; j++) {
-        items.add(itemOf(safe.get(j)));
+      for (Attraction attraction : group) {
+        items.add(itemOf(attraction));
       }
       if (items.isEmpty()) {
         continue;  // 不生成「暂无候选」空行
@@ -135,7 +136,7 @@ public final class DraftAssembler {
       String note = "第 " + (i + 1) + " 天；" + baseNote;
       if (validRange) {
         LocalDate candidate = depart.plusDays(i);
-        if (!candidate.isAfter(ret)) {
+        if (ret == null || !candidate.isAfter(ret)) {
           date = candidate;
         } else {
           note = "第 " + (i + 1) + " 天超出出发/返回区间，未分配具体日期";
@@ -144,6 +145,36 @@ public final class DraftAssembler {
       days.add(new DraftDay(i + 1, date, note, items));
     }
     return List.copyOf(days);
+  }
+
+  private static List<List<Attraction>> geographicGroups(PlanningRequest request, List<Attraction> input) {
+    List<Attraction> remaining = new ArrayList<>(input);
+    List<List<Attraction>> groups = new ArrayList<>();
+    while (!remaining.isEmpty()) {
+      Attraction first = remaining.removeFirst();
+      List<Attraction> group = new ArrayList<>();
+      group.add(first);
+      Attraction nearest = null;
+      boolean slow = request.details() != null && (request.details().mobility() != null
+          || request.details().seniors() != null && request.details().seniors() > 0)
+          || request.preferences().stream().anyMatch(p -> p.contains("少走") || p.contains("慢节奏"));
+      double best = slow ? 3000 : 15000;
+      for (Attraction next : remaining) {
+        var a = coordinate(first); var b = coordinate(next);
+        if (a == null || b == null || !normalizeCity(first.city()).equals(normalizeCity(next.city()))) continue;
+        double distance = com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(a.lat(), a.lon(), b.lat(), b.lon());
+        if (distance <= best) { nearest = next; best = distance; }
+      }
+      if (nearest != null && !slow) { group.add(nearest); remaining.remove(nearest); }
+      groups.add(group);
+    }
+    return groups;
+  }
+
+  public static com.travelassistant.server.infrastructure.geo.CoordinateTransforms.LatLon coordinate(Attraction a) {
+    if (a == null || a.lat() == null || a.lon() == null || !Double.isFinite(a.lat()) || !Double.isFinite(a.lon())
+        || Math.abs(a.lat()) > 90 || Math.abs(a.lon()) > 180) return null;
+    return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.toGcj02(a.lat(), a.lon(), a.coordinateSystem());
   }
 
   /** 把知识库记录转成可追溯的草案条目。 */
@@ -166,12 +197,85 @@ public final class DraftAssembler {
       unknowns.add("景点ID缺失");
     }
     String note = "attractionId=" + attraction.id()
-        + "；来源=" + source
+        + "；实体来源=" + source
         + "；票价=" + PlaceholderValues.display(ticket)
+        + "；票价字段依据=" + attraction.fieldSource("ticket")
         + "；开放时间=" + PlaceholderValues.display(openTime)
+        + "；开放字段依据=" + attraction.fieldSource("openTime")
+        + "；筛选依据=" + selectionReason(attraction)
         + "；未知项=" + (unknowns.isEmpty() ? "无" : String.join("、", unknowns));
     return new DraftDay.Item(attraction.id(), attraction.name(), attraction.city(), source,
         ticket, openTime, unknowns, note);
+  }
+
+  public static String selectionReason(Attraction attraction) {
+    String level = PlaceholderValues.clean(attraction.level());
+    String rating = PlaceholderValues.clean(attraction.rating());
+    String comments = attraction.evidenceFor("commentCount").stream().map(Attraction.FieldEvidence::value).findFirst().orElse(null);
+    String popularity = comments == null ? "评价量/热度未返回，热门程度未核验" : "接口评价量=" + comments + "，来源=" + attraction.fieldSource("commentCount") + "；评价量不等于实时客流";
+    if (level != null) {
+      return "匹配必去点和偏好后按可见评分/等级排序；等级「" + level + "」，来源「" + attraction.fieldSource("level")
+          + "」；评分=" + (rating==null?"未返回":rating) + "；" + popularity;
+    }
+    if (rating != null) {
+      return "等级未返回，按可见评分「" + rating + "」排序，字段来源「" + attraction.fieldSource("rating")
+          + "」；" + popularity;
+    }
+    return "来自目的地景点检索结果并按地理邻近编组；等级、评分、热度/评论量均未返回，无法核验其热门程度";
+  }
+
+  /** Prevent the same named attraction from being scheduled twice when sources overlap. */
+  public static boolean excluded(PlanningRequest request, Attraction a) {
+    return request.details()!=null && request.details().excludedAttractionIds().stream()
+        .anyMatch(value -> value.equals(a.id()) || normalize(value).equals(normalize(a.name()))
+            || normalize(a.name()).startsWith(normalize(value)+"景区"));
+  }
+
+  static List<Attraction> uniqueAttractions(List<Attraction> candidates) {
+    if (candidates == null || candidates.isEmpty()) {
+      return List.of();
+    }
+    List<Attraction> unique = new ArrayList<>();
+    for (Attraction attraction : candidates) {
+      if (attraction == null || attraction.name() == null || attraction.name().isBlank()) {
+        continue;
+      }
+      // POI IDs differ between vendors and even between gates of the same scenic site.
+      // A day plan must not repeat the same named destination in the same city.
+      if(unique.stream().noneMatch(a -> sameDestination(a,attraction))) unique.add(attraction);
+    }
+    return List.copyOf(unique);
+  }
+
+  static boolean sameDestination(Attraction a,Attraction b) {
+    if(a.id()!=null && a.id().equals(b.id()))return true;
+    if(!normalizeCity(a.city()).equals(normalizeCity(b.city())))return false;
+    var p=coordinate(a);var q=coordinate(b);
+    if(!normalize(a.name()).equals(normalize(b.name()))) {
+      // A narrow temple alias rule requires coordinate evidence, not fuzzy name alone.
+      return normalize(a.name()).replace("古寺","寺").equals(normalize(b.name()).replace("古寺","寺"))
+          && p!=null && q!=null && com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(p.lat(),p.lon(),q.lat(),q.lon())<=300;
+    }
+    if(p!=null && q!=null)return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(p.lat(),p.lon(),q.lat(),q.lon())<=3000;
+    // Without comparable coordinates, schedule a same-city exact name only once.
+    // Differently worded vendor addresses are not evidence of separate destinations.
+    return true;
+  }
+
+  private static String normalize(String raw) {
+    return raw == null ? "" : raw.strip().toLowerCase(java.util.Locale.ROOT)
+        .replaceAll("[\\s　、，。·•\\-—_（）()【】\\[\\]]+", "");
+  }
+
+  private static String normalizeCity(String raw) {
+    String city = normalize(raw);
+    for (String suffix : List.of("特别行政区", "维吾尔自治区", "壮族自治区", "回族自治区",
+        "自治区", "自治州", "地区", "市", "县")) {
+      if (city.endsWith(suffix) && city.length() > suffix.length()) {
+        return city.substring(0, city.length() - suffix.length());
+      }
+    }
+    return city;
   }
 
   // ---- 补问与检查规则 ----
@@ -252,7 +356,7 @@ public final class DraftAssembler {
     }
   }
 
-  private static DraftBudgetEstimate estimate(PlanningRequest request,
+  static DraftBudgetEstimate estimate(PlanningRequest request,
       List<Attraction> selected, List<DraftCheck> checks) {
     BigDecimal subtotal = BigDecimal.ZERO;
     int unknown = 0;
@@ -317,9 +421,10 @@ public final class DraftAssembler {
     if (!trusted || ticket == null) {
       return null;
     }
-    if (ticket.contains("免费")) {
+    if (ticket.equals("免费") || ticket.equals("免票")) {
       return BigDecimal.ZERO;
     }
+    if (!ticket.matches("(?:成人票[：:]?\\s*)?\\d+(?:\\.\\d+)?\\s*(?:元|CNY)?")) return null;
     Matcher matcher = AMOUNT.matcher(ticket);
     if (!matcher.find()) {
       return null;

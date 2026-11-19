@@ -25,11 +25,35 @@ public record RouteResult(
     String durationText,
     List<Step> steps,
     String source,
-    Instant queriedAt) {
+    Instant queriedAt, Integer walkingDistanceMeters, Fare fare, List<RailSegment> railways, java.time.LocalDate requestedDate, String originCity, String destinationCity) {
+  public RouteResult(RouteMode mode,String originLngLat,String destinationLngLat,int distanceMeters,int durationSeconds,
+      String distanceText,String durationText,List<Step> steps,String source,Instant queriedAt,Integer walkingDistanceMeters,Fare fare,List<RailSegment> railways) {
+    this(mode,originLngLat,destinationLngLat,distanceMeters,durationSeconds,distanceText,durationText,steps,source,queriedAt,walkingDistanceMeters,fare,railways,null,null,null);
+  }
+  public record Fare(java.math.BigDecimal transitPerPersonCny, java.math.BigDecimal drivingTollsPerVehicleCny,
+      java.math.BigDecimal taxiAlternativePerVehicleCny, String currency, String priceType, String source, Instant queriedAt) {}
+  public record RailSegment(String trip, String departureStation, String departureTime, String arrivalStation,
+      String arrivalTime, List<RailSeat> seats, String verification) {}
+  public record RailSeat(String code, java.math.BigDecimal referencePriceCny) {}
+  public RouteResult(RouteMode mode,String originLngLat,String destinationLngLat,int distanceMeters,int durationSeconds,
+      String distanceText,String durationText,List<Step> steps,String source,Instant queriedAt,Integer walkingDistanceMeters) {
+    this(mode,originLngLat,destinationLngLat,distanceMeters,durationSeconds,distanceText,durationText,steps,source,queriedAt,walkingDistanceMeters,null,List.of());
+  }
+
+  public RouteResult(RouteMode mode, String originLngLat, String destinationLngLat, int distanceMeters,
+      int durationSeconds, String distanceText, String durationText, List<Step> steps, String source, Instant queriedAt) {
+    this(mode, originLngLat, destinationLngLat, distanceMeters, durationSeconds, distanceText, durationText, steps, source, queriedAt,
+        mode == RouteMode.WALKING ? distanceMeters : null);
+  }
 
   public RouteResult {
+    railways=railways==null?List.of():railways.stream().filter(r -> present(r.trip()) && present(r.departureStation()) && present(r.arrivalStation())).distinct().toList();
+    if(fare!=null) fare=new Fare(positive(fare.transitPerPersonCny()),fare.drivingTollsPerVehicleCny(),
+        positive(fare.taxiAlternativePerVehicleCny()),fare.currency(),fare.priceType(),fare.source(),fare.queriedAt());
     steps = steps == null ? List.of() : List.copyOf(steps);
   }
+  private static java.math.BigDecimal positive(java.math.BigDecimal n) { return n!=null && n.signum()>0?n:null; }
+  private static boolean present(String s) { return s!=null && !s.isBlank() && !s.equalsIgnoreCase("null"); }
 
   /** 一个路线步骤。 */
   public record Step(String instruction, String road, int distanceMeters, int durationSeconds) {

@@ -42,11 +42,21 @@ public class MapTools {
    */
   public record ScenicSpot(String name, String type, String address, String district,
       String tel, Double lat, Double lon, String coordinateSystem, String source,
-      Double rating, Integer commentCount, String reviewUrl, String reviewSource) {
+      Double rating, Integer commentCount, String reviewUrl, String reviewSource, String poiId) {
+    public ScenicSpot(String name, String type, String address, String district, String tel,
+        Double lat, Double lon, String coordinateSystem, String source, Double rating,
+        Integer commentCount, String reviewUrl, String reviewSource) {
+      this(name, type, address, district, tel, lat, lon, coordinateSystem, source, rating, commentCount, reviewUrl, reviewSource, null);
+    }
   }
 
   /** 一次检索的结果：候选 + 给人看的 notice（含降级原因），候选可能为空。 */
   public record ScenicResult(String place, List<ScenicSpot> spots, List<String> notices) {
+  }
+
+  /** A geocoded name used as an explicit search reference, not as the user's live location. */
+  public record GeoAnchor(String placeName, double lat, double lon, String coordinateSystem,
+      String source) {
   }
 
   private static final int FETCH = 25;
@@ -95,6 +105,22 @@ public class MapTools {
     this.baidu = baidu;
   }
 
+  /** Resolve a city/place name to an explicit GCJ-02 reference for city-level food search. */
+  public GeoAnchor geocodeAnchor(String placeName, String city) {
+    String raw = amap.geocode(placeName, city);
+    String[] parts = raw.split(",", 2);
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("地图地理编码未返回经纬度");
+    }
+    try {
+      double lon = Double.parseDouble(parts[0].strip());
+      double lat = Double.parseDouble(parts[1].strip());
+      return new GeoAnchor(placeName, lat, lon, "GCJ-02", SOURCE_AMAP + "地理编码");
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("地图地理编码坐标格式无效");
+    }
+  }
+
   /**
    * 按「黄梅」「婺源」这类区县/地名检索真实景点。
    *
@@ -122,6 +148,12 @@ public class MapTools {
           }
           if (mentions(poi, name)) {
             merged.add(toSpot(poi, SOURCE_AMAP));
+          }
+        }
+        // Region category recall also finds core attractions whose names omit the city name.
+        if (merged.size() < Math.min(limit, MAX_LIMIT)) {
+          for (Place poi : amap.searchScenicInCity(name, FETCH)) {
+            if (!isNoise(poi) && (contains(poi.city(), name) || contains(poi.district(), name))) merged.add(toSpot(poi, SOURCE_AMAP));
           }
         }
       } catch (RuntimeException e) {
@@ -235,7 +267,7 @@ public class MapTools {
     return new ScenicSpot(poi.name(), poi.type(), poi.address(), poi.district(),
         poi.tel(), poi.lat(), poi.lon(), poi.coordinateSystem(), source,
         poi.rating(), poi.commentCount(), reviewUrl,
-        source == null ? null : source + "地图");
+        source == null ? null : source + "地图", poi.poiId());
   }
 
   /** 同来源按名称去重；跨来源「同名且 50 米内」视为同一实体，保留评分更高的那条原文。 */

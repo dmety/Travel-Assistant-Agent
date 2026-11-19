@@ -16,6 +16,12 @@ spring:
   application:
     name: travel-assistant
 travel:
+  # 当前仅支持显式标注的沙箱支付；其它模式在适配器具备并核验前拒绝启动。
+  payment:
+    mode: ${TRAVEL_PAYMENT_MODE:sandbox}
+    provider: ${TRAVEL_PAYMENT_PROVIDER:sandbox}
+  ticketing:
+    provider: ${TRAVEL_TICKET_PROVIDER:demo}
   # 仅供本地模拟助手联调；精确授权一个 http://127.0.0.1:端口/路径，默认关闭。
   agent-local-mock-endpoint: ${TRAVEL_AGENT_LOCAL_MOCK_ENDPOINT:}
   data-directory: ${TRAVEL_DATA_DIR:./data}
@@ -34,12 +40,23 @@ travel:
   # 不编造 POI。SK 仅供 Python 侧 SN 校验使用，Java 服务不读取。
   baidu:
     ak: ${BAIDU_AK:}
+    browser-ak: ${BAIDU_BROWSER_AK:}
     timeout-ms: ${BAIDU_TIMEOUT_MS:4000}
+    agent-plan:
+      auth-token: ${BAIDU_MAP_AUTH_TOKEN:}
+      timeout-ms: ${BAIDU_MAP_TIMEOUT_MS:20000}
+  # 聚美智数景点查询。只从服务端环境变量读取 AppCode，不写入浏览器配置或日志。
+  jumdata:
+    scenic:
+      app-code: ${JUMDATA_SCENIC_APPCODE:}
+      base-url: ${JUMDATA_SCENIC_BASE_URL:https://jmqgjdcx.market.alicloudapi.com}
+      timeout-ms: ${JUMDATA_SCENIC_TIMEOUT_MS:8000}
   # DeepSeek 密钥。留空则 Agent 规划接口返回 503 并说明原因（工具层仍可独立测试）。
   ai:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-chat}
+    vision-model: ${DEEPSEEK_VISION_MODEL:deepseek-flash}
     # 读超时。原值 20000 与 ChatAgent 自给的 45 秒总预算互相冲突：模型一旦想得久一点，
     # 单个请求就在 20 秒被取消，整条链路降级成规则兜底，用户看到的是「信息有限」。
     # 提到 60 秒，让单次调用走完再判失败；真要限时由 ChatAgent 的总预算兜。

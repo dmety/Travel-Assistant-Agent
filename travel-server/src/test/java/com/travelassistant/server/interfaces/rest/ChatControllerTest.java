@@ -3,6 +3,8 @@ package com.travelassistant.server.interfaces.rest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,5 +80,28 @@ class ChatControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"message\":\"武汉三天\"}"))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("图片请求：仅当前问题附图并交给 Agent")
+  void acceptsBoundedImageDataUrl() throws Exception {
+    String image = "data:image/png;base64,AA==";
+    when(agent.chat(anyString(), any(), any(), any())).thenReturn(sample());
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"这张图是什么\",\"images\":[\"" + image + "\"]}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.reply").value("在武汉找到 8 家可以去的餐馆。"));
+    verify(agent).chat(eq("这张图是什么"), any(), any(), eq(List.of(image)));
+  }
+
+  @Test
+  @DisplayName("无效图片 data URL：400 且不调用 Agent")
+  void rejectsInvalidImageDataUrl() throws Exception {
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别一下\",\"images\":[\"https://example.invalid/image.png\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("图片必须是 PNG、JPEG、GIF 或 WebP data URL"));
   }
 }

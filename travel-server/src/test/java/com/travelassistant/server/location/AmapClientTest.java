@@ -227,4 +227,68 @@ class AmapClientTest {
     assertThat(client("test-key").searchPlaces("雷峰塔", null, 1).get(0).name())
         .isEqualTo("雷峰塔");
   }
+  @Test
+  void parsesTransitSegmentsInsteadOfDrivingPaths() {
+    server.expect(requestTo(containsString("/v3/direction/transit/integrated")))
+        .andRespond(withSuccess("""
+            {"status":"1","route":{"transits":[{"distance":"2000","duration":"900","segments":[
+            {"bus":{"buslines":[{"name":"地铁2号线","distance":"1800","duration":"600"}]}}]}]}}
+            """, MediaType.APPLICATION_JSON));
+    var route = client("test-key").route(RouteMode.TRANSIT,"114.1,30.1","114.2,30.2","武汉");
+    assertThat(route.durationSeconds()).isEqualTo(900);
+    assertThat(route.steps().getFirst().instruction()).contains("2号线");
+    server.verify();
+  }
+  @Test
+  void parsesCyclingDataAndErrcode() {
+    server.expect(requestTo(containsString("/v4/direction/bicycling")))
+        .andRespond(withSuccess("""
+            {"errcode":0,"data":{"paths":[{"distance":1000,"duration":300,"steps":[{"instruction":"骑行1公里"}]}]}}
+            """, MediaType.APPLICATION_JSON));
+    var route=client("test-key").route(RouteMode.CYCLING,"114.1,30.1","114.2,30.2",null);
+    assertThat(route.durationSeconds()).isEqualTo(300);
+    assertThat(route.mode()).isEqualTo(RouteMode.CYCLING);
+    server.verify();
+  }
+  @Test void transitReferenceFareAndRailSegmentKeepDateAndCityScope() {
+    server.expect(requestTo(containsString("/v3/direction/transit/integrated"))).andExpect(request -> {
+      String query=java.net.URLDecoder.decode(request.getURI().getRawQuery(),StandardCharsets.UTF_8);
+      assertThat(query).contains("city=北京","cityd=大同","date=2026-11-23","extensions=all");
+    }).andRespond(withSuccess("""
+      {"status":"1","route":{"taxi_cost":"600","transits":[{"cost":"125.5","duration":"18000","distance":"350000","segments":[
+        {"railway":{"trip":"G123","departure_stop":{"name":"北京北","time":"0900"},"arrival_stop":{"name":"大同南","time":"1200"},"spaces":[{"code":"13","cost":"119.5"}]}}
+      ]}]}}
+      """,MediaType.APPLICATION_JSON));
+    var route=client("key").route(RouteMode.TRANSIT,"116.4,39.9","113.1,40.0","北京","大同",java.time.LocalDate.of(2026,11,23));
+    assertThat(route.fare().transitPerPersonCny()).isEqualByComparingTo("125.5");
+    assertThat(route.fare().taxiAlternativePerVehicleCny()).isEqualByComparingTo("600");
+    assertThat(route.fare().currency()).isEqualTo("CNY");
+    assertThat(route.fare().priceType()).isEqualTo("REFERENCE");
+    assertThat(route.requestedDate()).isEqualTo(java.time.LocalDate.of(2026,11,23));
+    assertThat(route.railways().getFirst().trip()).isEqualTo("G123");
+    assertThat(route.railways().getFirst().seats().getFirst().referencePriceCny()).isEqualByComparingTo("119.5");
+    assertThat(route.railways().getFirst().verification()).contains("余票未核验"); server.verify();
+  }
+  @Test void explicitZeroTollsArePreservedAndTaxiIsSeparate() {
+    server.expect(requestTo(containsString("/v3/direction/driving"))).andExpect(request -> assertThat(request.getURI().getRawQuery()).contains("extensions=all"))
+      .andRespond(withSuccess("""
+        {"status":"1","route":{"taxi_cost":"35.8","paths":[{"distance":"1000","duration":"300","tolls":"0"}]}}
+        """,MediaType.APPLICATION_JSON));
+    var fare=client("key").route(RouteMode.DRIVING,"114.1,30.1","114.2,30.2","武汉").fare();
+    assertThat(fare.drivingTollsPerVehicleCny()).isEqualByComparingTo("0");
+    assertThat(fare.transitPerPersonCny()).isNull(); assertThat(fare.taxiAlternativePerVehicleCny()).isEqualByComparingTo("35.8");
+    assertThat(fare.queriedAt()).isNotNull(); server.verify();
+  }
+  @Test void missingArrayAndInvalidPricesNeverBecomeZero() {
+    server.expect(requestTo(containsString("/v3/direction/driving"))).andRespond(withSuccess("""
+      {"status":"1","route":{"taxi_cost":"NaN","paths":[{"distance":"1000","duration":"300","tolls":[]}]}}
+      """,MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/v3/direction/transit/integrated"))).andRespond(withSuccess("""
+      {"status":"1","route":{"transits":[{"distance":"1000","duration":"300","cost":[]}]}}
+      """,MediaType.APPLICATION_JSON));
+    var drive=client("key").route(RouteMode.DRIVING,"114.1,30.1","114.2,30.2","武汉");
+    var bus=client("key").route(RouteMode.TRANSIT,"114.1,30.1","114.2,30.2","武汉");
+    assertThat(drive.fare().drivingTollsPerVehicleCny()).isNull(); assertThat(drive.fare().taxiAlternativePerVehicleCny()).isNull();
+    assertThat(bus.fare().transitPerPersonCny()).isNull(); server.verify();
+  }
 }

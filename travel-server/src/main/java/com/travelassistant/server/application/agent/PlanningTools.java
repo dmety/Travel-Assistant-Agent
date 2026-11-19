@@ -4,10 +4,14 @@ import com.travelassistant.server.application.attraction.AttractionService;
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.application.map.MapTools;
+import com.travelassistant.server.application.place.RatingOrder;
 import com.travelassistant.server.application.ticket.TicketService;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.domain.location.WeatherResult;
 import com.travelassistant.server.domain.ticket.TicketAdvice;
+import com.travelassistant.server.infrastructure.jumdata.JumdataScenicClient;
+import com.travelassistant.server.infrastructure.jumdata.JumdataScenicSpot;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,19 +32,28 @@ public class PlanningTools {
   private static final Logger log = LoggerFactory.getLogger(PlanningTools.class);
 
   /** 单次规划最多返回的候选数，防止把全库塞进结果。 */
-  public static final int MAX_CANDIDATES = 10;
+  public static final int MAX_CANDIDATES = 30;
 
   private final AttractionService attractions;
   private final LocationService locations;
   private final TicketService tickets;
   private final MapTools maps;
+  private final JumdataScenicClient jumdata;
 
+  @Autowired
   public PlanningTools(AttractionService attractions, LocationService locations,
-      TicketService tickets, MapTools maps) {
+      TicketService tickets, MapTools maps, JumdataScenicClient jumdata) {
     this.attractions = attractions;
     this.locations = locations;
     this.tickets = tickets;
     this.maps = maps;
+    this.jumdata = jumdata;
+  }
+
+  /** Compatibility constructor for direct callers that do not configure the external source. */
+  public PlanningTools(AttractionService attractions, LocationService locations,
+      TicketService tickets, MapTools maps) {
+    this(attractions, locations, tickets, maps, null);
   }
 
   /**
@@ -52,17 +65,63 @@ public class PlanningTools {
    * 只是把更可能值得去的地方排前面，不代表推荐结论。
    */
   public ToolOutcome<List<Attraction>> searchByCity(String city, int limit) {
+    return searchByCity(city, limit, java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")));
+  }
+
+  public ToolOutcome<List<Attraction>> searchByCity(String city, int limit, java.time.LocalDate travelDate) {
+    List<Attraction> combined = new java.util.ArrayList<>();
+    if (jumdata != null && jumdata.configured()) {
+      try {
+        String province = provinceScope(city);
+        List<Attraction> live = (province == null
+            ? jumdata.search(city, city, limit)
+            : jumdata.searchInProvince(city, province, limit)).stream()
+            .map(spot -> spot.toAttraction(travelDate)).toList();
+        if (province == null) {
+          String targetProvince = null;
+          try {
+            List<Attraction> region = attractions.byCity(city, 1).items();
+            if (!region.isEmpty()) {
+              targetProvince = region.get(0).province();
+            }
+          } catch (RuntimeException ignored) {
+            // If the local index cannot identify the target province, retain API city matching.
+          }
+          String expectedProvince = targetProvince;
+          live = live.stream().filter(a -> !addressConflictsWithCity(a, city, expectedProvince)).toList();
+        }
+        if (!live.isEmpty()) {
+          combined.addAll(live);
+        }
+        log.info("聚美智数未返回城市景点，回退本地景点库：{}", city);
+      } catch (RuntimeException e) {
+        log.info("聚美智数景点查询不可用，回退本地景点库：{} ({})", city, e.getMessage());
+      }
+    }
     try {
       List<Attraction> all = attractions.byCity(city, AttractionService.MAX_LIMIT).items();
-      List<Attraction> ranked = rank(all).stream().limit(limit).toList();
+      combined.addAll(all);
+      List<Attraction> ranked = rank(combined).stream().limit(limit).toList();
       return ToolOutcome.ok(ranked);
     } catch (RuntimeException e) {
-      return ToolOutcome.failed("景点检索不可用：" + e.getMessage());
+      return combined.isEmpty() ? ToolOutcome.failed("景点检索不可用：" + e.getMessage())
+          : ToolOutcome.ok(rank(combined).stream().limit(limit).toList());
     }
   }
 
   /** 按名称/关键词检索候选景点（同样排序后截断）。 */
   public ToolOutcome<List<Attraction>> searchByName(String keyword, int limit) {
+    if (jumdata != null && jumdata.configured()) {
+      try {
+        List<Attraction> live = jumdata.search(keyword, null, limit).stream()
+            .map(JumdataScenicSpot::toAttraction).toList();
+        if (!live.isEmpty()) {
+          return ToolOutcome.ok(rank(live).stream().limit(limit).toList());
+        }
+      } catch (RuntimeException e) {
+        log.info("聚美智数景点关键词查询不可用，回退本地景点库：{} ({})", keyword, e.getMessage());
+      }
+    }
     try {
       List<Attraction> all = attractions.byName(keyword, AttractionService.MAX_LIMIT).items();
       return ToolOutcome.ok(rank(all).stream().limit(limit).toList());
@@ -82,10 +141,12 @@ public class PlanningTools {
       MapTools.ScenicResult result = maps.findScenicSpots(place, limit);
       List<Attraction> converted = result.spots().stream()
           .limit(limit)
-          .map(s -> new Attraction("map:" + s.name(), s.name(), place, null, s.type(),
-              null, null, null, null, s.address(), s.tel(), null, null, null,
+          .map(s -> new Attraction("map:" + s.source() + ":" + (s.poiId() == null ? java.util.UUID.nameUUIDFromBytes((place + "|" + s.name() + "|" + s.lat() + "|" + s.lon()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString() : s.poiId()), s.name(), place, null, s.type(),
+              null, s.rating()==null?null:s.rating().toString(), null, null, s.address(), s.tel(), null, null, null,
               s.lat(), s.lon(), s.source(), List.of(s.source()), null, null,
-              s.coordinateSystem()))
+              s.coordinateSystem(),java.time.Instant.now().toString(),null,
+              s.commentCount()==null?java.util.Map.of():java.util.Map.of("commentCount",List.of(new Attraction.FieldEvidence(
+                  s.commentCount().toString(),s.source(),s.poiId(),java.time.Instant.now().toString(),null,"provider_returned")))))
           .toList();
       return ToolOutcome.ok(converted);
     } catch (RuntimeException e) {
@@ -125,12 +186,79 @@ public class PlanningTools {
 
   private List<Attraction> rank(List<Attraction> items) {
     return items.stream()
+        .filter(attraction -> !RatingOrder.isNonTourism(attraction))
         .sorted(java.util.Comparator
             .comparingInt(this::levelScore).reversed()
             .thenComparing(java.util.Comparator
                 .comparingDouble((Attraction a) -> ratingValue(a.rating())).reversed())
             .thenComparing(a -> a.name() == null ? "" : a.name()))
         .toList();
+  }
+
+  private String provinceScope(String region) {
+    try {
+      List<Attraction> localMatches = attractions.byCity(region, 1).items();
+      if (!localMatches.isEmpty()) {
+        Attraction first = localMatches.get(0);
+        if (sameRegion(region, first.province()) && !sameRegion(region, first.city())) {
+          return first.province();
+        }
+      }
+    } catch (RuntimeException ignored) {
+      // Keep the ordinary city query path when the local index cannot classify the name.
+    }
+    return null;
+  }
+
+  private static boolean sameRegion(String left, String right) {
+    if (left == null || right == null) {
+      return false;
+    }
+    return stripRegionSuffix(left).equals(stripRegionSuffix(right));
+  }
+
+  private static String stripRegionSuffix(String region) {
+    String normalized = region.strip().replaceAll("[\\s　]+", "");
+    for (String suffix : List.of("特别行政区", "维吾尔自治区", "壮族自治区", "回族自治区",
+        "自治区", "自治州", "地区", "省", "市", "县", "区")) {
+      if (normalized.endsWith(suffix) && normalized.length() > suffix.length()) {
+        return normalized.substring(0, normalized.length() - suffix.length());
+      }
+    }
+    return normalized;
+  }
+
+  private boolean addressConflictsWithCity(Attraction attraction, String targetCity,
+      String targetProvince) {
+    String address = attraction.address();
+    if (address == null || address.isBlank()) {
+      return false;
+    }
+    try {
+      for (String known : attractions.knownPlaces().keySet()) {
+        if (known == null || known.length() < 2 || !address.contains(known)
+            || sameRegion(known, targetCity) || sameRegion(known, targetProvince)) {
+          continue;
+        }
+        List<Attraction> matches = attractions.byCity(known, 1).items();
+        if (matches.isEmpty()) {
+          continue;
+        }
+        Attraction region = matches.get(0);
+        boolean provinceAlias = sameRegion(known, region.province())
+            && !sameRegion(known, region.city());
+        if (provinceAlias) {
+          if (targetProvince != null && !sameRegion(region.province(), targetProvince)) {
+            return true;
+          }
+        } else {
+          return true;
+        }
+      }
+    } catch (RuntimeException e) {
+      log.debug("无法校验景点地址城市范围：{}", e.getMessage());
+    }
+    return false;
   }
 
   /** 目的地天气预报。未配置高德密钥时返回失败原因，不抛异常。 */

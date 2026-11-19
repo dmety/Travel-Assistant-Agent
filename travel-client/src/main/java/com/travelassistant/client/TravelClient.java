@@ -3,6 +3,13 @@ package com.travelassistant.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.common.api.HealthResponse;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -13,8 +20,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 旅行助手控制台客户端。
@@ -22,11 +31,24 @@ import java.util.Map;
  * 注册 → 登录（服务端会话 + JSESSIONID Cookie）→ 查询当前用户 流程。
  */
 public class TravelClient {
+  private static final Duration CHAT_REQUEST_TIMEOUT = Duration.ofSeconds(120);
+
+  private static final class ChatStreamState {
+    private JsonNode completion;
+    private String error;
+    private boolean tokenSeen;
+  }
+
+  private record TranscriptEntry(String role, String text) {}
 
   private final String base;
   private final HttpClient client;
   private final ObjectMapper json = new ObjectMapper();
   private final ConsoleUI ui;
+  private final List<Map<String, String>> chatHistory = new ArrayList<>();
+  private final List<TranscriptEntry> transcriptHistory = new ArrayList<>();
+  private JsonNode chatState;
+  private JsonNode latestChatResult;
 
   public TravelClient(String base) {
     this(base, ConsoleUI.plain());
@@ -43,15 +65,19 @@ public class TravelClient {
   public static void main(String[] args) {
     // 默认端口与 tools/run-server.sh 保持一致。
     String base = args.length > 0 ? args[0] : "http://localhost:8080";
-    // 有真实终端且没有指定子命令时进入交互式主入口；带参数或走管道时保持原有脚本用法。
-    boolean repl = args.length <= 1 && System.console() != null;
+    // 有真实终端时默认进入 REPL；伪终端可用 JVM 属性显式启用，脚本用法保持不变。
+    boolean forceInteractive = Boolean.getBoolean("travel.cli.forceInteractive");
+    boolean repl = args.length <= 1 && (System.console() != null || forceInteractive);
     try (ConsoleUI ui = repl
-        ? ConsoleUI.interactive("help", "exit", "q", "login", "status", "attractions",
-            "itineraries", "plan", "votes", "advice", "export", "ticket")
+        ? ConsoleUI.interactive("help", "exit", "q", "login", "register", "logout", "status",
+            "attractions", "itineraries", "plan", "votes", "advice", "export", "ticket",
+            "products", "orders", "order", "drive", "parking", "route", "weather", "chat",
+            "reset", "api")
         : ConsoleUI.plain()) {
       var cli = new TravelClient(base, ui);
       String service = cli.checkHealth();
       if (repl) {
+        ui.enterFullscreen();
         cli.runRepl(service);
         return;
       }
@@ -83,6 +109,9 @@ public class TravelClient {
       } else if (args.length >= 3 && "ticket".equalsIgnoreCase(args[1])) {
         // 购票辅助（V2）：ticket <景点名称>
         cli.showTicket(String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length)));
+      } else if (args.length >= 4 && "api".equalsIgnoreCase(args[1])) {
+        cli.apiRequest(args[2], args[3], args.length > 4
+            ? String.join(" ", java.util.Arrays.copyOfRange(args, 4, args.length)) : "");
       } else if (args.length >= 5 && "timeline".equalsIgnoreCase(args[1])) {
         // 协作记录（V2 §4）：timeline <用户名> <密码> <行程ID>
         cli.loginOnly(args[2], args[3]);
@@ -125,6 +154,8 @@ public class TravelClient {
       } else if (args.length >= 3) {
         cli.demoAuth(args[1], args[2]);
       } else {
+        ui.println("交互式命令台：java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar " + base);
+        ui.println("服务端 API 通用入口：java -jar travel-client.jar " + base + " api <METHOD> <路径> [JSON]");
         ui.println("景点查询（交互）：java -jar travel-client.jar " + base + " attractions");
         ui.println("按城市查询：      java -jar travel-client.jar " + base + " attractions 杭州");
         ui.println("按 ID 查详情：    java -jar travel-client.jar " + base + " attractions --id <景点ID>");
@@ -192,8 +223,10 @@ public class TravelClient {
    */
   private void runRepl(String service) throws Exception {
     ui.banner(service, base);
-    String[] commands = {"help", "exit", "q", "quit", "login", "status", "attractions",
-        "itineraries", "plan", "votes", "advice", "export", "ticket"};
+    String[] commands = {"help", "/help", "exit", "/exit", "q", "quit", "login", "register", "logout", "status",
+        "attractions", "itineraries", "plan", "votes", "advice", "export", "ticket",
+        "products", "orders", "order", "drive", "parking", "route", "weather", "chat", "reset", "/reset",
+        "details", "/details", "history", "/history", "search", "/search", "clear", "/clear", "api"};
     String username = null;
     while (true) {
       String line = ui.readLine("\n" + (username == null ? "未登录" : username) + " > ");
@@ -206,16 +239,30 @@ public class TravelClient {
       }
       String[] parts = line.split("\\s+");
       String cmd = parts[0].toLowerCase(java.util.Locale.ROOT);
+      if (cmd.startsWith("/")) cmd = cmd.substring(1);
+      if ("?".equals(cmd)) cmd = "help";
       if (cmd.equals("exit") || cmd.equals("q") || cmd.equals("quit")) {
         ui.note("已退出。");
         break;
       }
       try {
         switch (cmd) {
-          case "help" -> printReplHelp();
+          case "help" -> printReplHelp(parts.length > 1 && "all".equalsIgnoreCase(parts[1]));
+          case "details" -> showLatestDetails();
+          case "history" -> showConversationHistory();
+          case "search" -> {
+            String query = line.substring(parts[0].length()).strip();
+            if (query.isBlank()) ui.warn("用法：/search <关键词>，搜索本次会话记录。");
+            else searchConversation(query);
+          }
           case "login" -> {
             if (parts.length < 2) {
-              ui.warn("用法：login <用户名>");
+              ui.warn("用法：login 用户名（直接输入实际用户名，不要带尖括号）");
+              break;
+            }
+            String loginName = parts[1];
+            if (loginName.replace("\\", "").matches("<[^<>]+>")) {
+              ui.warn("尖括号是帮助里的占位符，不要原样输入。示例：login demo_admin");
               break;
             }
             String password = ui.readMasked("  密码: ");
@@ -223,8 +270,52 @@ public class TravelClient {
               ui.warn("密码不能为空。");
               break;
             }
-            loginOnly(parts[1], password);
-            username = parts[1];
+            loginOnly(loginName, password);
+            if (!loginName.equals(username)) resetConversation();
+            username = loginName;
+          }
+          case "register" -> {
+            if (parts.length < 2) {
+              ui.warn("用法：register 用户名（直接输入实际用户名，不要带尖括号；例如 register demo_admin）");
+              break;
+            }
+            String newUsername = parts[1];
+            if (newUsername.replace("\\", "").matches("<[^<>]+>")) {
+              ui.warn("尖括号是帮助里的占位符，不要原样输入。示例：register demo_admin");
+              break;
+            }
+            if (!newUsername.matches("[A-Za-z0-9_]{3,32}")) {
+              ui.warn("用户名需为 3-32 位字母、数字或下划线；示例：register demo_admin");
+              break;
+            }
+            String password = ui.readMasked("  新密码: ");
+            if (password == null || password.isBlank()) {
+              ui.warn("密码不能为空。");
+              break;
+            }
+            if (password.length() < 8) {
+              ui.warn("密码至少 8 位，请重新执行 register 并输入更长的密码。");
+              break;
+            }
+            var response = postJson("/api/account/register",
+                json.writeValueAsString(Map.of("username", newUsername, "password", password)));
+            if (response.statusCode() == 201 || response.statusCode() == 200) {
+              ui.success("注册成功，请执行 login " + newUsername);
+            } else {
+              String error = response.body();
+              try {
+                error = json.readTree(response.body()).path("error").asText(error);
+              } catch (Exception ignored) {
+                // 保留服务端原响应，便于排查非 JSON 错误。
+              }
+              ui.error("注册失败：" + error);
+            }
+          }
+          case "logout" -> {
+            var response = postEmpty("/api/logout");
+            username = null;
+            resetConversation();
+            ui.note("已退出登录（HTTP " + response.statusCode() + "）。");
           }
           case "status" -> showStatus();
           case "attractions" -> {
@@ -283,7 +374,48 @@ public class TravelClient {
               showTicket(join(parts, 1));
             }
           }
-          default -> ui.warn("未知命令：" + parts[0] + "，输入 help 查看可用命令。");
+          case "products" -> showDemoProducts();
+          case "orders" -> {
+            if (requireLogin(username)) listDemoOrders();
+          }
+          case "order" -> {
+            if (parts.length < 2) {
+              ui.warn("用法：order products | create <景点ID或-> | <商品编码> | <数量> | <景点名> | show|pay|cancel|refund <订单ID>");
+            } else if ("products".equalsIgnoreCase(parts[1])) {
+              showDemoProducts();
+            } else if ("create".equalsIgnoreCase(parts[1])) {
+              if (requireLogin(username)) createDemoOrder(line.substring(line.indexOf(parts[1]) + parts[1].length()).strip());
+            } else if (parts.length >= 3 && requireLogin(username)) {
+              handleDemoOrder(parts[1], parts[2], parts.length >= 4 ? parts[3] : null);
+            } else if (parts.length < 3) {
+              ui.warn("请提供订单 ID。");
+            }
+          }
+          case "drive" -> showDrivingSegment(line.substring(parts[0].length()).strip());
+          case "parking" -> showParking(line.substring(parts[0].length()).strip());
+          case "route" -> showRoute(parts);
+          case "weather" -> {
+            if (parts.length < 2) ui.warn("用法：weather <城市>");
+            else showWeather(join(parts, 1));
+          }
+          case "chat" -> {
+            if (requireLogin(username)) {
+              if (parts.length < 2) ui.warn("用法：chat <问题>");
+              else sendChat(line.substring(parts[0].length()).strip());
+            }
+          }
+          case "reset" -> {
+            resetConversation();
+            ui.success("已清空当前 CLI 对话上下文。");
+          }
+          case "clear" -> {
+            resetConversation();
+            ui.success("已清空当前 CLI 对话上下文；本次会话记录仍可用 /history 查看。");
+          }
+          case "api" -> handleApiCommand(line);
+          default -> {
+            if (requireLogin(username)) sendChat(line);
+          }
         }
       } catch (Exception e) {
         // 单条命令失败不应终止整个会话。
@@ -302,10 +434,34 @@ public class TravelClient {
     return true;
   }
 
-  private void printReplHelp() {
-    ui.title("可用命令");
-    ui.kv("help", "显示本说明");
-    ui.kv("login", "<用户名> 登录，密码掩码输入");
+  private void printReplHelp(boolean all) {
+    if (!all) {
+      ui.title("快速帮助");
+      ui.success("登录后直接说旅行需求即可对话，例如：我想去黄鹤楼，安排两天行程。");
+      ui.kv("register", "用户名 注册账号，例如 register demo_admin");
+      ui.kv("login", "用户名 登录账号");
+      ui.kv("logout", "退出登录");
+      ui.kv("attractions", "搜索景点；也可输入 attractions <关键词>");
+      ui.kv("ticket", "景点名 查询购票信息");
+      ui.kv("plan", "目的地 [天数] 生成行程草案（需登录）");
+      ui.kv("status", "查看服务状态");
+      ui.kv("/details", "展开最近一轮工具输出、完整攻略路线与费用来源");
+      ui.kv("/search", "关键词 搜索本次进程内的对话记录");
+      ui.kv("/history", "分页查看本次进程内的对话记录");
+      ui.kv("help all", "查看全部命令");
+      ui.kv("exit", "退出 CLI");
+      ui.note("回答会逐段显示；有结构化结果时，末尾会附精简表格或行程摘要。");
+      ui.note(ui.supportsLineEditing()
+          ? "支持行内编辑、上下键历史、Ctrl+R 历史搜索；输入 / 后按 Tab 浏览命令，Alt+V 粘贴图片。"
+          : "密码输入不回显（不显示星号），按 Enter 提交。");
+      return;
+    }
+    ui.title("全部命令");
+    ui.success("登录后可直接输入旅行需求开始对话；未识别的命令会作为自然语言发送给助手。");
+    ui.kv("help", "快速帮助；help all 显示本说明");
+    ui.kv("register", "用户名 新用户注册，密码掩码输入；例如 register demo_admin");
+    ui.kv("login", "用户名 登录，密码掩码输入；尖括号仅为文档占位符");
+    ui.kv("logout", "注销当前服务端会话");
     ui.kv("status", "服务状态与模型调用用量（免登录）");
     ui.kv("attractions", "进入景点查询；attractions <关键词> 直接查");
     ui.kv("itineraries", "列出我的行程（需登录）");
@@ -314,10 +470,821 @@ public class TravelClient {
     ui.kv("advice", "<行程ID> 综合决策建议（需登录）");
     ui.kv("export", "<行程ID> 导出文本摘要（需登录）");
     ui.kv("ticket", "<景点名> 购票辅助信息（免登录）");
+    ui.section("演示交易（需登录；全部为沙箱模拟）");
+    ui.kv("products", "列出演示商品与固定演示金额");
+    ui.kv("order create", "<景点ID或-> | <商品编码> | <数量> | <景点名> 创建订单并显示演示二维码");
+    ui.kv("order pay", "<订单ID> [eventId] 模拟支付确认，服务端自动签发演示票");
+    ui.kv("orders", "列出当前账号订单");
+    ui.kv("order show/cancel/refund/fail", "查询或处理演示订单（退款和失败均为模拟）");
+    ui.section("地图与路线");
+    ui.kv("drive", "<起点> | <终点> | [城市] 驾车路段与目的地周边停车场");
+    ui.kv("parking", "<目的地> | [城市] 查询停车 POI");
+    ui.kv("route", "<步行|公交> <起点经度,纬度> <终点经度,纬度> [城市]");
+    ui.kv("weather", "<城市> 查询天气");
+    ui.kv("chat", "<问题> 对话 Agent（需登录）");
+    ui.kv("reset", "清空本次 CLI 会话的对话历史和上下文");
+    ui.kv("api", "<METHOD> </api/...> [JSON] 调用现有 REST API");
     ui.kv("exit / q", "退出");
-    ui.note("Tab 补全、上下键翻历史；NO_COLOR 或 -Dtravel.cli.noColor=true 可关闭颜色。");
-    ui.note("中文编码：保持 Windows 默认代码页即可；若执行了 chcp 65001，"
-        + "需给 java 加 -Dstdout.encoding=UTF-8，否则中文会乱码。");
+    ui.note("输入 / 浏览快捷命令；Ctrl+R 搜索本次命令历史，/search 搜索本次对话；/details 展开最近一次工具输出。");
+    ui.note("Alt+V 将剪贴板图片附加到问题；需要配置支持视觉输入的模型，图片只随当前请求发送、不写入本地记录。");
+    ui.note("中文乱码时，请用项目脚本启动：.\\tools\\run-client.ps1；脚本会设置 UTF-8 终端编码。");
+  }
+
+  private void showDemoProducts() throws Exception {
+    var response = get("/api/demo-orders/products");
+    if (response.statusCode() != 200) {
+      ui.error("读取演示商品失败：HTTP " + response.statusCode() + " " + response.body());
+      return;
+    }
+    JsonNode products = json.readTree(response.body());
+    var rows = new ArrayList<List<String>>();
+    products.forEach(p -> rows.add(List.of(text(p, "code"), text(p, "name"),
+        text(p, "demoUnitAmount") + " " + text(p, "currency"), text(p, "mode"))));
+    ui.title("沙箱演示商品");
+    ui.table(List.of("编码", "商品", "演示金额/件", "模式"), rows);
+    ui.warn("金额仅用于沙箱交易演示，不是景区票价、库存报价或有效门票价格。");
+  }
+
+  private void createDemoOrder(String raw) throws Exception {
+    String[] fields = raw.split("\\|", 4);
+    if (fields.length < 4) {
+      ui.warn("用法：order create <景点ID或-> | DEMO_ADMISSION | <数量> | <景点名称>");
+      return;
+    }
+    var request = new java.util.LinkedHashMap<String, Object>();
+    if (!fields[0].isBlank() && !fields[0].strip().equals("-")) request.put("attractionId", fields[0].strip());
+    request.put("productCode", fields[1].strip());
+    try {
+      request.put("quantity", Integer.parseInt(fields[2].strip()));
+    } catch (NumberFormatException e) {
+      ui.warn("数量必须是整数。");
+      return;
+    }
+    request.put("attractionName", fields[3].strip());
+    var response = postJson("/api/demo-orders", json.writeValueAsString(request));
+    if (response.statusCode() != 200 && response.statusCode() != 201) {
+      ui.error("创建订单失败：HTTP " + response.statusCode() + " " + response.body());
+      return;
+    }
+    printDemoOrder(json.readTree(response.body()), true);
+  }
+
+  private void listDemoOrders() throws Exception {
+    var response = get("/api/demo-orders");
+    if (response.statusCode() != 200) {
+      ui.error("读取订单失败：HTTP " + response.statusCode() + " " + response.body());
+      return;
+    }
+    JsonNode orders = json.readTree(response.body());
+    ui.title("我的演示订单");
+    if (!orders.isArray() || orders.isEmpty()) {
+      ui.note("暂无演示订单。");
+      return;
+    }
+    var rows = new ArrayList<List<String>>();
+    orders.forEach(o -> rows.add(List.of(text(o, "id"), text(o, "attractionName"),
+        text(o, "amount") + " CNY", text(o, "orderStatus"), text(o, "paymentStatus"),
+        text(o, "ticketStatus"))));
+    ui.table(List.of("订单ID", "景点", "金额", "订单", "支付", "出票"), rows);
+    ui.warn("全部为沙箱模拟状态。");
+  }
+
+  private void handleDemoOrder(String action, String id, String eventId) throws Exception {
+    switch (action.toLowerCase(java.util.Locale.ROOT)) {
+      case "show" -> {
+        var response = get("/api/demo-orders/" + encode(id));
+        if (response.statusCode() == 200) printDemoOrder(json.readTree(response.body()), false);
+        else ui.error("订单查询失败：HTTP " + response.statusCode() + " " + response.body());
+      }
+      case "pay" -> {
+        var current = get("/api/demo-orders/" + encode(id));
+        if (current.statusCode() != 200) {
+          ui.error("订单查询失败：HTTP " + current.statusCode() + " " + current.body());
+          return;
+        }
+        JsonNode order = json.readTree(current.body());
+        Map<String, Object> payment = Map.of("eventId", eventId == null ? "CLI-SANDBOX-" + UUID.randomUUID() : eventId,
+            "amount", order.path("amount").decimalValue(), "currency", "CNY");
+        var response = postJson("/api/demo-orders/" + encode(id) + "/simulate-payment",
+            json.writeValueAsString(payment));
+        if (response.statusCode() == 200) printDemoOrder(json.readTree(response.body()), false);
+        else ui.error("沙箱支付确认失败：HTTP " + response.statusCode() + " " + response.body());
+      }
+      case "cancel", "refund" -> {
+        var response = postEmpty("/api/demo-orders/" + encode(id) + "/" + action.toLowerCase());
+        if (response.statusCode() == 200) printDemoOrder(json.readTree(response.body()), false);
+        else ui.error("订单操作失败：HTTP " + response.statusCode() + " " + response.body());
+      }
+      case "fail" -> {
+        var response = postEmpty("/api/demo-orders/" + encode(id) + "/simulate-failure");
+        if (response.statusCode() == 200) printDemoOrder(json.readTree(response.body()), false);
+        else ui.error("模拟支付失败状态写入失败：HTTP " + response.statusCode() + " " + response.body());
+      }
+      default -> ui.warn("用法：order show|pay|cancel|refund <订单ID>");
+    }
+  }
+
+  private void printDemoOrder(JsonNode order, boolean showQr) {
+    ui.title("演示订单");
+    ui.kv("订单ID", text(order, "id"));
+    ui.kv("景点", text(order, "attractionName"));
+    ui.kv("商品", text(order, "productName") + " × " + text(order, "quantity"));
+    ui.kv("金额", text(order, "amount") + " CNY（固定演示金额）");
+    ui.kv("订单状态", text(order, "orderStatus"));
+    ui.kv("支付状态", text(order, "paymentStatus"));
+    if (order.hasNonNull("expiresAt")) ui.kv("支付截止", localTime(text(order, "expiresAt")));
+    ui.kv("出票状态", text(order, "ticketStatus"));
+    if (order.hasNonNull("ticketId")) ui.kv("演示票号", text(order, "ticketId"));
+    if (showQr && order.hasNonNull("paymentUri")) {
+      ui.section("沙箱支付二维码（不能扫码真实付款）");
+      ui.note("载荷：" + text(order, "paymentUri"));
+      printQr(text(order, "paymentUri"));
+      ui.note("确认此订单的模拟支付：order pay " + text(order, "id"));
+    }
+    ui.warn(text(order, "notice"));
+  }
+
+  private void printQr(String payload) {
+    try {
+      BitMatrix matrix = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 33, 33,
+          Map.of(EncodeHintType.MARGIN, 1));
+      for (int y = 0; y < matrix.getHeight(); y += 2) {
+        StringBuilder row = new StringBuilder("  ");
+        for (int x = 0; x < matrix.getWidth(); x++) {
+          boolean top = matrix.get(x, y);
+          boolean bottom = y + 1 < matrix.getHeight() && matrix.get(x, y + 1);
+          row.append(top ? (bottom ? '█' : '▀') : (bottom ? '▄' : ' '));
+        }
+        ui.println(row.toString());
+      }
+    } catch (Exception e) {
+      ui.warn("无法绘制二维码，请使用载荷文本核对沙箱流程。");
+    }
+  }
+
+  private void showDrivingSegment(String raw) throws Exception {
+    String[] fields = raw.split("\\|", 3);
+    if (fields.length < 2) {
+      ui.warn("用法：drive <起点> | <终点> | [城市]");
+      return;
+    }
+    String path = "/api/location/drive?origin=" + encode(fields[0].strip())
+        + "&destination=" + encode(fields[1].strip());
+    if (fields.length == 3 && !fields[2].isBlank()) path += "&city=" + encode(fields[2].strip());
+    var response = get(path);
+    if (response.statusCode() != 200) {
+      ui.error("驾车与停车查询失败：HTTP " + response.statusCode() + " " + response.body());
+      return;
+    }
+    JsonNode result = json.readTree(response.body());
+    JsonNode route = result.path("route");
+    ui.title("自驾路段：" + text(result, "origin") + " → " + text(result, "destination"));
+    ui.kv("预估距离", text(route, "distanceText"));
+    ui.kv("预估耗时", text(route, "durationText"));
+    ui.kv("路线来源", text(route, "source"));
+    ui.kv("查询时间", localTime(text(route, "queriedAt")));
+    var steps = new ArrayList<List<String>>();
+    route.path("steps").forEach(s -> steps.add(List.of(text(s, "road"),
+        text(s, "instruction"), text(s, "distanceMeters") + " m")));
+    if (!steps.isEmpty()) ui.table(List.of("道路", "指引", "距离"), steps);
+    printParkingResult(result.path("parking"));
+  }
+
+  private void showParking(String raw) throws Exception {
+    String[] fields = raw.split("\\|", 2);
+    if (fields.length == 0 || fields[0].isBlank()) {
+      ui.warn("用法：parking <目的地> | [城市]");
+      return;
+    }
+    String path = "/api/location/parking?destination=" + encode(fields[0].strip());
+    if (fields.length == 2 && !fields[1].isBlank()) path += "&city=" + encode(fields[1].strip());
+    var response = get(path);
+    if (response.statusCode() != 200) {
+      ui.error("停车场查询失败：HTTP " + response.statusCode() + " " + response.body());
+      return;
+    }
+    printParkingResult(json.readTree(response.body()));
+  }
+
+  private void printParkingResult(JsonNode parking) {
+    ui.section("目的地附近停车场（POI）");
+    JsonNode lots = parking.path("parkingLots");
+    var rows = new ArrayList<List<String>>();
+    lots.forEach(p -> rows.add(List.of(text(p, "name"),
+        p.hasNonNull("distanceMeters") ? text(p, "distanceMeters") + " m" : "未知",
+        text(p, "address"), text(p, "price"), text(p, "openingHours"), text(p, "availableSpaces"))));
+    if (rows.isEmpty()) ui.note("没有返回停车 POI。");
+    else ui.table(List.of("停车场", "距离", "地址", "收费", "营业时间", "实时空位"), rows);
+    if (lots.isArray()) for (JsonNode place : lots) {
+      ui.note("来源：" + text(place, "source") + "；查询时间：" + localTime(text(place, "checkedAt")));
+    }
+    ui.warn(text(parking, "notice"));
+    ui.note("实时空位数据：" + (parking.path("liveAvailabilityAvailable").asBoolean(false) ? "有" : "无"));
+  }
+
+  private void showRoute(String[] parts) throws Exception {
+    if (parts.length < 4) {
+      ui.warn("用法：route <步行|公交> <起点经度,纬度> <终点经度,纬度> [城市]；自驾用 drive <起点> | <终点> | [城市]");
+      return;
+    }
+    String mode = switch (parts[1].toLowerCase(java.util.Locale.ROOT)) {
+      case "walk", "walking", "步行" -> "WALKING";
+      case "bus", "transit", "公交", "地铁" -> "TRANSIT";
+      default -> null;
+    };
+    if (mode == null) {
+      ui.warn("route 支持步行或公交；自驾请用 drive <起点> | <终点> | [城市]，以同时显示路线和停车 POI。");
+      return;
+    }
+    String path = "/api/location/route?mode=" + mode + "&origin=" + encode(parts[2])
+        + "&destination=" + encode(parts[3]);
+    if (parts.length >= 5) path += "&city=" + encode(join(parts, 4));
+    showJsonResponse("路线规划", get(path));
+  }
+
+  private void showWeather(String city) throws Exception {
+    showJsonResponse("天气预报", get("/api/location/weather?city=" + encode(city)));
+  }
+
+  private void sendChat(String message) throws Exception {
+    if (message == null || message.isBlank()) {
+      ui.warn("请输入想聊的旅行需求。");
+      return;
+    }
+    List<String> images = ui.takePendingImages();
+    String prompt = message.replaceAll("\\[图片\\d+已附加\\]", "").strip();
+    Map<String, Object> requestBody = new LinkedHashMap<>();
+    requestBody.put("message", prompt);
+    requestBody.put("history", List.copyOf(chatHistory));
+    requestBody.put("state", chatState);
+    requestBody.put("images", images);
+    var request = HttpRequest.newBuilder(URI.create(base + "/api/chat/stream"))
+        .timeout(CHAT_REQUEST_TIMEOUT)
+        .header("Content-Type", "application/json")
+        .header("Accept", "text/event-stream")
+        .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(requestBody)))
+        .build();
+    var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+    if (response.statusCode() != 200) {
+      String body;
+      try (InputStream stream = response.body()) {
+        body = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+      }
+      showJsonResponse("对话 Agent", response.statusCode(), body);
+      return;
+    }
+
+    ChatStreamState state = new ChatStreamState();
+    ui.title("旅行助手");
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
+      String eventName = "message";
+      StringBuilder eventData = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.isEmpty()) {
+          handleChatStreamEvent(eventName, eventData.toString(), state);
+          eventName = "message";
+          eventData.setLength(0);
+        } else if (line.startsWith("event:")) {
+          eventName = line.substring(6).strip();
+        } else if (line.startsWith("data:")) {
+          if (eventData.length() > 0) eventData.append('\n');
+          eventData.append(line.substring(5).stripLeading());
+        }
+      }
+      if (eventData.length() > 0) {
+        handleChatStreamEvent(eventName, eventData.toString(), state);
+      }
+    } catch (java.io.IOException e) {
+      if (state.tokenSeen) ui.println();
+      ui.error("连接中断，回复可能未完整返回。请重试。");
+      return;
+    }
+
+    if (state.error != null) {
+      if (state.tokenSeen) ui.println();
+      ui.error("回复生成中断：" + state.error);
+      return;
+    }
+    if (state.completion == null) {
+      if (state.tokenSeen) ui.println();
+      ui.error("连接已结束，但助手没有返回完整答复。请重试。");
+      return;
+    }
+
+    JsonNode result = state.completion;
+    latestChatResult = result.deepCopy();
+    String reply = result.path("reply").asText("");
+    if (result.path("state").isObject()) chatState = result.path("state").deepCopy();
+    if (state.tokenSeen) ui.println();
+    else if (!reply.isBlank()) ui.println(reply);
+    else {
+      String note = result.path("note").asText("");
+      ui.warn(note.isBlank() ? "助手暂时没有返回内容。" : note);
+    }
+    printChatCards(result.path("cards"));
+    rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt);
+    if (!reply.isBlank()) rememberChat("assistant", reply);
+  }
+
+  /** 将 Agent 的结构化结果压缩成终端可读的小卡片，不输出原始 JSON 或内部过程。 */
+  private void printChatCards(JsonNode cards) {
+    if (cards == null || !cards.isArray() || cards.isEmpty()) return;
+    boolean heading = false;
+    int shownCards = 0;
+    for (JsonNode card : cards) {
+      if (shownCards >= 4) break;
+      String type = card.path("type").asText("");
+      JsonNode data = card.path("data");
+      if (!heading && ("places".equals(type) || "weather".equals(type)
+          || "route".equals(type) || "vote".equals(type) || "envelope".equals(type))) {
+        ui.section("相关资料");
+        heading = true;
+      }
+      boolean rendered = switch (type) {
+        case "intake" -> printPlanningIntakeCard();
+        case "places" -> printPlacesCard(data);
+        case "weather" -> printWeatherCard(data);
+        case "route" -> printRouteCard(data);
+        case "vote" -> printVoteCard(data);
+        case "envelope" -> printEnvelopeCard(card.path("intent").asText(""), data);
+        default -> false;
+      };
+      if (rendered) {
+        shownCards++;
+      }
+    }
+  }
+
+  private boolean printPlacesCard(JsonNode data) {
+    if (!data.isArray() || data.isEmpty()) return false;
+    List<List<String>> rows = new ArrayList<>();
+    List<JsonNode> shownPlaces = new ArrayList<>();
+    for (JsonNode place : data) {
+      if (rows.size() >= 5) break;
+      String name = cardText(place, "name");
+      if (name.isBlank()) continue;
+      String ticket = cardText(place, "adultTicket", "");
+      if (ticket.isBlank() || "未知".equals(ticket) || "未返回/未核验".equals(ticket)) {
+        ticket = cardText(place, "ticket", "未返回/未核验");
+      }
+      if (!"verified".equalsIgnoreCase(place.path("ticketStatus").asText())
+          && !ticket.contains("过期") && !ticket.contains("未返回")) {
+        ticket += "（未核验）";
+      }
+      rows.add(List.of(name, cardText(place, "rating", "—"),
+          shortCell(ticket, 28), shortCell(cardText(place, "openTime", "—"), 20)));
+      shownPlaces.add(place);
+    }
+    if (rows.isEmpty()) return false;
+    ui.note("景点（最多显示 5 个）");
+    ui.table(List.of("名称", "评分", "门票/成人票", "开放时间"), rows);
+    for (JsonNode place : shownPlaces) {
+      String name = cardText(place, "name", "景点");
+      ui.note("  " + name + " 地址：" + cardText(place, "address", "未返回/未核验"));
+      ui.note("    来源：" + cardText(place, "source", "未标注")
+          + "；查询时间：" + cardText(place, "retrievedAt", "未返回/未核验")
+          + "；信息更新时间：" + cardText(place, "informationUpdatedAt", "未返回/未核验"));
+    }
+    return true;
+  }
+
+  private boolean printWeatherCard(JsonNode data) {
+    JsonNode days = data.path("days");
+    if (!days.isArray() || days.isEmpty()) return false;
+    List<List<String>> rows = new ArrayList<>();
+    for (JsonNode day : days) {
+      if (rows.size() >= 4) break;
+      rows.add(List.of(cardText(day, "date", "—"),
+          cardText(day, "dayWeather", "—") + " " + cardText(day, "dayTemp", "—") + "°",
+          cardText(day, "nightWeather", "—") + " " + cardText(day, "nightTemp", "—") + "°",
+          cardText(day, "dayWind", "—") + " " + cardText(day, "dayPower", "") + "级"));
+    }
+    ui.note("天气预报 · 非实时天气 · " + cardText(data, "city", "未知城市"));
+    ui.table(List.of("日期", "白天", "夜间", "风"), rows);
+    return true;
+  }
+
+  private boolean printRouteCard(JsonNode data) {
+    String origin = cardText(data, "origin");
+    String destination = cardText(data, "destination");
+    if ("未知".equals(origin) || "未知".equals(destination)) return false;
+    ui.note("路线：" + origin + " → " + destination + " · "
+        + cardText(data, "modeLabel", "出行") + " · "
+        + cardText(data, "distanceText", "距离未知") + " · 约 "
+        + cardText(data, "durationText", "耗时未知"));
+    JsonNode steps = data.path("steps");
+    int count = 0;
+    if (steps.isArray()) {
+      for (JsonNode step : steps) {
+        if (count >= 3) break;
+        String instruction = cardText(step, "instruction", "");
+        if (!instruction.isBlank()) {
+          ui.note("  · " + shortCell(instruction, 54));
+          count++;
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean printVoteCard(JsonNode data) {
+    JsonNode ranking = data.path("ranking");
+    String winner = cardText(data, "winner", "");
+    if (winner.isBlank() && (!ranking.isArray() || ranking.isEmpty())) return false;
+    if (!winner.isBlank()) ui.note("投票推荐：" + winner);
+    if (ranking.isArray() && !ranking.isEmpty()) {
+      List<List<String>> rows = new ArrayList<>();
+      for (JsonNode item : ranking) {
+        if (rows.size() >= 3) break;
+        rows.add(List.of(cardText(item, "planId", "方案"),
+            cardText(item, "score", "—"), cardText(item, "voterCount", "0")));
+      }
+      ui.table(List.of("方案", "加权分", "有效票"), rows);
+    }
+    return true;
+  }
+
+  private boolean printEnvelopeCard(String intent, JsonNode data) {
+    JsonNode facts = data.path("result").path("facts");
+    if (!facts.isArray()) return false;
+    if ("FOOD_RECOMMEND".equals(intent)) {
+      List<List<String>> rows = new ArrayList<>();
+      List<JsonNode> shownFoods = new ArrayList<>();
+      for (JsonNode fact : facts) {
+        JsonNode value = fact.path("value");
+        if (!"FOOD".equals(value.path("category").asText())) continue;
+        if (rows.size() >= 4) break;
+        rows.add(List.of(cardText(value, "name", "餐馆"),
+            cardText(value, "pricePerPersonCny", "未知") + " 元/人",
+            cardText(value, "rating", "—"), shortCell(cardText(value, "distanceMeters", "—"), 12) + " 米"));
+        shownFoods.add(value);
+      }
+      if (rows.isEmpty()) return false;
+      ui.note("餐馆候选（最多显示 4 家；距离为地图参考点直线距离）");
+      ui.table(List.of("名称", "人均", "评分", "距离"), rows);
+      for (JsonNode value : shownFoods) {
+        JsonNode tags = value.path("tags");
+        String tagText = tags.isArray()
+            ? java.util.stream.StreamSupport.stream(tags.spliterator(), false)
+                .map(JsonNode::asText).limit(4).collect(java.util.stream.Collectors.joining("、"))
+            : "";
+        ui.note("  " + cardText(value, "name", "餐馆")
+            + (tagText.isBlank() ? "" : " · 标签 " + tagText)
+            + " · 来源 " + cardText(value, "source", "未标注")
+            + " · 查询时间 " + cardText(value, "queriedAt", "未返回/未核验"));
+      }
+      return true;
+    }
+    if ("PLAN_DRAFT".equals(intent)) {
+      for (JsonNode fact : facts) {
+        JsonNode draft = fact.path("value");
+        if (!"PLAN_DRAFT".equals(draft.path("category").asText())) continue;
+        if (draft.path("guideText").isTextual()) {
+          List<List<String>> rows = new ArrayList<>();
+          JsonNode days = draft.path("dailySchedules");
+          if (days.isArray()) {
+            for (JsonNode day : days) {
+              List<String> names = new ArrayList<>();
+              JsonNode items = day.path("items");
+              if (items.isArray()) {
+                for (JsonNode item : items) {
+                  String name = cardText(item, "name", "");
+                  if (!name.isBlank()) names.add(name);
+                }
+              }
+              rows.add(List.of("第 " + cardText(day, "dayIndex", String.valueOf(rows.size() + 1)) + " 天",
+                  cardText(day, "date", "日期待定"), names.isEmpty() ? "暂无可排景点" : String.join("、", names)));
+            }
+          }
+          ui.note("旅行攻略草案 · 逐日摘要");
+          if (!rows.isEmpty()) ui.table(List.of("日期", "出行日", "安排"), rows);
+          printSelectionBasis(days);
+          JsonNode guide = draft.path("guide");
+          if (guide.isObject()) {
+            ui.note("费用参考：已确认 " + cardText(guide, "knownSubtotalCny", "未知")
+                + " 元；含参考价格 " + cardText(guide, "referenceSubtotalCny", "未知")
+                + " 元；另有 " + cardText(guide, "unknownCostCount", "未知") + " 项未覆盖。"
+                + "未覆盖费用不按零元计算。");
+          }
+          printGuideBudgetSummary(guide);
+          ui.note("输入 /details 展开完整路线、费用分类、天气覆盖和工具查询记录。");
+          return true;
+        }
+        JsonNode days = draft.path("dailySchedules");
+        if (!days.isArray() || days.isEmpty()) return false;
+        List<List<String>> rows = new ArrayList<>();
+        for (JsonNode day : days) {
+          JsonNode items = day.path("items");
+          if (!items.isArray() || items.isEmpty()) continue;
+          StringBuilder names = new StringBuilder();
+          for (JsonNode item : items) {
+            if (names.length() > 0) names.append("、");
+            names.append(cardText(item, "name", "景点"));
+            if (names.length() > 70) {
+              names.append("…");
+              break;
+            }
+          }
+          rows.add(List.of("第 " + cardText(day, "dayIndex", String.valueOf(rows.size() + 1)) + " 天",
+              shortCell(names.toString(), 42)));
+          if (rows.size() >= 6) break;
+        }
+        if (rows.isEmpty()) return false;
+        ui.note("逐日行程草案");
+        ui.table(List.of("日期", "安排"), rows);
+        return true;
+      }
+    }
+    if ("TICKET_ADVICE".equals(intent)) {
+      JsonNode guidance = data.path("ticketGuidance");
+      JsonNode channels = guidance.path("channels");
+      boolean rendered = false;
+      String method = cardText(guidance, "method", "");
+      if (!method.isBlank()) {
+        ui.note("购票建议：" + shortCell(method, 70));
+        rendered = true;
+      }
+      if (channels.isArray()) {
+        for (JsonNode channel : channels) {
+          if (!channel.path("name").asText("").isBlank()) {
+            ui.note("官方入口：" + cardText(channel, "name")
+                + "（CLI 不展开长链接，按名称到官方渠道打开）");
+            rendered = true;
+            if (rendered) break;
+          }
+        }
+      }
+      return rendered;
+    }
+    return false;
+  }
+
+  private void showLatestDetails() {
+    if (latestChatResult == null) {
+      ui.warn("本次会话还没有可展开的工具结果。");
+      return;
+    }
+    StringBuilder detail = new StringBuilder("本轮工具查询记录");
+    JsonNode traces = latestChatResult.path("trace");
+    if (traces.isArray() && !traces.isEmpty()) {
+      for (JsonNode trace : traces) detail.append("\n- ")
+          .append(cardText(trace, "label", cardText(trace, "tool", "工具")))
+          .append(trace.path("ok").asBoolean() ? "：已返回" : "：未成功")
+          .append(trace.path("summary").asText("").isBlank() ? "" : "\n  " + trace.path("summary").asText(""));
+    } else detail.append("\n- 本轮没有返回可展示的工具调用记录");
+
+    JsonNode cards = latestChatResult.path("cards");
+    if (cards.isArray()) {
+      for (JsonNode card : cards) {
+        String intent = card.path("intent").asText("");
+        JsonNode data = card.path("data");
+        if (!"PLAN_DRAFT".equals(intent)) continue;
+        JsonNode draft = findPlanDraft(data);
+        if (draft == null) continue;
+        JsonNode guide = draft.path("guide");
+        detail.append("\n\n費用分类（全团 CNY）");
+        detail.append("\n类别 | 已确认 | 参考 | 实价 | 未知项");
+        appendBudgetBreakdown(detail, guide.path("costs"));
+        detail.append("\n\n完整逐日路线、来源和待核验事项\n")
+            .append(draft.path("guideText").asText("本轮未返回完整攻略正文。"));
+        JsonNode weather = draft.path("weather");
+        if (weather.isObject()) {
+          detail.append("\n\n天气核验范围：来源 ").append(cardText(weather, "source", "未返回/未核验"))
+              .append("；预报发布时间 ").append(cardText(weather, "reportTime", "未返回/未核验"))
+              .append("；查询时间 ").append(cardText(weather, "queriedAt", "未返回/未核验"));
+          JsonNode days = weather.path("days");
+          if (days.isArray()) for (JsonNode day : days) detail.append("\n- ")
+              .append(cardText(day, "date", "日期未知")).append("：")
+              .append(cardText(day, "dayWeather", "白天天气未知")).append(" / ")
+              .append(cardText(day, "nightWeather", "夜间天气未知"));
+        } else detail.append("\n\n天气核验：本轮没有天气结果，不能据此推荐晴雨日期。");
+      }
+    }
+    ui.viewText("旅行助手 · 最近一次详情", detail.toString());
+  }
+
+  private static JsonNode findPlanDraft(JsonNode envelope) {
+    JsonNode facts = envelope.path("result").path("facts");
+    if (!facts.isArray()) return null;
+    for (JsonNode fact : facts) {
+      JsonNode value = fact.path("value");
+      if ("PLAN_DRAFT".equals(value.path("category").asText())) return value;
+    }
+    return null;
+  }
+
+  private static void appendBudgetBreakdown(StringBuilder out, JsonNode costs) {
+    for (List<String> row : budgetRows(costs)) out.append("\n").append(String.join(" | ", row));
+  }
+
+  private static List<List<String>> budgetRows(JsonNode costs) {
+    if (!costs.isArray()) return List.of(List.of("费用账本未返回", "—", "—", "—", "—"));
+    class Sum { java.math.BigDecimal confirmed = java.math.BigDecimal.ZERO; java.math.BigDecimal reference = java.math.BigDecimal.ZERO; java.math.BigDecimal realtime = java.math.BigDecimal.ZERO; int unknown; }
+    Map<String, Sum> grouped = new LinkedHashMap<>();
+    for (JsonNode cost : costs) {
+      String category = switch (cost.path("category").asText("")) {
+        case "TRANSPORT" -> "交通"; case "HOTEL" -> "住宿"; case "FOOD" -> "餐饮";
+        case "TICKET" -> "门票"; default -> "其他";
+      };
+      Sum sum = grouped.computeIfAbsent(category, ignored -> new Sum());
+      JsonNode amount = cost.path("groupAmountCny");
+      if (!amount.isNumber()) { sum.unknown++; continue; }
+      java.math.BigDecimal value = amount.decimalValue();
+      switch (cost.path("priceType").asText("")) {
+        case "USER_CONFIRMED" -> sum.confirmed = sum.confirmed.add(value);
+        case "REALTIME" -> sum.realtime = sum.realtime.add(value);
+        case "REFERENCE" -> sum.reference = sum.reference.add(value);
+        default -> sum.unknown++;
+      }
+    }
+    List<List<String>> rows = new ArrayList<>();
+    for (var entry : grouped.entrySet()) {
+      Sum sum = entry.getValue();
+      rows.add(List.of(entry.getKey(), amountOrDash(sum.confirmed), amountOrDash(sum.reference),
+          amountOrDash(sum.realtime), String.valueOf(sum.unknown)));
+    }
+    return List.copyOf(rows);
+  }
+
+  private void printGuideBudgetSummary(JsonNode guide) {
+    JsonNode costs = guide.path("costs");
+    if (!costs.isArray() || costs.isEmpty()) return;
+    ui.note("预算分类（全团；实价、参考价与未知分开）");
+    ui.table(List.of("类别", "已确认", "参考", "实价", "未知项"), budgetRows(costs));
+  }
+
+  private void printSelectionBasis(JsonNode days) {
+    if (!days.isArray()) return;
+    int shown = 0;
+    for (JsonNode day : days) {
+      JsonNode items = day.path("items");
+      if (!items.isArray()) continue;
+      for (JsonNode item : items) {
+        if (shown >= 10) { ui.note("其余景点的来源与筛选说明见 /details。"); return; }
+        String reason = cardText(item, "selectionBasis", "");
+        if (reason.isBlank()) continue;
+        ui.note("筛选依据 · " + cardText(item, "name", "景点") + "：" + shortCell(reason, 88));
+        shown++;
+      }
+    }
+  }
+
+  private static String amountOrDash(java.math.BigDecimal amount) {
+    return amount.signum() == 0 ? "—" : amount.stripTrailingZeros().toPlainString() + " 元";
+  }
+
+  private void showConversationHistory() {
+    if (transcriptHistory.isEmpty()) { ui.warn("本次进程还没有对话记录。"); return; }
+    StringBuilder history = new StringBuilder();
+    for (int i = 0; i < transcriptHistory.size(); i++) {
+      TranscriptEntry entry = transcriptHistory.get(i);
+      history.append(i + 1).append(". ").append("user".equals(entry.role()) ? "你" : "助手")
+          .append("\n").append(entry.text()).append("\n\n");
+    }
+    ui.viewText("本次 CLI 会话历史 · /search 可检索", history.toString());
+  }
+
+  private void searchConversation(String query) {
+    String needle = query.toLowerCase(java.util.Locale.ROOT);
+    StringBuilder matches = new StringBuilder();
+    int found = 0;
+    for (int i = transcriptHistory.size() - 1; i >= 0; i--) {
+      TranscriptEntry entry = transcriptHistory.get(i);
+      if (!entry.text().toLowerCase(java.util.Locale.ROOT).contains(needle)) continue;
+      matches.append(i + 1).append(". ").append("user".equals(entry.role()) ? "你" : "助手")
+          .append("\n").append(entry.text()).append("\n\n");
+      if (++found >= 100) break;
+    }
+    ui.viewText("搜索「" + query + "」· " + found + " 条命中", found == 0 ? "没有找到匹配的本次会话记录。" : matches.toString());
+  }
+
+  private boolean printPlanningIntakeCard() {
+    ui.section("生成攻略前，请补充这些条件");
+    ui.table(List.of("信息", "填写内容"), List.of(
+        List.of("出发地与日期", "从哪里出发；哪天或哪个月份，不确定写待定"),
+        List.of("同行人员", "总人数；老人/儿童与步行限制"),
+        List.of("预算", "全团大致上限"),
+        List.of("交通方式", "自驾、公共交通或包车"),
+        List.of("偏好", "兴趣、必去点；忌口和住宿可选")));
+    ui.note("可分行回复，或写‘待定’；助手会先复述条件，等你确认后才查资料排攻略。"
+        + "需要快速预览时可回复‘先出初稿’。");
+    return true;
+  }
+
+  private static String cardText(JsonNode node, String field) {
+    return cardText(node, field, "未知");
+  }
+
+  private static String cardText(JsonNode node, String field, String fallback) {
+    JsonNode value = node == null ? null : node.get(field);
+    if (value == null || value.isNull() || value.isMissingNode()) return fallback;
+    String text = value.isValueNode() ? value.asText() : value.toString();
+    return text.isBlank() ? fallback : text;
+  }
+
+  private static String shortCell(String value, int width) {
+    return ConsoleUI.truncateToWidth(value == null ? "" : value, width);
+  }
+
+  private void handleChatStreamEvent(String eventName, String rawData, ChatStreamState state)
+      throws java.io.IOException {
+    if (rawData == null || rawData.isBlank()) return;
+    JsonNode data = json.readTree(rawData);
+    switch (eventName) {
+      case "progress" -> {
+        String message = data.path("message").asText("");
+        if (!message.isBlank()) ui.note(message);
+      }
+      case "token" -> {
+        String text = data.path("text").asText("");
+        if (!text.isEmpty()) {
+          ui.print(text);
+          state.tokenSeen = true;
+        }
+      }
+      case "done" -> state.completion = data;
+      case "error" -> state.error = data.path("message").asText("回复生成中断，请重试。");
+      default -> {
+        // 忽略未知事件，便于以后给流式接口增加兼容字段。
+      }
+    }
+  }
+
+  private void rememberChat(String role, String text) {
+    String trimmed = text == null ? "" : text.strip();
+    if (trimmed.isEmpty()) return;
+    transcriptHistory.add(new TranscriptEntry(role, trimmed));
+    while (transcriptHistory.size() > 2000) transcriptHistory.removeFirst();
+    if (trimmed.length() > 240) trimmed = trimmed.substring(0, 240);
+    chatHistory.add(Map.of("role", role, "text", trimmed));
+    while (chatHistory.size() > 8) chatHistory.remove(0);
+  }
+
+  private void resetConversation() {
+    chatHistory.clear();
+    chatState = null;
+    latestChatResult = null;
+  }
+
+  private void handleApiCommand(String line) throws Exception {
+    String[] fields = line.split("\\s+", 4);
+    if (fields.length < 3) {
+      ui.warn("用法：api <METHOD> </api/...> [JSON body]");
+      return;
+    }
+    apiRequest(fields[1], fields[2], fields.length == 4 ? fields[3] : "");
+  }
+
+  private void apiRequest(String method, String path, String body) throws Exception {
+    String verb = method.toUpperCase(java.util.Locale.ROOT);
+    if (!path.startsWith("/api/") || path.contains("\r") || path.contains("\n")) {
+      ui.warn("API 路径必须是相对的 /api/... 路径。");
+      return;
+    }
+    if (!List.of("GET", "POST", "PUT", "PATCH", "DELETE").contains(verb)) {
+      ui.warn("支持 GET、POST、PUT、PATCH、DELETE。");
+      return;
+    }
+    var builder = HttpRequest.newBuilder(URI.create(base + encodeUri(path)))
+        .timeout(Duration.ofSeconds(30));
+    if (!"GET".equals(verb) && !"DELETE".equals(verb)) builder.header("Content-Type", "application/json");
+    HttpRequest request = ("GET".equals(verb) || "DELETE".equals(verb))
+        ? builder.method(verb, HttpRequest.BodyPublishers.noBody()).build()
+        : builder.method(verb, HttpRequest.BodyPublishers.ofString(body == null ? "" : body)).build();
+    showJsonResponse("API " + verb + " " + path,
+        client.send(request, HttpResponse.BodyHandlers.ofString()));
+  }
+
+  private void showJsonResponse(String title, HttpResponse<String> response) throws Exception {
+    showJsonResponse(title, response.statusCode(), response.body());
+  }
+
+  private void showJsonResponse(String title, int statusCode, String body) throws Exception {
+    ui.title(title + " · HTTP " + statusCode);
+    if (body == null || body.isBlank()) {
+      ui.note("（空响应）");
+      return;
+    }
+    try {
+      ui.println(json.writerWithDefaultPrettyPrinter().writeValueAsString(json.readTree(body)));
+    } catch (Exception e) {
+      ui.println(body);
+    }
+  }
+
+  private static String encodeUri(String path) {
+    StringBuilder encoded = new StringBuilder();
+    for (int i = 0; i < path.length();) {
+      int cp = path.codePointAt(i);
+      if (cp <= 0x7f) encoded.append(cp == ' ' ? "%20" : Character.toString(cp));
+      else for (byte b : new String(Character.toChars(cp)).getBytes(StandardCharsets.UTF_8)) {
+        encoded.append(String.format("%%%02X", b & 0xff));
+      }
+      i += Character.charCount(cp);
+    }
+    return encoded.toString();
   }
 
   /**
@@ -469,10 +1436,8 @@ public class TravelClient {
 
   // ---- 邀请（V1 §4：邀请 → 接受 / 拒绝） ----
 
-  /** 注册（已存在则忽略）并登录，只建立会话，不打印演示信息。 */
-  private void loginOnly(String username, String password) throws Exception {
-    postJson("/api/account/register",
-        json.writeValueAsString(Map.of("username", username, "password", password)));
+  /** 只登录；注册由显式 register 命令负责。 */
+  void loginOnly(String username, String password) throws Exception {
     String form = "username=" + encode(username) + "&password=" + encode(password);
     var request = HttpRequest.newBuilder(URI.create(base + "/api/login"))
         .timeout(Duration.ofSeconds(10))
@@ -684,7 +1649,7 @@ public class TravelClient {
     ui.println("== 规划草案：" + destination + " ==");
 
     JsonNode candidates = body.path("candidates");
-    ui.println("候选景点（共 " + candidates.size() + " 条，来自本地知识库）：");
+    ui.println("候选景点（共 " + candidates.size() + " 条，各自来源见攻略）：");
     if (candidates.isEmpty()) {
       ui.println("  （无）");
     } else {
@@ -701,9 +1666,7 @@ public class TravelClient {
 
     JsonNode weather = body.path("weather");
     ui.println();
-    if (weather.isMissingNode() || weather.isNull()) {
-      ui.println("天气预报：未获取");
-    } else {
+    if (!weather.isMissingNode() && !weather.isNull()) {
       ui.println("天气预报：" + text(weather, "city") + "（"
           + text(weather, "reportTime") + " 发布）");
       weather.path("days").forEach(d -> ui.println("  " + text(d, "date") + " "
@@ -946,8 +1909,13 @@ public class TravelClient {
   }
 
   private HttpResponse<String> postJson(String path, String body) throws Exception {
+    return postJson(path, body, Duration.ofSeconds(10));
+  }
+
+  private HttpResponse<String> postJson(String path, String body, Duration timeout)
+      throws Exception {
     var request = HttpRequest.newBuilder(URI.create(base + path))
-        .timeout(Duration.ofSeconds(10))
+        .timeout(timeout)
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body)).build();
     return client.send(request, HttpResponse.BodyHandlers.ofString());

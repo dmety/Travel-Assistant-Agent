@@ -24,7 +24,7 @@
 
 ### 1.3 公开的接口（无需登录）
 
-与 `SecurityConfiguration#permitAll()` 保持一致（按 matcher 计 20 条，含通配）：
+与 `SecurityConfiguration#permitAll()` 保持一致（按 matcher 计 21 条，含通配）：
 
 | 路径 | 说明 |
 |---|---|
@@ -33,6 +33,7 @@
 | `POST /api/login` | 表单登录 |
 | `GET /api/attractions`、`GET /api/attractions/**` | 景点查询（只读知识库，见第 8 节） |
 | `GET /api/tickets`、`GET /api/tickets/**` | 购票辅助（只读人工核验的官方入口，见 §3.14） |
+| `GET /api/demo-orders/products` | 沙箱模拟商品信息，不含真实票价或库存 |
 | `GET /api/location/status` | 高德是否配置（只回布尔与降级原因，无用户数据） |
 | `GET /api/agent/status` | 模型是否配置与本进程用量（见 §3.16.2） |
 | `GET /api/agent/capabilities` | 能力协商：Provider 的 id / 状态 / 能力标签 / 最近拒绝原因码，不含 endpoint、authRef 与凭据（见 §3.22） |
@@ -562,6 +563,8 @@ GET /api/tickets?name=西湖
 | `/api/location/places` | GET | 需登录 | `keywords` 必填，`city` 可选，`limit` 默认 10 / 上限 25 |
 | `/api/location/weather` | GET | 需登录 | `city` 支持城市名或 adcode |
 | `/api/location/route` | GET | 需登录 | `mode`=WALKING/DRIVING/TRANSIT，`origin`/`destination` 为「经度,纬度」 |
+| `/api/location/drive` | GET | 需登录 | 地名端点的单段自驾路线，并查询目的地附近停车 POI |
+| `/api/location/parking` | GET | 需登录 | 按目的地名称查询附近停车 POI |
 | `/api/location/status` | GET | 需登录 | 是否已配置密钥 |
 
 **需要登录**：高德接口按调用量计费，对外开放会让配额被匿名消耗。
@@ -637,6 +640,15 @@ GET /api/location/route?mode=WALKING&origin=120.1,30.2&destination=120.2,30.3
 
 - 距离与耗时都是**预估**，不含等车、排队、检票时间
 - 公交必须给 `city`，否则报错；坐标格式不合法直接拒绝，不把错误坐标发给高德
+
+**按地名规划自驾并查询停车 POI**
+
+```text
+GET /api/location/drive?origin=北京南站&destination=八达岭长城&city=北京
+GET /api/location/parking?destination=八达岭长城&city=北京
+```
+
+`/drive` 对起点与终点分别进行高德地理编码，按第一条匹配结果规划 `DRIVING` 路线，然后查询终点 3 公里内的停车场 POI。建议给出 `city` 缩小地名歧义。响应内的 `route` 是原路线结果；`parking.parkingLots[]` 每项包含名称、地址、距离、来源与查询时间，收费 `price`、营业时间 `openingHours`、实时空位 `availableSpaces` 固定返回「未知」。`liveAvailabilityAvailable` 为 `false`。高德周边地点检索不提供可核验的实时车位/收费/营业时间，这些字段不从 POI 名称或地址推断。查询失败仍按高德接口返回 503 和原因。
 
 **错误码翻译**（`infocode` 保留在消息里便于排查）
 
@@ -1614,13 +1626,18 @@ Content-Type: application/json
 | `state` | 本轮结束后的已知槽位，下一轮原样传回即可 |
 | `source` | `agent` 模型驱动 / `unavailable` 模型不可用（未配密钥、余额不足、超时） |
 
-**模型能用八个工具**（`application/chat/ChatTools`）。其中五个是「主 Agent 调子 Agent」：
+CLI 使用流式接口 `POST /api/chat/stream`，请求体与 `/api/chat` 相同，响应为 SSE：
+`progress` 提示正在处理，`token` 携带 `{ "text": "..." }` 的答复增量，`done` 返回最终答复和会话状态，
+`error` 表示流中断。普通 `/api/chat` 保持原 JSON 响应，供现有网页调用。
+
+**模型能用十个工具**（`application/chat/ChatTools`）。其中五个是「主 Agent 调子 Agent」：
 票务、天气、灵感、行程、美食全部经由 `builtin.*` Provider 走 L1 编排，同一入口、
 同一套契约校验、同一种信封——不再有绕过编排层的直连路径：
 
 | 工具 | 何时用 | 数据来源（子 Agent） |
 |---|---|---|
 | `resolve_place(name)` | 地名归属不确定、可能是景区名 | §8.8 地名识别 |
+| `search_attractions(city, keywords)` | 用户点名景点或类别 | 景区知识库，按城市与名称过滤 |
 | `list_attractions(city, limit)` | 问有什么好玩的、门票多少 | 景区知识库 |
 | `get_weather(city, days)` | 问天气、气温、要不要带伞 | `builtin.weather`（`WEATHER_ADVICE`，走 L1 编排） |
 | `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
@@ -1700,3 +1717,105 @@ Content-Type: application/json
 覆盖指定活动的单条登记，不增加活动或费用；响应为更新后的完整行程与版本号。
 DailyActivity 新增可空 ticketRecord；旧 JSON 兼容。整表 daily 更新不能伪造登记，调整已登记活动日期前需清除或修改登记。
 页面和文本导出必须保留“用户自报已购票／已预约，未经平台核验”，不能改成已出票。
+
+## 10. 沙箱演示订单（非真实票务）
+
+本节 API 只用于本地演示。支付模式仅接受 `TRAVEL_PAYMENT_MODE=sandbox`；`TRAVEL_PAYMENT_PROVIDER` 与 `TRAVEL_TICKET_PROVIDER` 分别选择 Spring 注册的支付与出票适配器（默认 `sandbox` / `demo`）。当前构建没有真实支付平台 SDK、回调验签、商户查单、退款或景区出票供应商。全部订单金额固定为每件 `CNY 1.00`，不是景区票价、报价或库存。
+
+| 接口 | 方法 | 鉴权 | 说明 |
+| --- | --- | --- | --- |
+| `/api/demo-orders/products` | GET | 公开 | 返回一个固定演示商品 |
+| `/api/demo-orders` | GET | 需登录 | 当前用户订单列表；查询时惰性更新超时状态 |
+| `/api/demo-orders` | POST | 需登录 | 创建演示订单 |
+| `/api/demo-orders/{id}` | GET | 需订单所有者 | 查单；查询时可能将待支付订单置为超时 |
+| `/api/demo-orders/{id}/simulate-payment` | POST | 需订单所有者 | 沙箱确认；确认后自动生成演示票 |
+| `/api/demo-orders/{id}/simulate-failure` | POST | 需订单所有者 | 模拟支付失败 |
+| `/api/demo-orders/{id}/cancel` | POST | 需订单所有者 | 取消未确认支付的订单 |
+| `/api/demo-orders/{id}/refund` | POST | 需订单所有者 | 将已出票演示订单标为模拟退款 |
+
+创建请求：
+
+```json
+POST /api/demo-orders
+{
+  "attractionId": "amap-B000A45467",
+  "attractionName": "八达岭长城",
+  "productCode": "DEMO_ADMISSION",
+  "quantity": 1
+}
+```
+
+`attractionId` 可省略，`attractionName` 必填，`productCode` 只能为 `DEMO_ADMISSION`，数量为 1 至 10。响应包含 `PAYMENT_PENDING`、沙箱 `paymentUri` 和 15 分钟后的 `expiresAt`。CLI 根据该 URI 生成终端 QR；`travel-demo://` 载荷不能向支付渠道付款。
+
+模拟确认请求：
+
+```json
+POST /api/demo-orders/{id}/simulate-payment
+{
+  "eventId": "DEMO-EVENT-001",
+  "amount": 1.00,
+  "currency": "CNY"
+}
+```
+
+订单所有者之外无法读取或变更订单。服务端校验币种与订单总额，首次确认原子更新为 `DEMO_TICKET_ISSUED` / `SIMULATED_PAID` / `DEMO_ISSUED` 并自动调用演示出票适配器；重复确认返回已有状态与同一演示票号，不重复出票。事件 ID 仅用于演示记录，不构成外部回调验签。
+
+沙箱失败状态为 `PAYMENT_FAILED`；未确认订单 15 分钟后在下次列表/查单/状态操作时惰性转为 `PAYMENT_EXPIRED`，没有后台定时任务。两种状态都可取消。退款把支付状态改成 `SIMULATED_REFUNDED`，票据标为 `DEMO_VOIDED`。不会产生实际退款资金流。
+
+订单由 `DemoTicketOrderStore` 写入 `${TRAVEL_DATA_DIR:-./data}/demo_ticket_orders.json`，缺失时自动创建。它只提供单进程同步和文件替换，不支持多个服务实例并发，不得接入真实收款。演示票号不是景区正式出票，也不能用于入园。
+
+
+### 完整攻略结构与费用修改
+
+`POST /api/agent/plan` 在原字段之外接受可选 `details`：`origin`、`seniors`、`children`、`mobility`、`dietaryRestrictions`、`mustVisit`、`hotel`、`transportMode`（WALKING/DRIVING/TRANSIT/CYCLING）、`maxWalkingMeters`（单段步行上限）、`includeWeather`、`excludedAttractionIds`、`confirmedGroupCosts`。缺失信息不影响先看草案；天气只在 includeWeather=true 时查询，日期超出预报覆盖会明确提示。返回 `guide.days`、`guide.costs` 和由同一结构渲染的 `advice`；Provider 信封含 `guide` 与 `guideText`，CLI 与聊天使用同源文本。
+
+`guide.days` 保留请求天数；没有候选的日期标为未覆盖日。三餐在酒店/景点或明确的城市地理参考点附近检索，不能据城市参考点宣称离用户近。按唯一端点和实际路段计算本轮查询预算，路线/餐馆/定位分别最多64/48/32次，自驾另查一次停车候选；缓存优先，本轮补充查询默认15~45秒、可设置但最多60秒截止时间；同一请求重复坐标可复用查询结果。附近候选不代表已营业、已订位、可吃早餐或已核实特色菜/忌口。交通返回地图估算和查询时间；铁路仅提供地图换乘参考，未接入售票余票或共享车辆库存。
+
+时间轴标明假设，游览时长、休息和机动时间可据实际调整。根据游览日期保守解析明确月日季节范围（含跨年）、周几和单日分段开放；未提供日期或原文含公告例外则未知；明确容不下游览的点移至 `ALTERNATIVE/UNPLACED`，不计门票，逐日景点列表同步移除。复杂季节时段、预约、必玩项目和设施仍需核实，不能据此保证整份草案已可执行。
+
+账本每项有稳定 `itemId`、单价、数量、单位、全团金额、`priceType`、来源和信息日期。`UNKNOWN` 不按零计算，`REFERENCE` 是参考场景，`USER_CONFIRMED` 是用户填写的全团金额，非交易报价。小计同时提供确认口径、含参考口径、人均和每日口径，并列出未覆盖项数；参考场景超过预算返回 `REFERENCE_EXCEEDS_LIMIT`。老幼优惠未核实，普通门票按成人全价的参考场景提示，不能当实际适用票价。住宿默认旅行日之间的晚数，提前入住/延住另补。
+
+例如 `details.confirmedGroupCosts={"intercity-out":240,"D1-lunch":120}` 分别录入全团去程与首日午餐，金额均为CNY，已是全团金额，不再乘人数。修改日期、人数、酒店后应重新确认金额；聊天继承已确认条件，但人数/天数/日期/酒店变化会清空旧确认金额（除非本轮重新明确输入）。排除景点用真实候选ID；未匹配费用键会告警且不计入。确认保存仍使用 `/api/agent/plan/materialize`，再走原行程创建和逐日更新接口；生成攻略不自动保存。
+
+自驾指定 `details.origin` 和 `transportMode=DRIVING` 后，去返程会使用实际地理编码端点查询路线，并展示地图里程/耗时及停车候选；油电、过路费与停车费仍无交易报价。铁路模式提供发到站确认和到达站接驳步骤，不生成虚假班次。餐馆返回地址/GCJ-02坐标及营业原文；仅按可解析营业时段检查供餐时间，未确认营业的普通餐馆不会统一列作早餐。老幼/少步行按每天一处主要景点预留半天与休息，保留其他候选作备选；少步行会缩小同日候选聚合半径，地图明确返回的步行量超过单段上限则撤下该路线；景区内部步行量未知时仍需人工确认。
+
+
+#### 攻略一致性和证据规则
+
+- 实体匹配：同名不视为同实体；同名同城市且地址相同，或已标注坐标系的坐标相距不超过100米，才做字段补全。相距较远的同名点保留不同ID。`fieldEvidence` 分字段保留原值、源ID、来源、查询时间、信息更新时间与状态；票价或开放原文冲突标为 `conflict`，不当作一致报价/开放依据。
+- 时间和修复：仅对能确定假设到达时间的链路检查简单开放时段。明确不能完成的景点移到备选后，从保留景点重新装配路线和餐馆锚点，重绑费用；正式每日活动不保存备选点。未返回路线耗时的衔接标为 `CONNECTION_UNVERIFIED`，其后只有顺序，不生成冒充可衔接的钟点。
+- 用餐：按时间轴实际餐时核对返回的简单营业原文，不以“面馆/早餐”名称证明供餐。营业时间未知或到达时间未定时，餐馆保持带地址/坐标的待核验备选；其价格仅作为明确标注的参考消费场景。原文不覆盖本餐时段的餐馆不进入本餐费用。
+- 票价：字段有可靠来源但未官方核验的成人票面价/渠道价可进入 `REFERENCE`，与用户确认金额、官方核验和交易报价严格分开；多票种仅使用明确标注的单一票种参考场景，不声称优惠资格/可购买。旅行日期超过有效期、源冲突、过期、未生效和无法解析的报价不计金额；未知仍不按零计。
+
+#### 目标范围与当前边界
+
+| 目标 | 当前实现 | 仍需明确的边界 |
+| --- | --- | --- |
+| 增量需求 | 日期、人数、酒店、出发地、老幼、忌口、必去/排除点及确认费用跨轮保留；受人数等修改影响的旧费用清空 | 仍依赖对话工具正确提取用户原话；没有全自动锁定已确认日程的局部最优重排 |
+| 多源检索与证据 | 全国源库保留；商源/本地/地图候选补足，真实地图源ID、坐标转换、匹配后字段补全和冲突证据 | 缺来源的属性不提升为已核验；不能保证每个城市源库都有覆盖 |
+| 召回/约束/排序 | 城市类别补召回、噪音过滤、必去点精确优先、源类型偏好排序、老幼每日一主要点与地图步行上限 | 景区内部体力、无障碍设施和室内/雨天适配未知时不推断 |
+| 每日攻略 | 假设时间轴、三餐、休息、酒店/景点间路线；开放冲突撤点并重算；请求天数保留缺口 | 复杂季节开放、预约、必玩项目、等待时间仍需官方确认 |
+| 交通 | 高德步行/公交/驾车/骑行；自驾去返程里程耗时和停车候选 | 铁路班次余票、共享车库存、商家交易交通价格未接入；缺失衔接只给顺序 |
+| 费用 | 项目绑定、单价/人数/单位、确认与参考小计、人均/每日、源日期和未覆盖项；支持全团金额修改与保存 | 参考小计不是最终账单；老幼优惠、住宿及油电过路费等缺报价时待补 |
+| 展示/修改/保存 | 正文与CLI由guide渲染，撤点后餐馆/路线/费用同步，确认载荷保存参考快照及确认费用 | 生成不等同保存；测试通过不等同用户正式验收 |
+
+
+#### 有限查询与按日补查
+
+`details.queries` 可传 `priorityDays`（例如 `[5]`），以及可选 `maxRouteCalls`、`maxFoodCalls`、`maxGeocodeCalls`、`maxDurationMillis`；不能超过上述硬上限。默认预算按所需唯一端点和实际路段估算，包含有限撤点修复余量；五天不会因固定4/6次被强行留下后半程空白。返回 `guide.queryUsage`（上限、尝试次数、等待时限和实际耗时）与 `guide.queryIssues`（第几天、具体项目、未完成原因）。缓存先于额度/截止时间检查；超过总等待截止时间取消等待，不继续串行发起更多查询；执行线程最多4个且队列有上限。这里只约束攻略补充查询，不保证上游检索、客户端网络和整个HTTP请求的端到端耗时。
+
+普通用户可直接说“优先补查第5天的餐馆和交通”。这是重新生成时的查询优先级入口，不冒充已将旧结果与新结果长期缓存或保存合并；源结果缺失、接口失败、无坐标、等待截止与次数用尽分别说明。已有确认费用仍按对应项目核对。
+
+#### 日期开放规则与中午闭园
+
+支持如 `4月1日-10月31日08:30-18:00；11月1日-次年3月31日08:30-17:00`、`每周一闭馆；周二至周日09:00-17:00`、`09:00-12:00、14:00-17:00`。按每一游览日选择规则，季节跨年含起止日；未匹配规则不是默认闭馆，日期缺失不是使用今天。公告、节假日例外、停止入场等尚未支持的条件、互相冲突的规则均保持未知。游览必须放在一个可容纳该假设时长的连续开放窗口；可等待下一段开放，并尽量把午餐安排在中午等待间隙。不得把闭园时长算作游览，也不默认可二次入园；没有连续窗口就撤下并重算相关路线、餐馆和费用。
+
+#### 地图交通参考费用与跨城边界
+
+高德 v3 公交换乘 `transits[].cost` 按元/人、驾车 `paths[].tolls` 按元/车次接入 `REFERENCE`，币种CNY、来源和查询时间随 `RouteResult.fare` 返回。人数/车辆数未知时不生成全团金额；`details.vehicles` 可明确车辆数，不能按同行人数乘道路收费。道路收费仅覆盖路桥费，油电/停车等仍列未覆盖项。缺字段、空数组、非法值均为未知；明确返回0才允许0参考值。`taxi_cost` 是打车备选估算，单列于路线说明，不与选中公交/自驾方案累计。
+
+当用户明确提供 `details.originCity`、出发地和到达城市（`arrivalCity`，缺省使用目的地）且选择TRANSIT时，可请求地图跨城换乘参考，分别传 `city`/`cityd`，旅行日期已给则传日期过滤。返回的 `railways` 保留车次、站点、时间和席别参考价，但不等同指定旅行日可售班次、12306报价或余票；座席报价仅作备选，不重复累加到公交换乘总价。跨城适配已用mock验证协议与口径，未据此宣称任意真实跨城线路当前可用。人数、交通方式或车辆数变化会重算参考费用，聊天中相应旧交通确认费用失效，餐费等无关确认值尽量保留。
+
+### 当前攻略 PDF 下载
+
+`POST /api/guides/pdf`，需登录。JSON：`{"title":"旅行攻略","text":"当前攻略正文"}`。标题最多120字符，正文1至120000字符；返回 `application/pdf` 和附件下载响应头，禁止缓存，不保存行程。中文字体缺失返回503，设置服务端 `TRAVEL_PDF_FONT` 为有使用授权的中文 TTF 字体路径。草案费用、来源与待核验项按原文导出；PDF不表示信息已核验。

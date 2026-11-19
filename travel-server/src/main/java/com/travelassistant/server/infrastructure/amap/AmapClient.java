@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.domain.food.FoodPlace;
 import com.travelassistant.server.domain.location.Place;
+import com.travelassistant.server.domain.location.ParkingSearchResult;
 import com.travelassistant.server.domain.location.RouteMode;
 import com.travelassistant.server.domain.location.RouteResult;
 import com.travelassistant.server.domain.location.WeatherResult;
@@ -91,6 +92,55 @@ public class AmapClient {
     return search(keywords, city, null, limit);
   }
 
+  /** 按目的地地名地理编码后查询周边停车 POI。停车数据仅含 POI 信息，不含价格、营业时间或实时车位。 */
+  public ParkingSearchResult searchParkingNearby(String destination, String city) {
+    ensureConfigured();
+    String placeName = requireText(destination, "请提供停车查询目的地");
+    UriComponentsBuilder geo = UriComponentsBuilder.fromHttpUrl(BASE + "/v3/geocode/geo")
+        .queryParam("key", key).queryParam("address", placeName);
+    if (city != null && !city.isBlank()) geo.queryParam("city", city.strip());
+    JsonNode geocode = get(geo.build().encode().toUri(), "停车场目的地地理编码");
+    List<JsonNode> geocodes = array(geocode, "geocodes");
+    if (geocodes.isEmpty()) {
+      throw new AmapUnavailableException("无法定位停车查询目的地「" + placeName + "」，请补充城市或更具体的地名");
+    }
+    String center = text(geocodes.get(0), "location");
+    center = requireLngLat(center, "目的地没有返回有效坐标");
+    URI uri = UriComponentsBuilder.fromHttpUrl(BASE + "/v3/place/around")
+        .queryParam("key", key).queryParam("location", center)
+        .queryParam("keywords", "停车场").queryParam("radius", 3000)
+        .queryParam("sortrule", "distance").queryParam("extensions", "base")
+        .queryParam("offset", 15).queryParam("page", 1).build().encode().toUri();
+    JsonNode root = get(uri, "周边停车场检索");
+    Instant queriedAt = Instant.now();
+    List<ParkingSearchResult.ParkingPlace> lots = new ArrayList<>();
+    for (JsonNode poi : array(root, "pois")) {
+      Double[] lngLat = parseLngLat(poi.path("location").asText(""));
+      lots.add(new ParkingSearchResult.ParkingPlace(text(poi, "name"),
+          text(poi, "address"), text(poi, "distance"),
+          lngLat == null ? null : lngLat[1], lngLat == null ? null : lngLat[0],
+          "高德地图 Web 服务 · 周边地点检索", queriedAt,
+          "未知", "未知", "未知"));
+    }
+    return new ParkingSearchResult(placeName, lots,
+        "高德地图 Web 服务 · 地理编码 + 周边地点检索", queriedAt, false,
+        "停车场 POI 不是实时停车数据；收费、营业时间和实时空位均未核验。"
+            + (lots.isEmpty() ? "当前未检索到周边停车场。" : ""));
+  }
+
+  /** 将路段端点名解析为 GCJ-02 坐标；第一条结果随路线一起供调用方复核。 */
+  public String geocode(String placeName, String city) {
+    ensureConfigured();
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BASE + "/v3/geocode/geo")
+        .queryParam("key", key).queryParam("address", requireText(placeName, "请提供地点名称"));
+    if (city != null && !city.isBlank()) builder.queryParam("city", city.strip());
+    List<JsonNode> results = array(get(builder.build().encode().toUri(), "路线端点地理编码"), "geocodes");
+    if (results.isEmpty()) {
+      throw new AmapUnavailableException("无法定位路线端点「" + placeName + "」，请提供更具体的地点");
+    }
+    return requireLngLat(text(results.get(0), "location"), "路线端点没有返回有效坐标");
+  }
+
   /**
    * 按关键词检索景点类 POI（风景名胜 + 科学文化服务），坐标 GCJ-02。
    *
@@ -111,18 +161,22 @@ public class AmapClient {
     return search(keywords, city, SCENIC_TYPES, limit);
   }
 
+  public List<Place> searchScenicInCity(String city, int limit) {
+    return search(null, requireText(city, "请提供城市"), SCENIC_TYPES, limit);
+  }
+
   /** {@code searchPlaces} 与 {@code searchScenicSpots} 的公共实现；{@code types} 为空不限类别。 */
   private List<Place> search(String keywords, String city, String types, int limit) {
     ensureConfigured();
-    String kw = requireText(keywords, "请提供查询关键词");
+    String kw = keywords == null && types != null && city != null ? null : requireText(keywords, "请提供查询关键词");
     int size = Math.min(Math.max(limit, 1), MAX_PLACES);
 
     UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BASE + "/v3/place/text")
         .queryParam("key", key)
-        .queryParam("keywords", kw)
         .queryParam("offset", size)
         .queryParam("page", 1)
         .queryParam("extensions", "all");
+    if (kw != null) builder.queryParam("keywords", kw);
     if (types != null && !types.isBlank()) {
       builder.queryParam("types", types);
     }
@@ -201,7 +255,7 @@ public class AmapClient {
           joinTags(text(poi, "type"), text(poi, "tag")),
           number(biz.path("rating").asText("")),
           number(biz.path("cost").asText("")),
-          hours, null, FoodPlace.SOURCE_AMAP, fetchedAt));
+          hours, null, FoodPlace.SOURCE_AMAP, fetchedAt, text(poi, "address")));
     }
     return places;
   }
@@ -318,6 +372,11 @@ public class AmapClient {
    * @param city        公交规划必填的城市名或 adcode
    */
   public RouteResult route(RouteMode mode, String origin, String destination, String city) {
+    return route(mode,origin,destination,city,city,null);
+  }
+
+  /** Cross-city transit requires explicit departure/arrival cities; date is a map filter, never inventory proof. */
+  public RouteResult route(RouteMode mode,String origin,String destination,String city,String destinationCity,java.time.LocalDate travelDate) {
     ensureConfigured();
     String from = requireLngLat(origin, "起点坐标格式应为「经度,纬度」");
     String to = requireLngLat(destination, "终点坐标格式应为「经度,纬度」");
@@ -326,21 +385,23 @@ public class AmapClient {
       case WALKING -> "/v3/direction/walking";
       case DRIVING -> "/v3/direction/driving";
       case TRANSIT -> "/v3/direction/transit/integrated";
+      case CYCLING -> "/v4/direction/bicycling";
     };
     UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BASE + path)
         .queryParam("key", key)
         .queryParam("origin", from)
         .queryParam("destination", to)
-        .queryParam("extensions", "base");
+        .queryParam("extensions", "all");
     if (mode == RouteMode.TRANSIT) {
       String cityCode = requireText(city, "公交路线需要提供城市名或行政区划代码");
       builder.queryParam("city", cityCode);
-      builder.queryParam("cityd", cityCode);
+      builder.queryParam("cityd", requireText(destinationCity,"跨城公交需要终点城市"));
+      if(travelDate!=null) builder.queryParam("date",travelDate.toString());
     }
 
     JsonNode root = get(builder.build().encode().toUri(), "路线规划");
-    JsonNode route = root.path("route");
-    JsonNode paths = route.path("paths");
+    JsonNode route = root.path(mode == RouteMode.CYCLING ? "data" : "route");
+    JsonNode paths = route.path(mode == RouteMode.TRANSIT ? "transits" : "paths");
     if (!paths.isArray() || paths.isEmpty()) {
       throw new AmapUnavailableException(
           "高德路线规划没有返回可用方案（" + mode.label() + "），可能是两点之间不支持该方式");
@@ -361,8 +422,41 @@ public class AmapClient {
           step.path("duration").asInt(0)));
     }
 
+    if (mode == RouteMode.TRANSIT) {
+      for (JsonNode segment : array(first, "segments")) {
+        for (JsonNode walking : array(segment.path("walking"), "steps")) {
+          if (steps.size() < MAX_STEPS) steps.add(new RouteResult.Step(text(walking, "instruction"), text(walking, "road"), walking.path("distance").asInt(), walking.path("duration").asInt()));
+        }
+        for (JsonNode line : array(segment.path("bus"), "buslines")) {
+          if (steps.size() < MAX_STEPS) steps.add(new RouteResult.Step(text(line, "name"), null, line.path("distance").asInt(), line.path("duration").asInt()));
+        }
+      }
+    }
+    List<RouteResult.RailSegment> railways=new ArrayList<>();
+    if(mode==RouteMode.TRANSIT) for(JsonNode segment:array(first,"segments")) {
+      JsonNode rail=segment.path("railway");
+      if(rail.isObject() && !rail.isEmpty()) {
+        List<RouteResult.RailSeat> seats=new ArrayList<>();
+        for(JsonNode seat:array(rail,"spaces")) seats.add(new RouteResult.RailSeat(text(seat,"code"),money(seat.get("cost"))));
+        railways.add(new RouteResult.RailSegment(text(rail,"trip"),text(rail.path("departure_stop"),"name"),text(rail.path("departure_stop"),"time"),
+            text(rail.path("arrival_stop"),"name"),text(rail.path("arrival_stop"),"time"),List.copyOf(seats),"地图参考，旅行日期及售票/余票未核验"));
+      }
+    }
+    Instant queriedAt=Instant.now();
+    RouteResult.Fare fare=new RouteResult.Fare(mode==RouteMode.TRANSIT?money(first.get("cost")):null,
+        mode==RouteMode.DRIVING?money(first.get("tolls")):null,money(route.get("taxi_cost")),"CNY","REFERENCE",SOURCE_ROUTE,queriedAt);
+    Integer walkingDistance = null;
+    if (mode == RouteMode.WALKING) walkingDistance = distance;
+    else if (mode == RouteMode.TRANSIT && first.has("walking_distance")) walkingDistance = first.path("walking_distance").asInt();
     return new RouteResult(mode, from, to, distance, duration,
-        humanDistance(distance), humanDuration(duration), steps, SOURCE_ROUTE, Instant.now());
+        humanDistance(distance), humanDuration(duration), steps, SOURCE_ROUTE, queriedAt, walkingDistance, fare, List.copyOf(railways),travelDate,city,destinationCity);
+  }
+
+  private static java.math.BigDecimal money(JsonNode value) {
+    if(value==null || value.isNull() || value.isContainerNode()) return null;
+    String raw=value.asText().strip();
+    if(!raw.matches("[0-9]+(?:\\.[0-9]+)?")) return null;
+    try { return new java.math.BigDecimal(raw); } catch(NumberFormatException e) { return null; }
   }
 
   // ---- 内部 ----
@@ -386,6 +480,10 @@ public class AmapClient {
     }
     if (root == null) {
       throw new AmapUnavailableException("高德" + what + "返回空响应");
+    }
+    if (uri.getPath().equals("/v4/direction/bicycling")) {
+      if (root.path("errcode").asInt(-1) != 0) throw new AmapUnavailableException("高德骑行查询失败，错误码 " + root.path("errcode").asText());
+      return root;
     }
     String status = root.path("status").asText("");
     if (!"1".equals(status)) {

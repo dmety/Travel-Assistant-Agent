@@ -50,9 +50,9 @@ public class PlaceResolver {
 
   private static final String SYSTEM_PROMPT = """
       你是中国的行政区划与旅游地名助手。用户会给你一个地名（可能是省、市、县、区、景区、俗称或错别字）。
-      请判断它属于哪个地级市。清单里的城市要原样输出清单中的写法。
+      请判断地名的行政层级与归属。清单里的地名要原样输出清单中的写法。
       规则：
-      1. 县、区、县级市一般归到所属地级市；景区归到所在城市。
+      1. 用户明确说省份/自治区时，保持省级范围并输出 level="province"，不要任意缩成一个地级市；县、区、县级市一般归到所属地级市；具体景区归到所在城市。
       2. 若它属于某个不在地名清单里的城市，也照实给出那个城市名，由调用方决定是否可用。
       3. 只有确实无法判断、或这个词与中国地名无关时，city 才输出 null。不要编造不存在的地名。
       4. 不要输出解释性段落或 Markdown 代码块，只输出一行 JSON，形如：
@@ -185,6 +185,10 @@ public class PlaceResolver {
       if (!byCity.isEmpty()) {
         Attraction first = byCity.get(0);
         String city = first.city() == null || first.city().isBlank() ? candidate : first.city();
+        if (sameRegion(candidate, first.province()) && !sameRegion(candidate, city)) {
+          return PlaceResolution.hit(candidate, candidate, null, first.province(), "province", "kb",
+              "「" + candidate + "」是省级目的地，按全省景点范围检索，不缩成单一城市");
+        }
         return PlaceResolution.hit(candidate, city, null, first.province(), "city", "kb",
             "「" + candidate + "」是知识库中的城市");
       }
@@ -205,6 +209,24 @@ public class PlaceResolver {
       log.warn("知识库地名直查失败，转入模型判断：{}", e.getMessage());
     }
     return null;
+  }
+
+  private static boolean sameRegion(String left, String right) {
+    return normalizeRegion(left).equals(normalizeRegion(right));
+  }
+
+  private static String normalizeRegion(String value) {
+    if (value == null) {
+      return "";
+    }
+    String name = value.strip().replaceAll("[\\s　]+", "");
+    for (String suffix : List.of("特别行政区", "维吾尔自治区", "壮族自治区", "回族自治区",
+        "自治区", "自治州", "地区", "省", "市", "县", "区")) {
+      if (name.endsWith(suffix) && name.length() > suffix.length()) {
+        return name.substring(0, name.length() - suffix.length());
+      }
+    }
+    return name;
   }
 
   /** 二级：模型在已知城市清单内做归属判断，结果必须过清单校验。 */

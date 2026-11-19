@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.travelassistant.server.application.agent.AgentUnavailableException;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -116,6 +117,26 @@ class DeepSeekClientTest {
     assertThatThrownBy(() -> client("test-key").complete("s", "u"))
         .isInstanceOf(AgentUnavailableException.class)
         .hasMessageContaining("内容为空");
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("附图对话选择视觉模型并按 Chat Completions 多模态格式发送")
+  void sendsImageWithVisionModel() {
+    String dataUrl = "data:image/png;base64,AA==";
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+            .string(containsString("\"model\":\"deepseek-flash\"")))
+        .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+            .string(containsString(dataUrl)))
+        .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"看到了图片\"}}]}",
+            MediaType.APPLICATION_JSON));
+
+    var imagePart = java.util.Map.of("type", "image_url", "image_url", java.util.Map.of("url", dataUrl));
+    var textPart = java.util.Map.of("type", "text", "text", "请看这张图");
+    var userMessage = java.util.Map.<String, Object>of("role", "user", "content", List.of(textPart, imagePart));
+    assertThat(client("test-key").chat(List.of(userMessage), List.of(), 400, "deepseek-flash").content())
+        .isEqualTo("看到了图片");
     server.verify();
   }
 }

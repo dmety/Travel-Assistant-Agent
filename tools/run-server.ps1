@@ -7,6 +7,12 @@
 
 $ErrorActionPreference = 'Stop'
 
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
+$null = chcp 65001
+
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
@@ -47,8 +53,10 @@ if (-not (Test-Path -LiteralPath $jar)) {
 
 $amap = if ($env:AMAP_KEY) { 'yes' } else { 'no' }
 $baidu = if ($env:BAIDU_AK) { 'yes' } else { 'no' }
+$baiduAgentPlan = if ($env:BAIDU_MAP_AUTH_TOKEN) { 'yes' } else { 'no' }
+$jumdata = if ($env:JUMDATA_SCENIC_APPCODE) { 'yes' } else { 'no' }
 $deepseek = if ($env:DEEPSEEK_API_KEY) { 'yes' } else { 'no' }
-Write-Host ("starting on port {0} (amap={1} baidu={2} deepseek={3})" -f $port, $amap, $baidu, $deepseek)
+Write-Host ("starting on port {0} (amap={1} baidu={2} baiduAgentPlan={3} jumdata={4} deepseek={5})" -f $port, $amap, $baidu, $baiduAgentPlan, $jumdata, $deepseek)
 Write-Host ("open http://localhost:{0}/ in your browser" -f $port)
 
-java -jar $jar
+java '-Dfile.encoding=UTF-8' '-Dstdout.encoding=UTF-8' '-Dstderr.encoding=UTF-8' -jar $jar

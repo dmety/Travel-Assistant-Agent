@@ -24,10 +24,17 @@ public record Plan(
     @JsonProperty("departDate") LocalDate departDate,
     @JsonProperty("returnDate") LocalDate returnDate,
     @JsonProperty("budgetLimit") BigDecimal budgetLimit,
-    @JsonProperty("budgetCurrency") String budgetCurrency) {
+    @JsonProperty("budgetCurrency") String budgetCurrency,
+    @JsonProperty("confirmedGroupCosts") java.util.Map<String, BigDecimal> confirmedGroupCosts) {
+
+  public Plan(String destination, String summary, String notes, LocalDate departDate,
+      LocalDate returnDate, BigDecimal budgetLimit, String budgetCurrency) {
+    this(destination, summary, notes, departDate, returnDate, budgetLimit, budgetCurrency, java.util.Map.of());
+  }
 
   @JsonCreator
   public Plan {
+    confirmedGroupCosts = confirmedGroupCosts == null ? java.util.Map.of() : java.util.Map.copyOf(confirmedGroupCosts);
   }
 
   /** 兼容不含日期与预算上限的三参数调用（旧代码与旧测试）。 */

@@ -2,6 +2,8 @@ package com.travelassistant.server.application.location;
 
 import com.travelassistant.server.domain.location.Place;
 import com.travelassistant.server.domain.location.PlaceSearchResult;
+import com.travelassistant.server.domain.location.ParkingSearchResult;
+import com.travelassistant.server.domain.location.DrivingSegmentResult;
 import com.travelassistant.server.domain.location.RouteMode;
 import com.travelassistant.server.domain.location.RouteResult;
 import com.travelassistant.server.domain.location.WeatherResult;
@@ -55,6 +57,22 @@ public class LocationService {
   /** 路线规划。 */
   public RouteResult route(RouteMode mode, String origin, String destination, String city) {
     return amap.route(mode == null ? RouteMode.WALKING : mode, origin, destination, city);
+  }
+
+  /** 周边停车场地名检索；输出保留数据源与查询时刻，未知字段不作推断。 */
+  public ParkingSearchResult parking(String destination, String city) {
+    return amap.searchParkingNearby(destination, city);
+  }
+
+  /** 以地点名规划一个驾车路段，并查询终点附近停车 POI。 */
+  public DrivingSegmentResult drive(String origin, String destination, String city) {
+    String from = origin == null ? "" : origin.strip();
+    String to = destination == null ? "" : destination.strip();
+    String fromCoordinates = amap.geocode(from, city);
+    String toCoordinates = amap.geocode(to, city);
+    RouteResult route = amap.route(RouteMode.DRIVING, fromCoordinates, toCoordinates, city);
+    ParkingSearchResult parking = amap.searchParkingNearby(to, city);
+    return new DrivingSegmentResult(from, to, route, parking, Instant.now());
   }
 
   /** 查询能力状态，供客户端在页面上提示「未配置密钥」而不是等用户点出错。 */

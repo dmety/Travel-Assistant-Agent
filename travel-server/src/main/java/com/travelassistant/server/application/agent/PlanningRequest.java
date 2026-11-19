@@ -34,11 +34,43 @@ public record PlanningRequest(
     @JsonProperty("currency") String currency,
     @JsonProperty("travelers") Integer travelers,
     @JsonProperty("departDate") LocalDate departDate,
-    @JsonProperty("returnDate") LocalDate returnDate) {
+    @JsonProperty("returnDate") LocalDate returnDate,
+    @JsonProperty("details") Details details) {
 
   @JsonCreator
   public PlanningRequest {
     preferences = preferences == null ? List.of() : List.copyOf(preferences);
+  }
+
+  @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+  public record Details(String origin, Integer seniors, Integer children, String mobility,
+      List<String> dietaryRestrictions, List<String> mustVisit, String hotel,
+      String transportMode, Boolean includeWeather, List<String> excludedAttractionIds,
+      java.util.Map<String, BigDecimal> confirmedGroupCosts, Integer maxWalkingMeters, QueryOptions queries, Integer vehicles, String originCity, String arrivalCity,
+      String lodgingPreference, String budgetScope, String transportPreference) {
+    public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
+        List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
+        java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity) {
+      this(origin,seniors,children,mobility,dietaryRestrictions,mustVisit,hotel,transportMode,includeWeather,excludedAttractionIds,
+          confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,null,null,null);
+    }
+    public Details {
+      confirmedGroupCosts = confirmedGroupCosts == null ? java.util.Map.of() : java.util.Map.copyOf(confirmedGroupCosts);
+      if (confirmedGroupCosts.values().stream().anyMatch(v -> v.signum() < 0)) throw new IllegalArgumentException("费用不能为负数");
+      dietaryRestrictions = dietaryRestrictions == null ? List.of() : List.copyOf(dietaryRestrictions);
+      mustVisit = mustVisit == null ? List.of() : List.copyOf(mustVisit);
+      excludedAttractionIds = excludedAttractionIds == null ? List.of() : List.copyOf(excludedAttractionIds);
+    }
+  }
+
+  public record QueryOptions(Integer maxRouteCalls, Integer maxFoodCalls, Integer maxGeocodeCalls,
+      List<Integer> priorityDays, Long maxDurationMillis) {
+    public QueryOptions { priorityDays = priorityDays == null ? List.of() : priorityDays.stream().filter(d -> d != null && d >= 1 && d <= 30).distinct().toList(); }
+  }
+
+  public PlanningRequest(String destination, Integer days, List<String> preferences,
+      BigDecimal budget, String currency, Integer travelers, LocalDate departDate, LocalDate returnDate) {
+    this(destination, days, preferences, budget, currency, travelers, departDate, returnDate, null);
   }
 
   /** 兼容不含日期的六参数调用（旧代码、测试与文档示例）。 */

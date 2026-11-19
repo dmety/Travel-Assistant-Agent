@@ -469,6 +469,16 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
   background:var(--surface); border-color:var(--line-strong); color:var(--text-3); cursor:not-allowed;
 }
 .opts-tip{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+.intake-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);}
+.intake-grid label{display:block;font-size:var(--fs-xs);font-weight:600;color:var(--text-2);}
+.intake-grid input,.intake-grid select,.intake-grid textarea{
+  width:100%;margin-top:5px;padding:7px 9px;border:1px solid var(--line-strong);
+  border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-sm);}
+.intake-grid textarea{min-height:58px;resize:vertical;}
+.intake-grid .wide{grid-column:1/-1;}
+.guide-full{margin:0;padding:var(--sp-3) var(--sp-4);white-space:pre-wrap;overflow-wrap:anywhere;
+  color:var(--text-2);font:inherit;font-size:var(--fs-xs);line-height:1.65;}
+@media(max-width:560px){.intake-grid{grid-template-columns:1fr}.intake-grid .wide{grid-column:auto}}
 /* 日历选择器：日期用原生控件点，不用手打 YYYY-MM-DD */
 .opt-date{
   padding:5px var(--sp-2); border:1px solid var(--line-strong);
@@ -1343,7 +1353,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
       <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
     </button>
-    <button class="tbtn keep" type="button" id="exportBtn" disabled><svg class="ico"><use href="#i-export"/></svg><span>导出</span></button>
+    <button class="tbtn keep" type="button" id="exportBtn" disabled aria-label="下载 TXT 行程单"><svg class="ico"><use href="#i-export"/></svg><span>TXT</span></button>
+    <button class="tbtn keep" type="button" id="pdfBtn" disabled aria-label="下载 PDF 攻略" title="直接下载当前攻略 PDF，无需先保存行程"><svg class="ico"><use href="#i-export"/></svg><span>PDF</span></button>
     <button class="tbtn keep" type="button" id="logoutBtn">退出</button>
   </div>
 </header>
@@ -1391,6 +1402,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
         <h3 id="spotName">点位</h3>
         <p id="spotMeta"></p>
+        <a id="spotNavigation" target="_blank" rel="noopener noreferrer">在百度地图查看地点和导航</a>
       </div>
     </div>
 
@@ -1410,8 +1422,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <div class="msg" id="welcome">
           <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
           <div class="ai-block">
-            <p>说一句需求，我会去知识库找候选、按天排草案，并把点位画到地图上。</p>
-            <p>缺日期、天数或预算时我会逐条问，不替你猜。草案确认后才会写进行程，之前都只是预览。</p>
+            <p>先补充出发地、日期、同行人员、预算、交通和偏好；我会复述条件等你确认，再查资料生成攻略。</p>
+            <p>攻略会分日展示安排与费用范围。地图需有可用坐标和地图配置；未知票价、开放时间和费用会明确标注。</p>
             <p>问天气、问吃什么、问怎么买票也都可以，答案里会带上来源。</p>
           </div>
           <div class="qa">
@@ -1618,7 +1630,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   var PREF_TEXT = { '自然':'自然风光','人文':'人文古迹','美食':'本地美食',
                     '慢节奏':'节奏慢一点','亲子':'带娃出游','摄影':'拍照出片' };
   var convo = [];          // 最近几轮，只留文本，供 /api/chat 理解指代
-  var convoState = {};     // city / days / travelers / budget / preferences
+  var convoState = {};     // 服务端返回的会话槽位与跨轮规划条件
   var draftView = null;    // 当前草案的精简视图，地图与保存都用它
   var points = [];
   var itineraryId = null;
@@ -1731,6 +1743,13 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   function historyOf() { return convo.slice(-8); }
   function mergeState(next) {
     if (!next) return;
+    if (Object.hasOwn(next, 'planning')) {
+      // 对话接口返回完整快照，新的旅行可以清空上一趟的条件。
+      convoState = { city: next.city, days: next.days, travelers: next.travelers,
+        budget: next.budget, preferences: next.preferences, planning: next.planning };
+      return;
+    }
+    // 解析回退只返回少量槽位。
     ['city', 'days', 'travelers', 'budget', 'preferences'].forEach(function (k) {
       var v = next[k];
       if (v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) {
@@ -1763,6 +1782,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   /* ---------- 草案 → 地图 / 日程条 / 操作按钮 ---------- */
   function applyDraft(view) {
     draftView = view;
+    $('pdfBtn').disabled = !(view && (view.guideText || view.advice));
     renderMap(view);
     renderDaystrip(view);
     flashMap();
@@ -1823,6 +1843,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if (pt.openTime) bits.push('开放：' + pt.openTime);
     bits.push('示意底图，不含真实地理坐标');
     $('spotMeta').textContent = bits.join(' · ');
+    $('spotNavigation').href = 'https://map.baidu.com/search/' + encodeURIComponent((pt.city || '') + ' ' + pt.name);
     $('spotCard').classList.add('open');
   }
   function flashMap() {
@@ -2020,6 +2041,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           body: JSON.stringify(payload.dailySchedules || []) });
       itineraryId = it.id;
       $('exportBtn').disabled = false;
+      $('pdfBtn').disabled = false;
       $('draftState').textContent = '已保存';
       $('tripName').textContent = payload.title;
       $('tripMeta').textContent = '已写入行程，可导出或在票务里用';
@@ -2041,6 +2063,26 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       toast('行程单已导出');
     } catch (e) { toast('导出失败：' + e.message); }
+  }
+  async function exportPdf(id, title) {
+    var target = id || itineraryId;
+    var draftText = !id && draftView && (draftView.guideText || draftView.advice);
+    if (!target && !draftText) return;
+    try {
+      var txt = draftText || await api('/api/itineraries/' + encodeURIComponent(target) + '/export');
+      var heading = title || '旅行攻略';
+      var response = await fetch('/api/guides/pdf', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: heading, text: txt })
+      });
+      if (!response.ok) throw new Error(response.status === 401 ? '请重新登录' : 'PDF生成失败，请检查服务端中文字体配置（HTTP ' + response.status + '）');
+      var url = URL.createObjectURL(await response.blob());
+      var link = document.createElement('a'); link.href = url; link.download = '旅行攻略.pdf';
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+      toast('PDF 已生成并开始下载');
+    } catch (e) { toast(e.message); }
   }
 
   /* ---------- 行程视图 ---------- */
@@ -2071,6 +2113,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         var exp = el('button', 'btn btn-outline', '导出行程单');
         exp.type = 'button';
         exp.addEventListener('click', function () { exportPlan(t.id); });
+        var pdf = el('button', 'btn btn-outline', '打印 / 保存 PDF');
+        pdf.type = 'button';
+        pdf.addEventListener('click', function () { exportPdf(t.id, t.title); });
         var tick = el('button', 'btn btn-outline', '按此行程购票');
         tick.type = 'button';
         tick.addEventListener('click', function () {
@@ -2087,7 +2132,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
             loadTrips();
           } catch (e) { toast('删除失败：' + e.message); }
         });
-        acts.appendChild(exp); acts.appendChild(tick); acts.appendChild(del);
+        acts.appendChild(exp); acts.appendChild(pdf); acts.appendChild(tick); acts.appendChild(del);
         card.appendChild(acts);
         grid.appendChild(card);
       });
@@ -2164,6 +2209,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   $('saveCancel').addEventListener('click', closeSave);
   $('saveConfirm').addEventListener('click', confirmSave);
   $('exportBtn').addEventListener('click', function () { exportPlan(); });
+  $('pdfBtn').addEventListener('click', function () { exportPdf(); });
   $('tripsRefresh').addEventListener('click', loadTrips);
   $('themeBtn').addEventListener('click', function () {
     var next = THEME_ORDER[(THEME_ORDER.indexOf(currentTheme()) + 1) % THEME_ORDER.length];
@@ -2206,12 +2252,17 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   showView((location.hash || '#plan').slice(1), true);
 
   var AK = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
-  if (AK) {
+  function loadMap(AK) {
+    if(!AK){ $('mapNote').textContent='路线示意 · 点击景点可打开地图导航'; return; }
     var s = document.createElement('script');
     s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
       encodeURIComponent(AK) + '&callback=__initBaiduMap';
     document.head.appendChild(s);
+    s.onerror=function(){ $('mapNote').textContent='地图加载失败 · 可使用景点导航链接'; };
   }
+  if(AK)loadMap(AK);
+  else fetch('/api/location/map-config',{credentials:'same-origin'}).then(function(r){return r.json();})
+      .then(function(c){loadMap(c.browserKey || '');}).catch(function(){loadMap('');});
 
   /* ================================================================
      富内容渲染层：搬自 chat.html，保持与旧对话页同一套卡片与折叠口径。
@@ -2350,6 +2401,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if(!d) return null;
     return {
       advice: d.advice || null,
+      guideText: d.guideText || d.advice || null,
       // 请求天数 / 实际排出天数 / 收敛掉的天数：只用来显示一条说明，不铺空天
       dayScope: d.dayScope || null,
       notices: (d.notices || []).slice(0, 5),
@@ -2558,6 +2610,65 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     return box;
   }
 
+  function planningIntakeCard(){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.textContent = '补充旅行条件';
+    box.appendChild(head);
+    var body = el('div','opts-body');
+    var grid = el('div','intake-grid');
+    var fields = {};
+    function textField(key, label, placeholder, wide){
+      var wrap = el('label', wide ? 'wide' : '');
+      wrap.appendChild(document.createTextNode(label));
+      var input = document.createElement('input');
+      input.type = 'text'; input.placeholder = placeholder; input.autocomplete = 'off';
+      wrap.appendChild(input); grid.appendChild(wrap); fields[key] = input;
+    }
+    textField('origin','出发地','例如：北京');
+    textField('date','日期或月份','例如：2027-05-01 / 五月');
+    textField('party','同行人员','例如：2人，1位老人');
+    textField('budget','全团预算','例如：8000 元；不确定可留空');
+    var transportWrap = el('label');
+    transportWrap.appendChild(document.createTextNode('主要交通方式'));
+    var transport = document.createElement('select');
+    [['','待定'],['TRANSIT','公共交通'],['DRIVING','自驾'],['CHARTER','包车/打车']].forEach(function(pair){
+      var option = document.createElement('option'); option.value = pair[0]; option.textContent = pair[1];
+      transport.appendChild(option);
+    });
+    transportWrap.appendChild(transport); grid.appendChild(transportWrap); fields.transport = transport;
+    textField('preferences','兴趣或必去点','例如：古迹、美食、云冈石窟',true);
+    textField('extras','住宿/忌口（可选）','例如：住古城附近；不吃辣',true);
+    body.appendChild(grid);
+    var foot = el('div','opts-foot');
+    function collected(){
+      var value = function(key){ var v = fields[key].value.trim(); return v || '待定'; };
+      var transportLabel = fields.transport.options[fields.transport.selectedIndex].textContent;
+      return '出发地' + value('origin') + '；日期' + value('date')
+        + '；同行人员' + value('party') + '；全团预算' + value('budget')
+        + '；交通方式' + transportLabel + '；兴趣/必去' + value('preferences')
+        + '；住宿/忌口' + value('extras');
+    }
+    var go = el('button','opt-go','复述条件并确认'); go.type = 'button';
+    go.addEventListener('click',function(){
+      sendText('补充旅行条件：' + collected() + '。请复述条件让我确认。');
+    });
+    var skip = el('button','opt-skip','先出初稿'); skip.type = 'button';
+    skip.addEventListener('click',function(){
+      sendText('补充旅行条件：' + collected() + '。先出初稿，请按我最初说的目的地和天数规划；未提供的条件标为待定。');
+    });
+    foot.appendChild(go); foot.appendChild(skip); body.appendChild(foot);
+    box.appendChild(body);
+    return box;
+  }
+
+  var QA_KINDS = {
+    days: {label:'天数',kind:'choice',unit:'天',options:[2,3,4,5,7]},
+    travelers: {label:'同行人数',kind:'choice',unit:'人',options:[1,2,3,4,5,6]},
+    budget: {label:'全团预算',kind:'choice',unit:'元',options:[3000,5000,8000,10000,15000]},
+    departDate: {label:'出发日期',kind:'date'},
+    returnDate: {label:'返回日期',kind:'date'}
+  };
   function qaCard(questions, ctx){
     var baseText = (ctx && ctx.baseText) || '';
     var box = el('div','opts');
@@ -3176,6 +3287,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
    */
   function paintCard(card, baseText){
     if(!card) return null;
+    if(card.type === 'intake') return planningIntakeCard();
     if(card.type === 'weather') return weatherBlock(card.data);
     if(card.type === 'route') return routeBlock(card.data);
     if(card.type === 'places') return placesBlock(card.data);
@@ -3262,6 +3374,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       card.style.marginTop = 'var(--sp-2)';
       body.appendChild(card);
     }
+    if(view.guideText){
+      var guide = el('div','plan');
+      guide.style.marginTop = 'var(--sp-2)';
+      foldBlock(guide,'展开交通、餐饮、费用与来源详情',function(fbody){
+        var pre = el('pre','guide-full'); pre.textContent = view.guideText; fbody.appendChild(pre);
+      });
+      body.appendChild(guide);
+    }
     // 检查项也可能堆五六条：先给最要紧的两条，其余折叠，不把卡片顶成一屏警告
     var warns = warnNodes(view.checks || []);
     warns.slice(0, 2).forEach(function(n){
@@ -3289,7 +3409,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   }
 })();
 </script>
-/* 票务视图脚本：原样搬自 ticket-assistant.html，包进 IIFE 以隔离 $ / api / el */
+<!-- 票务视图脚本：包进 IIFE 以隔离变量 -->
+<script>
 (function () {
       "use strict";
       const $ = (id) => document.getElementById(id);
@@ -3674,5 +3795,6 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         }
       })();
 })();
+</script>
 </body>
 </html>

@@ -23,7 +23,10 @@ public record ChatReply(
     String note) {
 
   /** 一次工具调用的人可读记录。只记做了什么，不记内部数据。 */
-  public record ToolTrace(String tool, String label, boolean ok) {
+  public record ToolTrace(String tool, String label, boolean ok, String summary) {
+    public ToolTrace(String tool, String label, boolean ok) {
+      this(tool, label, ok, null);
+    }
   }
 
   public ChatReply {

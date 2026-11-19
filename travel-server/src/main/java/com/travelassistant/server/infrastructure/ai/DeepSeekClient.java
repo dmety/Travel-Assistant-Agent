@@ -1,20 +1,28 @@
 package com.travelassistant.server.infrastructure.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.server.application.agent.AgentUnavailableException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -42,6 +50,8 @@ public class DeepSeekClient {
   private final String apiKey;
   private final String baseUrl;
   private final String model;
+  private final String visionModel;
+  private final ObjectMapper mapper = new ObjectMapper();
 
   /**
    * 进程内累计用量。每次真实请求都会累加，供 {@code /api/agent/status} 回答
@@ -60,20 +70,27 @@ public class DeepSeekClient {
       @Value("${travel.ai.api-key:}") String apiKey,
       @Value("${travel.ai.base-url:https://api.deepseek.com}") String baseUrl,
       @Value("${travel.ai.model:deepseek-chat}") String model,
+      @Value("${travel.ai.vision-model:deepseek-flash}") String visionModel,
       @Value("${travel.ai.timeout-ms:20000}") long timeoutMs) {
     this(builder
         .connectTimeout(Duration.ofMillis(Math.min(timeoutMs, 5000)))
         .readTimeout(Duration.ofMillis(timeoutMs))
-        .build(), apiKey, baseUrl, model);
+        .build(), apiKey, baseUrl, model, visionModel);
   }
 
   /** 供测试注入自定义 RestTemplate（以便挂 MockRestServiceServer）。 */
   public DeepSeekClient(RestTemplate restTemplate, String apiKey, String baseUrl, String model) {
+    this(restTemplate, apiKey, baseUrl, model, "deepseek-flash");
+  }
+
+  public DeepSeekClient(RestTemplate restTemplate, String apiKey, String baseUrl, String model,
+      String visionModel) {
     this.restTemplate = restTemplate;
     this.apiKey = apiKey == null ? "" : apiKey.strip();
     this.baseUrl = baseUrl == null || baseUrl.isBlank()
         ? "https://api.deepseek.com" : baseUrl.strip();
     this.model = model == null || model.isBlank() ? "deepseek-chat" : model.strip();
+    this.visionModel = visionModel == null || visionModel.isBlank() ? "deepseek-flash" : visionModel.strip();
   }
 
   /** 是否已配置密钥。 */
@@ -84,6 +101,8 @@ public class DeepSeekClient {
   public String model() {
     return model;
   }
+
+  public String visionModel() { return visionModel; }
 
   /**
    * 发起一次对话补全，返回助手文本。
@@ -132,7 +151,12 @@ public class DeepSeekClient {
    */
   public ModelTurn chat(List<Map<String, Object>> messages, List<Map<String, Object>> tools,
       int maxTokens) {
-    Map<String, Object> body = baseBody(maxTokens);
+    return chat(messages, tools, maxTokens, model);
+  }
+
+  public ModelTurn chat(List<Map<String, Object>> messages, List<Map<String, Object>> tools,
+      int maxTokens, String modelOverride) {
+    Map<String, Object> body = baseBody(maxTokens, modelOverride);
     body.put("messages", messages == null ? List.of() : messages);
     if (tools != null && !tools.isEmpty()) {
       body.put("tools", tools);
@@ -160,9 +184,150 @@ public class DeepSeekClient {
     return new ModelTurn(content, calls);
   }
 
+  /** 流式发起带工具的一轮对话；正文增量直接展示，工具参数增量仅在服务端聚合。 */
+  public ModelTurn chatStream(List<Map<String, Object>> messages,
+      List<Map<String, Object>> tools, int maxTokens, Consumer<String> onDelta) {
+    return chatStream(messages, tools, maxTokens, model, onDelta);
+  }
+
+  public ModelTurn chatStream(List<Map<String, Object>> messages,
+      List<Map<String, Object>> tools, int maxTokens, String modelOverride, Consumer<String> onDelta) {
+    if (!configured()) {
+      throw new AgentUnavailableException(
+          "未配置模型密钥（环境变量 DEEPSEEK_API_KEY），本次结果不含模型建议");
+    }
+    Map<String, Object> body = baseBody(maxTokens, modelOverride);
+    body.put("messages", messages == null ? List.of() : messages);
+    if (tools != null && !tools.isEmpty()) {
+      body.put("tools", tools);
+      body.put("tool_choice", "auto");
+    }
+    body.put("stream", true);
+    body.put("stream_options", Map.of("include_usage", true));
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
+    headers.setBearerAuth(apiKey);
+    try {
+      ModelTurn content = restTemplate.execute(baseUrl + "/chat/completions", HttpMethod.POST,
+          request -> {
+            request.getHeaders().putAll(headers);
+            mapper.writeValue(request.getBody(), body);
+          }, response -> readToolStream(response.getBody(), onDelta));
+      if (content == null || (content.content().isBlank() && !content.wantsTools())) {
+        throw new AgentUnavailableException("模型流式响应为空");
+      }
+      return content;
+    } catch (HttpStatusCodeException e) {
+      throw new AgentUnavailableException(explain(e), e);
+    } catch (AgentUnavailableException e) {
+      throw e;
+    } catch (RestClientException e) {
+      throw new AgentUnavailableException("模型服务请求失败：" + brief(e.getMessage()), e);
+    }
+  }
+
+  private static final class StreamToolCall {
+    private String id = "";
+    private final StringBuilder name = new StringBuilder();
+    private final StringBuilder arguments = new StringBuilder();
+  }
+
+  private ModelTurn readToolStream(java.io.InputStream input, Consumer<String> onDelta)
+      throws IOException {
+    StringBuilder content = new StringBuilder();
+    StringBuilder data = new StringBuilder();
+    Map<Integer, StreamToolCall> calls = new TreeMap<>();
+    boolean done = false;
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(input, StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.isEmpty()) {
+          if (data.length() > 0) {
+            done = consumeToolEvent(data.toString(), content, calls, onDelta) || done;
+            data.setLength(0);
+            if (done) {
+              break;
+            }
+          }
+        } else if (line.startsWith("data:")) {
+          if (data.length() > 0) {
+            data.append('\n');
+          }
+          data.append(line.substring(5).stripLeading());
+        }
+      }
+    }
+    if (!done && data.length() > 0) {
+      done = consumeToolEvent(data.toString(), content, calls, onDelta);
+    }
+    if (!done) {
+      throw new AgentUnavailableException("模型流式响应提前结束");
+    }
+    List<ToolCall> toolCalls = new ArrayList<>();
+    for (Map.Entry<Integer, StreamToolCall> entry : calls.entrySet()) {
+      StreamToolCall call = entry.getValue();
+      if (call.name.isEmpty()) {
+        continue;
+      }
+      toolCalls.add(new ToolCall(call.id.isBlank() ? "call-" + entry.getKey() : call.id,
+          call.name.toString(), call.arguments.isEmpty() ? "{}" : call.arguments.toString()));
+    }
+    return new ModelTurn(content.toString(), toolCalls);
+  }
+
+  private boolean consumeToolEvent(String data, StringBuilder content,
+      Map<Integer, StreamToolCall> calls, Consumer<String> onDelta) throws IOException {
+    if ("[DONE]".equals(data.strip())) {
+      return true;
+    }
+    JsonNode root = mapper.readTree(data);
+    if (root == null || root.isNull()) {
+      return false;
+    }
+    if (root.path("error").isObject()) {
+      throw new AgentUnavailableException(root.path("error").path("message")
+          .asText("模型流式生成失败"));
+    }
+    if (root.path("usage").isObject()) {
+      recordUsage(root);
+    }
+    JsonNode delta = root.path("choices").path(0).path("delta");
+    JsonNode contentDelta = delta.path("content");
+    if (contentDelta.isTextual() && !contentDelta.asText().isEmpty()) {
+      String piece = contentDelta.asText();
+      content.append(piece);
+      if (onDelta != null) {
+        onDelta.accept(piece);
+      }
+    }
+    JsonNode toolDeltas = delta.path("tool_calls");
+    if (toolDeltas.isArray()) {
+      for (JsonNode toolDelta : toolDeltas) {
+        int index = toolDelta.path("index").asInt(calls.size());
+        StreamToolCall call = calls.computeIfAbsent(index, ignored -> new StreamToolCall());
+        String id = toolDelta.path("id").asText("");
+        if (!id.isBlank() && call.id.isBlank()) {
+          call.id = id;
+        }
+        JsonNode function = toolDelta.path("function");
+        String name = function.path("name").asText("");
+        String arguments = function.path("arguments").asText("");
+        call.name.append(name);
+        call.arguments.append(arguments);
+      }
+    }
+    return false;
+  }
+
   private Map<String, Object> baseBody(int maxTokens) {
+    return baseBody(maxTokens, model);
+  }
+
+  private Map<String, Object> baseBody(int maxTokens, String modelOverride) {
     Map<String, Object> body = new LinkedHashMap<>();
-    body.put("model", model);
+    body.put("model", modelOverride == null || modelOverride.isBlank() ? model : modelOverride);
     body.put("temperature", 0.3);
     body.put("max_tokens", Math.min(Math.max(maxTokens, 200), 2000));
     body.put("stream", false);
@@ -244,6 +409,7 @@ public class DeepSeekClient {
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("model", model);
     body.put("endpoint", baseUrl);
+    body.put("visionModel", visionModel);
     body.put("calls", callCount.get());
     body.put("promptTokens", promptTokens.get());
     body.put("completionTokens", completionTokens.get());

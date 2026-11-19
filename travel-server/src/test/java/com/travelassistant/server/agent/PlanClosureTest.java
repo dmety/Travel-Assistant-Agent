@@ -76,7 +76,7 @@ class PlanClosureTest extends V2ApiTestBase {
     JsonNode days = read(result).path("dailySchedules");
     assertThat(days.get(0).path("date").asText()).isEqualTo(DEPART);
     assertThat(days.get(1).path("date").asText()).isEqualTo(RETURN);
-    assertThat(days.get(0).path("items").size()).isEqualTo(2);
+    assertThat(days.get(0).path("items").size()).isEqualTo(1); // 坐标不可比时不强行组合两点
     assertThat(days.get(1).path("items").size()).isEqualTo(1);
 
     List<String> unknowns = new ArrayList<>();
@@ -170,6 +170,7 @@ class PlanClosureTest extends V2ApiTestBase {
   void fullClosurePersistsAndReadsBack() throws Exception {
     MockHttpSession session = registerAndLogin();
     ObjectNode request = fullRequest("杭州", 2, 1000, 2, DEPART, RETURN);
+    request.putObject("details").putObject("confirmedGroupCosts").put("intercity-out", 240);
 
     MvcResult draftResult = mvc.perform(post("/api/agent/plan")
             .session(session)
@@ -193,7 +194,7 @@ class PlanClosureTest extends V2ApiTestBase {
     assertThat(payload.path("plan").path("budgetLimit").asDouble()).isEqualTo(1000.0);
     assertThat(payload.path("dailySchedules").size()).isEqualTo(2);
     String firstNote = payload.path("dailySchedules").get(0)
-        .path("activities").get(0).path("note").asText();
+        .path("activities").toString();
     assertThat(firstNote).contains("attractionId=t-hz-001");
     assertThat(countItineraries(session)).isZero(); // 确认载荷也不写库
 
@@ -224,9 +225,16 @@ class PlanClosureTest extends V2ApiTestBase {
     assertThat(restored.path("version").asLong()).isEqualTo(version + 1);
     assertThat(restored.path("dailySchedules").size()).isEqualTo(2);
     assertThat(restored.path("dailySchedules").get(0).path("date").asText()).isEqualTo(DEPART);
-    assertThat(restored.path("dailySchedules").get(0).path("activities").get(0)
-        .path("note").asText()).isEqualTo(firstNote);
+    JsonNode expectedActivities = payload.path("dailySchedules").get(0).path("activities");
+    JsonNode actualActivities = restored.path("dailySchedules").get(0).path("activities");
+    assertThat(actualActivities.size()).isEqualTo(expectedActivities.size());
+    for (int i=0; i<expectedActivities.size(); i++) {
+      assertThat(actualActivities.get(i).path("note")).isEqualTo(expectedActivities.get(i).path("note"));
+      assertThat(actualActivities.get(i).path("time")).isEqualTo(expectedActivities.get(i).path("time"));
+    }
     assertThat(restored.path("plan").path("destination").asText()).isEqualTo("杭州");
+    assertThat(restored.path("plan").path("confirmedGroupCosts").path("intercity-out").asInt()).isEqualTo(240);
+    assertThat(restored.path("plan").path("notes").asText()).contains("费用明细").contains("你确认的金额");
   }
 
   // ---- 辅助 ----

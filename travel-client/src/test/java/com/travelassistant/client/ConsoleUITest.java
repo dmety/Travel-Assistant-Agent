@@ -6,9 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -18,6 +21,53 @@ import org.junit.jupiter.api.Test;
  * 中文双宽字符是 Windows 黑框下最容易错位的地方，这里用显示宽度逐项断言。
  */
 class ConsoleUITest {
+
+  @Test
+  void maskedInputDoesNotLeakOrKeepItsPromptForTheNextCommand() throws Exception {
+    String secret = "probe-only-123";
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try (var terminal = new org.jline.terminal.impl.DumbTerminal("test", "dumb",
+        new ByteArrayInputStream((secret + "\rhelp\r").getBytes(StandardCharsets.UTF_8)),
+        output, StandardCharsets.UTF_8)) {
+      var attributes = terminal.getAttributes();
+      attributes.setLocalFlag(org.jline.terminal.Attributes.LocalFlag.ECHO, true);
+      terminal.setAttributes(attributes);
+      assertEquals(secret, ConsoleUI.readMasked(terminal, terminal.writer(), "密码: "));
+      assertTrue(terminal.echo());
+      var reader = org.jline.reader.LineReaderBuilder.builder().terminal(terminal).build();
+      assertEquals("help", reader.readLine("admin > "));
+      assertFalse(output.toString(StandardCharsets.UTF_8).contains(secret));
+      assertEquals(1, output.toString(StandardCharsets.UTF_8).split("密码:", -1).length - 1);
+      assertTrue(output.toString(StandardCharsets.UTF_8).contains("admin >"));
+      assertFalse(reader.getHistory().iterator().next().line().contains(secret));
+    }
+  }
+
+  @Test
+  void maskedInputSupportsBackspaceAndRestoresTerminalAfterCancellation() throws Exception {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try (var terminal = new org.jline.terminal.impl.DumbTerminal("test", "dumb",
+        new ByteArrayInputStream("abc\177X\rhidden\003help\r".getBytes(StandardCharsets.UTF_8)),
+        output, StandardCharsets.UTF_8)) {
+      assertEquals("abX", ConsoleUI.readMasked(terminal, terminal.writer(), "密码: "));
+      var before = terminal.getAttributes().getLocalFlags();
+      org.junit.jupiter.api.Assertions.assertThrows(org.jline.reader.UserInterruptException.class,
+          () -> ConsoleUI.readMasked(terminal, terminal.writer(), "密码: "));
+      assertEquals(before, terminal.getAttributes().getLocalFlags());
+      assertEquals("help", org.jline.reader.LineReaderBuilder.builder().terminal(terminal).build().readLine("未登录 > "));
+      assertFalse(output.toString(StandardCharsets.UTF_8).contains("hidden"));
+    }
+  }
+
+  @Test
+  void maskedInputReturnsNullOnEndOfInputWithoutLeakingPartialPassword() throws Exception {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try (var terminal = new org.jline.terminal.impl.DumbTerminal("test", "dumb",
+        new ByteArrayInputStream("unfinished".getBytes(StandardCharsets.UTF_8)), output, StandardCharsets.UTF_8)) {
+      org.junit.jupiter.api.Assertions.assertNull(ConsoleUI.readMasked(terminal, terminal.writer(), "密码: "));
+      assertFalse(output.toString(StandardCharsets.UTF_8).contains("unfinished"));
+    }
+  }
 
   @Test
   void displayWidthHandlesAsciiCjkAndCombiningMarks() {
@@ -100,6 +150,21 @@ class ConsoleUITest {
     String[] lines = table.split("\n", -1);
     assertEquals(3, lines.length);
     assertEquals(ConsoleUI.displayWidth(lines[0]), ConsoleUI.displayWidth(lines[2]));
+  }
+
+  @Test
+  void clipboardImageIsEncodedAsBoundedJpegDataUrl() throws Exception {
+    var image = new java.awt.image.BufferedImage(64, 48, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+    var graphics = image.createGraphics();
+    try { graphics.setColor(java.awt.Color.BLUE); graphics.fillRect(0, 0, 64, 48); }
+    finally { graphics.dispose(); }
+    String dataUrl = ConsoleUI.encodeClipboardImage(image);
+    assertTrue(dataUrl.startsWith("data:image/jpeg;base64,"));
+    byte[] bytes = java.util.Base64.getDecoder().decode(dataUrl.substring(dataUrl.indexOf(',') + 1));
+    assertTrue(bytes.length <= 2 * 1024 * 1024);
+    var decoded = ImageIO.read(new ByteArrayInputStream(bytes));
+    assertEquals(64, decoded.getWidth());
+    assertEquals(48, decoded.getHeight());
   }
 
   @Test

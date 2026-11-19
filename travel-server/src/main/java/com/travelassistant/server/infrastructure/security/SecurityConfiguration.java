@@ -42,6 +42,7 @@ public class SecurityConfiguration {
                 // /api/agent/capabilities 同理：只含 id / 状态 / 能力标签 / 最近拒绝原因码，
                 // 不含 endpoint、authRef 或任何凭据，前端登录前就能动态渲染可用入口。
                 "/api/location/status", "/api/agent/status", "/api/agent/capabilities",
+                "/api/demo-orders/products",
                 // 首页：/、/login、/app 由 PageController 转发到 index.html（登录 / 注册页）。
                 // 业务界面统一在 /planner.html：页面公开，页内读 /api/account/me 判断登录态，
                 // 401 时跳回 /?next=/planner.html；真正的数据与模型配额仍由 /api/** 拦截。
