@@ -47,4 +47,10 @@ public class PageController {
   public String plannerPage() {
     return "forward:/planner.html";
   }
+
+  /** 管理后台入口：静态页本身公开，注册表与准入接口由 AdminTokenFilter 以 X-Admin-Token 鉴权。 */
+  @GetMapping("/admin")
+  public String adminPage() {
+    return "forward:/admin.html";
+  }
 }

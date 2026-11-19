@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 美食推荐</title>
+<meta name="description" content="美食推荐（Agent FOOD_RECOMMEND）：餐馆列表、评分人均、距离标签、AI 建议卡。" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="components.css" />
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('travel.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+</head>
+<body>
+<header class="app-topbar">
+  <a class="back" href="/planner.html" title="返回工作台" aria-label="返回工作台">‹</a>
+  <h1>美食推荐</h1>
+  <span class="sub" id="locLabel">武当山</span>
+  <span class="sp"></span>
+  <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
+    <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
+  </button>
+</header>
+
+<main class="app-wrap">
+  <div class="food-head">
+    <h2>想吃这一口</h2>
+    <span class="sp"></span>
+    <span class="loc">目的地 / 景点 · 说一句就行</span>
+  </div>
+  <form class="set-row" id="askForm" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:6px">
+    <svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>
+    <input class="field" id="askInput" style="margin:0;flex:1" placeholder="例如：武当山有什么好吃的素斋？" autocomplete="off" />
+    <button class="btn btn-primary btn-sm" type="submit">问小满</button>
+  </form>
+  <p class="notice-bar" id="askNote" style="margin-top:8px">演示环境未接通美食 Agent 时，展示下方设计样例；人均与营业状态建议出行前再核实。</p>
+
+  <div class="advice" id="advice">
+    <div class="who"><svg class="ico"><use href="#i-bowl"/></svg>旅行助手 · 美食建议</div>
+    武当山以<b>道家素斋</b>见长，推荐优先「紫霄宫素斋」（人均 ¥45、评分 4.7）。口味偏清淡，若想换口味可看「武当山道家斋饭」。以下为按评分与距离排序的候选，<b>人均与营业状态建议出行前再核实</b>。
+  </div>
+
+  <div class="food-grid" id="restList"><!-- 餐馆卡片由脚本渲染 --></div>
+
+  <!-- 对话内美食卡示意 -->
+  <div class="chat" style="margin-top:22px">
+    <div class="msg"><div class="who">我</div><div class="bubble">武当山有什么好吃的素斋？</div></div>
+    <div class="msg"><div class="who">旅行助手</div><div class="bubble">武当山的素斋做得讲究，先列几家；人均价格出门前再核一次：
+      <div class="food-card">
+        <div class="ch"><svg class="ico"><use href="#i-bowl"/></svg>美食推荐 · 武当山</div>
+        <div class="cb" id="chatList"><!-- 对话卡列表由脚本渲染 --></div>
+      </div>
+    </div></div>
+  </div>
+</main>
+
+<svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<symbol id="i-bowl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 H20 a8 8 0 0 1 -16 0 Z"/><path d="M8 4 C8 6 6 6 6 8 M12 3 C12 5 10 5 10 7.5 M16 4 C16 6 14 6 14 8" opacity=".6"/></symbol>
+<symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17.5 L8 10 L6.5 6.5 L12 8.5 L17 4.5"/><path d="M3.5 20.5 H20.5"/><circle cx="17" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><path d="M17 12.5 L20.5 9" opacity=".55"/></symbol>
+<symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3.5 H18 A2 2 0 0 1 20 5.5 V14 L14 20.5 H5.5 A2 2 0 0 1 3.5 18.5 V5.5 A2 2 0 0 1 4.5 3.5 Z"/><path d="M6.5 15 L10 9 L9 12 L14 13 L17 8"/><circle cx="17" cy="8" r="1.7" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22 M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/></symbol>
+</svg>
+
+<script src="mascot-widget.js?v=4.4"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- 主题（与设置页同源） ---------- */
+  var THEME_KEY = 'travel.theme';
+  var ORDER = ['auto', 'light', 'dark'];
+  function currentTheme() {
+    try { var t = localStorage.getItem(THEME_KEY); return ORDER.indexOf(t) >= 0 ? t : 'auto'; }
+    catch (e) { return 'auto'; }
+  }
+  function paintIcon(mode) {
+    var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var use = $('themeIcon').firstChild;
+    if (use && use.setAttribute) use.setAttribute('href', '#' + (dark ? 'i-sun' : 'i-moon'));
+    $('themeBtn').title = '外观：' + (mode === 'auto' ? '跟随系统' : (mode === 'light' ? '浅色' : '深色'));
+  }
+  function applyTheme(mode) {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 忽略 */ }
+    paintIcon(mode);
+  }
+  applyTheme(currentTheme());
+  $('themeBtn').addEventListener('click', function () {
+    applyTheme(ORDER[(ORDER.indexOf(currentTheme()) + 1) % ORDER.length]);
+  });
+
+  /* ---------- 样例数据（设计稿：武当山 · 道家素斋） ---------- */
+  var SAMPLE = {
+    advice: '武当山以<b>道家素斋</b>见长，推荐优先「紫霄宫素斋」（人均 ¥45、评分 4.7）。口味偏清淡，若想换口味可看「武当山道家斋饭」。以下为按评分与距离排序的候选，<b>人均与营业状态建议出行前再核实</b>。',
+    rests: [
+      { name: '紫霄宫素斋', tags: ['素斋', '道家'], rating: 4.7, price: 45, dist: '距金顶 1.2km', hours: '11:00–20:00', verified: true, recommend: true },
+      { name: '武当山道家斋饭', tags: ['斋饭'], rating: 4.5, price: 38, dist: '距南岩宫 0.4km', hours: '10:30–19:30', verified: false },
+      { name: '山下农家土菜馆', tags: ['土菜'], rating: 4.4, price: 62, dist: '距游客中心 0.8km', hours: '09:00–21:00', verified: true },
+      { name: '琼台仙谷茶舍', tags: ['茶饮'], rating: 4.8, price: 30, dist: '距索道上站 0.3km', hours: '08:30–18:00', verified: true }
+    ]
+  };
+
+  function stars(r) {
+    var full = Math.round(r);
+    return '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
+  }
+  function render(data) {
+    if (data.advice) $('advice').innerHTML = '<div class="who"><svg class="ico"><use href="#i-bowl"/></svg>旅行助手 · 美食建议</div>' + data.advice;
+    var list = $('restList');
+    list.innerHTML = '';
+    (data.rests || []).forEach(function (r) {
+      var card = document.createElement('div');
+      card.className = 'rest';
+      var stTag = r.verified
+        ? '<span class="st st-verified">已核验</span>'
+        : '<span class="st st-pending">待核</span>';
+      var rec = r.recommend ? '<span class="tag">推荐</span>' : '';
+      card.innerHTML =
+        '<div class="rh"><span class="nm">' + r.name + '</span><span class="sp"></span>' + rec + '</div>' +
+        '<div class="rb">' +
+          '<div class="row"><span class="star">' + stars(r.rating) + '</span>' +
+            '<span class="rating">' + r.rating.toFixed(1) + '</span>' +
+            '<span>· 人均 ¥' + r.price + '</span><span>· ' + r.dist + '</span></div>' +
+          '<div class="row">营业 ' + r.hours + ' · ' + (r.verified ? '已核验' : '待核实') + '</div>' +
+          '<div class="tag-row">' + (r.tags || []).map(function (t) { return '<span class="tag">' + t + '</span>'; }).join('') + stTag + '</div>' +
+        '</div>';
+      list.appendChild(card);
+    });
+    var chat = $('chatList');
+    chat.innerHTML = '';
+    (data.rests || []).slice(0, 3).forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'fr';
+      row.innerHTML = '<span class="nm">' + r.name + '</span>' +
+        '<span class="rt"><b>' + r.rating.toFixed(1) + '</b><br>¥' + r.price + ' · ' + r.dist.replace(/距\S+\s/, '') + '</span>';
+      chat.appendChild(row);
+    });
+  }
+  render(SAMPLE);
+
+  /* ---------- 问小满（尽力调用，失败回落样例） ---------- */
+  $('askForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = $('askInput').value.trim();
+    if (!q) return;
+    var note = $('askNote');
+    note.textContent = '正在询问小满…';
+    note.style.color = '';
+    fetch('/api/agent/invoke', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent: 'FOOD_RECOMMEND', query: q })
+    }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
+      .then(function (d) {
+        // 兼容两种返回：直接带 rests 数组，或包在 data/result 里
+        var rests = (d && (d.rests || (d.data && d.data.rests) || (d.result && d.result.rests))) || null;
+        var advice = (d && (d.advice || (d.data && d.data.advice))) || null;
+        if (rests && rests.length) {
+          render({ advice: advice || SAMPLE.advice, rests: rests });
+          note.textContent = '已返回实时结果；人均与营业状态仍建议出行前再核实。';
+          var m = (q.match(/([\u4e00-\u9fa5]{2,8}(山|市|区|县|景区|古城|镇)?)/) || [])[1];
+          if (m) $('locLabel').textContent = m;
+        } else {
+          note.textContent = '小满暂未返回餐馆列表（样例仍展示）。' + (advice ? ' 建议：' + advice : '');
+          if (advice) render({ advice: advice, rests: SAMPLE.rests });
+        }
+      })
+      .catch(function () {
+        note.textContent = '演示环境暂未接通美食 Agent，以下为设计样例；人均与营业状态建议出行前再核实。';
+        render(SAMPLE);
+      });
+  });
+})();
+</script>
+</body>
+</html>

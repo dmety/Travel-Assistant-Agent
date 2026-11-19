@@ -220,6 +220,7 @@ class ItineraryBudgetTest extends ApiTestBase {
   void checksPassWhenDataIsComplete() throws Exception {
     MockHttpSession owner = registerAndLogin();
     String id = createItinerary(owner, "完整行程");
+    // 使用相对日期避免固定日期过期；从明天开始验证未开始的完整行程。
     LocalDate depart = LocalDate.now().plusDays(1);
     LocalDate middle = depart.plusDays(1);
     LocalDate ret = depart.plusDays(2);

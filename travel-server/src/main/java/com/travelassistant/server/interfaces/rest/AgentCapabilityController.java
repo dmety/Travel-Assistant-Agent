@@ -6,6 +6,8 @@ import com.travelassistant.server.application.agent.spi.AgentDescriptor;
 import com.travelassistant.server.application.agent.spi.AgentRegistry;
 import com.travelassistant.server.application.agent.spi.ContractRules;
 import com.travelassistant.server.application.agent.spi.Resolution;
+import com.travelassistant.server.infrastructure.audit.AdminAuditLog;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,12 +33,14 @@ public class AgentCapabilityController {
   private final AgentRegistry registry;
   private final ContractRules rules;
   private final AdmissionController admission;
+  private final AdminAuditLog audit;
 
   public AgentCapabilityController(AgentRegistry registry, ContractRules rules,
-      AdmissionController admission) {
+      AdmissionController admission, AdminAuditLog audit) {
     this.registry = registry;
     this.rules = rules;
     this.admission = admission;
+    this.audit = audit;
   }
 
   @GetMapping("/capabilities")
@@ -76,33 +80,54 @@ public class AgentCapabilityController {
   }
 
   @PostMapping("/providers/reload")
-  public Map<String, Object> reload() {
+  public Map<String, Object> reload(HttpServletRequest request) {
     registry.reload();
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("reloaded", true);
     body.put("registryVersion", registry.version());
     body.put("registryNote", registry.note());
     body.put("providerCount", registry.descriptors().size());
+    audit.record("reload", "-", remote(request), true,
+        "registry v" + registry.version());
     return body;
   }
 
   /** G1 契约探针加 G2 安全探针。生产路径按配置发真实请求，不注入桩。 */
   @PostMapping("/providers/{id}/probe")
-  public Map<String, Object> probe(@PathVariable String id) {
-    return gateResponse(id, admission.probe(id, null));
+  public Map<String, Object> probe(@PathVariable String id, HttpServletRequest request) {
+    Map<String, Object> res = gateResponse(id, admission.probe(id, null));
+    audit.record("probe", id, remote(request), true, "status=" + res.get("status"));
+    return res;
   }
 
   /** G3 影子。samples 缺省读规范源 shadowSamples（20）。 */
   @PostMapping("/providers/{id}/shadow")
   public Map<String, Object> shadow(@PathVariable String id,
-      @RequestParam(defaultValue = "0") int samples) {
-    return gateResponse(id, admission.shadow(id, samples, null));
+      @RequestParam(defaultValue = "0") int samples, HttpServletRequest request) {
+    Map<String, Object> res = gateResponse(id, admission.shadow(id, samples, null));
+    audit.record("shadow", id, remote(request), true, "status=" + res.get("status"));
+    return res;
   }
 
   /** G4 人工启用：需 G3 通过且配置里 enabled=true。 */
   @PostMapping("/providers/{id}/activate")
-  public Map<String, Object> activate(@PathVariable String id) {
-    return gateResponse(id, admission.activate(id));
+  public Map<String, Object> activate(@PathVariable String id, HttpServletRequest request) {
+    Map<String, Object> res = gateResponse(id, admission.activate(id));
+    audit.record("activate", id, remote(request), true, "status=" + res.get("status"));
+    return res;
+  }
+
+  /** 取来源 IP 用于审计；优先 X-Forwarded-For，回退到直接远端地址。 */
+  private static String remote(HttpServletRequest request) {
+    if (request == null) {
+      return "unknown";
+    }
+    String fwd = request.getHeader("X-Forwarded-For");
+    if (fwd != null && !fwd.isBlank()) {
+      int comma = fwd.indexOf(',');
+      return comma < 0 ? fwd.trim() : fwd.substring(0, comma).trim();
+    }
+    return request.getRemoteAddr();
   }
 
   private Map<String, Object> gateResponse(String id, AdmissionReport report) {

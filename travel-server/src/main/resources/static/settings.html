@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行助手 · 设置</title>
+<meta name="description" content="个人中心与设置：主题三态（跟随系统 / 浅色 / 深色）、协作通知、账号安全、关于、注销。" />
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="components.css" />
+<script>
+/* 主题先定后绘，避免首屏闪白 */
+(function () {
+  try {
+    var t = localStorage.getItem('travel.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* 忽略 */ }
+})();
+</script>
+<style>
+/* 网页端设置区：按 design/account.html「Web 设置」补齐结构与样式。
+   components.css 已给这些类一套卡片/胶囊实现，这里按设计稿覆盖为裸行 + 方框三态；
+   颜色一律走 tokens.css 语义变量，不引入色板外色值。 */
+.set{padding:24px;max-width:760px;margin:0 auto}
+.set-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;
+  padding:0;background:none;border:0;border-radius:0;box-shadow:none}
+.set-head .av{width:48px;height:48px;border-radius:50%;flex:0 0 auto;
+  background:var(--pine-soft);color:var(--pine);display:grid;place-items:center;
+  font-size:var(--fs-lg);font-weight:var(--w-strong);overflow:hidden}
+.set-head .av img{width:100%;height:100%;object-fit:cover}
+.set-head .nm{font-size:var(--fs-lg);font-weight:var(--w-strong)}
+.set-head .rl{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+.set-head .sp{margin-left:auto}
+.set-row{display:flex;align-items:center;gap:12px;padding:14px 0;
+  border-bottom:1px solid var(--line)}
+.set-row .ico{width:34px;height:34px;flex:0 0 auto;border-radius:var(--r-ctl);
+  background:var(--surface-2);color:var(--pine);display:grid;place-items:center;font-size:var(--fs-md)}
+.set-row .tx{flex:1;min-width:0}
+.set-row .tx .t{font-size:var(--fs-sm);font-weight:var(--w-strong)}
+.set-row .tx .d{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
+.set-row .sp{margin-left:auto;color:var(--text-3)}
+.theme-seg{display:flex;gap:6px;padding:0;background:none;border:0;border-radius:0}
+.theme-seg button{min-height:30px;padding:0 12px;display:inline-block;
+  border:1px solid var(--line-strong);border-radius:var(--r-ctl);
+  background:var(--surface);color:var(--text-2);font-size:var(--fs-xs);font-weight:var(--w-body)}
+.theme-seg button[aria-pressed="true"]{border-color:var(--pine);
+  background:var(--pine-soft);color:var(--pine-hover);font-weight:var(--w-strong);box-shadow:none}
+.switch{width:42px;height:24px;border-radius:var(--r-pill);flex:0 0 auto;
+  background:var(--line-strong);position:relative;transition:none}
+.switch::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;
+  background:#fff;top:3px;left:3px;box-shadow:var(--shadow-1);transition:none}
+.switch.on{background:var(--pine)}
+.switch.on::after{left:21px}
+</style>
+</head>
+<body>
+<header class="app-topbar">
+  <a class="back" href="/planner.html" title="返回工作台" aria-label="返回工作台">‹</a>
+  <h1>设置</h1>
+  <span class="sub">个人中心</span>
+  <span class="sp"></span>
+  <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
+    <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
+  </button>
+</header>
+
+<main class="set">
+  <div class="set-head">
+    <span class="av" id="avatar">·</span>
+    <div>
+      <div class="nm" id="uname">加载中…</div>
+      <div class="rl" id="urole">—</div>
+    </div>
+    <span class="sp"></span>
+    <button class="btn btn-outline btn-sm" type="button" id="logoutBtn">注销</button>
+  </div>
+
+  <div class="set-row">
+    <svg class="ico" aria-hidden="true"><use href="#i-theme"/></svg>
+    <div class="tx"><div class="t">主题</div><div class="d">跟随系统 / 浅色 / 深色</div></div>
+    <div class="theme-seg" id="themeSeg" role="group" aria-label="主题">
+      <button type="button" data-mode="auto" aria-pressed="false">系统</button>
+      <button type="button" data-mode="light" aria-pressed="false">浅色</button>
+      <button type="button" data-mode="dark" aria-pressed="false">深色</button>
+    </div>
+  </div>
+  <div class="set-row">
+    <svg class="ico" aria-hidden="true"><use href="#i-bell"/></svg>
+    <div class="tx"><div class="t">协作动态通知</div><div class="d">成员投票、采纳、邀请时提醒</div></div>
+    <span class="switch" id="notifySwitch" role="switch" aria-checked="true" tabindex="0"></span>
+  </div>
+  <div class="set-row is-btn" id="securityRow" role="button" tabindex="0">
+    <svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>
+    <div class="tx"><div class="t">账号安全</div><div class="d">登录限流已启用（8 次/分）</div></div>
+    <span class="sp">›</span>
+  </div>
+  <div class="set-row is-btn" id="aboutRow" role="button" tabindex="0">
+    <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
+    <div class="tx"><div class="t">关于</div><div class="d">出逃计划 v1.0 · 旅行助手</div></div>
+    <span class="sp">›</span>
+  </div>
+
+  <p class="notice-bar" style="margin-top:16px">本地演示环境 · 设置仅保存在本机浏览器与会话中。</p>
+</main>
+
+<!-- 图标符号（与 index.html / planner.html 同源，保持一致） -->
+<svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<symbol id="i-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5 A8.5 8.5 0 0 1 12 20.5 Z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5 V20.5 M3.8 9 H20.2 M3.8 15 H20.2"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12 A8.5 8.5 0 1 1 12 3.5 A8.5 8.5 0 0 1 20.5 12 Z"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2 V3.7 M12 20.3 V22 M2 12 H3.7 M20.3 12 H22 M5.4 5.4 L6.6 6.6 M17.4 17.4 L18.6 18.6 M18.6 5.4 L17.4 6.6 M6.6 17.4 L5.4 18.6" opacity=".7"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.8 3.6 A8.7 8.7 0 1 0 20.3 15.4 A6.9 6.9 0 0 1 15.8 3.6 Z"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17 H18 L16.5 13 V10 a4.5 4.5 0 0 0 -9 0 V13 Z"/><circle cx="12" cy="19.5" r="1.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L19 6 V11 C19 16 16 19.5 12 21 C8 19.5 5 16 5 11 V6 Z"/><path d="M9 11.5 L11 13.5 L15.5 9" opacity=".7"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11 V16"/><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none"/></symbol>
+</svg>
+
+<script src="mascot-widget.js?v=4.4"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var THEME_KEY = 'travel.theme', NOTIFY_KEY = 'travel.notify';
+
+  /* ---------- 主题三态 ---------- */
+  var ORDER = ['auto', 'light', 'dark'];
+  var TEXT = { auto: '跟随系统', light: '浅色', dark: '深色' };
+  function currentTheme() {
+    try { var t = localStorage.getItem(THEME_KEY); return ORDER.indexOf(t) >= 0 ? t : 'auto'; }
+    catch (e) { return 'auto'; }
+  }
+  function paintThemeIcon(mode) {
+    var dark = mode === 'dark' || (mode === 'auto' && window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var use = $('themeIcon').firstChild;
+    if (use && use.setAttribute) use.setAttribute('href', '#' + (dark ? 'i-sun' : 'i-moon'));
+    $('themeBtn').title = '外观：' + TEXT[mode];
+    $('themeBtn').setAttribute('aria-label', '外观：' + TEXT[mode] + '，点击切换');
+  }
+  function applyTheme(mode) {
+    if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* 忽略 */ }
+    paintThemeIcon(mode);
+    Array.prototype.forEach.call(document.querySelectorAll('#themeSeg button'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true' : 'false');
+    });
+  }
+  applyTheme(currentTheme());
+  $('themeBtn').addEventListener('click', function () {
+    applyTheme(ORDER[(ORDER.indexOf(currentTheme()) + 1) % ORDER.length]);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#themeSeg button'), function (b) {
+    b.addEventListener('click', function () { applyTheme(b.dataset.mode); });
+  });
+
+  /* ---------- 通知开关 ---------- */
+  var sw = $('notifySwitch');
+  function paintSwitch(on) {
+    sw.classList.toggle('on', on);
+    sw.setAttribute('aria-checked', on ? 'true' : 'false');
+  }
+  function getNotify() {
+    try { return localStorage.getItem(NOTIFY_KEY) !== 'off'; } catch (e) { return true; }
+  }
+  paintSwitch(getNotify());
+  function toggleNotify() {
+    var on = !getNotify();
+    try { localStorage.setItem(NOTIFY_KEY, on ? 'on' : 'off'); } catch (e) { /* 忽略 */ }
+    paintSwitch(on);
+  }
+  sw.addEventListener('click', toggleNotify);
+  sw.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNotify(); }
+  });
+
+  /* ---------- 资料 ---------- */
+  function paintProfile(u) {
+    if (!u || !u.username) return;
+    $('uname').textContent = u.username;
+    $('urole').textContent = (u.role || '用户') + ' · 已登录';
+    var av = $('avatar');
+    if (u.avatarUrl) {
+      av.innerHTML = '';
+      var img = document.createElement('img');
+      img.src = u.avatarUrl; img.alt = u.username;
+      av.appendChild(img);
+    } else {
+      av.textContent = u.username.charAt(0).toUpperCase();
+    }
+  }
+  fetch('/api/account/me', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(paintProfile)
+    .catch(function () { /* 服务未就绪：保留占位 */ });
+
+  /* ---------- 行点击（演示用，弹出自带提示） ---------- */
+  $('securityRow').addEventListener('click', function () { alert('账号安全：登录限流已启用（8 次/分）。完整的密码与登录设备管理即将上线。'); });
+  $('aboutRow').addEventListener('click', function () { alert('出逃计划 v1.0 · 旅行助手\n看板娘：游小满'); });
+  ['securityRow', 'aboutRow'].forEach(function (id) {
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') $(id).click(); });
+  });
+
+  /* ---------- 注销 ---------- */
+  $('logoutBtn').addEventListener('click', function () {
+    fetch('/api/logout', { method: 'POST', credentials: 'same-origin' })
+      .catch(function () { /* 即便失败也跳转 */ })
+      .then(function () { location.replace('/index.html'); });
+  });
+})();
+</script>
+</body>
+</html>

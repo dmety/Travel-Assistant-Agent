@@ -30,6 +30,7 @@ import com.travelassistant.server.application.agent.spi.DescriptorOnlyProvider;
 import com.travelassistant.server.application.agent.spi.GoldCaseSet;
 import com.travelassistant.server.application.agent.spi.RuleFailure;
 import com.travelassistant.server.application.agent.spi.RunBudget;
+import com.travelassistant.server.infrastructure.audit.AdminAuditLog;
 import com.travelassistant.server.interfaces.rest.AgentCapabilityController;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -340,7 +341,7 @@ class AgentRegistryIntegrationTest {
   void capabilitiesAreSanitizedAndExposeStatus() throws IOException {
     write(COMPLIANT);
     AgentCapabilityController controller =
-        new AgentCapabilityController(registry(), rules, admission);
+        new AgentCapabilityController(registry(), rules, admission, new AdminAuditLog());
     Map<String, Object> body = controller.capabilities();
     assertEquals("1.0", body.get("contractVersion"));
     assertNotNull(body.get("registryVersion"));
@@ -359,7 +360,7 @@ class AgentRegistryIntegrationTest {
     assertTrue(detailed.containsKey("routes"));
     assertEquals(200, controller.admission("food.recommender").getStatusCode().value());
     assertEquals(404, controller.admission("ghost.provider").getStatusCode().value());
-    Map<String, Object> reloaded = controller.reload();
+    Map<String, Object> reloaded = controller.reload(null);
     assertEquals(true, reloaded.get("reloaded"));
     assertEquals(5, reloaded.get("providerCount"));
   }
@@ -370,7 +371,7 @@ class AgentRegistryIntegrationTest {
         "\"authRef\": \"FOOD_AGENT_TOKEN\", \"token\": \"sk-fake\"");
     write(bad);
     AgentCapabilityController controller =
-        new AgentCapabilityController(registry(), rules, admission);
+        new AgentCapabilityController(registry(), rules, admission, new AdminAuditLog());
     AdmissionReport report = controller.admission("food.recommender").getBody();
     assertNotNull(report);
     assertTrue(codes(report).contains("E_META_AUTH"));
@@ -389,17 +390,17 @@ class AgentRegistryIntegrationTest {
     when(stub.shadowStats(eq("food.recommender")))
         .thenReturn(Map.of("samples", 20, "violations", 0));
     AgentCapabilityController controller =
-        new AgentCapabilityController(registry(), rules, stub);
+        new AgentCapabilityController(registry(), rules, stub, new AdminAuditLog());
 
-    Map<String, Object> probed = controller.probe("food.recommender");
+    Map<String, Object> probed = controller.probe("food.recommender", null);
     assertEquals(report, probed.get("report"));
     assertEquals(AgentDescriptor.PROBING, probed.get("status"));
     assertNotNull(probed.get("registryVersion"));
     assertEquals(Map.of("samples", 20, "violations", 0), probed.get("shadow"));
 
-    Map<String, Object> shadowed = controller.shadow("food.recommender", 20);
+    Map<String, Object> shadowed = controller.shadow("food.recommender", 20, null);
     assertEquals(report, shadowed.get("report"));
-    Map<String, Object> activated = controller.activate("food.recommender");
+    Map<String, Object> activated = controller.activate("food.recommender", null);
     assertEquals(report, activated.get("report"));
   }
 
@@ -491,7 +492,8 @@ class AgentRegistryIntegrationTest {
           org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
       var runtime = new com.travelassistant.server.application.agent.orchestration.AgentOrchestrator(
           registry, local, rules, anchors,
-          mock(com.travelassistant.server.application.agent.orchestration.SummaryComposer.class));
+          mock(com.travelassistant.server.application.agent.orchestration.SummaryComposer.class),
+          1, 4);
       var request = new com.travelassistant.server.application.agent.orchestration.DispatchRequest(
           "FOOD_RECOMMEND", Map.of("city", "杭州"), Map.of());
       assertEquals("food.recommender", runtime.dispatch(request).providerId());

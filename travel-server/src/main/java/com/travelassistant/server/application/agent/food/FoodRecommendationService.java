@@ -177,14 +177,20 @@ public class FoodRecommendationService {
       sourceFailures++;
     }
     try {
-      if (baidu.configured()) {
+      if (baidu.configured() && !baidu.dailyQuotaExhausted()) {
         LatLon bd = CoordinateTransforms.gcj02ToBd09(center.lat(), center.lon());
         pois.addAll(baidu.searchFoodNearby(bd.lat() + "," + bd.lon(), radius, 20));
       } else {
         sourceFailures++;
+        if (baidu.dailyQuotaExhausted()) {
+          notices.add("百度天配额已用完，已回退高德主源");
+        }
       }
     } catch (RuntimeException e) {
       sourceFailures++;
+      if (baidu.dailyQuotaExhausted()) {
+        notices.add("百度天配额已用完，已回退高德主源");
+      }
     }
 
     List<FoodPlace> unique = dedupe(pois);

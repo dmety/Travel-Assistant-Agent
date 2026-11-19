@@ -1,6 +1,6 @@
 # Agent 接入规范
 
-> Provider Admission Contract 1.0，2026-11-08 定稿。本文是接入方契约，基准提交 `66f00fa`。规则、Schema、闸门与接口都未落地代码，也未跑过真实准入。
+> Provider Admission Contract 1.0，2026-11-08 定稿。本文是接入方契约，基准提交 `66f00fa`。规则、Schema、G0 至 G4 闸门与运行时接口已于 2026-11-09 落地代码（见「与运行时的接口」一节）；内置 Provider 已注册并走同一套契约校验，外部 HTTP Provider 进注册表仍需公网 https 域名并入 allowlist 后跑完准入。
 
 ## 谁要读这份规范
 
@@ -363,14 +363,18 @@ G0 判定为 `E_META_AUTH`（M-09，内联凭据）加 `E_META_SCHEMA`（M-04，
     "capability": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND",
                    "ROUTE_ADVICE", "WEATHER_ADVICE", "CONTENT_INSPIRATION"],
     "sourceKind": ["KB", "AMAP", "TICKET_RULE", "USER_INPUT", "EXTERNAL"],
+    "factType": ["ATTRACTION", "WEATHER", "TICKET", "BUDGET", "ITINERARY", "CONTENT"],
     "externalVerificationStatus": ["unverified", "pending"],
-    "status": ["OK", "DEGRADED", "REFUSED"]
+    "status": ["OK", "DEGRADED", "REFUSED"],
+    "sideEffect": ["NONE", "READ", "WRITE"],
+    "providerKind": ["BEAN", "HTTP"]
   },
   "limits": {
     "timeoutMs": { "min": 100, "max": 10000, "default": 4000 },
     "maxResponseBytes": { "min": 1024, "max": 262144, "default": 65536 },
     "maxFacts": 50, "maxNotices": 20, "maxUnknownFields": 20,
-    "maxAdviceChars": 2000, "maxHints": 16,
+    "maxAdviceChars": 2000, "maxHints": 16, "maxContextProperties": 16,
+    "maxFactValueProperties": 32, "maxRunIdChars": 64,
     "shadowSamples": 20, "shadowBlockViolationRate": 0,
     "runtimeViolationToSuspend": 3
   },
@@ -412,7 +416,71 @@ G0 判定为 `E_META_AUTH`（M-09，内联凭据）加 `E_META_SCHEMA`（M-04，
     { "id": "X-06", "group": "SECURITY", "level": "WARN" }
   ],
   "goldCases": ["GC-01", "GC-02", "GC-03", "GC-04", "GC-05", "GC-06", "GC-07", "GC-08"],
-  "gates": ["G0_STATIC", "G1_CONTRACT_PROBE", "G2_SECURITY_PROBE", "G3_SHADOW", "G4_ENABLE"]
+  "goldCasesFile": "gold_cases.json",
+  "gates": ["G0_STATIC", "G1_CONTRACT_PROBE", "G2_SECURITY_PROBE", "G3_SHADOW", "G4_ENABLE"],
+  "runtime": {
+    "_note": "规范原文未给出 endpoint allowlist 取值与配置文件路径，P0 落地时补的运行参数，不属于规则集；变更不触发重新准入。",
+    "endpointAllowlist": ["agent.example.com"],
+    "configFile": "data/agent_providers.json",
+    "exampleConfigFile": "data/agent_providers.example.json",
+    "reservedPrefixes": ["builtin.", "system."]
+  },
+  "schemas": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "runId", "intent", "facts", "hints", "deadlineAt"],
+      "properties": {
+        "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+        "runId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "intent": { "enum": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND", "ROUTE_ADVICE", "WEATHER_ADVICE", "CONTENT_INSPIRATION"] },
+        "userIdHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "context": { "type": "object", "maxProperties": 16 },
+        "facts": { "type": "array", "maxItems": 50 },
+        "hints": { "type": "object", "maxProperties": 16 },
+        "deadlineAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "providerId", "status", "facts", "unknownFields", "notices", "usage"],
+      "properties": {
+        "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+        "providerId": { "type": "string", "maxLength": 64 },
+        "status": { "enum": ["OK", "DEGRADED", "REFUSED"] },
+        "facts": { "type": "array", "maxItems": 50 },
+        "advice": { "type": ["string", "null"], "maxLength": 2000 },
+        "unknownFields": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 64 } },
+        "notices": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 256 } },
+        "usage": {
+          "type": "object", "additionalProperties": false,
+          "required": ["elapsedMs"],
+          "properties": { "elapsedMs": { "type": "integer", "minimum": 0 }, "modelCalls": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+    "fact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["factId", "type", "value", "evidence"],
+      "properties": {
+        "factId": { "type": "string", "maxLength": 64 },
+        "type": { "enum": ["ATTRACTION", "WEATHER", "TICKET", "BUDGET", "ITINERARY", "CONTENT"] },
+        "value": { "type": "object", "maxProperties": 32 },
+        "evidence": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sourceKind", "verificationStatus", "fetchedAt"],
+          "properties": {
+            "sourceKind": { "enum": ["KB", "AMAP", "TICKET_RULE", "USER_INPUT", "EXTERNAL"] },
+            "sourceId": { "type": "string", "maxLength": 128 },
+            "verificationStatus": { "enum": ["unverified", "pending"] },
+            "fetchedAt": { "type": "string", "format": "date-time" },
+            "excerpt": { "type": "string", "maxLength": 512 }
+          }
+        }
+      }
+    }
+  }
 }
 ```
 

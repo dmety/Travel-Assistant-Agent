@@ -92,6 +92,88 @@ class PlanView {
     return view;
   }
 
+  /// 本地行程存档用的序列化（不含编排层 attempts）。
+  ///
+  /// 「我的行程」页依赖落盘会话里的结构化草案；普通聊天消息不写这个字段，
+  /// 只有带草案的助手消息才会多出这份数据，所以存档不会随闲聊条数膨胀。
+  Map<String, dynamic> toJson() => {
+        'advice': advice,
+        'notices': notices,
+        'sources': sources,
+        'questions': questions
+            .map((q) => {
+                  'code': q.code,
+                  'field': q.field,
+                  'question': q.question,
+                  'hint': q.hint,
+                })
+            .toList(),
+        'checks': checks
+            .map((c) => {
+                  'code': c.code,
+                  'severity': c.severity,
+                  'message': c.message,
+                  'suggestion': c.suggestion,
+                })
+            .toList(),
+        'candidates': candidates
+            .map((c) => {
+                  'name': c.name,
+                  'city': c.city,
+                  'level': c.level,
+                  'rating': c.rating,
+                  'ticket': c.ticket,
+                  'open_time': c.openTime,
+                })
+            .toList(),
+        'dailySchedules': dailySchedules
+            .map((d) => {
+                  'dayIndex': d.dayIndex,
+                  'date': d.date,
+                  'note': d.note,
+                  'items': d.items
+                      .map((i) => {
+                            'name': i.name,
+                            'city': i.city,
+                            'ticket': i.ticket,
+                            'openTime': i.openTime,
+                            'unknowns': i.unknowns,
+                          })
+                      .toList(),
+                })
+            .toList(),
+        'dayScope': dayScope == null
+            ? null
+            : {
+                'requestedDays': dayScope!.requestedDays,
+                'renderedDays': dayScope!.renderedDays,
+                'trimmedDays': dayScope!.trimmedDays,
+              },
+        'budgetEstimate': budgetEstimate,
+        'generatedAt': generatedAt,
+        'providerId': providerId,
+        'status': status,
+      };
+
+  static PlanView? fromJson(dynamic v) {
+    if (v is! Map) return null;
+    final m = Map<String, dynamic>.from(v);
+    return PlanView(
+      advice: _str(m['advice']),
+      notices: _list(m['notices'], 5),
+      sources: _list(m['sources'], 20),
+      questions: _questions(m['questions']),
+      checks: _checks(m['checks']),
+      candidates: _candidates(m['candidates']),
+      dailySchedules: _days(m['dailySchedules']),
+      dayScope: DayScope.from(m['dayScope']),
+      budgetEstimate: _str(m['budgetEstimate']),
+      generatedAt: _str(m['generatedAt']),
+      providerId: _str(m['providerId']) ?? '',
+      status: _str(m['status']) ?? '',
+    );
+  }
+
   static String? _str(dynamic v) {
     if (v == null) return null;
     final s = v.toString();

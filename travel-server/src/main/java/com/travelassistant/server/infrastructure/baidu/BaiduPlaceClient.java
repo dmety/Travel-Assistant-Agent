@@ -40,6 +40,16 @@ public class BaiduPlaceClient {
   private final RestTemplate restTemplate;
   private final String ak;
 
+  /**
+   * 天配额熔断（百度 {@code status=302}）：置位后到次日 00:00 本地时间前不再调用百度，
+   * 既避免配额耗尽后还空打接口，也保证第二天自动恢复。
+   */
+  private volatile boolean dailyQuotaExhausted;
+  private volatile long dailyResetAt;
+  /** 并发超限冷却（百度 {@code status=401}）：默认 60 秒后重试，避免密集重试把配额打穿。 */
+  private static final long CONCURRENCY_COOLDOWN_MS = 60_000L;
+  private volatile long concurrencyCooldownUntil;
+
   @Autowired
   public BaiduPlaceClient(RestTemplateBuilder builder,
       @Value("${travel.baidu.ak:}") String ak,
@@ -61,6 +71,57 @@ public class BaiduPlaceClient {
   }
 
   /**
+   * 配额 / 冷却是否放行：未配置、天配额耗尽（未到重置点）、并发冷却中都为 false。
+   * 消费端据此决定要不要跳过百度、直接走高德主源兜底。
+   */
+  public boolean available() {
+    return configured() && !isDailyQuotaExhausted()
+        && System.currentTimeMillis() >= concurrencyCooldownUntil;
+  }
+
+  /** 天配额是否耗尽（读取时按重置点自动解除）。 */
+  public boolean dailyQuotaExhausted() {
+    return isDailyQuotaExhausted();
+  }
+
+  /** 是否处于并发超限短冷却中。 */
+  public boolean concurrencyCooldownActive() {
+    return System.currentTimeMillis() < concurrencyCooldownUntil;
+  }
+
+  /**
+   * 不可用原因：null 表示可用；否则给调用方一条可直接对用户说的文案，不暴露密钥与状态码细节。
+   * 与 {@link #available()} 的口径一致。
+   */
+  public String unavailableReason() {
+    if (!configured()) {
+      return "百度密钥未配置";
+    }
+    if (isDailyQuotaExhausted()) {
+      return "百度天配额已用完，已回退高德主源";
+    }
+    if (concurrencyCooldownActive()) {
+      return "百度并发超限，稍后重试";
+    }
+    return null;
+  }
+
+  /** 读取天配额熔断位，并按重置点自动解除（到次日 00:00 本地时间）。 */
+  private boolean isDailyQuotaExhausted() {
+    if (dailyQuotaExhausted && System.currentTimeMillis() >= dailyResetAt) {
+      dailyQuotaExhausted = false;
+    }
+    return dailyQuotaExhausted;
+  }
+
+  /** 次日 00:00 本地时间对应的 epoch 毫秒，作为天配额熔断的重置点。 */
+  private static long nextMidnightMillis() {
+    return java.time.LocalDate.now(java.time.ZoneId.systemDefault()).plusDays(1)
+        .atStartOfDay(java.time.ZoneId.systemDefault())
+        .toEpochSecond() * 1000L;
+  }
+
+  /**
    * 检索锚点附近的餐饮 POI，返回坐标已换算为 GCJ-02 的临时快照。
    *
    * @param location 锚点，格式 {@code 纬度,经度}，且必须是 BD-09LL（百度接口口径）。
@@ -70,6 +131,12 @@ public class BaiduPlaceClient {
   public List<FoodPlace> searchFoodNearby(String location, int radiusMeters, int limit) {
     if (!configured()) {
       throw new BaiduUnavailableException("未配置百度地图 AK（环境变量 BAIDU_AK），第二数据源停用");
+    }
+    if (isDailyQuotaExhausted()) {
+      throw new BaiduUnavailableException("百度天配额已用完，已回退高德主源，本会话不再调用百度");
+    }
+    if (concurrencyCooldownActive()) {
+      throw new BaiduUnavailableException("百度并发超限，稍后重试");
     }
     String[] parts = location == null ? new String[0] : location.split(",");
     if (parts.length != 2) {
@@ -107,6 +174,18 @@ public class BaiduPlaceClient {
       throw new BaiduUnavailableException("百度地点检索返回空响应");
     }
     int status = root.path("status").asInt(-1);
+    if (status == 302) {
+      // 天配额超限：熔断到次日 00:00，期间不再调用，消费端自动回退高德主源。
+      dailyQuotaExhausted = true;
+      dailyResetAt = nextMidnightMillis();
+      throw new BaiduUnavailableException(
+          "百度天配额已用完（status 302），已回退高德主源，次日 00:00 后自动恢复");
+    }
+    if (status == 401) {
+      // 并发超限：短冷却后重试，避免密集重试把配额打穿。
+      concurrencyCooldownUntil = System.currentTimeMillis() + CONCURRENCY_COOLDOWN_MS;
+      throw new BaiduUnavailableException("百度并发超限（status 401），已进入 60 秒冷却");
+    }
     if (status != 0) {
       throw new BaiduUnavailableException(
           "百度地点检索返回错误，状态码 " + status + "（" + root.path("message").asText("") + "）");
@@ -158,6 +237,12 @@ public class BaiduPlaceClient {
     if (!configured()) {
       throw new BaiduUnavailableException("未配置百度地图 AK（环境变量 BAIDU_AK），第二数据源停用");
     }
+    if (isDailyQuotaExhausted()) {
+      throw new BaiduUnavailableException("百度天配额已用完，已回退高德主源，本会话不再调用百度");
+    }
+    if (concurrencyCooldownActive()) {
+      throw new BaiduUnavailableException("百度并发超限，稍后重试");
+    }
     if (region == null || region.isBlank()) {
       throw new BaiduUnavailableException("百度景点检索需要区县或城市名");
     }
@@ -185,6 +270,16 @@ public class BaiduPlaceClient {
       throw new BaiduUnavailableException("百度景点检索返回空响应");
     }
     int status = root.path("status").asInt(-1);
+    if (status == 302) {
+      dailyQuotaExhausted = true;
+      dailyResetAt = nextMidnightMillis();
+      throw new BaiduUnavailableException(
+          "百度天配额已用完（status 302），已回退高德主源，次日 00:00 后自动恢复");
+    }
+    if (status == 401) {
+      concurrencyCooldownUntil = System.currentTimeMillis() + CONCURRENCY_COOLDOWN_MS;
+      throw new BaiduUnavailableException("百度并发超限（status 401），已进入 60 秒冷却");
+    }
     if (status != 0) {
       throw new BaiduUnavailableException(
           "百度景点检索返回错误，状态码 " + status + "（" + root.path("message").asText("") + "）");

@@ -127,4 +127,41 @@ class BaiduPlaceClientTest {
         .andRespond(withSuccess("{\"status\":0,\"message\":\"ok\"}", MediaType.APPLICATION_JSON));
     assertThat(client("test-ak").searchFoodNearby("39.9,116.4", 1000, 5)).isEmpty();
   }
+
+  @Test
+  @DisplayName("天配额耗尽（302）熔断：首次抛异常并置位，后续调用直接短路不再打百度")
+  void dailyQuotaExhaustedOn302ThenShortCircuits() {
+    BaiduPlaceClient client = client("test-ak");
+    server.expect(requestTo(containsString("/place/v2/search")))
+        .andRespond(withSuccess("{\"status\":302,\"message\":\"天配额超限\"}", MediaType.APPLICATION_JSON));
+    assertThatThrownBy(() -> client.searchFoodNearby("39.9,116.4", 1000, 5))
+        .isInstanceOf(BaiduUnavailableException.class)
+        .hasMessageContaining("配额");
+    assertThat(client.dailyQuotaExhausted()).isTrue();
+    // 熔断后不再发起 HTTP 请求（方法在打百度前短路），直接回退高德主源
+    assertThatThrownBy(() -> client.searchFoodNearby("39.9,116.4", 1000, 5))
+        .isInstanceOf(BaiduUnavailableException.class)
+        .hasMessageContaining("回退高德");
+    assertThat(client.available()).isFalse();
+  }
+
+  @Test
+  @DisplayName("并发超限（401）进入 60 秒冷却，期间 available 为 false")
+  void concurrencyCooldownOn401() {
+    BaiduPlaceClient client = client("test-ak");
+    server.expect(requestTo(containsString("/place/v2/search")))
+        .andRespond(withSuccess("{\"status\":401,\"message\":\"并发超限\"}", MediaType.APPLICATION_JSON));
+    assertThatThrownBy(() -> client.searchFoodNearby("39.9,116.4", 1000, 5))
+        .isInstanceOf(BaiduUnavailableException.class)
+        .hasMessageContaining("并发");
+    assertThat(client.concurrencyCooldownActive()).isTrue();
+    assertThat(client.available()).isFalse();
+  }
+
+  @Test
+  @DisplayName("正常配置且无配额问题时 available 为 true，未配置时为 false")
+  void availabilityReflectsConfigAndQuota() {
+    assertThat(client("test-ak").available()).isTrue();
+    assertThat(client("").available()).isFalse();
+  }
 }

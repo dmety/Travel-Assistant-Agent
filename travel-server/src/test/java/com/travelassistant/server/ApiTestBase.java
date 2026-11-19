@@ -50,6 +50,10 @@ public abstract class ApiTestBase {
   @DynamicPropertySource
   static void dataDirectory(DynamicPropertyRegistry registry) {
     registry.add("travel.data-directory", () -> DATA_DIR.toString());
+    // 共享上下文里成百上千次注册/登录都来自 127.0.0.1，限流默认值会误伤整套测试；
+    // 这里放到极大值等效关闭，限流行为由专属低配额上下文 RateLimitFilterTest 验证。
+    registry.add("travel.rate-limit.login-per-minute", () -> "1000000");
+    registry.add("travel.rate-limit.register-per-minute", () -> "1000000");
   }
 
   // ---- 账号 ----

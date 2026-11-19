@@ -71,6 +71,9 @@ public abstract class V2ApiTestBase {
     // 强制为空：测试不应依赖（也不应触发）真实模型调用
     registry.add("travel.ai.api-key", () -> "");
     registry.add("travel.amap.key", () -> "");
+    // 同 ApiTestBase：共享上下文批量注册/登录来自同一 IP，等效关闭限流避免误伤。
+    registry.add("travel.rate-limit.login-per-minute", () -> "1000000");
+    registry.add("travel.rate-limit.register-per-minute", () -> "1000000");
   }
 
   // ---- 账号与行程 ----

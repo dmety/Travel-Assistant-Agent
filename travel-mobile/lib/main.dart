@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_baidu_mapapi_base/flutter_baidu_mapapi_base.dart';
 
 import 'api/client.dart';
+import 'config/map_config.dart';
 import 'models/plan_view.dart';
-import 'screens/chat_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 仅在配置了百度地图 AK 时初始化 SDK 并同意隐私协议；
+  // 未配置则 MapPanel 走 SVG 示意底图，不触动原生地图。
+  if (baiduMapAk.isNotEmpty) {
+    BMFMapSDK.setAgreePrivacy(true);
+    BMFMapSDK.setCoordType(BMF_COORD_TYPE.BD09LL);
+  }
   await ApiClient.instance.init();
   runApp(const TravelApp());
 }
@@ -18,7 +26,7 @@ class TravelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '旅行助手',
+      title: '出逃计划',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home: const BootGate(),
@@ -79,6 +87,6 @@ class _BootGateState extends State<BootGate> {
         },
       );
     }
-    return ChatScreen(username: a.username, onLogout: _logout);
+    return HomeScreen(username: a.username, onLogout: _logout);
   }
 }

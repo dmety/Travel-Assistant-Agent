@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../api/client.dart';
 import '../theme/tokens.dart';
+import '../widgets/brand_mark.dart';
 
-/// 登录页：品牌区 + 单卡片表单。
+/// 登录页：品牌印章英雄区 + 单卡片表单。
 ///
-/// 层级只有三级：品牌（标题）→ 表单（唯一主行动「登录」）→ 服务器地址（默认折叠）。
-/// 服务器地址收进「高级」里，因为真机/模拟器之外的场景极少需要改它。
+/// 视觉对齐 `design/tokens.css`：暖纸背景、松绿主行动、赤陶聚焦描边，
+/// 顶部用「出逃计划」品牌印章（山径等高线）作为英雄区。
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onLoggedIn});
 
@@ -80,38 +81,25 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ---------- 品牌 ----------
+                // ---------- 品牌英雄区 ----------
                 Center(
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: T.primarySoft,
-                      borderRadius: BorderRadius.circular(T.rCard),
-                      border: Border.all(color: T.primaryLine),
-                    ),
-                    child: const Text(
-                      '旅',
-                      style: TextStyle(
-                        fontSize: T.fsLg,
-                        color: T.primary,
-                        fontWeight: T.wStrong,
+                  child: Column(
+                    children: [
+                      BrandMark(size: 52, tile: true),
+                      const SizedBox(height: T.sp4),
+                      const Text(
+                        '出逃计划',
+                        textAlign: TextAlign.center,
+                        style: T.tXlStrong,
                       ),
-                    ),
+                      const SizedBox(height: T.sp1),
+                      const Text(
+                        '景区知识库 + 实时地图，生成可执行的每日行程',
+                        textAlign: TextAlign.center,
+                        style: T.tXs,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: T.sp4),
-                const Text(
-                  '旅行助手',
-                  textAlign: TextAlign.center,
-                  style: T.tLgStrong,
-                ),
-                const SizedBox(height: T.sp1),
-                const Text(
-                  '景区知识库 + 实时地图，生成可执行的每日行程',
-                  textAlign: TextAlign.center,
-                  style: T.tXs,
                 ),
                 const SizedBox(height: T.sp6),
 
@@ -288,9 +276,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: T.surface2,
+        color: T.surface,
         borderRadius: BorderRadius.circular(T.rCtl),
-        border: Border.all(color: T.lineStrong),
+        border: Border.all(color: T.fieldLine),
       ),
       padding: const EdgeInsets.symmetric(horizontal: T.sp3),
       child: Row(
@@ -314,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          ?suffix,
+          if (suffix != null) suffix,
         ],
       ),
     );

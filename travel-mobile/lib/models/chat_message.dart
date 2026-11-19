@@ -11,6 +11,10 @@ class ChatMessage {
   final MsgRole role;
   final String text;
   final PlanView? plan;
+  /// 只用于「我的行程」索引与地图点位：/api/chat 分支把契约信封放在 cards 里，
+  /// 由 DraftBlocks 渲染卡片，但 message.plan 为空。这个字段把同一份草案留档，
+  /// 不参与 message_bubble 的富内容渲染（否则「逐日草案」会出现两次）。
+  final PlanView? planForTrips;
   final FoodView? food;
   final List<ToolCard> cards;
   final List<String> notices;
@@ -23,6 +27,7 @@ class ChatMessage {
     required this.role,
     required this.text,
     this.plan,
+    this.planForTrips,
     this.food,
     this.cards = const [],
     this.notices = const [],
@@ -34,23 +39,30 @@ class ChatMessage {
   bool get hasRichContent =>
       plan != null || food != null || cards.isNotEmpty || notices.isNotEmpty;
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'role': role.name,
-        'text': text,
-        'time': time,
-        'failed': failed,
-        'notices': notices,
-        'trace': trace,
-        // 结构化视图体积大，历史回放只需要正文与提示；
-        // 卡片不落盘，避免本地存档随天数膨胀。
-      };
+  Map<String, dynamic> toJson() {
+    // 优先留档索引字段；/api/agent/invoke 分支只有 plan，也照样存。
+    final archive = planForTrips ?? plan;
+    return {
+      'id': id,
+      'role': role.name,
+      'text': text,
+      'time': time,
+      'failed': failed,
+      'notices': notices,
+      'trace': trace,
+      // 普通聊天只存正文与提示；只有带结构化草案的助手消息多存一份
+      // 行程摘要，供「我的行程」列表与详情页回放。美食卡、工具卡不落盘，
+      // 避免存档随闲聊条数膨胀。
+      if (archive != null) 'plan': archive.toJson(),
+    };
+  }
 
   static ChatMessage fromJson(Map<String, dynamic> m) => ChatMessage(
         id: (m['id'] ?? '').toString(),
         role: m['role'] == 'user' ? MsgRole.user : MsgRole.assistant,
         text: (m['text'] ?? '').toString(),
         time: (m['time'] ?? '').toString(),
+        planForTrips: PlanView.fromJson(m['plan']),
         failed: m['failed'] == true,
         notices: (m['notices'] is List)
             ? (m['notices'] as List).map((e) => e.toString()).toList()

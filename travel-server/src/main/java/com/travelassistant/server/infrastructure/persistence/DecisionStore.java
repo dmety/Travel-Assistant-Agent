@@ -90,14 +90,18 @@ public class DecisionStore {
 
   /** 删除候选项，并连带删除它名下的全部选票。 */
   public synchronized void deleteCandidate(String itineraryId, String candidateId) {
-    boolean removed = candidates.removeIf(
+    List<Candidate> keptCandidates = new ArrayList<>(candidates);
+    boolean removed = keptCandidates.removeIf(
         c -> c.itineraryId().equals(itineraryId) && c.id().equals(candidateId));
     if (removed) {
-      write(candidateFile, candidates, "候选项");
+      candidates = keptCandidates;
+      write(candidateFile, keptCandidates, "候选项");
     }
-    boolean voteRemoved = votes.removeIf(v -> v.candidateId().equals(candidateId));
+    List<Vote> keptVotes = new ArrayList<>(votes);
+    boolean voteRemoved = keptVotes.removeIf(v -> v.candidateId().equals(candidateId));
     if (voteRemoved) {
-      write(voteFile, votes, "选票");
+      votes = keptVotes;
+      write(voteFile, keptVotes, "选票");
     }
   }
 
@@ -146,23 +150,29 @@ public class DecisionStore {
 
   /** 撤回自己的票；返回是否确实删掉了。 */
   public synchronized boolean removeVote(String candidateId, String voter) {
-    boolean removed = votes.removeIf(
+    List<Vote> kept = new ArrayList<>(votes);
+    boolean removed = kept.removeIf(
         v -> v.candidateId().equals(candidateId) && v.voter().equals(voter));
     if (removed) {
-      write(voteFile, votes, "选票");
+      votes = kept;
+      write(voteFile, kept, "选票");
     }
     return removed;
   }
 
   /** 行程删除后清掉候选与选票。 */
   public synchronized void purge(String itineraryId) {
-    boolean candidateRemoved = candidates.removeIf(c -> c.itineraryId().equals(itineraryId));
+    List<Candidate> keptCandidates = new ArrayList<>(candidates);
+    boolean candidateRemoved = keptCandidates.removeIf(c -> c.itineraryId().equals(itineraryId));
     if (candidateRemoved) {
-      write(candidateFile, candidates, "候选项");
+      candidates = keptCandidates;
+      write(candidateFile, keptCandidates, "候选项");
     }
-    boolean voteRemoved = votes.removeIf(v -> v.itineraryId().equals(itineraryId));
+    List<Vote> keptVotes = new ArrayList<>(votes);
+    boolean voteRemoved = keptVotes.removeIf(v -> v.itineraryId().equals(itineraryId));
     if (voteRemoved) {
-      write(voteFile, votes, "选票");
+      votes = keptVotes;
+      write(voteFile, keptVotes, "选票");
     }
   }
 

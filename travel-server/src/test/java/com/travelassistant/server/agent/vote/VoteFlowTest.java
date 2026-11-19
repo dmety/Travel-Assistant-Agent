@@ -49,7 +49,7 @@ class VoteFlowTest {
     when(registry.find(anyString())).thenAnswer(inv ->
         Optional.ofNullable(providers.get(inv.getArgument(0, String.class))));
     when(registry.version()).thenReturn("test-registry");
-    return new VoteOrchestrator(registry, validator, rules, model, json);
+    return new VoteOrchestrator(registry, validator, rules, model, json, 2, 8);
   }
 
   private static DeepSeekClient absentModel() {
@@ -230,7 +230,7 @@ class VoteFlowTest {
         Optional.ofNullable(providers.get(inv.getArgument(0, String.class))));
     when(registry.version()).thenReturn("test-registry");
     VoteOrchestrator orchestrator = new VoteOrchestrator(
-        registry, validator, rules, absentModel(), json);
+        registry, validator, rules, absentModel(), json, 2, 8);
     VoteOrchestrator.VoteRun run = orchestrator.vote(request(List.of()));
     assertThat(run.outcome().rejections()).isEmpty();
     org.mockito.Mockito.verify(registry, org.mockito.Mockito.never()).reports();

@@ -142,13 +142,17 @@ public class CollaborationStore {
 
   /** 行程删除后清掉它的留言与修改记录，避免留下指向已不存在行程的孤儿数据。 */
   public synchronized void purge(String itineraryId) {
-    boolean commentRemoved = comments.removeIf(c -> c.itineraryId().equals(itineraryId));
-    boolean changeRemoved = changes.removeIf(c -> c.itineraryId().equals(itineraryId));
+    List<Comment> keptComments = new ArrayList<>(comments);
+    boolean commentRemoved = keptComments.removeIf(c -> c.itineraryId().equals(itineraryId));
+    List<ChangeEntry> keptChanges = new ArrayList<>(changes);
+    boolean changeRemoved = keptChanges.removeIf(c -> c.itineraryId().equals(itineraryId));
     if (commentRemoved) {
-      write(commentFile, comments, "留言");
+      comments = keptComments;
+      write(commentFile, keptComments, "留言");
     }
     if (changeRemoved) {
-      write(changeFile, changes, "修改记录");
+      changes = keptChanges;
+      write(changeFile, keptChanges, "修改记录");
     }
   }
 

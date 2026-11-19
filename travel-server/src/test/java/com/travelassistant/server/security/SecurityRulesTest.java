@@ -109,6 +109,46 @@ class SecurityRulesTest extends ApiTestBase {
   }
 
   @Test
+  @DisplayName("管理后台页面公开，/admin 转发到静态页")
+  void adminPageIsPublic() throws Exception {
+    // 页面静态资源必须公开，页内注册表/准入接口由 AdminTokenFilter 以 X-Admin-Token 鉴权。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/admin.html"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"gate\"")))
+        .andExpect(content().string(containsString("id=\"console\"")));
+
+    mvc.perform(get("/admin"))
+        .andExpect(status().isOk())
+        .andExpect(forwardedUrl("/admin.html"));
+  }
+
+  @Test
+  @DisplayName("本轮新增网页端页面（移动端/设置/美食）与看板娘资源均公开")
+  void newWebPagesAndMascotAssetsArePublic() throws Exception {
+    // 三个新页面与 planner.html 同模式：页面公开，页内 /api/** 仍由 authenticated() 拦截。
+    // 断言用 ASCII 结构标记，避开 MockMvc 按 ISO-8859-1 解码中文静态资源的问题。
+    mvc.perform(get("/mobile.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"pLogin\"")));
+    mvc.perform(get("/settings.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"themeSeg\"")));
+    mvc.perform(get("/food.html")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("id=\"askInput\"")));
+    // 看板娘 PNG：未登录也需可见，否则登录页/移动端看板娘裂图。
+    mvc.perform(get("/mascot/mascot-v4-front-idle.png")).andExpect(status().isOk());
+
+    // 根目录共享静态资源：settings / food / mobile 引用 tokens.css 与 components.css，
+    // planner/settings/food 挂的浮动看板娘脚本是 mascot-widget.js。三者未登录也需公开，
+    // 否则页面样式与脚本 401 加载失败、渲染崩坏（实测过 401 导致 theme-seg 截断、看板娘消失）。
+    mvc.perform(get("/tokens.css")).andExpect(status().isOk())
+        .andExpect(content().string(containsString(":root")));
+    mvc.perform(get("/components.css")).andExpect(status().isOk())
+        .andExpect(content().string(containsString(".theme-seg")));
+    mvc.perform(get("/mascot-widget.js")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("mascot-dock")));
+  }
+
+  @Test
   @DisplayName("三个能力状态接口匿名可读，且未配置模型时不宣称文字建议")
   void capabilityStatusEndpointsArePublic() throws Exception {
     // 状态接口只返回布尔、统计与能力描述，不含用户数据；未登录时也必须能观察降级原因。
@@ -204,5 +244,19 @@ class SecurityRulesTest extends ApiTestBase {
     mvc.perform(get("/api/health"))
         .andExpect(header().string("X-Content-Type-Options", "nosniff"))
         .andExpect(header().string("X-Frame-Options", "DENY"));
+  }
+
+  @Test
+  @DisplayName("未配置管理令牌时，Provider 管理端点对登录用户也 fail-closed 403（F1）")
+  void adminEndpointsFailClosedWithoutConfiguredToken() throws Exception {
+    // 默认上下文未注入 travel.agent.admin-token：管理端点必须一律拒绝，
+    // 不能因为「已登录」就放行——否则任意注册用户仍可触发探针/影子/启用与读取准入报告。
+    MockHttpSession user = registerAndLogin();
+    mvc.perform(post("/api/agent/providers/reload").session(user))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/agent/providers/any-id/admission").session(user))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/api/agent/providers/any-id/activate").session(user))
+        .andExpect(status().isForbidden());
   }
 }

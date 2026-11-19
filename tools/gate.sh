@@ -41,11 +41,13 @@ command -v "$PYTHON" >/dev/null 2>&1 || { echo 'Python unavailable: set PYTHON' 
 # 22 条规则逐例等价；每次交付前跑一遍，防止 Java 计票器与已定案规则漂移。
 "$PYTHON" -B tools/agent/plan_vote.py
 # 知识库治理门禁：存量数据欠账必须在 tools/kb_quality_waivers.json 逐项登记理由与证据；
-# 未登记的新失败、欠账恶化或豁免过期一律 exit=1。kb 包在 tools/ 下，
-# Windows 版 Python 的 PYTHONPATH 用分号分隔，因此保留调用方原有的 PYTHONPATH。
-PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B tools/kb_quality_gate.py
+# 未登记的新失败、欠账恶化或豁免过期一律 exit=1。kb 包在 tools/ 下，需把 tools 加入 PYTHONPATH。
+# 分隔符由解释器自身决定（Windows 分号 / POSIX 冒号）：写死分号会让 Linux/macOS import 失败。
+# 用 os.pathsep 取真实分隔符，并保留调用方原有的 PYTHONPATH。
+PP_SEP="$("$PYTHON" -c 'import os; print(os.pathsep)')"
+PYTHONPATH="tools${PP_SEP}${PYTHONPATH:-}" "$PYTHON" -B tools/kb_quality_gate.py
 # 坐标转换回归：BD-09 系数、往返一致性、链路自洽（零依赖 unittest）
-PYTHONPATH="tools;${PYTHONPATH:-}" "$PYTHON" -B -m unittest kb.test_coordinates -v
+PYTHONPATH="tools${PP_SEP}${PYTHONPATH:-}" "$PYTHON" -B -m unittest kb.test_coordinates -v
 if [ "$SKIP_TESTS" -eq 0 ]; then
   "$MVN" -B clean verify
 else
