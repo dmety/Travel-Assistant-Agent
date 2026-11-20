@@ -178,6 +178,111 @@ public final class DraftAssembler {
         ticket, openTime, unknowns, note);
   }
 
+  /** 坐标转换到 GCJ-02；坐标或坐标系缺失、无效时不参与距离判断。 */
+  public static com.travelassistant.server.infrastructure.geo.CoordinateTransforms.LatLon coordinate(
+      Attraction attraction) {
+    if (attraction == null || attraction.lat() == null || attraction.lon() == null
+        || !Double.isFinite(attraction.lat()) || !Double.isFinite(attraction.lon())
+        || Math.abs(attraction.lat()) > 90 || Math.abs(attraction.lon()) > 180) {
+      return null;
+    }
+    return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.toGcj02(
+        attraction.lat(), attraction.lon(), attraction.coordinateSystem());
+  }
+
+  /** 与其它来源合并前去掉空项，并按目的地身份去重。 */
+  public static List<Attraction> uniqueAttractions(List<Attraction> candidates) {
+    if (candidates == null || candidates.isEmpty()) {
+      return List.of();
+    }
+    List<Attraction> unique = new ArrayList<>();
+    for (Attraction attraction : candidates) {
+      if (attraction == null || attraction.name() == null || attraction.name().isBlank()) {
+        continue;
+      }
+      if (unique.stream().noneMatch(existing -> sameDestination(existing, attraction))) {
+        unique.add(attraction);
+      }
+    }
+    return List.copyOf(unique);
+  }
+
+  /** 相同城市中的同一景点只保留一个，坐标别名需有近距离证据。 */
+  public static boolean sameDestination(Attraction a, Attraction b) {
+    if (a == null || b == null) {
+      return false;
+    }
+    if (a.id() != null && a.id().equals(b.id())) {
+      return true;
+    }
+    if (!normalizeCity(a.city()).equals(normalizeCity(b.city()))) {
+      return false;
+    }
+    var first = coordinate(a);
+    var second = coordinate(b);
+    if (!normalize(a.name()).equals(normalize(b.name()))) {
+      return normalize(a.name()).replace("古寺", "寺")
+              .equals(normalize(b.name()).replace("古寺", "寺"))
+          && first != null && second != null
+          && com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(
+              first.lat(), first.lon(), second.lat(), second.lon()) <= 300;
+    }
+    if (first != null && second != null) {
+      return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(
+          first.lat(), first.lon(), second.lat(), second.lon()) <= 3000;
+    }
+    return true;
+  }
+
+  /** 按用户明确填写的排除景点 ID 或名称过滤，不做模糊推荐推断。 */
+  public static boolean excluded(PlanningRequest request, Attraction attraction) {
+    if (request == null || attraction == null || request.details() == null) {
+      return false;
+    }
+    return request.details().excludedAttractionIds().stream()
+        .anyMatch(value -> value.equals(attraction.id())
+            || normalize(value).equals(normalize(attraction.name()))
+            || normalize(attraction.name()).startsWith(normalize(value) + "景区"));
+  }
+
+  /** 用可见等级、评分与评价量解释排序依据；不把评价量说成实时客流。 */
+  public static String selectionReason(Attraction attraction) {
+    String level = PlaceholderValues.clean(attraction.level());
+    String rating = PlaceholderValues.clean(attraction.rating());
+    String comments = attraction.evidenceFor("commentCount").stream()
+        .map(Attraction.FieldEvidence::value).findFirst().orElse(null);
+    String popularity = comments == null
+        ? "评价量/热度未返回，热门程度未核验"
+        : "接口评价量=" + comments + "，来源=" + attraction.fieldSource("commentCount")
+            + "；评价量不等于实时客流";
+    if (level != null) {
+      return "匹配必去点和偏好后按可见评分/等级排序；等级「" + level + "」，来源「"
+          + attraction.fieldSource("level") + "」；评分="
+          + (rating == null ? "未返回" : rating) + "；" + popularity;
+    }
+    if (rating != null) {
+      return "等级未返回，按可见评分「" + rating + "」排序，字段来源「"
+          + attraction.fieldSource("rating") + "」；" + popularity;
+    }
+    return "来自目的地景点检索结果；等级、评分、热度/评论量均未返回，无法核验其热门程度";
+  }
+
+  private static String normalize(String raw) {
+    return raw == null ? "" : raw.strip().toLowerCase(java.util.Locale.ROOT)
+        .replaceAll("[\\s　、，。·•\\-—_（）()【】\\[\\]]+", "");
+  }
+
+  private static String normalizeCity(String raw) {
+    String city = normalize(raw);
+    for (String suffix : List.of("特别行政区", "维吾尔自治区", "壮族自治区", "回族自治区",
+        "自治区", "自治州", "地区", "市", "县")) {
+      if (city.endsWith(suffix) && city.length() > suffix.length()) {
+        return city.substring(0, city.length() - suffix.length());
+      }
+    }
+    return city;
+  }
+
   // ---- 补问与检查规则 ----
 
   private static void collectQuestions(PlanningRequest request, List<DraftQuestion> questions,
@@ -256,7 +361,7 @@ public final class DraftAssembler {
     }
   }
 
-  private static DraftBudgetEstimate estimate(PlanningRequest request,
+  public static DraftBudgetEstimate estimate(PlanningRequest request,
       List<Attraction> selected, List<DraftCheck> checks) {
     BigDecimal subtotal = BigDecimal.ZERO;
     int unknown = 0;
