@@ -45,7 +45,16 @@ public record PlanDraft(
     List<DraftDay> dailySchedules,
     List<DraftCheck> checks,
     DraftBudgetEstimate budgetEstimate,
-    Instant generatedAt) {
+    Instant generatedAt,
+    TravelGuide guide) {
+
+  public PlanDraft(PlanningRequest request, List<Attraction> candidates, WeatherResult weather,
+      List<TicketAdvice> tickets, String advice, List<String> notices, List<String> sources,
+      List<DraftQuestion> questions, List<DraftDay> dailySchedules, List<DraftCheck> checks,
+      DraftBudgetEstimate budgetEstimate, Instant generatedAt) {
+    this(request, candidates, weather, tickets, advice, notices, sources, questions, dailySchedules,
+        checks, budgetEstimate, generatedAt, null);
+  }
 
   public PlanDraft {
     candidates = candidates == null ? List.of() : List.copyOf(candidates);

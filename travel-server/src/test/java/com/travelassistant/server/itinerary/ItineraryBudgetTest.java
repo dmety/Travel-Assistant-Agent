@@ -220,11 +220,12 @@ class ItineraryBudgetTest extends ApiTestBase {
   void checksPassWhenDataIsComplete() throws Exception {
     MockHttpSession owner = registerAndLogin();
     String id = createItinerary(owner, "完整行程");
-    // 相对今天取日期：硬编码的固定日期会随日历推移变成过去，触发 TRIP_ENDED 而误报体检不通过
-    LocalDate depart = LocalDate.now();
+    // 使用相对日期避免固定日期过期；从明天开始验证未开始的完整行程。
+    LocalDate depart = LocalDate.now().plusDays(1);
+    LocalDate middle = depart.plusDays(1);
     LocalDate ret = depart.plusDays(2);
     savePlan(id, owner, planWithDates(depart.toString(), ret.toString()), 1);
-    saveDaily(id, owner, 2, depart.plusDays(1).toString(), "逛西湖");
+    saveDaily(id, owner, 2, middle.toString(), "逛西湖");
     saveTransports(id, owner, 3, transportOn(depart.toString()));
     saveLodgings(id, owner, 4, lodgingBetween(depart.toString(), ret.toString()));
     saveExpenses(id, owner, 5, expenseOf("交通", "600", "CNY"));

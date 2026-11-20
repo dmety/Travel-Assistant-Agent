@@ -39,10 +39,10 @@ class PlanningApiTest extends V2ApiTestBase {
         .andReturn();
 
     JsonNode body = read(result);
-    assertThat(body.get("advice").isNull()).isTrue();
-    assertThat(notices(body)).anyMatch(n -> n.contains("未配置模型密钥"));
-    assertThat(notices(body)).anyMatch(n -> n.contains("未接入实时天气"));
-    assertThat(sources(body)).contains("本地景点知识库");
+    assertThat(body.path("advice").asText()).contains("费用明细");
+    assertThat(body.path("guide").isObject()).isTrue();
+    assertThat(notices(body)).noneMatch(n -> n.contains("未接入实时天气"));
+    assertThat(sources(body)).anyMatch(source -> source.contains("OpenStreetMap"));
     assertThat(body.path("generatedAt").asText()).isNotBlank();
   }
 

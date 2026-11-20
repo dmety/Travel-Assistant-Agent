@@ -50,6 +50,7 @@ public class SecurityConfiguration {
                 // /api/agent/capabilities 同理：只含 id / 状态 / 能力标签 / 最近拒绝原因码，
                 // 不含 endpoint、authRef 或任何凭据，前端登录前就能动态渲染可用入口。
                 "/api/location/status", "/api/agent/status", "/api/agent/capabilities",
+                "/api/demo-orders/products",
                 // Provider 注册表只读快照与管理端点（providers/reload/probe/shadow/activate/admission）
                 // 改注册表状态、携服务端凭据发真实请求、消耗配额或泄漏 endpoint，不能对任意
                 // 登录用户开放。这里放行是为了与「用户会话」解耦：真正的门禁交给 AdminTokenFilter，

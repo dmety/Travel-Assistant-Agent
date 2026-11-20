@@ -15,6 +15,9 @@ import com.travelassistant.server.application.itinerary.MemberNotFoundException;
 import com.travelassistant.server.application.itinerary.VersionConflictException;
 import com.travelassistant.server.application.location.AmapUnavailableException;
 import com.travelassistant.server.application.ticket.InvalidTicketQueryException;
+import com.travelassistant.server.application.purchase.DemoTicketOrderService.OrderForbiddenException;
+import com.travelassistant.server.application.purchase.DemoTicketOrderService.OrderNotFoundException;
+import com.travelassistant.server.application.purchase.InvalidDemoOrderException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -56,6 +59,22 @@ public class ApiExceptionHandler {
     response.setStatus(status);
     response.setContentType("application/json;charset=UTF-8");
     response.getWriter().write(json.writeValueAsString(body));
+  }
+
+  @ExceptionHandler(OrderNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> orderNotFound(OrderNotFoundException e) {
+    return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+  }
+
+  @ExceptionHandler(OrderForbiddenException.class)
+  public ResponseEntity<Map<String, Object>> orderForbidden(OrderForbiddenException e) {
+    return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+  }
+
+  @ExceptionHandler(InvalidDemoOrderException.class)
+  public ResponseEntity<Map<String, Object>> invalidDemoOrder(InvalidDemoOrderException e) {
+    return ResponseEntity.badRequest().body(Map.of("error",
+        e.getMessage() == null ? "请求参数无效" : e.getMessage()));
   }
 
   @ExceptionHandler(ItineraryNotFoundException.class)

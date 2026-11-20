@@ -24,9 +24,15 @@ public record ConversationState(
     Integer days,
     Integer travelers,
     BigDecimal budget,
-    List<String> preferences) {
+    List<String> preferences,
+    java.util.Map<String, Object> planning) {
+
+  public ConversationState(String city, Integer days, Integer travelers, BigDecimal budget, List<String> preferences) {
+    this(city, days, travelers, budget, preferences, java.util.Map.of());
+  }
 
   public ConversationState {
+    planning = planning == null ? java.util.Map.of() : java.util.Map.copyOf(planning);
     city = city == null || city.isBlank() ? null : city.strip();
     preferences = preferences == null ? List.of() : List.copyOf(preferences);
   }

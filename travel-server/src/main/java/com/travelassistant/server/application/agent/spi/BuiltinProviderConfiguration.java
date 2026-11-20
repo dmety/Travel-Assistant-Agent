@@ -143,7 +143,8 @@ public class BuiltinProviderConfiguration {
         text(input.get("destination")), integer(input.get("days")),
         strings(input.get("preferences")), decimal(input.get("budget")),
         text(input.get("currency")), integer(input.get("travelers")),
-        date(input.get("departDate")), date(input.get("returnDate")));
+        date(input.get("departDate")), date(input.get("returnDate")),
+        input.get("details") == null ? null : new com.fasterxml.jackson.databind.ObjectMapper().convertValue(input.get("details"), PlanningRequest.Details.class));
     PlanDraft draft = service.plan(request);
     List<String> unknown = new ArrayList<>();
     for (DraftQuestion question : draft.questions()) {
@@ -171,6 +172,8 @@ public class BuiltinProviderConfiguration {
     value.put("category", "PLAN_DRAFT");
     value.put("destination", draft.request().destination());
     value.put("days", draft.request().days());
+    value.put("departDate", draft.request().departDate() == null ? null : draft.request().departDate().toString());
+    value.put("effectiveDays", draft.request().effectiveDays());
     // 编排层收敛口径：请求天数与真正排出天数分开给，前端只需一条说明，不铺空天。
     Integer effective = draft.request().effectiveDays();
     int requested = effective == null ? 0 : Math.min(effective, DraftAssembler.MAX_DAYS);
@@ -181,8 +184,35 @@ public class BuiltinProviderConfiguration {
     dayScope.put("trimmedDays", Math.max(0, requested - rendered));
     value.put("dayScope", dayScope);
     value.put("advice", draft.advice());
+    if (draft.guide() != null) {
+      value.put("guide", draft.guide());
+      value.put("guideText", draft.advice());
+    }
     value.put("notices", List.copyOf(draft.notices()));
     value.put("sources", List.copyOf(draft.sources()));
+
+    if (draft.weather() != null) {
+      Map<String, Object> weather = new LinkedHashMap<>();
+      weather.put("city", draft.weather().city());
+      weather.put("source", draft.weather().source());
+      weather.put("reportTime", draft.weather().reportTime());
+      weather.put("queriedAt", draft.weather().queriedAt() == null
+          ? null : draft.weather().queriedAt().toString());
+      List<Map<String, Object>> forecasts = new ArrayList<>();
+      draft.weather().days().forEach(day -> {
+        Map<String, Object> forecast = new LinkedHashMap<>();
+        forecast.put("date", day.date());
+        forecast.put("dayWeather", day.dayWeather());
+        forecast.put("nightWeather", day.nightWeather());
+        forecast.put("dayTemp", day.dayTemp());
+        forecast.put("nightTemp", day.nightTemp());
+        forecast.put("dayWind", day.dayWind());
+        forecast.put("dayPower", day.dayPower());
+        forecasts.add(forecast);
+      });
+      weather.put("days", forecasts);
+      value.put("weather", weather);
+    }
 
     List<Map<String, Object>> questions = new ArrayList<>();
     for (DraftQuestion q : draft.questions()) {
@@ -207,6 +237,7 @@ public class BuiltinProviderConfiguration {
     }
     value.put("checks", checks);
 
+    Map<String, Attraction> attractionById = new LinkedHashMap<>();
     List<Map<String, Object>> candidates = new ArrayList<>();
     for (Attraction a : draft.candidates()) {
       Map<String, Object> item = new LinkedHashMap<>();
@@ -217,6 +248,20 @@ public class BuiltinProviderConfiguration {
       item.put("rating", a.rating());
       item.put("ticket", a.ticket());
       item.put("open_time", a.openTime());
+      item.put("address", a.address());
+      item.put("source", a.sourceText());
+      item.put("ticketStatus", a.ticketStatus());
+      item.put("openTimeStatus", a.openTimeStatus());
+      item.put("ticketSource", a.ticket() == null ? null : a.fieldSource("ticket"));
+      item.put("openTimeSource", a.openTime() == null ? null : a.fieldSource("openTime"));
+      item.put("levelSource", a.level() == null ? null : a.sourceText());
+      item.put("addressSource", a.address() == null ? null : a.sourceText());
+      item.put("retrievedAt", a.retrievedAt());
+      item.put("informationUpdatedAt", a.informationUpdatedAt());
+      item.put("fieldEvidence", a.fieldEvidence());
+      if (a.id() != null) {
+        attractionById.put(a.id(), a);
+      }
       candidates.add(item);
     }
     value.put("candidates", candidates);
@@ -237,6 +282,19 @@ public class BuiltinProviderConfiguration {
         one.put("ticket", it.ticket());
         one.put("openTime", it.openTime());
         one.put("unknowns", List.copyOf(it.unknowns()));
+        Attraction attraction = attractionById.get(it.attractionId());
+        if (attraction != null) {
+          one.put("selectionBasis", DraftAssembler.selectionReason(attraction));
+          one.put("level", attraction.level());
+          one.put("address", attraction.address());
+          one.put("ticketStatus", attraction.ticketStatus());
+          one.put("openTimeStatus", attraction.openTimeStatus());
+          one.put("ticketSource", attraction.ticket() == null ? null : attraction.fieldSource("ticket"));
+          one.put("openTimeSource", attraction.openTime() == null ? null : attraction.fieldSource("openTime"));
+          one.put("retrievedAt", attraction.retrievedAt());
+          one.put("informationUpdatedAt", attraction.informationUpdatedAt());
+          one.put("fieldEvidence", attraction.fieldEvidence());
+        }
         items.add(one);
       }
       item.put("items", items);
@@ -530,6 +588,7 @@ public class BuiltinProviderConfiguration {
       case "walking", "walk", "步行" -> RouteMode.WALKING;
       case "driving", "drive", "驾车", "开车" -> RouteMode.DRIVING;
       case "transit", "bus", "公交", "地铁" -> RouteMode.TRANSIT;
+      case "cycling", "bicycle", "骑行" -> RouteMode.CYCLING;
       default -> null;
     };
   }

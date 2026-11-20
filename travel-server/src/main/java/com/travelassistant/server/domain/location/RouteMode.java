@@ -7,7 +7,8 @@ public enum RouteMode {
   /** 驾车。 */
   DRIVING,
   /** 公交（含地铁）。 */
-  TRANSIT;
+  TRANSIT,
+  CYCLING;
 
   /** 中文名称，用于展示与错误提示。 */
   public String label() {
@@ -15,6 +16,7 @@ public enum RouteMode {
       case WALKING -> "步行";
       case DRIVING -> "驾车";
       case TRANSIT -> "公交";
+      case CYCLING -> "骑行";
     };
   }
 }

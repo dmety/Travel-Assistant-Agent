@@ -32,5 +32,5 @@ fi
 export SERVER_PORT="$PORT"
 export TRAVEL_DATA_DIR="${TRAVEL_DATA_DIR:-$ROOT/data}"
 
-echo "starting travel-server on port $PORT (keys: amap=$([ -n "${AMAP_KEY:-}" ] && echo yes || echo no), baidu=$([ -n "${BAIDU_AK:-}" ] && echo yes || echo no), deepseek=$([ -n "${DEEPSEEK_API_KEY:-}" ] && echo yes || echo no))"
+echo "starting travel-server on port $PORT (keys: amap=$([ -n "${AMAP_KEY:-}" ] && echo yes || echo no), baidu=$([ -n "${BAIDU_AK:-}" ] && echo yes || echo no), jumdata=$([ -n "${JUMDATA_SCENIC_APPCODE:-}" ] && echo yes || echo no), deepseek=$([ -n "${DEEPSEEK_API_KEY:-}" ] && echo yes || echo no))"
 exec java -jar "$JAR"

@@ -20,7 +20,12 @@ public record FoodPlace(
     String openHours,
     Integer commentCount,
     String source,
-    Instant fetchedAt) {
+    Instant fetchedAt, String address) {
+
+  public FoodPlace(String poiId, String name, Double lat, Double lon, String tags, Double rating,
+      Double pricePerPersonCny, String openHours, Integer commentCount, String source, Instant fetchedAt) {
+    this(poiId, name, lat, lon, tags, rating, pricePerPersonCny, openHours, commentCount, source, fetchedAt, null);
+  }
 
   public static final String SOURCE_AMAP = "AMAP";
   public static final String SOURCE_BAIDU = "BAIDU";

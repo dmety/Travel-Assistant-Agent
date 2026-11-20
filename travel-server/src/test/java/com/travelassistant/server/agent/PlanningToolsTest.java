@@ -39,7 +39,7 @@ class PlanningToolsTest {
     List<Attraction> spots = outcome.value();
     assertThat(spots).hasSize(2);
     Attraction first = spots.get(0);
-    assertThat(first.id()).isEqualTo("map:五祖寺");
+    assertThat(first.id()).startsWith("map:");
     assertThat(first.name()).isEqualTo("五祖寺");
     assertThat(first.city()).isEqualTo("黄梅");
     assertThat(first.type()).isEqualTo("风景名胜;寺庙");

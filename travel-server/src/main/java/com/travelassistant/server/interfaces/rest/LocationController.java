@@ -2,6 +2,8 @@ package com.travelassistant.server.interfaces.rest;
 
 import com.travelassistant.server.application.location.LocationService;
 import com.travelassistant.server.domain.location.PlaceSearchResult;
+import com.travelassistant.server.domain.location.ParkingSearchResult;
+import com.travelassistant.server.domain.location.DrivingSegmentResult;
 import com.travelassistant.server.domain.location.RouteMode;
 import com.travelassistant.server.domain.location.RouteResult;
 import com.travelassistant.server.domain.location.WeatherResult;
@@ -22,6 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class LocationController {
 
   private final LocationService service;
+  @org.springframework.beans.factory.annotation.Value("${travel.baidu.browser-ak:}")
+  private String browserMapKey;
+
+  /** Only a separately provisioned, referrer-restricted browser key is public. */
+  @GetMapping("/map-config")
+  public Map<String,Object> mapConfig() {
+    return Map.of("browserKey",browserMapKey==null?"":browserMapKey,"provider","BAIDU");
+  }
 
   public LocationController(LocationService service) {
     this.service = service;
@@ -48,6 +58,20 @@ public class LocationController {
       @RequestParam String destination,
       @RequestParam(required = false) String city) {
     return service.route(parseMode(mode), origin, destination, city);
+  }
+
+  /** 目的地附近停车 POI；未知收费、开放时间和实时空位均返回「未知」。 */
+  @GetMapping("/parking")
+  public ParkingSearchResult parking(@RequestParam String destination,
+      @RequestParam(required = false) String city) {
+    return service.parking(destination, city);
+  }
+
+  /** 按地名规划自驾单路段，并附上终点附近停车 POI。 */
+  @GetMapping("/drive")
+  public DrivingSegmentResult drive(@RequestParam String origin,
+      @RequestParam String destination, @RequestParam(required = false) String city) {
+    return service.drive(origin, destination, city);
   }
 
   /** 查询能力状态（是否已配置密钥）。 */
