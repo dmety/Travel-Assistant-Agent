@@ -20,18 +20,19 @@ class GuidePdfControllerTest {
         .export(new GuidePdfController.Request(null, text));
 
     assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getHeaders().getContentType()).isEqualTo(org.springframework.http.MediaType.APPLICATION_PDF);
+    assertThat(response.getHeaders().getContentType())
+        .isEqualTo(org.springframework.http.MediaType.APPLICATION_PDF);
     assertThat(response.getHeaders().getFirst(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION))
         .contains("travel-guide.pdf");
     try (var document = Loader.loadPDF(response.getBody())) {
       assertThat(document.getNumberOfPages()).isGreaterThan(1);
-      assertThat(new PDFTextStripper().getText(document)).contains("Travel guide");
+      assertThat(new PDFTextStripper().getText(document)).contains("Travel guide", "1 /");
     }
   }
 
   private static Path platformTestFont() throws IOException {
     List<Path> candidates = System.getProperty("os.name").startsWith("Windows")
-        ? List.of(Path.of("C:/Windows/Fonts/simhei.ttf"), Path.of("C:/Windows/Fonts/arial.ttf"))
+        ? List.of(Path.of("C:/Windows/Fonts/arial.ttf"), Path.of("C:/Windows/Fonts/simhei.ttf"))
         : List.of(
             Path.of("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
             Path.of("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),

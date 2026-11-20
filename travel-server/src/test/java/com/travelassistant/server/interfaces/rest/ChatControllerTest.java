@@ -1,6 +1,7 @@
 package com.travelassistant.server.interfaces.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -83,6 +85,14 @@ class ChatControllerTest {
   }
 
   @Test
+  @DisplayName("空请求体在同步接口中返回 400")
+  void nullRequestIsRejected() {
+    var response = new ChatController(agent).chat(null);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(400);
+  }
+
+  @Test
   @DisplayName("未登录：401，避免匿名消耗模型配额")
   void requiresLogin() throws Exception {
     mvc.perform(post("/api/chat")
@@ -112,6 +122,60 @@ class ChatControllerTest {
             .content("{\"message\":\"识别一下\",\"images\":[\"https://example.invalid/image.png\"]}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error").value("图片必须是 PNG、JPEG、GIF 或 WebP data URL"));
+  }
+
+  @Test
+  @DisplayName("图片数量、空图片和非法 Base64 都在调用 Agent 前拒绝")
+  void rejectsInvalidImagePayloads() throws Exception {
+    String image = "data:image/png;base64,AA==";
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[\"" + image + "\",\""
+                + image + "\",\"" + image + "\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("每条问题最多附带 2 张图片"));
+
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[null]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("单张图片过大，最多 2 MB"));
+
+    String oversizedUrl = "x".repeat(3_000_001);
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[\"" + oversizedUrl + "\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("单张图片过大，最多 2 MB"));
+
+    String oversizedPayload = java.util.Base64.getEncoder()
+        .encodeToString(new byte[2 * 1024 * 1024 + 1]);
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[\"data:image/png;base64,"
+                + oversizedPayload + "\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("图片总大小不能超过 4 MB，单张不能超过 2 MB"));
+
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[\"data:image/png;base64,A\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("图片编码无效"));
+
+    mvc.perform(post("/api/chat").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别\",\"images\":[\"data:image/png;base64,\"]}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("图片总大小不能超过 4 MB，单张不能超过 2 MB"));
+  }
+
+  @Test
+  @DisplayName("三字段 ChatRequest 构造器默认不附图")
+  void legacyChatRequestDefaultsToNoImages() {
+    var request = new ChatController.ChatRequest("继续", List.of(), null);
+
+    assertThat(request.images()).isEmpty();
   }
 
   @Test
@@ -235,5 +299,42 @@ class ChatControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"message\":\"识别一下\",\"images\":[\"https://example.invalid/image.png\"]}"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("流式接口拒绝空请求、空消息和超长消息")
+  void streamRejectsInvalidMessages() {
+    var controller = new ChatController(agent);
+    assertStreamBadRequest(controller, null);
+    assertStreamBadRequest(controller, new ChatController.ChatRequest("  ", null, null));
+    assertStreamBadRequest(controller,
+        new ChatController.ChatRequest("x".repeat(2001), null, null));
+  }
+
+  @Test
+  @DisplayName("流式 Agent 异常没有可展示信息时使用通用提示")
+  void streamFailureUsesFallbackWhenMessageIsBlank() throws Exception {
+    when(agent.chatStream(anyString(), any(), any(), any()))
+        .thenThrow(new IllegalStateException("  "));
+
+    MvcResult started = mvc.perform(post("/api/chat/stream").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .content("{\"message\":\"继续\"}"))
+        .andExpect(request().asyncStarted())
+        .andReturn();
+    MvcResult completed = mvc.perform(asyncDispatch(started))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    assertThat(completed.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+        .contains("event:error", "回复生成中断，请重试。");
+  }
+
+  private static void assertStreamBadRequest(ChatController controller,
+      ChatController.ChatRequest request) {
+    assertThatThrownBy(() -> controller.chatStream(request, new MockHttpServletResponse()))
+        .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+            exception -> assertThat(exception.getStatusCode().value()).isEqualTo(400));
   }
 }

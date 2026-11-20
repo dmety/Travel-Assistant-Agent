@@ -50,7 +50,12 @@ public class GuidePdfController {
             cs.showText(lines.get(i));cs.newLine();
           }
           cs.endText();cs.beginText();cs.setFont(font,9);cs.newLineAtOffset(265,28);
-          cs.showText("第 "+(pageIndex+1)+" / "+pages+" 页");cs.endText();
+          String pageNumber = (pageIndex + 1) + " / " + pages;
+          if (font.hasGlyph('第') && font.hasGlyph('页')) {
+            pageNumber = "第 " + pageNumber + " 页";
+          }
+          cs.showText(pageNumber);
+          cs.endText();
         }
       }
       doc.save(out); return out.toByteArray();
