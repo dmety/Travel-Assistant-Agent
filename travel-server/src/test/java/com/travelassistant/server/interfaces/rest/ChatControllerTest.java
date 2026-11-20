@@ -1,5 +1,6 @@
 package com.travelassistant.server.interfaces.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -7,8 +8,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.travelassistant.server.application.chat.ChatAgent;
@@ -18,6 +22,7 @@ import com.travelassistant.server.application.intent.ConversationState;
 import com.travelassistant.server.application.intent.ConversationTurn;
 import com.travelassistant.server.infrastructure.security.SecurityConfiguration;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +32,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * 对话接口的 HTTP 契约：入参、登录要求、响应形状。
@@ -145,5 +151,89 @@ class ChatControllerTest {
     // 保留的是最近 50 轮（第 10..59 句），最早的 10 句被丢弃。
     assertEquals("第59句", sent.get(sent.size() - 1).text());
     assertEquals("第10句", sent.get(0).text());
+  }
+
+  @Test
+  @DisplayName("流式回答：发送进度、增量 token 与完成载荷")
+  void streamsProgressTokensAndDone() throws Exception {
+    when(agent.chatStream(anyString(), any(), any(), any())).thenAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Consumer<String> onDelta = invocation.getArgument(3);
+      onDelta.accept("实时回复片段");
+      return sample();
+    });
+
+    MvcResult started = mvc.perform(post("/api/chat/stream").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .content("{\"message\":\"武汉有什么好吃的\"}"))
+        .andExpect(request().asyncStarted())
+        .andReturn();
+    MvcResult completed = mvc.perform(asyncDispatch(started))
+        .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+        .andReturn();
+
+    String body = completed.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    assertThat(body).contains("event:progress", "event:token", "event:done",
+        "实时回复片段", "在武汉找到 8 家可以去的餐馆。");
+    verify(agent).chatStream(eq("武汉有什么好吃的"), any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("流式回答异常：发送截断后的 error 事件并完成响应")
+  void streamFailureIsReportedAndBounded() throws Exception {
+    when(agent.chatStream(anyString(), any(), any(), any()))
+        .thenThrow(new com.travelassistant.server.application.agent.AgentUnavailableException(
+            "x".repeat(220)));
+
+    MvcResult started = mvc.perform(post("/api/chat/stream").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .content("{\"message\":\"继续\"}"))
+        .andExpect(request().asyncStarted())
+        .andReturn();
+    MvcResult completed = mvc.perform(asyncDispatch(started))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    String body = completed.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    assertThat(body).contains("event:error", "x".repeat(180) + "…")
+        .doesNotContain("x".repeat(181));
+  }
+
+  @Test
+  @DisplayName("流式图片请求：调用含图片的 Agent 重载")
+  void streamsImageRequestThroughImageOverload() throws Exception {
+    String image = "data:image/png;base64,AA==";
+    when(agent.chatStream(anyString(), any(), any(), any(), any())).thenAnswer(invocation -> {
+      @SuppressWarnings("unchecked")
+      Consumer<String> onDelta = invocation.getArgument(4);
+      onDelta.accept("看到了图片");
+      return sample();
+    });
+
+    MvcResult started = mvc.perform(post("/api/chat/stream").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .content("{\"message\":\"识别一下\",\"images\":[\"" + image + "\"]}"))
+        .andExpect(request().asyncStarted())
+        .andReturn();
+    MvcResult completed = mvc.perform(asyncDispatch(started))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    assertThat(completed.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8))
+        .contains("event:token", "看到了图片");
+    verify(agent).chatStream(eq("识别一下"), any(), any(), eq(List.of(image)), any());
+  }
+
+  @Test
+  @DisplayName("流式图片请求拒绝无效 data URL")
+  void streamRejectsInvalidImageDataUrl() throws Exception {
+    mvc.perform(post("/api/chat/stream").with(user("tester"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"message\":\"识别一下\",\"images\":[\"https://example.invalid/image.png\"]}"))
+        .andExpect(status().isBadRequest());
   }
 }
