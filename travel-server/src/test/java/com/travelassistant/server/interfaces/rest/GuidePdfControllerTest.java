@@ -1,6 +1,9 @@
 package com.travelassistant.server.interfaces.rest;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
@@ -9,6 +12,34 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.*;
 
 class GuidePdfControllerTest {
+  @Test void exportsLongAsciiGuideWithPlatformFont() throws Exception {
+    Path font = platformTestFont();
+    String text = "Travel guide route details and attraction notes. ".repeat(300);
+
+    var response = new GuidePdfController(font.toString())
+        .export(new GuidePdfController.Request(null, text));
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getHeaders().getContentType()).isEqualTo(org.springframework.http.MediaType.APPLICATION_PDF);
+    assertThat(response.getHeaders().getFirst(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION))
+        .contains("travel-guide.pdf");
+    try (var document = Loader.loadPDF(response.getBody())) {
+      assertThat(document.getNumberOfPages()).isGreaterThan(1);
+      assertThat(new PDFTextStripper().getText(document)).contains("Travel guide");
+    }
+  }
+
+  private static Path platformTestFont() throws IOException {
+    List<Path> candidates = System.getProperty("os.name").startsWith("Windows")
+        ? List.of(Path.of("C:/Windows/Fonts/simhei.ttf"), Path.of("C:/Windows/Fonts/arial.ttf"))
+        : List.of(
+            Path.of("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+            Path.of("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
+            Path.of("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"));
+    return candidates.stream().filter(Files::isRegularFile).findFirst()
+        .orElseThrow(() -> new IOException("No platform TTF font available for the PDF test"));
+  }
+
   @Test void rejectsEmptyAndOversizedBodyBeforeLoadingFont() {
     var api=new GuidePdfController("missing.ttf");
     assertThatThrownBy(()->api.export(new GuidePdfController.Request("攻略",""))).isInstanceOf(ResponseStatusException.class);
