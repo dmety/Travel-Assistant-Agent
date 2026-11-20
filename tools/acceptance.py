@@ -305,8 +305,13 @@ def main():
                     payload['dailySchedules'], method='PUT')
                 check(code == 200, 'daily schedules saved using the created version')
                 closure_note = payload['dailySchedules'][0]['activities'][0]['note']
-                check('attractionId=' in closure_note,
-                      'saved activity keeps a traceable attraction id')
+                has_traceable_visit = any(
+                    'attractionId=' in activity.get('note', '')
+                    for day in closure.get('dailySchedules', [])
+                    for activity in day.get('activities', [])
+                )
+                check(has_traceable_visit,
+                      'saved attraction activity keeps a traceable attraction id')
 
                 def register_racer(password):
                     return request(client(), base, '/api/account/register',

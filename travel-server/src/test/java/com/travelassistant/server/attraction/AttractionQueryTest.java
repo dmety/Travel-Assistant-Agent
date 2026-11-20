@@ -1,8 +1,11 @@
 package com.travelassistant.server.attraction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.travelassistant.server.domain.attraction.Attraction;
+import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @DisplayName("景点查询")
 class AttractionQueryTest extends AttractionTestBase {
+
+  @Autowired
+  private AttractionStore attractionStore;
 
   @Test
   @DisplayName("输入城市名列出库中景点")
@@ -199,5 +205,25 @@ class AttractionQueryTest extends AttractionTestBase {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.ticketStatus").value("pending"))
         .andExpect(jsonPath("$.openTimeStatus").value("pending"));
+  }
+
+  @Test
+  @DisplayName("仓库索引：ID 空值安全，城市内名称按精确、前缀、包含顺序匹配")
+  void directStoreIndexesHandleMissesAndMatchPriority() {
+    assertThat(attractionStore.findById(null)).isEmpty();
+    assertThat(attractionStore.findById("  ")).isEmpty();
+    assertThat(attractionStore.findById(" t-hz-001 "))
+        .hasValueSatisfying(attraction -> assertThat(attraction.name()).isEqualTo("西湖"));
+    assertThat(attractionStore.findById("missing")).isEmpty();
+
+    assertThat(attractionStore.findByNameInCity(null, "杭州")).isEmpty();
+    assertThat(attractionStore.findByNameInCity("西湖", " ")).isEmpty();
+    assertThat(attractionStore.findByNameInCity("西湖", "杭州"))
+        .extracting(Attraction::id).containsExactly("t-hz-001");
+    assertThat(attractionStore.findByNameInCity("灵", "杭州"))
+        .extracting(Attraction::id).containsExactly("t-hz-002");
+    assertThat(attractionStore.findByNameInCity("湖", "杭州"))
+        .extracting(Attraction::id).containsExactly("t-hz-001", "t-hz-003");
+    assertThat(attractionStore.findByNameInCity("故宫", "杭州")).isEmpty();
   }
 }

@@ -28,6 +28,12 @@ public final class DraftAssembler {
 
   /** 每天最多安排几个候选：再多用户也不会逐个点，且排程没有可靠依据。 */
   public static final int MAX_PER_DAY = 2;
+  /** 只用作日程分组启发式；不据此推算交通方式、耗时或可执行性。 */
+  private static final double MAX_SAME_DAY_DISTANCE_METERS = 50_000;
+  /** 同名记录用于日程去重时，坐标近邻阈值。 */
+  private static final double SAME_DESTINATION_DISTANCE_METERS = 1_000;
+  /** 字段合并的坐标证据阈值，比日程去重更严格。 */
+  private static final double MERGE_DISTANCE_METERS = 100;
   /** 天数上限，防止 days=99999 生成一份几万天的响应。 */
   public static final int MAX_DAYS = 30;
   /** 候选撑不满请求天数时给出的收敛检查码；前端据此解释「为什么只有几天」。 */
@@ -58,6 +64,9 @@ public final class DraftAssembler {
 
   public static Draft assemble(PlanningRequest request, List<Attraction> candidates) {
     List<Attraction> safe = candidates == null ? List.of() : candidates;
+    List<Attraction> eligible = safe.stream().filter(java.util.Objects::nonNull)
+        .filter(attraction -> !excluded(request, attraction)).toList();
+    List<Attraction> unique = uniqueForSchedule(eligible);
     List<DraftQuestion> questions = new ArrayList<>();
     List<DraftCheck> checks = new ArrayList<>();
     List<String> notices = new ArrayList<>();
@@ -66,16 +75,29 @@ public final class DraftAssembler {
 
     int plannedDays = request.effectiveDays() == null ? 0
         : Math.min(request.effectiveDays(), MAX_DAYS);
-    int usable = Math.min(safe.size(), plannedDays * MAX_PER_DAY);
-    List<Attraction> selected = safe.subList(0, Math.max(usable, 0));
+    int usable = Math.min(unique.size(), plannedDays * MAX_PER_DAY);
+    List<Attraction> selected = unique.subList(0, Math.max(usable, 0));
+    boolean crowded = needsPacking(selected, plannedDays);
     List<DraftDay> daily = arrange(request, selected);
+    if (crowded) {
+      notices.add("有些候选点距离较远，因计划天数达到每日容量上限而排在同一天；交通衔接待确认");
+    }
     collectDateChecks(request, plannedDays, checks);
     if (daily.isEmpty()) {
       checks.add(new DraftCheck("NO_DAILY_SCHEDULE", "INFO", "date",
           "天数或候选景点不足，本次未生成逐日草案", "补齐游玩天数与目的地后重新生成草案"));
     }
-    if (selected.isEmpty() && !safe.isEmpty()) {
+    if (selected.isEmpty() && !unique.isEmpty() && plannedDays == 0) {
       notices.add("候选景点未进入逐日草案：请先填写游玩天数");
+    }
+    if (selected.size() < unique.size() && plannedDays > 0) {
+      notices.add("有 " + (unique.size() - selected.size())
+          + " 个候选景点未纳入本轮预算粗估：受计划天数与每日候选上限限制");
+    }
+    int scheduledItems = daily.stream().mapToInt(day -> day.items().size()).sum();
+    if (scheduledItems < selected.size()) {
+      notices.add("有 " + (selected.size() - scheduledItems)
+          + " 个候选景点未进入逐日草案：坐标缺失或距离较远时不强行安排在同一天；预算粗估仍按候选保守计入");
     }
     if (daily.size() < plannedDays) {
       int trimmed = plannedDays - daily.size();
@@ -109,34 +131,41 @@ public final class DraftAssembler {
    * 出现一次，不逐天重复。确认保存走同一个方法，因此正式行程里也不会写进空天。
    */
   public static List<DraftDay> arrange(PlanningRequest request, List<Attraction> selected) {
-    List<Attraction> safe = selected == null ? List.of() : selected;
+    List<Attraction> safe = uniqueForSchedule(selected == null ? List.of() : selected);
     Integer effective = request.effectiveDays();
     if (effective == null || effective <= 0 || safe.isEmpty()) {
       return List.of();
     }
-    int supported = (safe.size() + MAX_PER_DAY - 1) / MAX_PER_DAY;
-    int count = Math.min(Math.min(effective, MAX_DAYS), supported);
     // 展示与确认保存都走这里，重排一次即可保证「看到什么就存什么」。
     List<Attraction> ordered = DraftRouteOptimizer.optimize(safe);
+    int allowedDays = Math.min(effective, MAX_DAYS);
+    List<List<Attraction>> groups = groupByDay(ordered);
+    if (groups.size() > allowedDays) {
+      if (ordered.size() >= allowedDays * MAX_PER_DAY) {
+        // 每天容量已用满时保留候选完整性；旅行衔接仍需用户按实际核实。
+        groups = packByCapacity(ordered, allowedDays);
+      } else {
+        groups = List.copyOf(groups.subList(0, allowedDays));
+      }
+    }
     LocalDate depart = request.departDate();
     LocalDate ret = request.returnDate();
     boolean validRange = depart != null && ret != null && !ret.isBefore(depart);
     String baseNote = "游览时刻待确认，景点信息来自本地知识库快照";
 
     List<DraftDay> days = new ArrayList<>();
-    for (int i = 0; i < count; i++) {
-      int from = i * MAX_PER_DAY;
-      int to = Math.min(from + MAX_PER_DAY, ordered.size());
+    for (int i = 0; i < groups.size(); i++) {
       List<DraftDay.Item> items = new ArrayList<>();
-      for (int j = from; j < to; j++) {
-        items.add(itemOf(ordered.get(j)));
+      for (Attraction attraction : groups.get(i)) {
+        items.add(itemOf(attraction));
       }
       if (items.isEmpty()) {
         continue;  // 不生成「暂无候选」空行
       }
 
       LocalDate date = null;
-      String note = "第 " + (i + 1) + " 天；" + baseNote;
+      String note = "第 " + (i + 1) + " 天；首站按景点候选排序；"
+          + selectionReason(groups.get(i).getFirst()) + "；" + baseNote;
       if (validRange) {
         LocalDate candidate = depart.plusDays(i);
         if (!candidate.isAfter(ret)) {
@@ -183,7 +212,8 @@ public final class DraftAssembler {
       Attraction attraction) {
     if (attraction == null || attraction.lat() == null || attraction.lon() == null
         || !Double.isFinite(attraction.lat()) || !Double.isFinite(attraction.lon())
-        || Math.abs(attraction.lat()) > 90 || Math.abs(attraction.lon()) > 180) {
+        || Math.abs(attraction.lat()) > 90 || Math.abs(attraction.lon()) > 180
+        || attraction.coordinateSystem() == null || attraction.coordinateSystem().isBlank()) {
       return null;
     }
     return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.toGcj02(
@@ -207,6 +237,105 @@ public final class DraftAssembler {
     return List.copyOf(unique);
   }
 
+  /** 日程级去重；无坐标时同城同名只占一个日程项，不因此融合两条记录的字段或来源。 */
+  private static List<Attraction> uniqueForSchedule(List<Attraction> candidates) {
+    if (candidates == null || candidates.isEmpty()) {
+      return List.of();
+    }
+    List<Attraction> unique = new ArrayList<>();
+    for (Attraction attraction : candidates) {
+      if (attraction == null || attraction.name() == null || attraction.name().isBlank()) {
+        continue;
+      }
+      if (unique.stream().noneMatch(existing -> sameScheduledDestination(existing, attraction))) {
+        unique.add(attraction);
+      }
+    }
+    return List.copyOf(unique);
+  }
+
+  private static boolean sameScheduledDestination(Attraction a, Attraction b) {
+    if (a.id() != null && a.id().equals(b.id())) {
+      return true;
+    }
+    if (!sameNameAndArea(a, b)) {
+      return false;
+    }
+    var first = coordinate(a);
+    var second = coordinate(b);
+    if (first == null && second == null) {
+      return true;
+    }
+    if (first == null || second == null) {
+      return sameNonBlankAddress(a, b);
+    }
+    return distanceMeters(first, second) <= SAME_DESTINATION_DISTANCE_METERS;
+  }
+
+  private static List<List<Attraction>> groupByDay(List<Attraction> ordered) {
+    List<List<Attraction>> groups = new ArrayList<>();
+    for (Attraction attraction : ordered) {
+      if (groups.isEmpty()) {
+        groups.add(new ArrayList<>(List.of(attraction)));
+        continue;
+      }
+      List<Attraction> current = groups.getLast();
+      if (current.size() < MAX_PER_DAY && canShareDay(current.getFirst(), attraction)) {
+        current.add(attraction);
+      } else {
+        groups.add(new ArrayList<>(List.of(attraction)));
+      }
+    }
+    return groups;
+  }
+
+  private static List<List<Attraction>> packByCapacity(List<Attraction> ordered, int allowedDays) {
+    int usable = Math.min(ordered.size(), allowedDays * MAX_PER_DAY);
+    List<List<Attraction>> packed = new ArrayList<>();
+    for (int from = 0; from < usable; from += MAX_PER_DAY) {
+      packed.add(List.copyOf(ordered.subList(from, Math.min(from + MAX_PER_DAY, usable))));
+    }
+    return List.copyOf(packed);
+  }
+
+  private static boolean needsPacking(List<Attraction> selected, int allowedDays) {
+    if (allowedDays <= 0 || selected.isEmpty()) {
+      return false;
+    }
+    List<Attraction> ordered = DraftRouteOptimizer.optimize(selected);
+    return groupByDay(ordered).size() > allowedDays
+        && ordered.size() >= allowedDays * MAX_PER_DAY;
+  }
+
+  private static boolean canShareDay(Attraction first, Attraction second) {
+    var a = coordinate(first);
+    var b = coordinate(second);
+    return a != null && b != null && distanceMeters(a, b) <= MAX_SAME_DAY_DISTANCE_METERS;
+  }
+
+  private static boolean sameNameAndArea(Attraction a, Attraction b) {
+    String cityA = normalizeCity(a.city());
+    String cityB = normalizeCity(b.city());
+    String provinceA = normalize(a.province());
+    String provinceB = normalize(b.province());
+    return !cityA.isEmpty() && cityA.equals(cityB)
+        && normalize(a.name()).equals(normalize(b.name()))
+        && (provinceA.isEmpty() || provinceB.isEmpty() || provinceA.equals(provinceB));
+  }
+
+  private static boolean sameNonBlankAddress(Attraction a, Attraction b) {
+    String first = normalize(a.address());
+    String second = normalize(b.address());
+    return !first.isEmpty() && first.equals(second);
+  }
+
+  private static double distanceMeters(
+      com.travelassistant.server.infrastructure.geo.CoordinateTransforms.LatLon a,
+      com.travelassistant.server.infrastructure.geo.CoordinateTransforms.LatLon b) {
+    return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(
+        a.lat(), a.lon(), b.lat(), b.lon());
+  }
+
   /** 相同城市中的同一景点只保留一个，坐标别名需有近距离证据。 */
   public static boolean sameDestination(Attraction a, Attraction b) {
     if (a == null || b == null) {
@@ -215,23 +344,15 @@ public final class DraftAssembler {
     if (a.id() != null && a.id().equals(b.id())) {
       return true;
     }
-    if (!normalizeCity(a.city()).equals(normalizeCity(b.city()))) {
+    if (!sameNameAndArea(a, b)) {
       return false;
     }
     var first = coordinate(a);
     var second = coordinate(b);
-    if (!normalize(a.name()).equals(normalize(b.name()))) {
-      return normalize(a.name()).replace("古寺", "寺")
-              .equals(normalize(b.name()).replace("古寺", "寺"))
-          && first != null && second != null
-          && com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(
-              first.lat(), first.lon(), second.lat(), second.lon()) <= 300;
-    }
     if (first != null && second != null) {
-      return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(
-          first.lat(), first.lon(), second.lat(), second.lon()) <= 3000;
+      return distanceMeters(first, second) <= MERGE_DISTANCE_METERS;
     }
-    return true;
+    return sameNonBlankAddress(a, b);
   }
 
   /** 按用户明确填写的排除景点 ID 或名称过滤，不做模糊推荐推断。 */
