@@ -187,8 +187,9 @@ public final class ConsoleUI implements AutoCloseable {
   /** 读取一行（支持行编辑、上下键历史、Tab 补全）。无终端时返回 null。 */
   public String readLine(String prompt) {
     if (fullscreen) renderScreen();
-    return nativeConsole != null ? nativeConsole.readLine("%s", prompt)
-        : reader == null ? null : reader.readLine(prompt);
+    String safePrompt = sanitize(prompt);
+    return nativeConsole != null ? nativeConsole.readLine("%s", safePrompt)
+        : reader == null ? null : reader.readLine(safePrompt);
   }
 
   /** Enter an alternate-screen transcript for a fixed footer and line-editor prompt. */
@@ -234,7 +235,7 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   private void append(String text, boolean newline) {
-    String value = text == null ? "" : text;
+    String value = sanitize(text);
     for (int i = 0; i < value.length(); i++) {
       char ch = value.charAt(i);
       if (ch == '\r') continue;
@@ -282,7 +283,8 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   private static List<String> wrap(String text, int maxWidth) {
-    if (text == null || text.isEmpty()) return List.of("");
+    text = sanitize(text);
+    if (text.isEmpty()) return List.of("");
     List<String> lines = new ArrayList<>();
     StringBuilder line = new StringBuilder();
     int used = 0;
@@ -411,12 +413,12 @@ public final class ConsoleUI implements AutoCloseable {
   /** 读取敏感输入，回显掩码。无终端时返回 null。 */
   public String readMasked(String prompt) {
     if (nativeConsole != null) {
-      char[] password = nativeConsole.readPassword("%s", prompt);
+      char[] password = nativeConsole.readPassword("%s", sanitize(prompt));
       if (password == null) return null;
       try { return new String(password); }
       finally { java.util.Arrays.fill(password, '\0'); }
     }
-    return reader == null ? null : readMasked(terminal, output, prompt);
+    return reader == null ? null : readMasked(terminal, output, sanitize(prompt));
   }
 
   // Use the same terminal input, without a second line-editor display/history lifecycle.
@@ -427,7 +429,7 @@ public final class ConsoleUI implements AutoCloseable {
     StringBuilder value = new StringBuilder();
     try {
       terminal.echo(false);
-      output.print(prompt);
+      output.print(sanitize(prompt));
       output.flush();
       int escape = 0;
       while (true) {
@@ -465,20 +467,80 @@ public final class ConsoleUI implements AutoCloseable {
 
   public void println() {
     if (fullscreen) { append("", true); return; }
-    output.println();
-    output.flush();
+    PrintWriter writer = currentOutput();
+    writer.println();
+    writer.flush();
   }
 
   public void println(String text) {
-    if (fullscreen) { append(text, true); return; }
-    output.println(decorate(text));
-    output.flush();
+    String safe = sanitize(text);
+    if (fullscreen) { append(safe, true); return; }
+    PrintWriter writer = currentOutput();
+    writer.println(decorate(safe));
+    writer.flush();
   }
 
   public void print(String text) {
-    if (fullscreen) { append(text, false); return; }
-    output.print(text == null ? "" : text);
-    output.flush();
+    String safe = sanitize(text);
+    if (fullscreen) { append(safe, false); return; }
+    PrintWriter writer = currentOutput();
+    writer.print(safe);
+    writer.flush();
+  }
+
+  /** Strip terminal control sequences and unsafe controls from display text. */
+  public static String sanitize(String text) {
+    if (text == null || text.isEmpty()) return "";
+    StringBuilder safe = new StringBuilder(text.length());
+    for (int i = 0; i < text.length();) {
+      char ch = text.charAt(i);
+      if (ch == '\u001b') {
+        if (i + 1 >= text.length()) { i++; continue; }
+        char introducer = text.charAt(i + 1);
+        if (introducer == '[') i = skipCsi(text, i + 2);
+        else if (introducer == ']' || introducer == 'P' || introducer == '^'
+            || introducer == '_' || introducer == 'X') i = skipStringControl(text, i + 2);
+        else {
+          int end = i + 1;
+          while (end < text.length() && text.charAt(end) >= 0x20
+              && text.charAt(end) <= 0x2f) end++;
+          i = end < text.length() && text.charAt(end) >= 0x30
+              && text.charAt(end) <= 0x7e ? end + 1 : end;
+        }
+        continue;
+      }
+      if (ch == '\u009b') { i = skipCsi(text, i + 1); continue; }
+      if (ch == '\u009d' || ch == '\u0090' || ch == '\u0098'
+          || ch == '\u009e' || ch == '\u009f') {
+        i = skipStringControl(text, i + 1);
+        continue;
+      }
+      int codePoint = text.codePointAt(i);
+      if (codePoint == '\n' || codePoint == '\t') safe.appendCodePoint(codePoint);
+      else if (codePoint != '\r' && codePoint >= 0x20 && codePoint != 0x7f
+          && !(codePoint >= 0x80 && codePoint <= 0x9f)) safe.appendCodePoint(codePoint);
+      i += Character.charCount(codePoint);
+    }
+    return safe.toString();
+  }
+
+  private static int skipCsi(String text, int start) {
+    int i = start;
+    while (i < text.length()) {
+      char ch = text.charAt(i++);
+      if (ch >= 0x40 && ch <= 0x7e) break;
+    }
+    return i;
+  }
+
+  private static int skipStringControl(String text, int start) {
+    int i = start;
+    while (i < text.length()) {
+      char ch = text.charAt(i++);
+      if (ch == '\u0007' || ch == '\u009c') return i;
+      if (ch == '\u001b' && i < text.length() && text.charAt(i) == '\\') return i + 1;
+    }
+    return i;
   }
 
   /**
@@ -505,35 +567,36 @@ public final class ConsoleUI implements AutoCloseable {
   /** 一级标题：上留一行空行，标题加青色粗体，下面一条分隔线。 */
   public void title(String text) {
     println();
-    println(paint("  " + text, AttributedStyle.CYAN, true));
-    println("  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(text) + 6))));
+    String safe = sanitize(text);
+    printlnStyled(paint("  " + safe, AttributedStyle.CYAN, true));
+    println("  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(safe) + 6))));
   }
 
   /** 二级小节标题。 */
   public void section(String text) {
-    println(paint("  " + text, AttributedStyle.YELLOW, true));
+    printlnStyled(paint("  " + sanitize(text), AttributedStyle.YELLOW, true));
   }
 
   public void success(String text) {
-    println(paint("  [OK] ", AttributedStyle.GREEN, true) + text);
+    printlnStyled(paint("  [OK] ", AttributedStyle.GREEN, true) + sanitize(text));
   }
 
   public void warn(String text) {
-    println(paint("  [!] ", AttributedStyle.YELLOW, true) + text);
+    printlnStyled(paint("  [!] ", AttributedStyle.YELLOW, true) + sanitize(text));
   }
 
   public void error(String text) {
-    println(paint("  [x] ", AttributedStyle.RED, true) + text);
+    printlnStyled(paint("  [x] ", AttributedStyle.RED, true) + sanitize(text));
   }
 
   public void note(String text) {
-    println("  " + text);
+    println("  " + sanitize(text));
   }
 
   /** 键值行：标签按显示宽度补齐，中文标签也不会错位。 */
   public void kv(String label, String value) {
-    println("  " + paint(padRight(label, LABEL_WIDTH), AttributedStyle.CYAN, false)
-        + ": " + (value == null ? "" : value));
+    printlnStyled("  " + paint(padRight(sanitize(label), LABEL_WIDTH), AttributedStyle.CYAN, false)
+        + ": " + sanitize(value));
   }
 
   /** 打印表格，表头着色，其余行纯文本。 */
@@ -541,16 +604,17 @@ public final class ConsoleUI implements AutoCloseable {
     String rendered = renderTable(headers, rows);
     String[] lines = rendered.split("\n", -1);
     for (int i = 0; i < lines.length; i++) {
-      println(i == 0 ? paint(lines[i], AttributedStyle.CYAN, true) : lines[i]);
+      if (i == 0) printlnStyled(paint(lines[i], AttributedStyle.CYAN, true));
+      else println(lines[i]);
     }
   }
 
   /** 首页横幅。 */
   public void banner(String serviceName, String baseUrl) {
     println();
-    println(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
-    println(paint("  |   Travel Assistant  /  控制台客户端        |", AttributedStyle.CYAN, true));
-    println(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
+    printlnStyled(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
+    printlnStyled(paint("  |   Travel Assistant  /  控制台客户端        |", AttributedStyle.CYAN, true));
+    printlnStyled(paint("  +--------------------------------------------+", AttributedStyle.CYAN, false));
     kv("服务", serviceName);
     kv("地址", baseUrl);
     println(reader != null ? "  输入 / 浏览命令，Tab 补全，Ctrl+R 搜索历史，Alt+V 粘贴图片；/details 展开攻略。"
@@ -558,15 +622,33 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   private String paint(String text, int foreground, boolean bold) {
-    if (!color || fullscreen || text == null || text.isEmpty()) {
-      return text;
+    String safe = sanitize(text);
+    if (!color || fullscreen || safe.isEmpty()) {
+      return safe;
     }
     AttributedStyle style = AttributedStyle.DEFAULT.foreground(foreground);
     if (bold) {
       style = style.bold();
     }
-    return new AttributedStringBuilder().style(style).append(text)
+    return new AttributedStringBuilder().style(style).append(safe)
         .toAttributedString().toAnsi();
+  }
+
+  private void printlnStyled(String text) {
+    if (fullscreen) {
+      append(text, true);
+      return;
+    }
+    PrintWriter writer = currentOutput();
+    writer.println(text == null ? "" : text);
+    writer.flush();
+  }
+
+  private PrintWriter currentOutput() {
+    if (terminal == null && nativeConsole == null) {
+      return new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+    }
+    return output;
   }
 
   // ---- 纯函数：排版计算，可脱离终端测试 ----
@@ -576,7 +658,8 @@ public final class ConsoleUI implements AutoCloseable {
    * 组合记号、格式字符与控制字符按 0 格。
    */
   public static int displayWidth(String text) {
-    if (text == null || text.isEmpty()) {
+    text = sanitize(text);
+    if (text.isEmpty()) {
       return 0;
     }
     int width = 0;
@@ -617,14 +700,15 @@ public final class ConsoleUI implements AutoCloseable {
 
   /** 按显示宽度右侧补空格。 */
   public static String padRight(String text, int width) {
-    String value = text == null ? "" : text;
+    String value = sanitize(text);
     int padding = Math.max(0, width - displayWidth(value));
     return value + " ".repeat(padding);
   }
 
   /** 按显示宽度截断，末尾补一个省略号；返回串宽度不超过 maxWidth。 */
   public static String truncateToWidth(String text, int maxWidth) {
-    if (text == null || text.isEmpty() || maxWidth <= 0) {
+    text = sanitize(text);
+    if (text.isEmpty() || maxWidth <= 0) {
       return "";
     }
     if (displayWidth(text) <= maxWidth) {
@@ -651,6 +735,8 @@ public final class ConsoleUI implements AutoCloseable {
 
   /** 生成纯文本表格（不含 ANSI），列宽按显示宽度计算并受 {@link #MAX_COLUMN_WIDTH} 限制。 */
   public static String renderTable(List<String> headers, List<List<String>> rows) {
+    headers = headers.stream().map(ConsoleUI::sanitize).toList();
+    rows = rows.stream().map(row -> row.stream().map(ConsoleUI::sanitize).toList()).toList();
     int columns = headers.size();
     if (columns == 0) {
       return "";
