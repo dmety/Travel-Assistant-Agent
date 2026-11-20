@@ -732,6 +732,26 @@ html[data-theme="dark"] .msg.ai{
    本区只用 tokens.css 语义变量（--pine 主操作 / --ok 已核验 /
    --warn 提示 / --err 风险 / --clay 仅决断），不出现脱离色板的色值。
    ============================================================ */
+/* 票务视图强制浅色：设计稿 design/ticket.html 是浅色纸面稿，无论整站主题深浅，
+   本视图都用设计稿那一套浅色令牌，保证「和设计稿一模一样」。只作用于 #viewTicket，
+   不污染其他视图。令牌值取自 tokens.css :root 第一版色板。 */
+#viewTicket{
+  color-scheme:light;
+  --paper:#F7F4EE; --paper-2:#EFEAE0; --paper-3:#E7E0D2; --surface-warm:#FCFAF5;
+  --ink:#20241E; --text:#20241E; --text-2:#4A4F46; --text-3:#6E6A5E; --muted-2:#8A8577;
+  --line:#DED7C9; --line-strong:#C4BAA6; --field-line:#9C9282;
+  --pine:#1E4A3E; --pine-hover:#163A30; --pine-soft:#E4EDE7; --pine-line:#BBD0C4; --pine-text:#1E4A3E;
+  --clay:#B4542A; --clay-soft:#F6E8DF; --clay-line:#E3C4B1;
+  --ok:#2E6B52; --ok-soft:#E7F0EA; --ok-line:#BBD0C4;
+  --warn:#8A6212; --warn-soft:#F8EFDC; --warn-line:#E8D6AE;
+  --err:#A03A2C; --err-soft:#F8E7E3; --err-line:#E8C6BE;
+  --surface:#FFFFFF; --surface-2:#EFEAE0; --bg:var(--paper);
+  --action-bg:var(--pine); --action-fg:#FFFFFF; --action-bg-hover:var(--pine-hover);
+  --primary:var(--pine); --primary-hover:var(--pine-hover);
+  --primary-soft:var(--pine-soft); --primary-line:var(--pine-line);
+  --shadow-1:0 1px 2px rgba(46,42,32,.06),0 1px 3px rgba(46,42,32,.05);
+  --shadow-2:0 4px 14px rgba(46,42,32,.08),0 2px 4px rgba(46,42,32,.04);
+}
 #viewTicket [hidden]{display:none!important}
 /* 加载 / 空 / 失败三态都要像一张明确的「状态卡片」，而不是一行淡色小字；
    加载未完成前绝不显示「没有景点」这类结论。 */
@@ -765,20 +785,22 @@ html[data-theme="dark"] .msg.ai{
 #viewTicket .tk-head .sub{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
 #viewTicket .tk-head .sp,#viewTicket .tk-card .ch .sp,#viewTicket .tk-detail-h .sp{margin-left:auto}
 #viewTicket .tk-head select{max-width:190px;font-size:var(--fs-xs);padding:6px 8px;border:1px solid var(--field-line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink)}
-#viewTicket .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}
+#viewTicket .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
 #viewTicket .price{padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
 #viewTicket .price .lab{font-size:var(--fs-xs);color:var(--text-3)}
 #viewTicket .price .val{font-size:var(--fs-xl);font-weight:var(--w-strong,600);color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
 #viewTicket .price .note{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
-#viewTicket .tk-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+#viewTicket .tk-cols{display:grid;grid-template-columns:1fr 1fr;
   gap:16px;margin-top:8px;align-items:stretch}
 #viewTicket .tk-card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-1)}
 #viewTicket .tk-card .ch{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink)}
 #viewTicket .tk-card .cb{padding:12px 14px}
 #viewTicket .tk-card .ch .tag{margin-left:auto}
 #viewTicket .chan,#viewTicket .station{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+#viewTicket .station{padding:9px 0}
 #viewTicket .chan:last-child,#viewTicket .station:last-child{border-bottom:0}
-#viewTicket .chan .nm,#viewTicket .station .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--pine);text-decoration:none}
+#viewTicket .chan .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--pine);text-decoration:none}
+#viewTicket .station .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink)}
 #viewTicket .chan .meta,#viewTicket .station .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
 #viewTicket .chan .sp,#viewTicket .station .sp{margin-left:auto}
 #viewTicket .station .dot{width:8px;height:8px;border-radius:50%;background:var(--pine);flex:0 0 auto}
@@ -1496,7 +1518,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
             <span class="lbl">可以直接点</span>
             <div class="chips" id="quickChips">
               <button class="chip" type="button" data-quick="帮我规划杭州两天，预算一千，想看人文古迹">杭州两日</button>
-              <button class="chip" type="button" data-quick="带爸妈去十堰玩四天，预算六千">武当山四日</button>
+              <button class="chip" type="button" data-quick="武当山四日">武当山四日</button>
               <button class="chip" type="button" data-quick="去武汉玩三天，预算两千，想吃美食">武汉三日</button>
               <button class="chip" type="button" data-quick="武汉这周末天气怎么样">周末天气</button>
             </div>
@@ -3767,9 +3789,15 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       }
       if (window.__bmapScriptInjected) return;
       window.__bmapScriptInjected = true;
+      // 直接加载真正的 BMapGL 库（getscript），绕过 api 端点的 document.write。
+      // 原方案加载 api 端点，其内部用 document.write 注入 getscript；而本函数
+      // 由 fetch().then 异步调用，执行时已晚于页面 load，document.write 会清空
+      // 整个 DOM，导致地图区域甚至整页被清空、地图出不来。
+      window.BMAP_PROTOCOL = 'https';
       var s = document.createElement('script');
-      s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
-        encodeURIComponent(ak) + '&callback=__initBaiduMap';
+      s.src = 'https://api.map.baidu.com/getscript?type=webgl&v=1.0&ak=' +
+        encodeURIComponent(ak) + '&services=&t=20261102104425';
+      s.onload = function () { if (window.BMapGL) window.__initBaiduMap(); };
       s.onerror = function () {
         window.__bmapScriptInjected = false;
         $('mapNote').textContent = '地图加载失败 · 可使用景点导航链接';
@@ -5232,15 +5260,63 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     copy.dataset.url = url || '';
   }
   function noSiteState(tripCount, spots) {
+    /* 设计稿同款卡片页：只要行程里有活动景点，就用第一个景点名渲染整套卡片结构
+       （标题栏 / 票价三卡 / 官方入口 / 售票站点 / AI 建议），各槽位显示「待核验」
+       占位，绝不编造价格或 POI。这样「点开票务标签」始终是设计稿那张卡片页，
+       而不是塌成一列「票价还没核验」的空列表。 */
+    if ((spots || []).length) {
+      var place = String(spots[0]).split(/\s+/)[0] || spots[0];
+      var scopeTrip = activeTrip() ? (activeTrip().title || '') : '';
+      var virtual = { id: '__pending__', name: place, fields: {} };
+      itinerarySites = [{ site: virtual, trip: scopeTrip || '当前行程' }];
+      var sel = $('tkSite');
+      sel.replaceChildren();
+      var opt = document.createElement('option');
+      opt.value = virtual.id;
+      opt.textContent = place;
+      sel.appendChild(opt);
+      sel.value = virtual.id;
+      showData(true);
+      notice('该景点票价与官方入口尚未经人工核验；以下槽位为待核验占位，不显示编造数据。');
+      // 票价三卡：待核验占位
+      var prices = $('tkPrices');
+      prices.replaceChildren();
+      [['成人票', '待核验'], ['学生票', '待核验'], ['儿童 / 老人', '待核验']].forEach(function (p) {
+        var c = node('div', 'price', null, prices);
+        node('div', 'lab', p[0], c);
+        node('div', 'val', p[1], c);
+        node('div', 'note', '后端未收录核验票价', c);
+      });
+      $('tkDetailPrices').replaceChildren();
+      // 标题栏
+      $('tkSiteTitle').textContent = place + ' · 购票辅助';
+      $('tkSiteSub').textContent = (scopeTrip ? '来自行程：' + scopeTrip + ' · ' : '') + '票价待核验';
+      var badge = $('tkVerified');
+      badge.className = 'st st-unknown';
+      badge.textContent = '待核验';
+      // 官方入口白名单：暂无核验入口
+      [$('tkChannels'), $('tkDetailChannels')].forEach(function (t) {
+        t.replaceChildren();
+        node('div', 'tk-empty', '后端暂未收录该景点的经核验官方入口，请自行前往景区官方渠道核对。', t);
+      });
+      // 售票站点：暂无数据源
+      stations($('tkStations'));
+      // AI 购票建议：说明性占位，不编造
+      var tip = '该景点尚未核验票价与官方入口。建议到景区官方网站 / 官方公众号自行查询并购票，切勿使用来源不明的链接。';
+      $('tkAdvice').replaceChildren();
+      node('div', 'who', '旅行助手 · 购票建议', $('tkAdvice'));
+      node('div', '', tip, $('tkAdvice'));
+      $('tkDetailAdvice').textContent = $('tkAdvice').textContent;
+      setupCopy(null);
+      return;
+    }
+    /* 完全没有行程：保留空态，引导去规划 */
     var scope = activeTrip();
-    var title = scope ? '这个行程的票价还没核验' : '这些行程的票价还没核验';
+    var title = scope ? '这个行程还没有活动景点' : '还没有行程';
     var text = scope
-      ? '已从后端读到行程「' + (scope.title || '未命名行程') + '」，其中 ' + (spots || []).length +
-        ' 个活动景点都没有人工核验票价（后端当前只收录少量已核验景点）。为不编造票价，这里不显示任何价格；下面按景点给你购票与位置的查询入口，点开自行核对。'
-      : (tripCount
-          ? '已从后端读到 ' + tripCount + ' 个行程，景点票价均未核验，因此不显示价格；下面按景点给了购票与位置的查询入口。'
-          : '后端当前没有你的进行中行程。先到「规划」生成行程，再来这里查看购票信息。');
-    setEmpty('empty', title, text, spotList(spots || []));
+      ? '行程「' + (scope.title || '未命名行程') + '」里没有可识别的景点活动，先去规划行程添加景点，再来看购票信息。'
+      : '后端当前没有你的进行中行程。先到「规划」生成行程，再来这里查看购票信息。';
+    setEmpty('empty', title, text, null);
   }
 
   function render() {

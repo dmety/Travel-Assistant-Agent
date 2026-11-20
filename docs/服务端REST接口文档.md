@@ -24,7 +24,7 @@
 
 ### 1.3 公开的接口（无需登录）
 
-与 `SecurityConfiguration#permitAll()` 保持一致（按 matcher 计 21 条，含通配）：
+公开接口以当前 `SecurityConfiguration#permitAll()` 配置为准（含通配项）：
 
 | 路径 | 说明 |
 |---|---|
@@ -37,18 +37,26 @@
 | `GET /api/location/status` | 高德是否配置（只回布尔与降级原因，无用户数据） |
 | `GET /api/agent/status` | 模型是否配置与本进程用量（见 §3.16.4） |
 | `GET /api/agent/capabilities` | 能力协商：Provider 的 id / 状态 / 能力标签 / 最近拒绝原因码，不含 endpoint、authRef 与凭据（见 §3.22） |
+| `GET /api/agent/providers`、`POST /api/agent/providers/reload`、`POST /api/agent/providers/{id}/probe`、`POST /api/agent/providers/{id}/shadow`、`POST /api/agent/providers/{id}/activate`、`GET /api/agent/providers/{id}/admission` | 放行是为了与用户会话解耦，真正门禁是 `X-Admin-Token`（见 §3.22） |
+| `GET /api/agent/metrics/model-usage`、`GET /api/agent/audit-log` | 模型用量与操作审计，同样只认 `X-Admin-Token`（见 §3.23） |
 | `GET /`、`GET /login`、`GET /app` | 首页（`PageController` 转发到 `index.html`，登录 / 注册页） |
 | `GET /index.html` | 同上，静态资源直连地址 |
 | `GET /chat.html`、`GET /ticket-assistant.html` | 旧页面地址，302 到 `/planner.html`，保留以兼容旧书签 |
 | `GET /planner.html`、`GET /planner` | 行程工作台（规划 / 票务 / 我的行程三个视图，靠 hash 切换；未登录由页内脚本跳回 `/?next=/planner.html`） |
 | `GET /api-console.html` | 接口测试台（登录卡与测试台同页切换），无需登录即可打开 |
-| `GET /ticket-assistant.html` | 购票助手页；页面本身公开，其数据接口 `/api/agent/tickets/advice` 仍需登录 |
+| `GET /mobile.html` | 窄屏版移动布局（`/api/chat`、`/api/itineraries` 仍需登录） |
+| `GET /settings.html` | 个人中心：主题、协作通知开关、账号安全、注销（`/api/account/me`、`/api/logout` 仍需登录） |
+| `GET /food.html` | 美食推荐页，走 `/api/agent/invoke`（需登录） |
+| `GET /admin.html`、`GET /admin` | 管理后台页面，页面本身公开；其中的管理接口要 `X-Admin-Token` |
 | `GET /login.html`、`GET /app.html` | 旧版两个页面的地址，302 到 `/`，保留以兼容旧书签 |
 | `GET /favicon.ico` | 站点图标，避免未登录时打日志噪音 |
+| `GET /mascot/**` | 看板娘图片（登录页、移动端、设置页都要用，未登录也需可见） |
+| `GET /tokens.css`、`GET /components.css`、`GET /mascot-widget.js` | 根目录共享样式与浮动看板娘脚本，多页引用 |
 
 其余 `/api/**` 均要求登录，未登录直接返回 **401**（不跳转登录页，便于 JSON 客户端处理）。
-`/api/location/**`（高德）和 `/api/agent/**`（规划）除上表三个状态接口外都需要登录：
-前者按调用量计费，后者消耗模型配额。
+`/api/location/**`（高德）和 `/api/agent/**`（规划）除上表的状态接口与管理端点外都需要登录：
+前者按调用量计费，后者消耗模型配额。`/api/map/config`（百度浏览器端 AK）**没有**进白名单，
+同样要求登录，因此只有登录后的页面才拿得到 AK。
 
 > 已修正的历史项：`SecurityConfiguration` 曾放行 `/register.html`，但 `static/` 下并无该文件（注册在页面内切换标签完成）。该放行已于 2026-11-05 随前端整合一并删除。
 
@@ -1069,13 +1077,15 @@ GET /api/itineraries/{id}/export
 | 方法 | 路径 | 鉴权 | 说明 |
 |---|---|---|---|
 | `GET` | `/api/agent/capabilities` | 匿名 | 契约版本、注册表版本，以及每个 Provider 的 id / 版本 / 能力标签 / `enabled` / `health` / `status` / `lastRejectionCode`；**不含** endpoint、authRef 与凭据 |
-| `GET` | `/api/agent/providers` | 需登录 | 在 capabilities 基础上追加 `routes`：每个 intent 的 `primary` 与 `fallback` |
-| `GET` | `/api/agent/providers/{id}/admission` | 需登录 | 最近一次 `AdmissionReport`；未注册的 id 返回 **404** |
-| `POST` | `/api/agent/providers/reload` | 需登录 | 重载 `agent_providers.json`，回 `reloaded` / `registryVersion` / `providerCount`；重载后立即生效 |
-| `POST` | `/api/agent/providers/{id}/probe` | 需登录 | G1 契约探针 + G2 安全探针，按配置发真实请求，不注入桩 |
-| `POST` | `/api/agent/providers/{id}/shadow?samples=N` | 需登录 | G3 影子比对，`samples` 缺省取规范源的 20 |
-| `POST` | `/api/agent/providers/{id}/activate` | 需登录 | G4 人工启用，需 G3 通过且配置里 `enabled=true` |
+| `GET` | `/api/agent/providers` | `X-Admin-Token` | 在 capabilities 基础上追加 `routes`：每个 intent 的 `primary` 与 `fallback` |
+| `GET` | `/api/agent/providers/{id}/admission` | `X-Admin-Token` | 最近一次 `AdmissionReport`；未注册的 id 返回 **404** |
+| `POST` | `/api/agent/providers/reload` | `X-Admin-Token` | 重载 `agent_providers.json`，回 `reloaded` / `registryVersion` / `providerCount`；重载后立即生效 |
+| `POST` | `/api/agent/providers/{id}/probe` | `X-Admin-Token` | G1 契约探针 + G2 安全探针，按配置发真实请求，不注入桩 |
+| `POST` | `/api/agent/providers/{id}/shadow?samples=N` | `X-Admin-Token` | G3 影子比对，`samples` 缺省取规范源的 20 |
+| `POST` | `/api/agent/providers/{id}/activate` | `X-Admin-Token` | G4 人工启用，需 G3 通过且配置里 `enabled=true` |
 | `POST` | `/api/agent/vote` | 需登录 | 两轮评分投票入口，见 §3.22.1 |
+
+管理端点（含 `providers` 只读快照）改由 `AdminTokenFilter` 独占鉴权，**与用户会话解耦**：匿名带正确令牌可通过，登录但无令牌一律 **403**；令牌经环境变量注入，未配置时 fail-closed，所有管理请求返回 `{"error":"管理端点需要有效的管理令牌"}`。前端对应页面是 `admin.html`（`/admin`）。
 
 后三个准入 POST（`probe` / `shadow` / `activate`）的响应形状统一为 `report`（`AdmissionReport`）
 + `status`（该 Provider 当前状态）+ `registryVersion` + `shadow`（影子统计）；`reload` 只回
@@ -1095,6 +1105,26 @@ POST /api/agent/vote
 缺哪类写进 `unknowns`，不补常识、不编景点、不生成链接。信封脱敏，不含 endpoint、authRef 与凭据。
 
 投票只出比较结果，不改动行程、不写库：要落库仍走 §3.3 与 §3.8 的人工确认路径。
+
+### 3.23 管理监控（模型用量与操作审计）
+
+两个端点都含运维敏感信息，与 Provider 管理端点同一套门禁：只认 `X-Admin-Token`，未配置令牌时 **403**。页面入口是 `admin.html` 的「监控」区。
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|---|---|---|---|
+| `GET` | `/api/agent/metrics/model-usage` | `X-Admin-Token` | 本进程模型调用累计：次数、错误数、输入 / 输出 / 缓存 token、平均时延、失败率；模型未配置时回 `{}` |
+| `GET` | `/api/agent/audit-log?limit=200` | `X-Admin-Token` | 最近的管理操作审计（倒序）。`limit` 缺省 200，取值被夹在 1～500；响应为 `entries` + `total` |
+
+用量只给本进程快照，不含账户余额（消费侧余额接口已下线，程序拿不到余量，快照里带 `balanceAvailable=false`）。重启后计数归零。
+
+### 3.24 地图配置（浏览器端 AK）
+
+```json
+GET /api/map/config      // 需登录
+{ "provider": "baidu", "enabled": true, "ak": "浏览器端 AK" }
+```
+
+服务端把百度**浏览器端** AK 下发给前端，与服务端 WebAPI key 分离：WebAPI key 不能出现在页面里。`travel.baidu.browser-ak` 未配置时 `enabled=false`、`ak` 为空串，前端据此回落到 SVG 示意底图，不报错。该路径**不在** `permitAll` 白名单内，因此只对已登录请求下发。
 
 ---
 
@@ -1234,13 +1264,17 @@ POST /api/agent/vote
 
 ## 5. 前端页面
 
-服务端内置**四个**静态页（仅用于本地联调与展示，非生产 UI）：
+服务端内置**七个**静态页（仅用于本地联调与展示，非生产 UI），全部由 Spring 直接托管，页面本身公开：
 
-- `static/index.html`：首页 / 登录与注册页，`GET /`、`/login`、`/app` 均转发到此；
-- `static/chat.html`：AI 对话页，登录后的落地页；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/chat.html`；
-- `static/api-console.html`：接口测试台，登录卡与测试台在同一页切换；
-- `static/ticket-assistant.html`：景区购票助手页，围绕「一条已保存的行程活动」查官方购票入口，不写正式方案（交互见 §5.2）。
-- `static/planner.html`：行程工作台，一份页面三个视图——规划 `#plan`（AI 对话、草案、投票卡）、票务 `#ticket`（购票需求与建议）、我的行程 `#trips`；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/planner.html`。旧的 `chat.html` 与 `ticket-assistant.html` 已并入此页并删除，原地址 302 到 `/planner.html`；
+- `static/index.html`（37 KB）：首页 / 登录与注册页，`GET /`、`/login`、`/app` 均转发到此；
+- `static/planner.html`（270 KB）：行程工作台，一份页面三个视图——规划 `#plan`（AI 对话、草案、投票卡）、票务 `#ticket`（购票需求与建议）、我的行程 `#trips`；未登录时页内脚本读 `/api/account/me` 得到 401，跳回 `/?next=/planner.html`。旧的 `chat.html` 与 `ticket-assistant.html` 已并入此页并删除，原地址 302 到 `/planner.html`；
+- `static/api-console.html`（93 KB）：接口测试台，登录卡与测试台在同一页切换，不进用户导航；
+- `static/mobile.html`（27 KB）：窄屏版移动布局，调 `/api/chat`、`/api/itineraries`、`/api/account/me`；与 Flutter 移动端 `travel-mobile` 不是同一套代码；
+- `static/settings.html`（11 KB）：个人中心——主题（跟随系统 / 浅色 / 深色）、协作动态通知开关、账号安全（登录限流 8 次/分）、注销；
+- `static/food.html`（10 KB）：美食推荐页，走 `/api/agent/invoke` 的 FOOD 意图，纯展示，后端无美食专有接口；
+- `static/admin.html`（31 KB）：管理后台——Provider 注册表与准入（探测 / 影子 / 启用）、能力状态、意图路由、模型用量、操作审计、令牌管理；其中的管理接口要 `X-Admin-Token`（见 §3.22、§3.23）。
+
+看板娘与共享资源也被多页引用：`static/mascot/*.png`、`static/tokens.css`、`static/components.css`、`static/mascot-widget.js`，都在放行清单里（否则未登录会 401 导致样式与脚本加载失败）。
 
 接口测试台按会话自动切换两种形态，不需要跳转：
 
@@ -1255,17 +1289,18 @@ POST /api/agent/vote
 |---|---|
 | `GET /`、`GET /login`、`GET /app` | 转发到 `index.html`（登录 / 注册页；`/login`、`/app` 为历史链接） |
 | `GET /index.html` | 登录页直连 |
-| `GET /planner.html` | 行程工作台直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /planner.html`、`GET /planner` | 行程工作台直连（页面公开，数据仍由 `/api/**` 拦截） |
+| `GET /admin.html`、`GET /admin` | 管理后台直连（页面公开，管理接口要 `X-Admin-Token`） |
+| `GET /mobile.html`、`GET /settings.html`、`GET /food.html` | 移动端布局 / 设置页 / 美食页直连（数据仍由 `/api/**` 拦截） |
 | `GET /chat.html`、`GET /ticket-assistant.html` | 302 到 `/planner.html`（旧地址兼容） |
 | `GET /api-console.html` | 接口测试台直连 |
-| `GET /ticket-assistant.html` | 景区购票助手页直连（页面公开，其调用的接口仍需登录） |
 | `GET /login.html`、`GET /app.html` | 302 到 `/`（旧地址兼容） |
 
 页面用左侧竖排栏区分三组页签，便于定位：**行程**（方案 / 每日安排 / 交通 / 住宿 / 费用）、**协作**（成员 / 邀请 / 留言记录）、**智能**（预算检查 / 购票 / 周边查询 / 候选投票 / 决策建议 / 美食推荐 / Agent 投票 / 归档导出）。
 
 所有请求通过 `fetch` 调用 §2/§3 的真实接口，同源携带 `JSESSIONID`；响应按 UTF-8 编码（服务端已配置 `server.servlet.encoding.force=true`，静态页与 JSON 都带 `charset=UTF-8`）。
 
-### 5.1 对话页的交互约定
+### 5.1 工作台规划视图（`planner.html#plan`）的交互约定
 
 **每条消息先解析再路由**：用户发送后，对话页先调 `POST /api/intent/parse`（§8.9）拿到
 意图与槽位，再按 `intent` 分流：
@@ -1296,7 +1331,7 @@ POST /api/agent/vote
 `departDate`/`returnDate`），不依赖模型从文本里再解析一遍；`builtin.planning` 会把八个
 字段全量透传给 `PlanningRequest`。
 
-### 5.2 购票助手页的交互约定
+### 5.2 工作台票务视图（`planner.html#ticket`）的交互约定
 
 页面以「一条已保存的行程活动」为操作对象，先选行程再选活动；不带参数直接打开时只加载
 `GET /api/tickets/catalog` 的核验目录，不主动读用户数据。支持 `?itineraryId=` 与
