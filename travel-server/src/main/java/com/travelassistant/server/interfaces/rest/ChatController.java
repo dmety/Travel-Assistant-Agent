@@ -104,10 +104,10 @@ public class ChatController {
     }
 
     response.setHeader("Cache-Control", "no-cache");
-    List<ConversationTurn> history = request.history() == null ? List.of() : request.history();
-    if (history.size() > MAX_HISTORY_TURNS) {
-      history = history.subList(history.size() - MAX_HISTORY_TURNS, history.size());
-    }
+    List<ConversationTurn> suppliedHistory = request.history() == null ? List.of() : request.history();
+    List<ConversationTurn> history = suppliedHistory.size() > MAX_HISTORY_TURNS
+        ? suppliedHistory.subList(suppliedHistory.size() - MAX_HISTORY_TURNS, suppliedHistory.size())
+        : suppliedHistory;
     ConversationState state = request.state() == null ? ConversationState.empty() : request.state();
     List<String> images;
     try { images = validateImages(request.images()); }

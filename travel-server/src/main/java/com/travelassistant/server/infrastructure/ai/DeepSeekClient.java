@@ -216,12 +216,13 @@ public class DeepSeekClient {
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.setAccept(List.of(MediaType.TEXT_EVENT_STREAM));
     headers.setBearerAuth(apiKey);
+    long startedAtNanos = System.nanoTime();
     try {
       ModelTurn content = restTemplate.execute(baseUrl + "/chat/completions", HttpMethod.POST,
           request -> {
             request.getHeaders().putAll(headers);
             mapper.writeValue(request.getBody(), body);
-          }, response -> readToolStream(response.getBody(), onDelta));
+          }, response -> readToolStream(response.getBody(), onDelta, startedAtNanos));
       if (content == null || (content.content().isBlank() && !content.wantsTools())) {
         throw new AgentUnavailableException("模型流式响应为空");
       }
@@ -241,8 +242,8 @@ public class DeepSeekClient {
     private final StringBuilder arguments = new StringBuilder();
   }
 
-  private ModelTurn readToolStream(java.io.InputStream input, Consumer<String> onDelta)
-      throws IOException {
+  private ModelTurn readToolStream(java.io.InputStream input, Consumer<String> onDelta,
+      long startedAtNanos) throws IOException {
     StringBuilder content = new StringBuilder();
     StringBuilder data = new StringBuilder();
     Map<Integer, StreamToolCall> calls = new TreeMap<>();
@@ -253,7 +254,7 @@ public class DeepSeekClient {
       while ((line = reader.readLine()) != null) {
         if (line.isEmpty()) {
           if (data.length() > 0) {
-            done = consumeToolEvent(data.toString(), content, calls, onDelta) || done;
+            done = consumeToolEvent(data.toString(), content, calls, onDelta, startedAtNanos) || done;
             data.setLength(0);
             if (done) {
               break;
@@ -268,7 +269,7 @@ public class DeepSeekClient {
       }
     }
     if (!done && data.length() > 0) {
-      done = consumeToolEvent(data.toString(), content, calls, onDelta);
+      done = consumeToolEvent(data.toString(), content, calls, onDelta, startedAtNanos);
     }
     if (!done) {
       throw new AgentUnavailableException("模型流式响应提前结束");
@@ -286,7 +287,8 @@ public class DeepSeekClient {
   }
 
   private boolean consumeToolEvent(String data, StringBuilder content,
-      Map<Integer, StreamToolCall> calls, Consumer<String> onDelta) throws IOException {
+      Map<Integer, StreamToolCall> calls, Consumer<String> onDelta, long startedAtNanos)
+      throws IOException {
     if ("[DONE]".equals(data.strip())) {
       return true;
     }
@@ -299,7 +301,8 @@ public class DeepSeekClient {
           .asText("模型流式生成失败"));
     }
     if (root.path("usage").isObject()) {
-      recordUsage(root);
+      long elapsedMs = Math.max(0, (System.nanoTime() - startedAtNanos) / 1_000_000);
+      recordUsage(root, elapsedMs);
     }
     JsonNode delta = root.path("choices").path(0).path("delta");
     JsonNode contentDelta = delta.path("content");
