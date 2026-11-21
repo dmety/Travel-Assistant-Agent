@@ -261,10 +261,6 @@ public class PlanningService {
   private static boolean conflict(String first, String second) { return clean(first) != null && clean(second) != null && !first.strip().equals(second.strip()); }
   private static boolean sameEntity(Attraction a, Attraction b) {
     if (a.id()!=null && a.id().equals(b.id()) && java.util.Objects.equals(a.source(),b.source())) return true;
-    if (!java.util.Objects.equals(a.name(), b.name()) || !java.util.Objects.equals(
-        a.city()==null?null:a.city().replaceAll("市$", ""), b.city()==null?null:b.city().replaceAll("市$", ""))) return false;
-    var p=DraftAssembler.coordinate(a); var q=DraftAssembler.coordinate(b);
-    if (p!=null && q!=null) return com.travelassistant.server.infrastructure.geo.CoordinateTransforms.haversineMeters(p.lat(),p.lon(),q.lat(),q.lon())<=100;
     return DraftAssembler.sameDestination(a,b);
   }
 
