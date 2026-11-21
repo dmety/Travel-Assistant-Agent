@@ -65,6 +65,9 @@ Desktop.ini
 !/data/ticket_channels.json
 !/data/ticket_rules.json
 
+# 美食权威名录底账（政府官网可公开引用来源，无用户数据/无密钥）
+!/data/food_baseline.json
+
 # 设计稿仅本地保留，不入库（原型页、令牌源、Axure 素材与导出图）
 # 页面与移动端已各自内联令牌与图标，运行时不依赖本目录
 # 注意：tools/design_icons.py 以本目录为源，克隆后需自备设计稿才能执行
