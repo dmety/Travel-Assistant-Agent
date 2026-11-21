@@ -125,8 +125,10 @@ class ChatToolsTest {
     ChatTools.Outcome outcome = tools.execute("list_attractions", "{\"city\":\"华山\"}");
 
     assertThat(outcome.ok()).isTrue();
-    assertThat(outcome.summary()).contains("华山风景名胜区").contains("未经核验")
+    assertThat(outcome.summary()).contains("华山风景名胜区")
         .contains("评分 4.7").contains("门票未核验");
+    // 实时检索没有票价字段：由工具上报 code，摘要只留「门票未核验」这一处数据标记。
+    assertThat(outcome.disclaimers()).contains("UNVERIFIED_TICKET", "OFFICIAL_NOTICE");
     assertThat(outcome.card().type()).isEqualTo("places");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
@@ -252,10 +254,49 @@ class ChatToolsTest {
     assertThat(outcome.ok()).isTrue();
     assertThat(outcome.summary())
         .contains("https://www.badaling.cn/website/pc/index.html")
-        .contains("不代下单").contains("余票未核验");
+        .doesNotContain("余票未核验，本系统不代下单");
+    // 核验声明只以结构化 code 上报，界面统一渲染一次，工具摘要不再复述。
+    assertThat(outcome.disclaimers()).contains("NO_REALTIME_STOCK", "OFFICIAL_NOTICE");
     @SuppressWarnings("unchecked")
     Map<String, Object> card = (Map<String, Object>) outcome.card().data();
     assertThat(card).containsKey("ticketGuidance");
+  }
+
+  @Test
+  @DisplayName("Provider 上报的核验声明逐层透传，工具只按字段补差异且按首次出现顺序去重")
+  void providerDisclaimersPassThrough() {
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "TICKET_GUIDANCE");
+    value.put("method", "打开官方入口自行预约或购票。");
+    value.put("stockVerified", true);
+    Fact guidance = new Fact("f4g", "CONTENT", value,
+        new Evidence("TICKET_RULE", "builtin.ticket", Evidence.UNVERIFIED,
+            Instant.now(), "官方入口快照"));
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(
+        okWithDisclaimers("TICKET_ADVICE", "builtin.ticket",
+            List.of(ticketFact(), guidance), List.of("OFFICIAL_NOTICE", "HOT_UNRANKED")));
+
+    ChatTools.Outcome outcome = tools.execute("book_ticket",
+        "{\"message\":\"八达岭长城怎么买票\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    // ticketFact 的 stockVerified=false 由工具补 NO_REALTIME_STOCK；其余两个 code 只能来自 Provider。
+    assertThat(outcome.disclaimers()).containsExactly(
+        "OFFICIAL_NOTICE", "HOT_UNRANKED", "NO_REALTIME_STOCK");
+    assertThat(outcome.summary()).doesNotContain("余票未核验，本系统不代下单");
+  }
+
+  @Test
+  @DisplayName("景点票价字段缺失才上报 UNVERIFIED_TICKET，工具摘要不再复述免责")
+  void ticketCodesFollowFields() {
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(
+        ok("CONTENT_INSPIRATION", "builtin.inspiration", inspirationFactWithoutTicket()));
+
+    ChatTools.Outcome outcome = tools.execute("get_inspiration", "{\"city\":\"杭州\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.disclaimers()).containsExactly("UNVERIFIED_TICKET");
+    assertThat(outcome.summary()).doesNotContain("以景区公告为准");
   }
 
   @Test
@@ -299,8 +340,11 @@ class ChatToolsTest {
     ChatTools.Outcome outcome = tools.execute("get_inspiration", "{\"city\":\"杭州\"}");
 
     assertThat(outcome.ok()).isTrue();
-    assertThat(outcome.summary()).contains("西湖").contains("以景区公告为准")
+    assertThat(outcome.summary()).contains("西湖").doesNotContain("以景区公告为准")
         .contains("评分 4.9").contains("门票 免费");
+    // 票价值存在 → 只上报 OFFICIAL_NOTICE，不凭工具名固定挂一串声明。
+    assertThat(outcome.disclaimers()).contains("OFFICIAL_NOTICE")
+        .doesNotContain("UNVERIFIED_TICKET");
     assertThat(outcome.card().type()).isEqualTo("places");
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rows = (List<Map<String, Object>>) outcome.card().data();
@@ -533,6 +577,15 @@ class ChatToolsTest {
         List.of(new DispatchOutcome.Attempt(provider, "OK", "OK", List.of())), "test");
   }
 
+  /** 模拟外部 Provider 在契约 1.1 上报 verification.disclaimers。 */
+  private static DispatchOutcome okWithDisclaimers(String intent, String provider,
+      List<Fact> facts, List<String> disclaimers) {
+    return new DispatchOutcome(intent, "OK", provider,
+        new AgentResult("OK", facts, "建议", List.of(), List.of(), disclaimers,
+            new Usage(10L, 5)),
+        List.of(new DispatchOutcome.Attempt(provider, "OK", "OK", List.of())), "test");
+  }
+
   private static Fact foodFact() {
     Map<String, Object> value = new LinkedHashMap<>();
     value.put("category", "FOOD");
@@ -615,6 +668,19 @@ class ChatToolsTest {
     value.put("total", 1);
     value.put("items", List.of(item));
     return new Fact("f5", "CONTENT", value,
+        new Evidence("KB", "builtin.inspiration", Evidence.UNVERIFIED, Instant.now(), "候选快照"));
+  }
+
+  private static Fact inspirationFactWithoutTicket() {
+    Map<String, Object> item = new LinkedHashMap<>();
+    item.put("name", "某景点");
+    item.put("rating", "4.5");
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("category", "INSPIRATION");
+    value.put("city", "杭州");
+    value.put("total", 1);
+    value.put("items", List.of(item));
+    return new Fact("f5b", "CONTENT", value,
         new Evidence("KB", "builtin.inspiration", Evidence.UNVERIFIED, Instant.now(), "候选快照"));
   }
 }

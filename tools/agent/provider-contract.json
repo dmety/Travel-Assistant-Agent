@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.0",
+  "contractVersion": "1.1",
   "defaultDecision": "DENY",
   "enums": {
     "capability": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND",
@@ -9,7 +9,10 @@
     "externalVerificationStatus": ["unverified", "pending"],
     "status": ["OK", "DEGRADED", "REFUSED"],
     "sideEffect": ["NONE", "READ", "WRITE"],
-    "providerKind": ["BEAN", "HTTP"]
+    "providerKind": ["BEAN", "HTTP"],
+    "disclaimerCode": ["UNVERIFIED_TICKET", "OFFICIAL_NOTICE", "FORECAST_NOT_REALTIME",
+                       "NO_REALTIME_STOCK", "GEOCODE_REFERENCE", "HOT_UNRANKED",
+                       "ROUTE_ESTIMATE", "GENERAL_DISH_LIST"]
   },
   "limits": {
     "timeoutMs": { "min": 100, "max": 10000, "default": 4000 },
@@ -18,7 +21,8 @@
     "maxAdviceChars": 2000, "maxHints": 16, "maxContextProperties": 16,
     "maxFactValueProperties": 32, "maxRunIdChars": 64,
     "shadowSamples": 20, "shadowBlockViolationRate": 0,
-    "runtimeViolationToSuspend": 3
+    "runtimeViolationToSuspend": 3,
+    "maxDisclaimers": 8
   },
   "rules": [
     { "id": "M-01", "group": "META", "level": "BLOCK", "code": "E_META_ID" },
@@ -57,7 +61,7 @@
     { "id": "X-05", "group": "SECURITY", "level": "BLOCK", "code": "E_SECURITY_AUDIT" },
     { "id": "X-06", "group": "SECURITY", "level": "WARN" }
   ],
-  "goldCases": ["GC-01", "GC-02", "GC-03", "GC-04", "GC-05", "GC-06", "GC-07", "GC-08"],
+  "goldCases": ["GC-01", "GC-02", "GC-03", "GC-04", "GC-05", "GC-06", "GC-07", "GC-08", "GC-09"],
   "goldCasesFile": "gold_cases.json",
   "gates": ["G0_STATIC", "G1_CONTRACT_PROBE", "G2_SECURITY_PROBE", "G3_SHADOW", "G4_ENABLE"],
   "runtime": {
@@ -99,6 +103,16 @@
           "type": "object", "additionalProperties": false,
           "required": ["elapsedMs"],
           "properties": { "elapsedMs": { "type": "integer", "minimum": 0 }, "modelCalls": { "type": "integer", "minimum": 0 } }
+        },
+        "verification": {
+          "type": "object", "additionalProperties": false,
+          "required": ["disclaimers"],
+          "properties": {
+            "disclaimers": {
+              "type": "array", "maxItems": 8, "uniqueItems": true,
+              "items": { "type": "string", "enum": ["UNVERIFIED_TICKET", "OFFICIAL_NOTICE", "FORECAST_NOT_REALTIME", "NO_REALTIME_STOCK", "GEOCODE_REFERENCE", "HOT_UNRANKED", "ROUTE_ESTIMATE", "GENERAL_DISH_LIST"] }
+            }
+          }
         }
       }
     },

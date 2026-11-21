@@ -343,7 +343,7 @@ class AgentRegistryIntegrationTest {
     AgentCapabilityController controller =
         new AgentCapabilityController(registry(), rules, admission, new AdminAuditLog());
     Map<String, Object> body = controller.capabilities();
-    assertEquals("1.0", body.get("contractVersion"));
+    assertEquals("1.1", body.get("contractVersion"));
     assertNotNull(body.get("registryVersion"));
     assertEquals("OK", body.get("registryNote"));
     @SuppressWarnings("unchecked")

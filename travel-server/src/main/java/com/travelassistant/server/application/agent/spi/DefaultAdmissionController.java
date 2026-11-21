@@ -322,6 +322,16 @@ public class DefaultAdmissionController implements AdmissionController {
         }
       }
     }
+    if (Boolean.TRUE.equals(expect.get("disclaimersValid"))) {
+      List<String> codes = result.disclaimers() == null ? List.of() : result.disclaimers();
+      java.util.Set<String> allowed = rules.enums("disclaimerCode");
+      java.util.Set<String> seen = new java.util.HashSet<>();
+      for (String code : codes) {
+        if (code == null || !allowed.contains(code) || !seen.add(code)) {
+          out.add(probeFailure(item, "disclaimers 含非法或重复 code：" + code));
+        }
+      }
+    }
     if (Boolean.TRUE.equals(expect.get("noStackTrace")) && leaksStackTrace(result)) {
       out.add(probeFailure(item, "响应外泄栈追踪"));
     }

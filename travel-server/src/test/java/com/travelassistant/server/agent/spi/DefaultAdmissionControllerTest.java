@@ -358,9 +358,9 @@ class DefaultAdmissionControllerTest {
 
   @Test
   void goldCaseSetExposesStableShape() {
-    assertEquals("1.0", cases.contractVersion());
-    assertEquals(8, cases.cases().size());
-    assertEquals(4, cases.forGate("G1").size());
+    assertEquals("1.1", cases.contractVersion());
+    assertEquals(9, cases.cases().size());
+    assertEquals(5, cases.forGate("G1").size());
     assertEquals(4, cases.forGate("G2").size());
     assertTrue(cases.byId("GC-01").isPresent());
     assertFalse(cases.byId("GC-99").isPresent());

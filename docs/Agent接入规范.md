@@ -233,6 +233,14 @@ stateDiagram-v2
       "type": "object", "additionalProperties": false,
       "required": ["elapsedMs"],
       "properties": { "elapsedMs": { "type": "integer", "minimum": 0 }, "modelCalls": { "type": "integer", "minimum": 0 } }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["disclaimers"],
+      "properties": {
+        "disclaimers": { "type": "array", "maxItems": 8, "uniqueItems": true,
+          "items": { "type": "string", "enum": ["UNVERIFIED_TICKET", "OFFICIAL_NOTICE", "FORECAST_NOT_REALTIME", "NO_REALTIME_STOCK", "GEOCODE_REFERENCE", "HOT_UNRANKED", "ROUTE_ESTIMATE", "GENERAL_DISH_LIST"] } }
+      }
     }
   },
   "$defs": {
@@ -283,7 +291,7 @@ stateDiagram-v2
 
 ```json
 {
-  "contractVersion": "1.0",
+  "contractVersion": "1.1",
   "providerId": "food.recommender",
   "status": "REJECTED",
   "stage": "G0",
@@ -357,7 +365,7 @@ G0 判定为 `E_META_AUTH`（M-09，内联凭据）加 `E_META_SCHEMA`（M-04，
 
 ```json
 {
-  "contractVersion": "1.0",
+  "contractVersion": "1.1",
   "defaultDecision": "DENY",
   "enums": {
     "capability": ["PLAN_DRAFT", "DECISION_ADVICE", "TICKET_ADVICE", "FOOD_RECOMMEND",
@@ -493,6 +501,8 @@ G0 判定为 `E_META_AUTH`（M-09，内联凭据）加 `E_META_SCHEMA`（M-04，
 | Provider 自身升级实现或 endpoint | 不改规范版本 | 重新跑 G0 至 G4 |
 
 规则集随 Git 版本管理，审计报告与调用审计都记 `contractVersion`，便于复盘当时按哪版规范放行。规范变更必须同步更新本文、机器可读源、gold cases 与《Agent运行时架构设计》里的引用，不允许只改其中一处。
+
+1.1（2026-11-21）：响应新增可选 `verification.disclaimers` 与 `enums.disclaimerCode`（8 个 code）。目的是把「未核验 / 以官方为准 / 预报非实况」这类声明从模型正文搬到界面统一尾注，一条回复只出现一次；新增 G1 用例 GC-09 覆盖该字段。按上表属「新增可选字段」，只升次版本，已 ACTIVE Provider 不重新准入；字段缺省时响应仍合法，旧 Provider 无需改码。本次交付仍额外跑了全量门禁。
 
 ## 与运行时的接口
 

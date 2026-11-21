@@ -135,7 +135,7 @@ class HttpAgentAdapterTest {
     assertNull(lastAuthorization);
 
     JsonNode request = json.readTree(lastRequestBody);
-    assertEquals("1.0", request.path("schemaVersion").asText());
+    assertTrue(request.path("schemaVersion").asText().startsWith("1."));
     assertEquals("run-000001", request.path("runId").asText());
     assertEquals("FOOD_RECOMMEND", request.path("intent").asText());
     assertEquals(1, request.path("facts").size());

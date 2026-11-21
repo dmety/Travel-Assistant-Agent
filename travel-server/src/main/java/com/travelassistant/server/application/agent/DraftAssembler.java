@@ -518,7 +518,7 @@ public final class DraftAssembler {
     } else if (unknown > 0 || travelersMissing) {
       verdict = "CANNOT_DETERMINE";
       message = "已核验门票小计 " + total.toPlainString() + " " + currency
-          + " 未超过上限，但仍有 " + unknown + " 个景点票价未知"
+          + " 未超过上限，但仍有 " + unknown + " 个景点票价未经官方核验"
           + (travelersMissing ? "、同行人数未提供" : "")
           + "，无法判定总花费是否超支";
       if (unknown > 0) {
@@ -533,7 +533,7 @@ public final class DraftAssembler {
     }
     String scope = "统计范围：仅已核验且能解析出金额的门票，按 " + travelers + " 人计；"
         + (travelersMissing ? "人数未提供，按 1 人保守估算；" : "")
-        + "不含交通、住宿、餐饮，" + unknown + " 个景点票价未知未计入。";
+        + "不含交通、住宿、餐饮，未知票价未计入。";
     return new DraftBudgetEstimate(currency, budget, request.travelers(), subtotal, total,
         unknown, verdict, message + "。" + scope);
   }

@@ -304,6 +304,7 @@ public record AgentResult(
     String advice,                // 纯文字，可为 null
     List<String> unknownFields,
     List<String> notices,
+    List<String> disclaimers,      // 契约 1.1：结构化核验声明 code，缺省为空
     Usage usage) {}
 
 // application/agent/spi/AgentRegistry.java
@@ -345,7 +346,7 @@ public interface AgentRegistry {
 三条码定案为编排层局部码，边界如下：
 
 - 不进《Agent 接入规范》的原因码表，也不进 `provider-contract.json` 和 `gold_cases.json`。
-- 不参与 `contractVersion`。契约仍是 1.0，改动不升主版本，也不触发全量重新准入。
+- 不参与 `contractVersion`。契约主版本仍是 1.x（当前 1.1），改动不升主版本，也不触发全量重新准入。
 - 不写进 `AdmissionReport`，不计 Provider 违规，不加熔断计数。
 - 不在 G0 至 G4 闸门里判定，不改 Provider 的准入状态。
 
@@ -469,11 +470,16 @@ S-03 会把整条响应判为 `CONTRACT_VIOLATION`，编排层随即切兜底、
   "advice": "……",
   "unknownFields": ["人均价格"],
   "notices": [],
-  "usage": { "elapsedMs": 820 }
+  "usage": { "elapsedMs": 820 },
+  "verification": { "disclaimers": ["UNVERIFIED_TICKET", "OFFICIAL_NOTICE"] }
 }
 ```
 
 完整的字段约束见《Agent接入规范》的「请求与响应契约」一节。
+
+契约 1.1 的 `verification.disclaimers` 是**可选**的结构化核验声明：Provider 只上报 code，不写自然语言免责；界面按 code 去重后统一渲染一次尾注，模型正文不复述。code 白名单以 `tools/agent/provider-contract.json` 的 `enums.disclaimerCode` 为单一源，`ContractValidator.validateResult` 校验枚举与去重。既有 Provider 不输出该字段仍是合法响应，因此按「新增可选字段」只升次版本 1.0 → 1.1，不触发全量重新准入。
+
+对话回复（`/api/chat`）的 `ChatReply.disclaimers` 与 Provider 契约层的 `verification` **共用同一套 `disclaimerCode`，逐层透传、不做二次翻译**：外部 Provider 在 `verification.disclaimers` 上报 code → `ContractValidator` 校验枚举与去重 → `AgentResult.disclaimers` → `DispatchOutcome` → `ChatTools.Outcome.disclaimers`（工具再按本次返回的字段状态补充，如票价缺失才追加 `UNVERIFIED_TICKET`）→ `ToolTrace.disclaimers` → `ChatReply` 按调用顺序汇总去重 → `ChatController` 用契约源白名单收口。`planner.html` 的 `renderReply` 把回复级 code 与卡片级 code 合并后由 `paintDisclaimers` 只渲染一条尾注；卡片渲染器不再自带免责脚注，模型正文与工具摘要也都不复述。
 
 ### 接入步骤
 
