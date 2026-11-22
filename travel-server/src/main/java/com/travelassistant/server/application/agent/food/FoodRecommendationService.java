@@ -420,6 +420,8 @@ public class FoodRecommendationService {
     value.put("distanceMeters", distance);
     value.put("poiId", place.poiId());
     value.put("tags", tags(place.tags()));
+    value.put("source", place.source());
+    value.put("queriedAt", place.fetchedAt() == null ? null : place.fetchedAt().toString());
     value.put("allergenFlags", allergenFlags(place));
     value.put("sourceLayer", "FACT");
     // 只标「是否本地口味」，不解释判定细节，避免把品牌库口径写进响应。

@@ -41,8 +41,15 @@ public class PlanningService {
 
   private final PlanningTools tools;
   private final DeepSeekClient model;
+  private final TravelGuideComposer guideComposer;
 
   public PlanningService(PlanningTools tools, DeepSeekClient model) {
+    this(tools, model, new TravelGuideComposer(null));
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public PlanningService(PlanningTools tools, DeepSeekClient model, TravelGuideComposer guideComposer) {
+    this.guideComposer = guideComposer;
     this.tools = tools;
     this.model = model;
   }
@@ -73,11 +80,18 @@ public class PlanningService {
 
     // 1. 候选景点
     List<Attraction> candidates = new ArrayList<>();
-    ToolOutcome<List<Attraction>> byCity = tools.searchByCity(city, PlanningTools.MAX_CANDIDATES);
+    ToolOutcome<List<Attraction>> byCity = tools.searchByCity(city, PlanningTools.MAX_CANDIDATES,
+        request.departDate() == null ? java.time.LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")) : request.departDate());
     if (byCity.ok()) {
       candidates.addAll(byCity.value());
       if (!candidates.isEmpty()) {
-        sources.add("本地景点知识库");
+        candidates.stream()
+            .map(Attraction::sourceText)
+            .filter(source -> source != null && !source.isBlank())
+            .forEach(sources::add);
+        if (sources.isEmpty()) {
+          sources.add("本地景点知识库");
+        }
       }
     } else {
       notices.add(byCity.error());
@@ -86,7 +100,7 @@ public class PlanningService {
     // 城市查不到时改用地图实时检索该地名本地的真实景点。
     // 早期版本曾用偏好关键词全库模糊匹配兜底，结果「人文」会命中全国任何带这俩字的
     // 名字（桂林/兰州/南宁的文化宫），候选全跑到省外——已废弃，宁可实时检索也不凑数。
-    if (candidates.isEmpty()) {
+    { // Always recall map candidates; sparse commercial coverage must not hide map results.
       ToolOutcome<List<Attraction>> live = tools.searchLive(city, PlanningTools.MAX_CANDIDATES);
       if (live.ok() && !live.value().isEmpty()) {
         candidates.addAll(live.value());
@@ -97,13 +111,35 @@ public class PlanningService {
       }
     }
 
+    if (request.details() != null) {
+      int lookups = 0;
+      List<Attraction> mandatory = new ArrayList<>();
+      List<Attraction> regionalCandidates = List.copyOf(candidates);
+      for (String name : request.details().mustVisit()) {
+        if (++lookups > 4) { notices.add("必去点查询上限4个，剩余点待逐个核对"); break; }
+        ToolOutcome<List<Attraction>> found = tools.searchByName(name, 10);
+        if (found.ok()) found.value().stream().filter(a -> name.equals(a.name()))
+            .filter(a -> regionalCandidates.stream().anyMatch(c -> java.util.Objects.equals(c.city(), a.city()))
+                || city.equals(a.city()) || city.equals(a.province()))
+            .findFirst().ifPresent(mandatory::add);
+      }
+      candidates.addAll(0, mandatory);
+    }
+    candidates = mergeEntities(candidates);
+    candidates.removeIf(a -> DraftAssembler.excluded(request,a));
+    candidates = new ArrayList<>(DraftAssembler.uniqueAttractions(candidates));
+    candidates.sort(java.util.Comparator.<Attraction>comparingInt(a -> request.details() != null && request.details().mustVisit().contains(a.name()) ? 0 : 1)
+        .thenComparing(java.util.Comparator.comparingInt((Attraction a) -> preferenceMatches(request, a)).reversed())
+        .thenComparing(java.util.Comparator.comparingLong((Attraction a) -> request.preferences().stream().anyMatch(p -> p.contains("热门")) ? reviewCount(a) : 0).reversed())
+        .thenComparing(com.travelassistant.server.application.place.RatingOrder.ATTRACTION));
     if (candidates.isEmpty()) {
       notices.add("没查到「" + city + "」的景点，可以换个地名或补充偏好关键词再试");
     }
 
     // 2. 天气（仅在高德可用时）
     WeatherResult weather = null;
-    if (tools.locationEnabled()) {
+    boolean wantsWeather = request.details() != null && Boolean.TRUE.equals(request.details().includeWeather());
+    if (wantsWeather && tools.locationEnabled()) {
       ToolOutcome<WeatherResult> outcome = tools.weather(city);
       if (outcome.ok()) {
         weather = outcome.value();
@@ -111,7 +147,7 @@ public class PlanningService {
       } else {
         notices.add(outcome.error());
       }
-    } else {
+    } else if (wantsWeather) {
       notices.add("未接入实时天气（未配置高德密钥），本草案不含天气信息");
     }
 
@@ -142,23 +178,96 @@ public class PlanningService {
     DraftAssembler.Draft assembled = DraftAssembler.assemble(request, candidates);
     notices.addAll(assembled.notices());
 
-    // 5. 模型建议（可失败）
-    String advice = null;
-    if (withAdvice && model.configured()) {
-      try {
-        advice = model.complete(systemPrompt(), userPrompt(request, candidates, weather));
-        sources.add("DeepSeek " + model.model());
-      } catch (AgentUnavailableException e) {
-        log.warn("模型建议生成失败：{}", e.getMessage());
-        notices.add(e.getMessage() + "，以下仅列出检索到的景点");
+    TravelGuide guide = guideComposer.compose(request, candidates, assembled.dailySchedules());
+    // The body is rendered from the same guide as cards and costs; no independent model schedule.
+    java.util.Set<String> unplaced = guide.days().stream().flatMap(day -> day.slots().stream())
+        .filter(slot -> slot.status().equals("UNPLACED")).map(TravelGuide.Slot::id).collect(java.util.stream.Collectors.toSet());
+    if (!unplaced.isEmpty()) {
+      List<DraftDay> actual = assembled.dailySchedules().stream().map(day -> new DraftDay(day.dayIndex(), day.date(), day.note(),
+          day.items().stream().filter(item -> !unplaced.contains("D" + day.dayIndex() + "-visit-" + item.attractionId())).toList())).toList();
+      java.util.Set<String> included = actual.stream().flatMap(day -> day.items().stream()).map(DraftDay.Item::attractionId).collect(java.util.stream.Collectors.toSet());
+      assembled = new DraftAssembler.Draft(assembled.questions(), actual, assembled.checks(),
+          DraftAssembler.estimate(request, candidates.stream().filter(a -> included.contains(a.id())).toList(), new ArrayList<>()), assembled.notices());
+    }
+    String advice = guide.render();
+    if (weather != null && request.departDate() != null) {
+      java.util.Set<java.time.LocalDate> covered = weather.days().stream()
+          .map(d -> java.time.LocalDate.parse(d.date())).collect(java.util.stream.Collectors.toSet());
+      for (TravelGuide.Day day : guide.days()) if (day.date() != null && !covered.contains(day.date())) {
+        notices.add(day.date() + " 不在本次天气预报覆盖范围内，不能据此判断雨天或出行适宜性");
       }
-    } else if (withAdvice) {
-      notices.add("未配置模型密钥（DEEPSEEK_API_KEY），本次仅提供检索到的景点，未生成文字建议");
     }
 
+    if (wantsWeather) {
+      StringBuilder forecast = new StringBuilder("\n天气预报（非实况）：");
+      if (weather == null) forecast.append("查询未成功，不能判断旅行天气");
+      else {
+        forecast.append(weather.city()).append("；来源 ").append(weather.source()).append("；发布 ").append(weather.reportTime());
+        for (var day : weather.days()) {
+          boolean travelDay = guide.days().stream().anyMatch(d -> d.date() != null && d.date().toString().equals(day.date()));
+          if (travelDay || request.departDate() == null) forecast.append("\n").append(day.date()).append(" ").append(day.dayWeather()).append(" ").append(day.dayTemp()).append("℃ / 夜间 ").append(day.nightWeather()).append(" ").append(day.nightTemp()).append("℃").append(travelDay ? "" : "（仅近期预报，旅行日期未给）");
+        }
+      }
+      advice += forecast.toString();
+      for (String notice : notices) if (notice.contains("预报覆盖")) advice += "\n" + notice;
+    }
     return new PlanDraft(request, candidates, weather, ticketAdvice, advice,
         notices, List.copyOf(sources), assembled.questions(), assembled.dailySchedules(),
-        assembled.checks(), assembled.budgetEstimate(), Instant.now());
+        assembled.checks(), assembled.budgetEstimate(), Instant.now(), guide);
+  }
+
+  private static int preferenceMatches(PlanningRequest request, Attraction a) {
+    // Only classify supplied types. Family facilities, accessibility and indoor safety cannot be inferred.
+    String type = a.type() == null ? "" : a.type();
+    int count = 0;
+    for (String preference : request.preferences()) {
+      if (type.contains(preference) || a.name().contains(preference)) count++;
+      else if (preference.equals("人文") && type.matches(".*(博物|文物|历史|纪念).*")) count++;
+      else if (preference.equals("自然") && type.matches(".*(自然|风景|公园).*")) count++;
+    }
+    return count;
+  }
+
+  public static List<Attraction> mergeEntities(List<Attraction> candidates) {
+    List<Attraction> result = new ArrayList<>();
+    for (Attraction incoming : candidates) {
+      int index = -1;
+      for (int i=0; i<result.size(); i++) if (sameEntity(result.get(i), incoming)) { index=i; break; }
+      if (index < 0) { result.add(incoming); continue; }
+      Attraction old = result.get(index);
+      java.util.Map<String, List<Attraction.FieldEvidence>> evidence = new java.util.LinkedHashMap<>();
+      for (String field : List.of("ticket", "openTime", "level", "rating", "commentCount", "address", "coordinates", "type", "province", "description", "tel", "website", "image")) {
+        List<Attraction.FieldEvidence> values = new ArrayList<>(old.evidenceFor(field));
+        for (var e : incoming.evidenceFor(field)) if (!values.contains(e)) values.add(e);
+        if (!values.isEmpty()) evidence.put(field, List.copyOf(values));
+      }
+      boolean oldCoordinates = DraftAssembler.coordinate(old) != null;
+      Attraction coord = oldCoordinates ? old : incoming;
+      java.util.LinkedHashSet<String> sources = new java.util.LinkedHashSet<>(old.sources()); sources.addAll(incoming.sources());
+      String ticket = choose(old.ticket(), incoming.ticket());
+      String opening = choose(old.openTime(), incoming.openTime());
+      String ticketStatus = conflict(old.ticket(),incoming.ticket()) ? "conflict" : clean(old.ticket()) != null ? old.ticketStatus() : incoming.ticketStatus();
+      String openingStatus = conflict(old.openTime(),incoming.openTime()) ? "conflict" : clean(old.openTime()) != null ? old.openTimeStatus() : incoming.openTimeStatus();
+      result.set(index, new Attraction(old.id(),old.name(),old.city(),choose(old.province(),incoming.province()),
+          choose(old.type(),incoming.type()),choose(old.level(),incoming.level()),choose(old.rating(),incoming.rating()),
+          opening,ticket,choose(old.address(),incoming.address()),choose(old.tel(),incoming.tel()),choose(old.website(),incoming.website()),
+          choose(old.image(),incoming.image()),choose(old.description(),incoming.description()),coord.lat(),coord.lon(),old.source(),List.copyOf(sources),
+          ticketStatus,openingStatus,coord.coordinateSystem(),old.retrievedAt(),old.informationUpdatedAt(),evidence));
+    }
+    return result;
+  }
+  private static String clean(String value) { return com.travelassistant.server.domain.attraction.PlaceholderValues.clean(value); }
+  private static String choose(String first, String second) { return clean(first) != null ? first : second; }
+  private static boolean conflict(String first, String second) { return clean(first) != null && clean(second) != null && !first.strip().equals(second.strip()); }
+  private static boolean sameEntity(Attraction a, Attraction b) {
+    if (a.id()!=null && a.id().equals(b.id()) && java.util.Objects.equals(a.source(),b.source())) return true;
+    return DraftAssembler.sameDestination(a,b);
+  }
+
+  private static long reviewCount(Attraction a) {
+    return a.evidenceFor("commentCount").stream().mapToLong(e -> {
+      try { return Math.max(0,Long.parseLong(e.value())); } catch (RuntimeException ignored) { return 0; }
+    }).max().orElse(0);
   }
 
   /** 模型是否可用，供状态接口展示。 */

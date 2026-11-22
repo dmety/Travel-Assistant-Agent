@@ -91,13 +91,17 @@ public class PlanMaterializer {
     // 事实一律以知识库最新记录为准，不采用客户端回传的字段值。
     List<Attraction> selected = new ArrayList<>();
     for (String id : ids) {
-      Attraction fresh = attractions.byId(id)
+      Attraction fresh = attractions.byId(id).or(() -> draft.candidates().stream().filter(a -> id.equals(a.id())).findFirst())
           .orElseThrow(() -> new InvalidPlanningRequestException("景点 ID 在知识库中已不存在：" + id));
       selected.add(fresh);
     }
 
     List<DraftDay> days = DraftAssembler.arrange(request, selected);
-    List<DailySchedule> schedules = days.stream().map(this::toSchedule).toList();
+    TravelGuide guide = command.attractionIds().isEmpty() && draft.guide() != null
+        ? draft.guide() : new TravelGuideComposer(null).compose(request, selected, days);
+    List<DailySchedule> schedules = guide.days().stream().map(day -> new DailySchedule(null, day.date(),
+        String.join("；", day.checks()), day.slots().stream().filter(slot -> !slot.kind().equals("ALTERNATIVE")).map(slot -> new DailyActivity(null, slot.period(),
+            slot.title(), request.destination(), slot.note(), null, null)).toList())).toList();
 
     List<String> notices = new ArrayList<>(draft.notices());
     notices.add("本载荷由用户确认后生成，尚未写入任何行程；请依次调用 POST /api/itineraries "
@@ -111,11 +115,10 @@ public class PlanMaterializer {
 
     String summary = "由规划草案确认生成：" + selected.size() + " 个景点 / "
         + days.size() + " 天，事实来自本地景点知识库";
-    String notes = "草案检查：" + (draft.budgetEstimate() == null
-        ? "无" : draft.budgetEstimate().message());
+    String notes = "草案费用与安排快照（非实付账单）：\n" + guide.render();
     Plan plan = new Plan(request.destination().strip(), summary, notes,
         request.departDate(), request.returnDate(), request.budget(),
-        request.currencyOrDefault());
+        request.currencyOrDefault(), request.details() == null ? java.util.Map.of() : request.details().confirmedGroupCosts().entrySet().stream().filter(e -> guide.costs().stream().anyMatch(c -> c.itemId().equals(e.getKey()))).collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey,java.util.Map.Entry::getValue)));
 
     return new MaterializedPlan(command.title().strip(), plan, schedules, draft.checks(),
         notices, draft.sources(), GENERATED_FROM);

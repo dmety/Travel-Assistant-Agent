@@ -169,6 +169,146 @@ class ApiClient {
     return res.data;
   }
 
+  // ---------------- 设计稿 6 屏 / 业务域所需的 REST ----------------
+  //
+  // 统一走这四个私有出口，把 Dio 异常翻译成 AuthExpiredException / ApiException，
+  // 页面里就不用各自判断 401。路径与 design/README.md §8 的接口表一一对应。
+
+  Future<dynamic> _get(String path, {Map<String, dynamic>? query}) async {
+    try {
+      final res = await dio.get(path, queryParameters: query);
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
+  Future<dynamic> _post(String path,
+      {Object? data, Map<String, dynamic>? query}) async {
+    try {
+      final res = await dio.post(path, data: data, queryParameters: query);
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
+  Future<dynamic> _put(String path,
+      {Object? data, Map<String, dynamic>? query}) async {
+    try {
+      final res = await dio.put(path, data: data, queryParameters: query);
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
+  Future<dynamic> _delete(String path, {Map<String, dynamic>? query}) async {
+    try {
+      final res = await dio.delete(path, queryParameters: query);
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
+  /// 01 屏：我的行程列表。
+  Future<List<dynamic>> itineraries() async {
+    final data = await _get('/api/itineraries');
+    return data is List ? data : const [];
+  }
+
+  Future<dynamic> itinerary(String id) => _get('/api/itineraries/$id');
+
+  /// 03 屏「确认保存」：先 materialize 装配载荷，再写入行程。
+  /// 设计稿要求未确认前一律「草案未保存」，不提前写库。
+  Future<dynamic> materialize(Map<String, dynamic> draft) =>
+      _post('/api/agent/plan/materialize', data: draft);
+
+  Future<dynamic> createItinerary(Map<String, dynamic> payload) =>
+      _post('/api/itineraries', data: payload);
+
+  Future<dynamic> deleteItinerary(String id) =>
+      _delete('/api/itineraries/$id');
+
+  Future<dynamic> saveDaily(String id, int version, List<dynamic> daily) =>
+      _put('/api/itineraries/$id/daily', data: daily, query: {'version': version});
+
+  Future<dynamic> appendActivity(String id, int version,
+          Map<String, dynamic> activity) =>
+      _post('/api/itineraries/$id/activities',
+          data: activity, query: {'version': version});
+
+  /// 04/05 屏与 06 屏：行程详情的只读数据。
+  Future<dynamic> daily(String id) => _get('/api/itineraries/$id/daily');
+
+  Future<dynamic> budgetAnalysis(String id) =>
+      _get('/api/itineraries/$id/budget/analysis');
+
+  Future<dynamic> checks(String id) => _get('/api/itineraries/$id/checks');
+
+  Future<dynamic> exportText(String id) async {
+    try {
+      final res = await dio.get('/api/itineraries/$id/export',
+          options: Options(responseType: ResponseType.plain));
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
+  /// 06 屏协作抽屉：候选 / 投票 / 成员 / 留言 / 修改记录。
+  Future<dynamic> candidates(String id) =>
+      _get('/api/itineraries/$id/candidates');
+
+  Future<dynamic> addCandidate(String id, Map<String, dynamic> body) =>
+      _post('/api/itineraries/$id/candidates', data: body);
+
+  Future<dynamic> vote(String itineraryId, String candidateId, String value) =>
+      _post('/api/itineraries/$itineraryId/candidates/$candidateId/votes',
+          data: {'choice': value});
+
+  Future<dynamic> members(String id) => _get('/api/itineraries/$id/members');
+
+  Future<dynamic> comments(String id) => _get('/api/itineraries/$id/comments');
+
+  Future<dynamic> addComment(String id, String text) =>
+      _post('/api/itineraries/$id/comments', data: {'content': text});
+
+  Future<dynamic> changes(String id) =>
+      _get('/api/itineraries/$id/changelog');
+
+  /// 票务（ticket.html 移动端）：票种目录 + 购票建议。
+  Future<dynamic> ticketCatalog() => _get('/api/tickets/catalog');
+
+  Future<dynamic> ticketAdvice(Map<String, dynamic> body) =>
+      _post('/api/agent/tickets/advice', data: body);
+
+  /// 美食（food.html 移动端）：走 FOOD_RECOMMEND 编排入口。
+  Future<Map<String, dynamic>> foodRecommend(String message) =>
+      invoke(intent: 'FOOD_RECOMMEND', context: {'message': message});
+
+  /// 知识库（knowledge.html 移动端）：城市/景点检索。
+  Future<dynamic> searchAttractions({String? city, String? name, int limit = 20}) =>
+      _get('/api/attractions', query: {
+        if (city != null && city.isNotEmpty) 'city': city,
+        if (name != null && name.isNotEmpty) 'name': name,
+        'limit': limit,
+      });
+
+  /// 管理后台（admin.html）：管理端点需要 X-Admin-Token，令牌由调用方传入。
+  Future<dynamic> agentStatus() => _get('/api/agent/status');
+
+  Future<dynamic> providers(String adminToken) async {
+    try {
+      final res = await dio.get('/api/agent/providers',
+          options: Options(headers: {'X-Admin-Token': adminToken}));
+      return res.data;
+    } on DioException catch (e) {
+      rethrowAsApi(e);
+    }
+  }
+
   Map<String, dynamic> _toMap(dynamic data) {
     if (data is Map) {
       return Map<String, dynamic>.from(data);

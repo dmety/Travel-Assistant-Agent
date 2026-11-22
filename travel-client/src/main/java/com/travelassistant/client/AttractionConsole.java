@@ -76,8 +76,7 @@ public class AttractionConsole {
       // 没有真实终端时保留原来的 Scanner 路径，不因缺少 JLine 而失去交互能力。
       try (Scanner scanner = new Scanner(System.in, consoleCharset())) {
         while (true) {
-          System.out.print("\n> ");
-          System.out.flush();
+          ui.print("\n> ");
           if (!scanner.hasNextLine()) {
             break;
           }
@@ -189,17 +188,18 @@ public class AttractionConsole {
       ui.table(List.of("#", "名称", "城市", "来源", "ID"), rows);
     } else {
       // 一次性命令：逐字保持原有格式，避免破坏已有脚本对输出的解析。
-      System.out.printf("%n[按%s] 「%s」命中 %d 条，显示 %d 条：%n",
-          scope, keyword, matched, returned);
+      ui.println();
+      ui.println(String.format("[按%s] 「%s」命中 %d 条，显示 %d 条：",
+          scope, keyword, matched, returned));
       int index = 1;
       for (JsonNode item : items) {
         String id = item.path("id").asText("");
         currentIds.add(id);
-        System.out.printf("  %2d. %s%n", index++, text(item, "name", UNKNOWN));
-        System.out.printf("      ID: %s | 来源: %s | 城市: %s%n",
+        ui.println(String.format("  %2d. %s", index++, text(item, "name", UNKNOWN)));
+        ui.println(String.format("      ID: %s | 来源: %s | 城市: %s",
             blankTo(id, UNKNOWN),
             text(item, "source", UNKNOWN),
-            text(item, "city", UNKNOWN));
+            text(item, "city", UNKNOWN)));
       }
     }
 
@@ -210,7 +210,7 @@ public class AttractionConsole {
     if (ui.isInteractive()) {
       ui.note("输入序号查看详情，或输入新的城市/景点名继续查询。");
     } else {
-      System.out.println("  输入序号查看详情，或输入新的城市/景点名继续查询。");
+      ui.println("  输入序号查看详情，或输入新的城市/景点名继续查询。");
     }
   }
 

@@ -5,10 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.travelassistant.server.application.agent.AgentUnavailableException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -120,6 +125,26 @@ class DeepSeekClientTest {
   }
 
   @Test
+  @DisplayName("附图对话选择视觉模型并按 Chat Completions 多模态格式发送")
+  void sendsImageWithVisionModel() {
+    String dataUrl = "data:image/png;base64,AA==";
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+            .string(containsString("\"model\":\"deepseek-flash\"")))
+        .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.content()
+            .string(containsString(dataUrl)))
+        .andRespond(withSuccess("{\"choices\":[{\"message\":{\"content\":\"看到了图片\"}}]}",
+            MediaType.APPLICATION_JSON));
+
+    var imagePart = java.util.Map.of("type", "image_url", "image_url", java.util.Map.of("url", dataUrl));
+    var textPart = java.util.Map.of("type", "text", "text", "请看这张图");
+    var userMessage = java.util.Map.<String, Object>of("role", "user", "content", List.of(textPart, imagePart));
+    assertThat(client("test-key").chat(List.of(userMessage), List.of(), 400, "deepseek-flash").content())
+        .isEqualTo("看到了图片");
+    server.verify();
+  }
+
+  @Test
   @DisplayName("用量快照含失败数 / 失败率 / 平均时延 / 最近失败原因")
   void tracksErrorsAndLatencyInSnapshot() {
     DeepSeekClient client = client("test-key");
@@ -162,5 +187,93 @@ class DeepSeekClientTest {
         .containsEntry("failureRate", 0d)
         .containsEntry("avgLatencyMs", 0d);
     assertThat(snapshot.get("lastError")).isNull();
+  }
+
+  @Test
+  @DisplayName("流式响应：逐段回传正文、拼接工具调用并记录 usage 时延")
+  void streamsContentToolCallsAndUsage() throws Exception {
+    ObjectMapper mapper = new ObjectMapper();
+    String first = mapper.writeValueAsString(Map.of("choices", List.of(Map.of(
+        "index", 0, "delta", Map.of(
+            "content", "你",
+            "tool_calls", List.of(
+                Map.of("index", 0, "id", "call_1", "function",
+                    Map.of("name", "search_", "arguments", "{\"city\":")),
+                Map.of("index", 1, "function", Map.of("name", "weather"))))))));
+    String second = mapper.writeValueAsString(Map.of("choices", List.of(Map.of(
+        "index", 0, "delta", Map.of(
+            "content", "好",
+            "tool_calls", List.of(Map.of("index", 0, "function",
+                Map.of("name", "attractions", "arguments", "\"杭州\"}"))))))));
+    String usage = mapper.writeValueAsString(Map.of("choices", List.of(), "usage",
+        Map.of("prompt_tokens", 12, "completion_tokens", 3, "prompt_cache_hit_tokens", 5)));
+    String stream = "data: " + first + "\n\n"
+        + "data: " + second + "\n\n"
+        + "data: " + usage + "\n\n"
+        + "data: [DONE]\n\n";
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andExpect(header("Authorization", "Bearer test-key"))
+        .andExpect(content().string(containsString("\"stream\":true")))
+        .andExpect(content().string(containsString("\"include_usage\":true")))
+        .andExpect(content().string(containsString("\"model\":\"deepseek-flash\"")))
+        .andRespond(withSuccess(stream, MediaType.TEXT_EVENT_STREAM));
+
+    DeepSeekClient client = client("test-key");
+    List<String> deltas = new ArrayList<>();
+    var turn = client.chatStream(List.of(Map.of("role", "user", "content", "杭州")),
+        List.of(Map.of("type", "function", "function", Map.of("name", "search"))),
+        120, "deepseek-flash", deltas::add);
+
+    assertThat(turn.content()).isEqualTo("你好");
+    assertThat(deltas).containsExactly("你", "好");
+    assertThat(turn.toolCalls()).hasSize(2);
+    assertThat(turn.toolCalls().get(0).id()).isEqualTo("call_1");
+    assertThat(turn.toolCalls().get(0).name()).isEqualTo("search_attractions");
+    assertThat(turn.toolCalls().get(0).arguments()).isEqualTo("{\"city\":\"杭州\"}");
+    assertThat(turn.toolCalls().get(1).id()).isEqualTo("call-1");
+    assertThat(turn.toolCalls().get(1).arguments()).isEqualTo("{}");
+    assertThat(client.usageSnapshot())
+        .containsEntry("calls", 1L)
+        .containsEntry("promptTokens", 12L)
+        .containsEntry("completionTokens", 3L)
+        .containsEntry("cachedPromptTokens", 5L);
+    assertThat(((Number) client.usageSnapshot().get("lastLatencyMs")).longValue())
+        .isGreaterThanOrEqualTo(0L);
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("流式响应未发送 DONE：拒绝不完整结果")
+  void rejectsPrematureStreamEnd() {
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andRespond(withSuccess("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n\n",
+            MediaType.TEXT_EVENT_STREAM));
+
+    assertThatThrownBy(() -> client("test-key").chatStream(List.of(), List.of(), 300, ignored -> {}))
+        .isInstanceOf(AgentUnavailableException.class)
+        .hasMessageContaining("提前结束");
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("流式服务端错误：返回受控错误信息")
+  void reportsStreamErrorEvent() {
+    server.expect(requestTo("http://mock.local/chat/completions"))
+        .andRespond(withSuccess("data: {\"error\":{\"message\":\"模型流式生成失败\"}}\n\n",
+            MediaType.TEXT_EVENT_STREAM));
+
+    assertThatThrownBy(() -> client("test-key").chatStream(List.of(), List.of(), 300, ignored -> {}))
+        .isInstanceOf(AgentUnavailableException.class)
+        .hasMessage("模型流式生成失败");
+    server.verify();
+  }
+
+  @Test
+  @DisplayName("流式调用未配置密钥：不发出网络请求")
+  void unconfiguredStreamDoesNotCallOut() {
+    assertThatThrownBy(() -> client("").chatStream(List.of(), List.of(), 300, ignored -> {}))
+        .isInstanceOf(AgentUnavailableException.class)
+        .hasMessageContaining("DEEPSEEK_API_KEY");
+    server.verify();
   }
 }

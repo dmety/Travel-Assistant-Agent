@@ -71,6 +71,88 @@ class ChatAgentTest {
   }
 
   @Test
+  void confirmationDoesNotTurnUndatedIntakeIntoExecutableGuide() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("d", "draft_itinerary", "{\"city\":\"大同\",\"days\":5}"));
+    ChatReply reply = agent.chat("确认开始规划",
+        List.of(new ConversationTurn("assistant", "【规划条件待确认】日期需连续三天无雨窗口。")),
+        ConversationState.empty());
+    assertThat(reply.reply()).contains("出发日期尚未确定").doesNotContain("【攻略草案已生成】");
+    verify(tools, never()).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
+  void explicitlyRequestedPreviewCanKeepDateUndecided() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("d", "draft_itinerary", "{\"city\":\"大同\",\"days\":5}"));
+    when(tools.execute(eq("draft_itinerary"), any(), anyList(), any()))
+        .thenReturn(new ChatTools.Outcome(true, "日期待定的预览", null));
+    ChatReply reply = agent.chat("先出初稿",
+        List.of(new ConversationTurn("assistant", "【规划条件待确认】日期待定。")),
+        ConversationState.empty());
+    assertThat(reply.reply()).contains("【攻略草案已生成】");
+    verify(tools).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
+  @DisplayName("收集旅行条件时仍可查询天气")
+  void canCheckWeatherWhilePlanningIntakeIsPending() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("w1", "get_weather", "{\"city\":\"大同\"}"))
+        .thenReturn(say("大同天气预报已返回。"));
+    when(tools.execute("get_weather", "{\"city\":\"大同\"}"))
+        .thenReturn(new ChatTools.Outcome(true, "大同天气预报", null));
+
+    ChatReply reply = agent.chat("我从武汉出发，先查一下最近大同会不会下雨",
+        List.of(new ConversationTurn("assistant", "【旅行需求收集】请补充日期和人数。")),
+        ConversationState.empty());
+
+    verify(tools).execute("get_weather", "{\"city\":\"大同\"}");
+    assertThat(reply.reply()).contains("天气预报");
+  }
+
+  @Test
+  @DisplayName("条件复述只输出一次确认提示")
+  void printsPlanningConfirmationOnce() {
+    when(model.chat(anyList(), eq(List.of()), eq(280))).thenReturn(say(
+        "【规划条件待确认】已知：武汉出发，大同5天。可补充条件，或回复‘确认开始规划’开始；"
+            + "回复‘确认开始规划’按现有信息生成。"));
+
+    ChatReply reply = agent.chat("2026年11月20日出发吧",
+        List.of(new ConversationTurn("assistant", "【旅行需求收集】请补充日期和人数。")),
+        ConversationState.empty());
+
+    assertThat(reply.reply().split("回复‘确认开始规划’", -1)).hasSize(2);
+    assertThat(reply.reply()).doesNotContain("可补充条件");
+  }
+
+  @Test
+  @DisplayName("上一份攻略完成后，后续问题不再被需求收集拦截")
+  void allowsFollowUpAfterDraftWasGenerated() {
+    when(model.chat(anyList(), anyList(), anyInt())).thenReturn(say("大同特色美食信息已查询。"));
+
+    ChatReply reply = agent.chat("大同有什么特色美食",
+        List.of(
+            new ConversationTurn("assistant", "【旅行需求收集】请补充日期和人数。"),
+            new ConversationTurn("assistant", "【攻略草案已生成】大同5天攻略已生成。")),
+        new ConversationState("大同", 5, 2, null, List.of(), Map.of()));
+
+    assertThat(reply.reply()).contains("特色美食");
+    verify(model).chat(anyList(), anyList(), anyInt());
+  }
+
+  @Test
+  @DisplayName("旧攻略不会阻止用户开启新目的地规划")
+  void startsNewIntakeAfterPreviousDraft() {
+    ChatReply reply = agent.chat("我想去太原玩3天，帮我安排",
+        List.of(new ConversationTurn("assistant", "【攻略草案已生成】大同5天攻略已生成。")),
+        ConversationState.empty());
+
+    assertThat(reply.reply()).contains("【旅行需求收集】");
+    verify(model, never()).chat(anyList(), anyList(), anyInt());
+  }
+
+  @Test
   @DisplayName("要查数据：先执行工具、把结果回灌，再让模型照着结果说话")
   void toolThenAnswer() {
     when(model.chat(anyList(), anyList(), anyInt()))
@@ -114,7 +196,7 @@ class ChatAgentTest {
         .thenReturn(call("c1", "draft_itinerary",
             "{\"city\":\"济南\",\"days\":4,\"travelers\":3}"))
         .thenReturn(say("华山4天3人的草案排好了。"));
-    when(tools.execute(any(), any())).thenReturn(
+    when(tools.execute(any(), any(), anyList(), any())).thenReturn(
         new ChatTools.Outcome(true, "华山 的景点：华山风景名胜区", null));
     ConversationState stale = new ConversationState("济南", null, null, null, List.of());
 
@@ -125,12 +207,12 @@ class ChatAgentTest {
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<Map<String, Object>>> captor =
         (ArgumentCaptor<List<Map<String, Object>>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(List.class);
-    verify(model, times(2)).chat(captor.capture(), anyList(), anyInt());
+    verify(model, times(1)).chat(captor.capture(), anyList(), anyInt());
     String system = String.valueOf(captor.getAllValues().get(0).get(0).get("content"));
     assertThat(system).doesNotContain("城市=济南").contains("本次聊的是「华山」");
     // 模型即便仍写 city=济南，工具参数也被改回华山；状态同步纠正
     verify(tools).execute(eq("draft_itinerary"),
-        argThat(args -> args.contains("华山") && !args.contains("济南")));
+        argThat(args -> args.contains("华山") && !args.contains("济南")), anyList(), any());
     assertThat(reply.state().city()).isEqualTo("华山");
   }
 
@@ -140,7 +222,7 @@ class ChatAgentTest {
     when(model.chat(anyList(), anyList(), anyInt()))
         .thenReturn(call("c1", "list_attractions", "{\"city\":\"婺源\"}"))
         .thenReturn(say("婺源还没收录，我说不了有哪些景点。"));
-    when(tools.execute(any(), any())).thenReturn(
+    when(tools.execute(any(), any(), anyList(), any())).thenReturn(
         new ChatTools.Outcome(false, "知识库里没有该城市的景点", null));
 
     ChatReply reply = agent.chat("婺源有什么好玩的", List.of(), ConversationState.empty());
@@ -214,8 +296,8 @@ class ChatAgentTest {
     ChatReply reply = agent.chat("天津天气", List.of(), ConversationState.empty());
 
     // 5 轮 × 每次 1 个调用，上限 6 次：第 7 个调用被拦下，最后再要一次纯文本收尾
-    verify(model, times(6)).chat(anyList(), anyList(), anyInt());
-    verify(model, times(1)).chat(anyList(), eq(List.of()), anyInt());
+    verify(model, times(5)).chat(anyList(), anyList(), anyInt());
+    verify(model, never()).chat(anyList(), eq(List.of()), anyInt());
     assertThat(reply.reply()).isNotNull();
   }
 
@@ -226,5 +308,43 @@ class ChatAgentTest {
 
     assertThat(reply.reply()).contains("城市");
     verify(model, never()).chat(anyList(), anyList(), anyInt());
+  }
+  @Test
+  void inheritsHotelAndInvalidatesAmountsWhenPartyChanges() throws Exception {
+    when(model.chat(anyList(), anyList(), anyInt())).thenReturn(call("c1", "draft_itinerary", "{\"city\":\"大同\",\"travelers\":3}"));
+    when(tools.execute(eq("draft_itinerary"), any(), anyList(), any())).thenReturn(new ChatTools.Outcome(true,"结构化行程与账本",null));
+    var state = new ConversationState("大同",5,2,null,List.of(),Map.of("departDate","2026-11-23","details",Map.of("hotel","大同某酒店","confirmedGroupCosts",Map.of("intercity-out",80))));
+    var reply = agent.chat("改为3个人",List.of(),state);
+    ArgumentCaptor<String> args = ArgumentCaptor.forClass(String.class);
+    verify(tools).execute(eq("draft_itinerary"),args.capture(),anyList(),any());
+    var node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(args.getValue());
+    assertThat(node.path("days").asInt()).isEqualTo(5);
+    assertThat(node.path("details").path("hotel").asText()).isEqualTo("大同某酒店");
+    assertThat(node.path("details").path("confirmedGroupCosts").size()).isZero();
+    assertThat(reply.state().planning()).containsKey("details");
+    assertThat(reply.reply()).contains("【攻略草案已生成】");
+    assertThat(reply.reply()).doesNotContain("结构化行程与账本");
+  }
+  @Test
+  void updatesHotelAndCostsAcrossTwoActualTurns() throws Exception {
+    when(model.chat(anyList(),anyList(),anyInt()))
+        .thenReturn(call("c1","draft_itinerary","{\"city\":\"大同\",\"days\":5,\"travelers\":2,\"details\":{\"hotel\":\"用户指定酒店\",\"confirmedGroupCosts\":{\"intercity-out\":80}}}"))
+        .thenReturn(call("c2","draft_itinerary","{\"city\":\"大同\",\"travelers\":3}"));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any())).thenReturn(new ChatTools.Outcome(true,"同源攻略",null));
+    var first=agent.chat("大同5天2人住用户指定酒店，去程全团80",List.of(),ConversationState.empty());
+    var second=agent.chat("改3个人",List.of(),first.state());
+    assertThat(second.state().days()).isEqualTo(5);
+    assertThat(second.state().travelers()).isEqualTo(3);
+    var details=(Map<?,?>)second.state().planning().get("details");
+    assertThat(details.get("hotel")).isEqualTo("用户指定酒店");
+    assertThat((Map<?,?>)details.get("confirmedGroupCosts")).isEmpty();
+  }
+  @Test void switchingModeInvalidatesTransportConfirmationButKeepsMeal() {
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(call("c","draft_itinerary","{\"city\":\"大同\",\"details\":{\"transportMode\":\"DRIVING\",\"vehicles\":2}}"));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any())).thenReturn(new ChatTools.Outcome(true,"攻略",null));
+    var state=new ConversationState("大同",2,3,null,List.of(),Map.of("details",Map.of("transportMode","TRANSIT","confirmedGroupCosts",Map.of("D1-transfer-1",20,"D1-lunch",120,"intercity-out",200))));
+    var reply=agent.chat("改成自驾两辆车",List.of(),state);
+    Map<?,?> details=(Map<?,?>)reply.state().planning().get("details"); Map<?,?> amounts=(Map<?,?>)details.get("confirmedGroupCosts");
+    assertThat(amounts).hasSize(1); assertThat(amounts.get("D1-lunch")).isEqualTo(120);
   }
 }

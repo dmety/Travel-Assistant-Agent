@@ -45,7 +45,9 @@ public record AttractionView(
     String openTimeText,
     String ticketStatus,
     String openTimeStatus,
-    String coordinateSystem) {
+    String coordinateSystem,
+    String retrievedAt,
+    String informationUpdatedAt) {
 
   public static AttractionView from(Attraction a) {
     return new AttractionView(
@@ -56,7 +58,9 @@ public record AttractionView(
         PlaceholderValues.display(a.openTime()),
         status(a.ticketStatus()),
         status(a.openTimeStatus()),
-        a.coordinateSystem());
+        a.coordinateSystem(),
+        a.retrievedAt(),
+        a.informationUpdatedAt());
   }
 
   /**

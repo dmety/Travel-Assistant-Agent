@@ -602,6 +602,16 @@ html[data-theme="dark"] .msg.ai{
   background:var(--surface); border-color:var(--line-strong); color:var(--text-3); cursor:not-allowed;
 }
 .opts-tip{font-size:var(--fs-xs); color:var(--text-3); line-height:1.5;}
+.intake-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);}
+.intake-grid label{display:block;font-size:var(--fs-xs);font-weight:600;color:var(--text-2);}
+.intake-grid input,.intake-grid select,.intake-grid textarea{
+  width:100%;margin-top:5px;padding:7px 9px;border:1px solid var(--line-strong);
+  border-radius:var(--r-ctl);background:var(--surface);font-size:var(--fs-sm);}
+.intake-grid textarea{min-height:58px;resize:vertical;}
+.intake-grid .wide{grid-column:1/-1;}
+.guide-full{margin:0;padding:var(--sp-3) var(--sp-4);white-space:pre-wrap;overflow-wrap:anywhere;
+  color:var(--text-2);font:inherit;font-size:var(--fs-xs);line-height:1.65;}
+@media(max-width:560px){.intake-grid{grid-template-columns:1fr}.intake-grid .wide{grid-column:auto}}
 /* 日历选择器：日期用原生控件点，不用手打 YYYY-MM-DD */
 .opt-date{
   padding:5px var(--sp-2); border:1px solid var(--line-strong);
@@ -722,6 +732,26 @@ html[data-theme="dark"] .msg.ai{
    本区只用 tokens.css 语义变量（--pine 主操作 / --ok 已核验 /
    --warn 提示 / --err 风险 / --clay 仅决断），不出现脱离色板的色值。
    ============================================================ */
+/* 票务视图强制浅色：设计稿 design/ticket.html 是浅色纸面稿，无论整站主题深浅，
+   本视图都用设计稿那一套浅色令牌，保证「和设计稿一模一样」。只作用于 #viewTicket，
+   不污染其他视图。令牌值取自 tokens.css :root 第一版色板。 */
+#viewTicket{
+  color-scheme:light;
+  --paper:#F7F4EE; --paper-2:#EFEAE0; --paper-3:#E7E0D2; --surface-warm:#FCFAF5;
+  --ink:#20241E; --text:#20241E; --text-2:#4A4F46; --text-3:#6E6A5E; --muted-2:#8A8577;
+  --line:#DED7C9; --line-strong:#C4BAA6; --field-line:#9C9282;
+  --pine:#1E4A3E; --pine-hover:#163A30; --pine-soft:#E4EDE7; --pine-line:#BBD0C4; --pine-text:#1E4A3E;
+  --clay:#B4542A; --clay-soft:#F6E8DF; --clay-line:#E3C4B1;
+  --ok:#2E6B52; --ok-soft:#E7F0EA; --ok-line:#BBD0C4;
+  --warn:#8A6212; --warn-soft:#F8EFDC; --warn-line:#E8D6AE;
+  --err:#A03A2C; --err-soft:#F8E7E3; --err-line:#E8C6BE;
+  --surface:#FFFFFF; --surface-2:#EFEAE0; --bg:var(--paper);
+  --action-bg:var(--pine); --action-fg:#FFFFFF; --action-bg-hover:var(--pine-hover);
+  --primary:var(--pine); --primary-hover:var(--pine-hover);
+  --primary-soft:var(--pine-soft); --primary-line:var(--pine-line);
+  --shadow-1:0 1px 2px rgba(46,42,32,.06),0 1px 3px rgba(46,42,32,.05);
+  --shadow-2:0 4px 14px rgba(46,42,32,.08),0 2px 4px rgba(46,42,32,.04);
+}
 #viewTicket [hidden]{display:none!important}
 /* 加载 / 空 / 失败三态都要像一张明确的「状态卡片」，而不是一行淡色小字；
    加载未完成前绝不显示「没有景点」这类结论。 */
@@ -755,20 +785,22 @@ html[data-theme="dark"] .msg.ai{
 #viewTicket .tk-head .sub{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
 #viewTicket .tk-head .sp,#viewTicket .tk-card .ch .sp,#viewTicket .tk-detail-h .sp{margin-left:auto}
 #viewTicket .tk-head select{max-width:190px;font-size:var(--fs-xs);padding:6px 8px;border:1px solid var(--field-line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink)}
-#viewTicket .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:18px 0}
+#viewTicket .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
 #viewTicket .price{padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
 #viewTicket .price .lab{font-size:var(--fs-xs);color:var(--text-3)}
 #viewTicket .price .val{font-size:var(--fs-xl);font-weight:var(--w-strong,600);color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
 #viewTicket .price .note{font-size:var(--fs-xs);color:var(--text-3);margin-top:4px}
-#viewTicket .tk-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+#viewTicket .tk-cols{display:grid;grid-template-columns:1fr 1fr;
   gap:16px;margin-top:8px;align-items:stretch}
 #viewTicket .tk-card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-1)}
 #viewTicket .tk-card .ch{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink)}
 #viewTicket .tk-card .cb{padding:12px 14px}
 #viewTicket .tk-card .ch .tag{margin-left:auto}
 #viewTicket .chan,#viewTicket .station{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:var(--fs-sm)}
+#viewTicket .station{padding:9px 0}
 #viewTicket .chan:last-child,#viewTicket .station:last-child{border-bottom:0}
-#viewTicket .chan .nm,#viewTicket .station .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--pine);text-decoration:none}
+#viewTicket .chan .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--pine);text-decoration:none}
+#viewTicket .station .nm{font-size:var(--fs-sm);font-weight:var(--w-strong,600);color:var(--ink)}
 #viewTicket .chan .meta,#viewTicket .station .meta{font-size:var(--fs-xs);color:var(--text-3);margin-top:2px}
 #viewTicket .chan .sp,#viewTicket .station .sp{margin-left:auto}
 #viewTicket .station .dot{width:8px;height:8px;border-radius:50%;background:var(--pine);flex:0 0 auto}
@@ -780,6 +812,11 @@ html[data-theme="dark"] .msg.ai{
 /* 移动端购票详情：严格按设计稿第二屏 .m-price / 白名单 / .advice / 复制链接 */
 #viewTicket dialog#tkDetail{border:1px solid var(--line-strong);border-radius:var(--r-lg,14px);background:var(--surface);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:18px}
 #viewTicket dialog#tkDetail::backdrop{background:rgba(32,36,30,.35)}
+#viewTicket dialog#tkRecordDialog{border:1px solid var(--line-strong);border-radius:var(--r-lg,14px);background:var(--surface);color:var(--ink);max-width:480px;width:calc(100% - 32px);padding:18px}
+#viewTicket dialog#tkRecordDialog::backdrop{background:rgba(32,36,30,.35)}
+#viewTicket .tk-record-grid{display:grid;grid-template-columns:1fr;gap:6px;margin:14px 0}
+#viewTicket .tk-record-grid label{font-size:var(--fs-xs);font-weight:var(--w-strong,600);color:var(--text-2)}
+#viewTicket .tk-record-grid input{width:100%;padding:8px 10px;border:1px solid var(--field-line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);margin-bottom:8px}
 #viewTicket .tk-detail-h{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 #viewTicket .tk-detail-h b{font-size:var(--fs-md)}
 #viewTicket dialog#tkDetail .m-price{display:flex;gap:8px;flex-wrap:wrap}
@@ -1391,7 +1428,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
     </button>
     <a class="tbtn keep" href="/settings.html" id="settingsBtn">设置</a>
-    <button class="tbtn keep" type="button" id="exportBtn" disabled><svg class="ico"><use href="#i-export"/></svg><span>导出</span></button>
+    <button class="tbtn keep" type="button" id="exportBtn" disabled aria-label="下载 TXT 行程单"><svg class="ico"><use href="#i-export"/></svg><span>TXT</span></button>
+    <button class="tbtn keep" type="button" id="pdfBtn" disabled aria-label="下载 PDF 攻略" title="直接下载当前攻略 PDF，无需先保存行程"><svg class="ico"><use href="#i-export"/></svg><span>PDF</span></button>
     <button class="tbtn keep" type="button" id="logoutBtn">退出</button>
   </div>
 </header>
@@ -1443,6 +1481,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <button class="x" type="button" id="spotClose" aria-label="关闭">×</button>
         <h3 id="spotName">点位</h3>
         <p id="spotMeta"></p>
+        <a id="spotNavigation" target="_blank" rel="noopener noreferrer">在百度地图查看地点和导航</a>
       </div>
     </div>
 
@@ -1469,6 +1508,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           <div class="think"><svg class="ico"><use href="#i-think"/></svg><span>行程助手已就绪</span></div>
           <div class="msg-who"><span class="ava"><img src="/mascot/mascot-v4-front-bust.png" alt="游小满" /></span>游小满 <span>行程助手</span></div>
           <div class="ai-block">
+            <p>先补充出发地、日期、同行人员、预算、交通和偏好；我会复述条件等你确认，再查资料生成攻略。</p>
+            <p>攻略会分日展示安排与费用范围。地图需有可用坐标和地图配置；未知票价、开放时间和费用会明确标注。</p>
+            <p>问天气、问吃什么、问怎么买票也都可以，答案里会带上来源。</p>
             <p>想去哪、玩几天、预算多少，直接说。我去知识库挑候选、按天排草案、画到地图上。</p>
             <p>信息不够我先问你，不替你猜；确认前都只是预览，不会写进行程。</p>
           </div>
@@ -1476,7 +1518,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
             <span class="lbl">可以直接点</span>
             <div class="chips" id="quickChips">
               <button class="chip" type="button" data-quick="帮我规划杭州两天，预算一千，想看人文古迹">杭州两日</button>
-              <button class="chip" type="button" data-quick="带爸妈去十堰玩四天，预算六千">武当山四日</button>
+              <button class="chip" type="button" data-quick="武当山四日">武当山四日</button>
               <button class="chip" type="button" data-quick="去武汉玩三天，预算两千，想吃美食">武汉三日</button>
               <button class="chip" type="button" data-quick="武汉这周末天气怎么样">周末天气</button>
             </div>
@@ -1533,6 +1575,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       <span class="sp"></span>
       <span class="st st-unknown" id="tkVerified">未核验</span>
       <select id="tkSite" aria-label="行程中的景点"></select>
+      <button type="button" class="btn btn-outline btn-sm" id="tkRecordBtn" disabled>登记已购票</button>
       <button type="button" class="btn btn-outline btn-sm" id="tkBack">返回行程</button>
     </div>
 
@@ -1567,6 +1610,26 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     <div class="tk-card mt"><div class="ch">官方入口白名单</div><div class="cb" id="tkDetailChannels"></div></div>
     <div class="advice mt" id="tkDetailAdvice"></div>
     <div class="mt"><button type="button" class="btn btn-primary" id="tkCopyLink" disabled>复制官方购票链接</button></div>
+  </dialog>
+  <dialog id="tkRecordDialog" aria-label="登记实际购票结果">
+    <div class="tk-detail-h"><b>登记实际购票结果</b><span class="sp"></span><button type="button" class="btn btn-outline btn-sm" id="tkRecordClose">关闭</button></div>
+    <p class="sub" id="tkRecordTarget"></p>
+    <div class="tk-record-grid">
+      <label for="tkRecordActivity">关联行程活动</label>
+      <select id="tkRecordActivity" required></select>
+      <label for="tkRecordProduct">实际购买产品</label>
+      <input id="tkRecordProduct" maxlength="100" required placeholder="按购票结果填写" />
+      <label for="tkRecordVisitDate">游玩日期</label>
+      <input id="tkRecordVisitDate" type="date" required readonly />
+      <label for="tkRecordSession">场次（可选）</label>
+      <input id="tkRecordSession" maxlength="100" placeholder="如上午场；不填写订单号" />
+      <label for="tkRecordTravelers">人数</label>
+      <input id="tkRecordTravelers" type="number" min="1" max="100" step="1" value="1" required />
+      <label for="tkRecordPaidTotal">实付总额（元，可留空）</label>
+      <input id="tkRecordPaidTotal" type="number" min="0" step="0.01" />
+    </div>
+    <p class="tk-empty" id="tkRecordStatus" role="status" aria-live="polite">此记录为用户自报，不代表平台核验。</p>
+    <div class="mt"><button type="button" class="btn btn-primary" id="tkRecordSave">确认登记</button></div>
   </dialog>
 </div>
 
@@ -1686,7 +1749,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   var PREF_TEXT = { '自然':'自然风光','人文':'人文古迹','美食':'本地美食',
                     '慢节奏':'节奏慢一点','亲子':'带娃出游','摄影':'拍照出片' };
   var convo = [];          // 最近几轮，只留文本，供 /api/chat 理解指代
-  var convoState = {};     // city / days / travelers / budget / preferences
+  var convoState = {};     // 服务端返回的会话槽位与跨轮规划条件
   var draftView = null;    // 当前草案的精简视图，地图与保存都用它
   var points = [];
   var itineraryId = null;
@@ -1828,6 +1891,13 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   function historyOf() { return convo.slice(-8); }
   function mergeState(next) {
     if (!next) return;
+    if (Object.hasOwn(next, 'planning')) {
+      // 对话接口返回完整快照，新的旅行可以清空上一趟的条件。
+      convoState = { city: next.city, days: next.days, travelers: next.travelers,
+        budget: next.budget, preferences: next.preferences, planning: next.planning };
+      return;
+    }
+    // 解析回退只返回少量槽位。
     ['city', 'days', 'travelers', 'budget', 'preferences'].forEach(function (k) {
       var v = next[k];
       if (v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) {
@@ -1868,6 +1938,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   /* ---------- 草案 → 地图 / 日程条 / 操作按钮 ---------- */
   function applyDraft(view) {
     draftView = view;
+    $('pdfBtn').disabled = !(view && (view.guideText || view.advice));
     renderMap(view);
     renderDaystrip(view);
     flashMap();
@@ -1926,6 +1997,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     else if ($('mapStage').classList.contains('has-bmap')) bits.push('地图坐标解析中');
     else bits.push('示意底图，不含真实地理坐标');
     $('spotMeta').textContent = bits.join(' · ');
+    $('spotNavigation').href = 'https://map.baidu.com/search/' + encodeURIComponent((pt.city || '') + ' ' + pt.name);
     $('spotCard').classList.add('open');
   }
   function flashMap() {
@@ -2142,6 +2214,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
           body: JSON.stringify(payload.dailySchedules || []) });
       itineraryId = it.id;
       $('exportBtn').disabled = false;
+      $('pdfBtn').disabled = false;
       $('draftState').textContent = '已保存';
       showDraftActions(false);
       $('tripName').textContent = payload.title;
@@ -2164,6 +2237,26 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
       toast('行程单已导出');
     } catch (e) { toast('导出失败：' + e.message); }
+  }
+  async function exportPdf(id, title) {
+    var target = id || itineraryId;
+    var draftText = !id && draftView && (draftView.guideText || draftView.advice);
+    if (!target && !draftText) return;
+    try {
+      var txt = draftText || await api('/api/itineraries/' + encodeURIComponent(target) + '/export');
+      var heading = title || '旅行攻略';
+      var response = await fetch('/api/guides/pdf', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: heading, text: txt })
+      });
+      if (!response.ok) throw new Error(response.status === 401 ? '请重新登录' : 'PDF生成失败，请检查服务端中文字体配置（HTTP ' + response.status + '）');
+      var url = URL.createObjectURL(await response.blob());
+      var link = document.createElement('a'); link.href = url; link.download = '旅行攻略.pdf';
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+      toast('PDF 已生成并开始下载');
+    } catch (e) { toast(e.message); }
   }
 
   /* ---------- 行程视图 ---------- */
@@ -2194,6 +2287,9 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         var exp = el('button', 'btn btn-outline', '导出行程单');
         exp.type = 'button';
         exp.addEventListener('click', function () { exportPlan(t.id); });
+        var pdf = el('button', 'btn btn-outline', '打印 / 保存 PDF');
+        pdf.type = 'button';
+        pdf.addEventListener('click', function () { exportPdf(t.id, t.title); });
         var tick = el('button', 'btn btn-outline', '按此行程购票');
         tick.type = 'button';
         tick.addEventListener('click', function () {
@@ -2212,7 +2308,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
             loadTrips();
           } catch (e) { toast('删除失败：' + e.message); }
         });
-        acts.appendChild(exp); acts.appendChild(tick); acts.appendChild(del);
+        acts.appendChild(exp); acts.appendChild(pdf); acts.appendChild(tick); acts.appendChild(del);
         var mgr = el('button', 'btn btn-outline', '管理');
         mgr.type = 'button';
         mgr.addEventListener('click', function () { openTrip(t.id); });
@@ -3630,6 +3726,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   $('saveCancel').addEventListener('click', closeSave);
   $('saveConfirm').addEventListener('click', confirmSave);
   $('exportBtn').addEventListener('click', function () { exportPlan(); });
+  $('pdfBtn').addEventListener('click', function () { exportPdf(); });
   $('tripsRefresh').addEventListener('click', loadTrips);
   $('kbRefresh').addEventListener('click', loadKb);
   $('themeBtn').addEventListener('click', function () {
@@ -3686,19 +3783,42 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
      未登录、服务端未配置或脚本加载失败时静默保留 SVG 示意底图，不打断页面。 */
   (function loadMapAk() {
     function inject(ak) {
-      if (!ak || window.__bmapScriptInjected) return;
+      if (!ak) {
+        $('mapNote').textContent = '路线示意 · 点击景点可打开地图导航';
+        return;
+      }
+      if (window.__bmapScriptInjected) return;
       window.__bmapScriptInjected = true;
+      // 直接加载真正的 BMapGL 库（getscript），绕过 api 端点的 document.write。
+      // 原方案加载 api 端点，其内部用 document.write 注入 getscript；而本函数
+      // 由 fetch().then 异步调用，执行时已晚于页面 load，document.write 会清空
+      // 整个 DOM，导致地图区域甚至整页被清空、地图出不来。
+      window.BMAP_PROTOCOL = 'https';
       var s = document.createElement('script');
-      s.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' +
-        encodeURIComponent(ak) + '&callback=__initBaiduMap';
-      s.onerror = function () { window.__bmapScriptInjected = false; };
+      s.src = 'https://api.map.baidu.com/getscript?type=webgl&v=1.0&ak=' +
+        encodeURIComponent(ak) + '&services=&t=20261102104425';
+      s.onload = function () { if (window.BMapGL) window.__initBaiduMap(); };
+      s.onerror = function () {
+        window.__bmapScriptInjected = false;
+        $('mapNote').textContent = '地图加载失败 · 可使用景点导航链接';
+      };
       document.head.appendChild(s);
     }
     var fallback = window.BAIDU_MAP_AK || new URLSearchParams(location.search).get('ak') || '';
+    function useLegacyConfig() {
+      fetch('/api/location/map-config', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (cfg) { inject((cfg && cfg.browserKey) || fallback); })
+        .catch(function () { inject(fallback); });
+    }
     fetch('/api/map/config', { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (cfg) { inject((cfg && cfg.enabled && cfg.ak) || fallback); })
-      .catch(function () { inject(fallback); });
+      .then(function (cfg) {
+        if (cfg && cfg.enabled && cfg.ak) inject(cfg.ak);
+        else if (fallback) inject(fallback);
+        else useLegacyConfig();
+      })
+      .catch(useLegacyConfig);
   })();
 
   /* ================================================================
@@ -3839,6 +3959,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     if(!d) return null;
     return {
       advice: d.advice || null,
+      guideText: d.guideText || d.advice || null,
       // 请求天数 / 实际排出天数 / 收敛掉的天数：只用来显示一条说明，不铺空天
       dayScope: d.dayScope || null,
       notices: (d.notices || []).slice(0, 5),
@@ -4083,13 +4204,65 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     return box;
   }
 
-  // 补问卡控件规格，键须与后端 DraftQuestion.field 对齐（DraftAssembler.collectQuestions）
+  function planningIntakeCard(){
+    var box = el('div','opts');
+    var head = el('div','opts-head');
+    head.textContent = '补充旅行条件';
+    box.appendChild(head);
+    var body = el('div','opts-body');
+    var grid = el('div','intake-grid');
+    var fields = {};
+    function textField(key, label, placeholder, wide){
+      var wrap = el('label', wide ? 'wide' : '');
+      wrap.appendChild(document.createTextNode(label));
+      var input = document.createElement('input');
+      input.type = 'text'; input.placeholder = placeholder; input.autocomplete = 'off';
+      wrap.appendChild(input); grid.appendChild(wrap); fields[key] = input;
+    }
+    textField('origin','出发地','例如：北京');
+    textField('date','日期或月份','例如：2027-05-01 / 五月');
+    textField('party','同行人员','例如：2人，1位老人');
+    textField('budget','全团预算','例如：8000 元；不确定可留空');
+    var transportWrap = el('label');
+    transportWrap.appendChild(document.createTextNode('主要交通方式'));
+    var transport = document.createElement('select');
+    [['','待定'],['TRANSIT','公共交通'],['DRIVING','自驾'],['CHARTER','包车/打车']].forEach(function(pair){
+      var option = document.createElement('option'); option.value = pair[0]; option.textContent = pair[1];
+      transport.appendChild(option);
+    });
+    transportWrap.appendChild(transport); grid.appendChild(transportWrap); fields.transport = transport;
+    textField('preferences','兴趣或必去点','例如：古迹、美食、云冈石窟',true);
+    textField('extras','住宿/忌口（可选）','例如：住古城附近；不吃辣',true);
+    body.appendChild(grid);
+    var foot = el('div','opts-foot');
+    function collected(){
+      var value = function(key){ var v = fields[key].value.trim(); return v || '待定'; };
+      var transportLabel = fields.transport.options[fields.transport.selectedIndex].textContent;
+      return '出发地' + value('origin') + '；日期' + value('date')
+        + '；同行人员' + value('party') + '；全团预算' + value('budget')
+        + '；交通方式' + transportLabel + '；兴趣/必去' + value('preferences')
+        + '；住宿/忌口' + value('extras');
+    }
+    var go = el('button','opt-go','复述条件并确认'); go.type = 'button';
+    go.addEventListener('click',function(){
+      sendText('补充旅行条件：' + collected() + '。请复述条件让我确认。');
+    });
+    var skip = el('button','opt-skip','先出初稿'); skip.type = 'button';
+    skip.addEventListener('click',function(){
+      sendText('补充旅行条件：' + collected() + '。先出初稿，请按我最初说的目的地和天数规划；未提供的条件标为待定。');
+    });
+    foot.appendChild(go); foot.appendChild(skip); body.appendChild(foot);
+    box.appendChild(body);
+    return box;
+  }
+
+  // 补问卡控件规格，键须与后端 DraftQuestion.field 对齐。
   var QA_KINDS = {
-    days:       { kind:'choice', label:'游玩天数', unit:' 天', options:[1,2,3,4,5,6,7] },
-    travelers:  { kind:'choice', label:'同行人数', unit:' 人', options:[1,2,3,4,5,6] },
-    budget:     { kind:'choice', label:'预算上限', unit:' 元', options:[2000,4000,6000,10000] },
-    departDate: { kind:'date',   label:'出发日期' },
-    returnDate: { kind:'date',   label:'返回日期' }
+    days: {kind:'choice', label:'游玩天数', unit:' 天', options:[1,2,3,4,5,6,7]},
+    travelers: {kind:'choice', label:'同行人数', unit:' 人', options:[1,2,3,4,5,6]},
+    budget: {kind:'choice', label:'全团预算', unit:' 元', options:[2000,3000,4000,5000,6000,8000,10000,15000]},
+    departDate: {kind:'date', label:'出发日期'},
+    returnDate: {kind:'date', label:'返回日期'}
   };
 
   function qaCard(questions, ctx){
@@ -4717,6 +4890,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
    */
   function paintCard(card, baseText){
     if(!card) return null;
+    if(card.type === 'intake') return planningIntakeCard();
     if(card.type === 'weather') return weatherBlock(card.data);
     if(card.type === 'route') return routeBlock(card.data);
     if(card.type === 'places') return placesBlock(card.data);
@@ -4806,6 +4980,14 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       card.style.marginTop = 'var(--sp-2)';
       body.appendChild(card);
     }
+    if(view.guideText){
+      var guide = el('div','plan');
+      guide.style.marginTop = 'var(--sp-2)';
+      foldBlock(guide,'展开交通、餐饮、费用与来源详情',function(fbody){
+        var pre = el('pre','guide-full'); pre.textContent = view.guideText; fbody.appendChild(pre);
+      });
+      body.appendChild(guide);
+    }
     // 检查项也可能堆五六条：先给最要紧的两条，其余折叠，不把卡片顶成一屏警告
     var warns = warnNodes(view.checks || []);
     warns.slice(0, 2).forEach(function(n){
@@ -4834,7 +5016,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 })();
 </script>
 <script>
-/* 票务视图脚本：严格按 design/ticket.html 落地。
+/* 票务视图脚本：包进 IIFE 以隔离变量，并按票务设计稿落地。
    景点只来自用户真实行程，不预置任何景点：
    - GET /api/itineraries?archived=false  行程 dailySchedules -> activities
    - GET /api/tickets/catalog            已核验景点知识源（只用于精确匹配，不主动展示）
@@ -4847,14 +5029,15 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   var $ = function (id) { return document.getElementById(id); };
   var catalog = [];
   var itinerarySites = [];
+  var itineraryActivities = [];
   var channelCfg = null;
   var lookupCache = {};
   var seq = 0;
   var DATA_BLOCKS = ['tkHead', 'tkPrices', 'tkCols', 'tkAdviceCard', 'tkNotice'];
 
-  function api(path, body) {
+  function api(path, body, method) {
     return fetch(path, {
-      method: body ? 'POST' : 'GET',
+      method: method || (body ? 'POST' : 'GET'),
       credentials: 'same-origin',
       headers: body ? { 'Content-Type': 'application/json' } : {},
       body: body ? JSON.stringify(body) : undefined
@@ -4873,7 +5056,11 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   function fact(site, key) {
     return site && site.fields && site.fields[key] ? site.fields[key] : null;
   }
-  function notice(t) { $('tkNotice').textContent = t || ''; }
+  function notice(t) {
+    var n = $('tkNotice');
+    n.textContent = t || '';
+    n.hidden = !t;
+  }
   function isoLocal(v) { return v ? String(v).slice(0, 19).replace('T', ' ') : ''; }
 
   /* 空态 / 数据区互斥：没有行程景点时页面上不出现任何票价、渠道或建议 */
@@ -4953,6 +5140,16 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
   function currentEntry() {
     var pick = $('tkSite').value;
     return itinerarySites.find(function (e) { return e.site.id === pick; }) || itinerarySites[0] || null;
+  }
+  function recordableActivities(siteId) {
+    return itineraryActivities.filter(function (e) {
+      return e.site.id === siteId && e.itineraryId && e.activityId && e.visitDate
+        && Number.isFinite(Number(e.itineraryVersion));
+    });
+  }
+  function recordEntry() {
+    var key = $('tkRecordActivity').value;
+    return itineraryActivities.find(function (e) { return e.key === key; }) || null;
   }
   function siteNow() { var e = currentEntry(); return e ? e.site : null; }
 
@@ -5063,21 +5260,70 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     copy.dataset.url = url || '';
   }
   function noSiteState(tripCount, spots) {
+    /* 设计稿同款卡片页：只要行程里有活动景点，就用第一个景点名渲染整套卡片结构
+       （标题栏 / 票价三卡 / 官方入口 / 售票站点 / AI 建议），各槽位显示「待核验」
+       占位，绝不编造价格或 POI。这样「点开票务标签」始终是设计稿那张卡片页，
+       而不是塌成一列「票价还没核验」的空列表。 */
+    if ((spots || []).length) {
+      var place = String(spots[0]).split(/\s+/)[0] || spots[0];
+      var scopeTrip = activeTrip() ? (activeTrip().title || '') : '';
+      var virtual = { id: '__pending__', name: place, fields: {} };
+      itinerarySites = [{ site: virtual, trip: scopeTrip || '当前行程' }];
+      var sel = $('tkSite');
+      sel.replaceChildren();
+      var opt = document.createElement('option');
+      opt.value = virtual.id;
+      opt.textContent = place;
+      sel.appendChild(opt);
+      sel.value = virtual.id;
+      showData(true);
+      notice('该景点票价与官方入口尚未经人工核验；以下槽位为待核验占位，不显示编造数据。');
+      // 票价三卡：待核验占位
+      var prices = $('tkPrices');
+      prices.replaceChildren();
+      [['成人票', '待核验'], ['学生票', '待核验'], ['儿童 / 老人', '待核验']].forEach(function (p) {
+        var c = node('div', 'price', null, prices);
+        node('div', 'lab', p[0], c);
+        node('div', 'val', p[1], c);
+        node('div', 'note', '后端未收录核验票价', c);
+      });
+      $('tkDetailPrices').replaceChildren();
+      // 标题栏
+      $('tkSiteTitle').textContent = place + ' · 购票辅助';
+      $('tkSiteSub').textContent = (scopeTrip ? '来自行程：' + scopeTrip + ' · ' : '') + '票价待核验';
+      var badge = $('tkVerified');
+      badge.className = 'st st-unknown';
+      badge.textContent = '待核验';
+      // 官方入口白名单：暂无核验入口
+      [$('tkChannels'), $('tkDetailChannels')].forEach(function (t) {
+        t.replaceChildren();
+        node('div', 'tk-empty', '后端暂未收录该景点的经核验官方入口，请自行前往景区官方渠道核对。', t);
+      });
+      // 售票站点：暂无数据源
+      stations($('tkStations'));
+      // AI 购票建议：说明性占位，不编造
+      var tip = '该景点尚未核验票价与官方入口。建议到景区官方网站 / 官方公众号自行查询并购票，切勿使用来源不明的链接。';
+      $('tkAdvice').replaceChildren();
+      node('div', 'who', '旅行助手 · 购票建议', $('tkAdvice'));
+      node('div', '', tip, $('tkAdvice'));
+      $('tkDetailAdvice').textContent = $('tkAdvice').textContent;
+      setupCopy(null);
+      return;
+    }
+    /* 完全没有行程：保留空态，引导去规划 */
     var scope = activeTrip();
-    var title = scope ? '这个行程的票价还没核验' : '这些行程的票价还没核验';
+    var title = scope ? '这个行程还没有活动景点' : '还没有行程';
     var text = scope
-      ? '已从后端读到行程「' + (scope.title || '未命名行程') + '」，其中 ' + (spots || []).length +
-        ' 个活动景点都没有人工核验票价（后端当前只收录少量已核验景点）。为不编造票价，这里不显示任何价格；下面按景点给你购票与位置的查询入口，点开自行核对。'
-      : (tripCount
-          ? '已从后端读到 ' + tripCount + ' 个行程，景点票价均未核验，因此不显示价格；下面按景点给了购票与位置的查询入口。'
-          : '后端当前没有你的进行中行程。先到「规划」生成行程，再来这里查看购票信息。');
-    setEmpty('empty', title, text, spotList(spots || []));
+      ? '行程「' + (scope.title || '未命名行程') + '」里没有可识别的景点活动，先去规划行程添加景点，再来看购票信息。'
+      : '后端当前没有你的进行中行程。先到「规划」生成行程，再来这里查看购票信息。';
+    setEmpty('empty', title, text, null);
   }
 
   function render() {
     var entry = currentEntry();
     var site = entry ? entry.site : null;
     var my = ++seq;
+    $('tkRecordBtn').disabled = !(entry && recordableActivities(entry.site.id).length);
     if (!site) { noSiteState(0, []); return; }
     showData(true);
     priceCards(site, $('tkPrices'), false);
@@ -5124,7 +5370,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     var mySeq = ++seq;
     pending = api('/api/itineraries?archived=false').then(function (trips) {
       if (mySeq !== seq) return;
-      var found = [], seen = {}, spots = [], scope = activeTrip(), tripCount = 0;
+      var found = [], seen = {}, activities = [], spots = [], scope = activeTrip(), tripCount = 0;
       (Array.isArray(trips) ? trips : []).forEach(function (t) {
         if (scope && t.id !== scope.id) return;   // 指定行程时只查这个行程
         tripCount += 1;
@@ -5141,14 +5387,28 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
               var hit = text.indexOf(s.name) >= 0 ||
                 (text.length >= 3 && s.name.indexOf(text) >= 0);
               if (hit) {
-                seen[s.id] = 1;
-                found.push({ site: s, trip: t.title || '未命名行程' });
+                var entry = {
+                  key: [t.id, a.id, s.id].join(':'),
+                  site: s,
+                  trip: t.title || '未命名行程',
+                  itineraryId: t.id,
+                  activityId: a.id,
+                  itineraryVersion: t.version,
+                  activityTitle: a.title || text,
+                  visitDate: d.date || ''
+                };
+                activities.push(entry);
+                if (!seen[s.id]) {
+                  seen[s.id] = 1;
+                  found.push(entry);
+                }
               }
             });
           });
         });
       });
       itinerarySites = found;
+      itineraryActivities = activities;
       var sel = $('tkSite');
       sel.replaceChildren();
       found.forEach(function (e) {
@@ -5172,6 +5432,83 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
 
   function bind() {
     $('tkSite').addEventListener('change', render);
+    $('tkRecordBtn').onclick = function () {
+      var entry = currentEntry();
+      var candidates = entry ? recordableActivities(entry.site.id) : [];
+      if (!entry || !candidates.length) {
+        notice('该景点没有带日期的行程活动，暂时不能登记购票结果。');
+        return;
+      }
+      var activitySelect = $('tkRecordActivity');
+      activitySelect.replaceChildren();
+      candidates.forEach(function (candidate) {
+        var option = document.createElement('option');
+        option.value = candidate.key;
+        option.textContent = [candidate.trip, candidate.activityTitle, candidate.visitDate]
+          .filter(Boolean).join(' · ');
+        activitySelect.appendChild(option);
+      });
+      function updateRecordTarget() {
+        var selected = recordEntry();
+        $('tkRecordTarget').textContent = selected
+          ? [selected.trip, selected.activityTitle, selected.visitDate].filter(Boolean).join(' · ')
+          : '';
+        $('tkRecordVisitDate').value = selected ? selected.visitDate : '';
+      }
+      activitySelect.onchange = updateRecordTarget;
+      activitySelect.value = candidates[0].key;
+      updateRecordTarget();
+      $('tkRecordProduct').value = '';
+      $('tkRecordSession').value = '';
+      $('tkRecordTravelers').value = '1';
+      $('tkRecordPaidTotal').value = '';
+      $('tkRecordStatus').textContent = '此记录为用户自报，不代表平台核验。';
+      $('tkRecordSave').disabled = false;
+      $('tkRecordDialog').showModal();
+    };
+    $('tkRecordClose').onclick = function () { $('tkRecordDialog').close(); };
+    $('tkRecordSave').onclick = function () {
+      var entry = recordEntry();
+      var product = $('tkRecordProduct').value.trim();
+      var travelers = Number($('tkRecordTravelers').value);
+      var paidText = $('tkRecordPaidTotal').value;
+      if (!entry || !entry.itineraryId || !entry.activityId || !entry.visitDate
+          || !Number.isFinite(Number(entry.itineraryVersion))) {
+        $('tkRecordStatus').textContent = '未找到可登记的行程活动，请刷新后重试。';
+        return;
+      }
+      if (!product || !Number.isInteger(travelers) || travelers < 1 || travelers > 100) {
+        $('tkRecordStatus').textContent = '请填写购买产品和 1 至 100 人的有效人数。';
+        return;
+      }
+      if (paidText !== '' && (!Number.isFinite(Number(paidText)) || Number(paidText) < 0
+          || !$('tkRecordPaidTotal').checkValidity())) {
+        $('tkRecordStatus').textContent = '实付金额须为非负数，最多保留两位小数。';
+        return;
+      }
+      var payload = {
+        attractionId: entry.site.id,
+        product: product,
+        visitDate: entry.visitDate,
+        session: $('tkRecordSession').value.trim() || null,
+        travelers: travelers,
+        paidTotal: paidText === '' ? null : Number(paidText)
+      };
+      var path = '/api/itineraries/' + encodeURIComponent(entry.itineraryId)
+        + '/activities/' + encodeURIComponent(entry.activityId)
+        + '/ticket-record?version=' + encodeURIComponent(entry.itineraryVersion);
+      var button = $('tkRecordSave');
+      button.disabled = true;
+      $('tkRecordStatus').textContent = '正在登记…';
+      api(path, payload, 'PUT').then(function () {
+        $('tkRecordDialog').close();
+        return refreshItinerary().then(function () {
+          notice('已登记用户自报购票结果，未经平台核验。');
+        });
+      }).catch(function (e) {
+        $('tkRecordStatus').textContent = '登记失败：' + e.message;
+      }).then(function () { button.disabled = false; });
+    };
     $('tkBack').onclick = function () {
       var tab = document.querySelector('.vtabs button[data-view="trips"]');
       if (tab) tab.click();

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/chat_message.dart';
 import '../theme/tokens.dart';
-import 'brand_avatar.dart';
 import 'draft_blocks.dart';
+import 'mascot_avatar.dart';
 
 /// 一条消息气泡。
 ///
@@ -57,6 +57,13 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment:
             _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          // 设计稿 02 屏：每条 AI 回复都要署名，保留事实披露。
+          // 游小满只组织语言，不产生事实；票价/天数等以工具结果为准。
+          if (!_isUser)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 6),
+              child: Text('游小满 · AI 生成', style: T.tXs),
+            ),
           if (message.text.isNotEmpty)
             SelectableText(
               message.text,
@@ -103,7 +110,7 @@ class MessageBubble extends StatelessWidget {
           if (!_isUser) ...[
             const Padding(
               padding: EdgeInsets.only(top: 2),
-              child: BrandAvatar(),
+              child: MascotBust(),
             ),
             const SizedBox(width: T.sp2),
           ],

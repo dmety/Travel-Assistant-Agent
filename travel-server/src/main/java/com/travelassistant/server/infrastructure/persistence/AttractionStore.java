@@ -186,7 +186,9 @@ public class AttractionStore {
         sources,
         PlaceholderValues.clean(a.ticketStatus()),
         PlaceholderValues.clean(a.openTimeStatus()),
-        PlaceholderValues.clean(a.coordinateSystem()));
+        PlaceholderValues.clean(a.coordinateSystem()),
+        PlaceholderValues.clean(a.retrievedAt()),
+        PlaceholderValues.clean(a.informationUpdatedAt()));
   }
 
   /** 地址等于城市/省份或其简单拼接（如"北京市北京"）时视为无效。 */
@@ -366,6 +368,38 @@ public class AttractionStore {
       fuzzyCache.put(lower, result);
       return result;
     }
+  }
+
+  /**
+   * 在指定城市内按名称/类别关键词检索。
+   *
+   * <p>先缩小到城市候选，再按精确名、前缀、包含排序，避免其他城市的前缀命中让本城市的
+   * 类别包含命中被漏掉（例如查询「博物馆」）。
+   */
+  public List<Attraction> findByNameInCity(String keyword, String city) {
+    String kw = keyword == null ? "" : keyword.strip();
+    if (kw.isEmpty() || city == null || city.isBlank()) {
+      return List.of();
+    }
+    String lower = kw.toLowerCase(Locale.ROOT);
+    List<Attraction> candidates = findByCity(city);
+    List<Attraction> exact = new ArrayList<>();
+    List<Attraction> prefix = new ArrayList<>();
+    List<Attraction> contains = new ArrayList<>();
+    for (Attraction attraction : candidates) {
+      if (attraction.name() == null) {
+        continue;
+      }
+      String name = attraction.name().toLowerCase(Locale.ROOT);
+      if (name.equals(lower)) {
+        exact.add(attraction);
+      } else if (name.startsWith(lower)) {
+        prefix.add(attraction);
+      } else if (name.contains(lower)) {
+        contains.add(attraction);
+      }
+    }
+    return List.copyOf(!exact.isEmpty() ? exact : !prefix.isEmpty() ? prefix : contains);
   }
 
   public Optional<Attraction> findById(String id) {

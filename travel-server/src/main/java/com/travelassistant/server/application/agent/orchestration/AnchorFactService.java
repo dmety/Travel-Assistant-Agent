@@ -85,9 +85,13 @@ public class AnchorFactService {
         value.put("lat", lat);
         value.put("lon", lon);
         value.put("coordinateSystem", crs);
+        String source = anchor.get("source") instanceof String s ? s : "USER_INPUT";
+        Object reference = anchor.get("referenceName");
+        String referenceName = reference instanceof String s && !s.isBlank() ? s : "explicit";
         facts.add(new Fact(factId("anchor:explicit"), "ATTRACTION", value,
-            new Evidence("USER_INPUT", "explicit", Evidence.UNVERIFIED, Instant.now(),
-                "用户提供的实时位置，未核验")));
+            new Evidence("AMAP_GEOCODE".equals(source) ? "AMAP" : "USER_INPUT",
+                referenceName, Evidence.UNVERIFIED, Instant.now(),
+                "地理编码搜索参考点，非用户实时位置，未核验")));
       }
     }
 

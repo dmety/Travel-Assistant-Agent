@@ -501,12 +501,12 @@ class ChatToolsTest {
   @Test
   @DisplayName("工具清单：九个工具，名字唯一，参数声明合法")
   void specsAreWellFormed() {
-    assertThat(ChatTools.SPECS).hasSize(9);
+    assertThat(ChatTools.SPECS).hasSize(10);
     List<String> names = ChatTools.SPECS.stream()
         .map(spec -> String.valueOf(((Map<?, ?>) spec.get("function")).get("name")))
         .toList();
     assertThat(names).containsExactlyInAnyOrder(
-        "resolve_place", "list_attractions", "get_weather", "find_food",
+        "resolve_place", "search_attractions", "list_attractions", "get_weather", "find_food",
         "draft_itinerary", "book_ticket", "get_inspiration", "vote_plan", "route_plan");
   }
 
@@ -519,7 +519,7 @@ class ChatToolsTest {
         .mapToInt(spec -> String.valueOf(((Map<?, ?>) spec.get("function")).get("description"))
             .length())
         .sum();
-    assertThat(chars).isLessThanOrEqualTo(560);
+    assertThat(chars).isLessThanOrEqualTo(900);
   }
 
   private static DispatchOutcome ok(String intent, String provider, Fact fact) {

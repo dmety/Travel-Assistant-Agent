@@ -3,6 +3,7 @@ package com.travelassistant.server.application.attraction;
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -73,6 +74,11 @@ public class AttractionService {
   /** 知识库状态（含不可用原因），供运维与客户端提示。 */
   public AttractionStore.Status status() {
     return store.status();
+  }
+
+  /** Region aliases used to reject an external POI whose address names a different city. */
+  public Map<String, Integer> knownPlaces() {
+    return store.knownCities();
   }
 
   /** 库不可用时统一抛出，携带可读原因。 */
