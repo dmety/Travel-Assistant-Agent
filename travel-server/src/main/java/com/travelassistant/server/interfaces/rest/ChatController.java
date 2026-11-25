@@ -1,5 +1,6 @@
 package com.travelassistant.server.interfaces.rest;
 
+import com.travelassistant.server.application.agent.spi.ContractRules;
 import com.travelassistant.server.application.chat.ChatAgent;
 import com.travelassistant.server.application.chat.ChatReply;
 import com.travelassistant.server.application.intent.ConversationState;
@@ -10,8 +11,10 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -43,8 +46,26 @@ public class ChatController {
 
   private final ChatAgent agent;
 
+  /**
+   * 核验声明 code 白名单以契约源为唯一出处：这里只做透传前的收口，不按工具名反推声明。
+   * 工具与 Provider 已经按本次返回的字段状态上报 code，展示层不再生成新的声明。
+   */
+  private static final Set<String> DISCLAIMER_CODES = new ContractRules().enums("disclaimerCode");
+
   public ChatController(ChatAgent agent) {
     this.agent = agent;
+  }
+
+  /** 同一条回复只保留一份去重、合法的核验声明。 */
+  private static ChatReply withVerification(ChatReply reply) {
+    return new ChatReply(reply.reply(), reply.cards(), reply.trace(), reply.state(),
+        reply.source(), reply.note(), disclaimersOf(reply));
+  }
+
+  public static List<String> disclaimersOf(ChatReply reply) {
+    java.util.LinkedHashSet<String> codes = new LinkedHashSet<>(reply.disclaimers());
+    codes.retainAll(DISCLAIMER_CODES);
+    return List.copyOf(codes);
   }
 
   /**
@@ -86,7 +107,7 @@ public class ChatController {
     ConversationState state = request.state() == null ? ConversationState.empty() : request.state();
     ChatReply reply = images.isEmpty() ? agent.chat(message, history, state)
         : agent.chat(message, history, state, images);
-    return ResponseEntity.ok(reply);
+    return ResponseEntity.ok(withVerification(reply));
   }
 
   /** 面向 CLI 的 SSE 接口：先发送简短状态，再逐段发送最终答复。 */
@@ -136,6 +157,9 @@ public class ChatController {
         result.put("state", reply.state());
         result.put("source", reply.source());
         result.put("note", reply.note());
+        List<String> disclaimers = disclaimersOf(reply);
+        result.put("disclaimers", disclaimers);
+        result.put("verification", Map.of("disclaimers", disclaimers));
         send(emitter, "done", result);
         emitter.complete();
       } catch (Exception e) {

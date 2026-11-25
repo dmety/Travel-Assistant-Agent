@@ -1906,8 +1906,60 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     });
   }
 
+  /* ---------- 契约 1.1：核验声明只在界面渲染一次，正文与工具摘要都不复述 ---------- */
+  var DISCLAIMER_TEXT = {
+    UNVERIFIED_TICKET: '部分景点票价未核验，原文快照不补数字',
+    OFFICIAL_NOTICE: '票价与开放时间以景区公告为准',
+    FORECAST_NOT_REALTIME: '天气为预报不是实况，出行当天再看一次',
+    NO_REALTIME_STOCK: '余票未核验、不代下单，购票请到景区官方入口',
+    GEOCODE_REFERENCE: '餐馆距离以城市地理编码参考点为起点',
+    HOT_UNRANKED: '热度未核验，未按热度排名',
+    ROUTE_ESTIMATE: '路线距离与耗时为查询时估算，不含等车、排队与检票',
+    GENERAL_DISH_LIST: '菜名清单凭通用资料整理，未逐一核验'
+  };
+  /** 卡片自己不再写免责脚注：按卡片实际字段换算成 code，交给统一尾注去重渲染。 */
+  function cardDisclaimers(card) {
+    if (!card) return [];
+    var d = card.data;
+    if (card.type === 'weather') return ['FORECAST_NOT_REALTIME'];
+    if (card.type === 'route') return ['ROUTE_ESTIMATE'];
+    if (card.type === 'vote') return ['HOT_UNRANKED'];
+    if (card.type === 'places') {
+      var rows = Array.isArray(d) ? d : [];
+      var codes = [];
+      if (rows.some(function (r) { return !r || r.ticket == null || r.ticket === ''; }))
+        codes.push('UNVERIFIED_TICKET');
+      if (rows.some(function (r) { return r && r.ticket != null && r.ticket !== ''; }))
+        codes.push('OFFICIAL_NOTICE');
+      return codes;
+    }
+    if (card.type === 'envelope') {
+      var env = d || {}, res = env.result || {};
+      var v = res.verification || env.verification || {};
+      var codes = Array.isArray(v.disclaimers) ? v.disclaimers.slice() : [];
+      var facts = Array.isArray(res.facts) ? res.facts : [];
+      var g = env.ticketGuidance || facts.reduce(function (acc, f) {
+        return acc || (f && f.value && f.value.category === 'TICKET_GUIDANCE' ? f.value : null);
+      }, null);
+      if (g && Array.isArray(g.channels) && g.channels.length && codes.indexOf('NO_REALTIME_STOCK') < 0)
+        codes.push('NO_REALTIME_STOCK');
+      return codes;
+    }
+    return [];
+  }
+  function paintDisclaimers(codes, box) {
+    var seen = {}, lines = [];
+    (codes || []).forEach(function (c) {
+      if (c && DISCLAIMER_TEXT[c] && !seen[c]) { seen[c] = 1; lines.push(DISCLAIMER_TEXT[c]); }
+    });
+    if (!lines.length) return;
+    var tip = el('div', 'wx-tip');
+    tip.textContent = '核验说明：' + lines.join('；') + '。';
+    box.appendChild(tip);
+  }
+
   /* ---------- 一条回复：正文 + 富内容卡片，卡片由 blocks 渲染层统一画 ---------- */
-  function renderReply(replyText, cards, baseText, plain) {
+  function renderReply(replyText, cards, baseText, plain, disclaimers) {
     var msg = el('div', 'msg ai');
     var who = el('div', 'msg-who');
     who.innerHTML = '游小满 <span>AI 生成</span>';
@@ -1916,13 +1968,16 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     body.innerHTML = plain ? esc(replyText) : formatRich(replyText);
     msg.appendChild(body);
     var found = null;
+    var allCodes = (disclaimers || []).slice();
     (cards || []).forEach(function (card) {
+      allCodes = allCodes.concat(cardDisclaimers(card));
       var node = paintCard(card, baseText);
       if (node) { node.style.marginTop = 'var(--sp-2)'; body.appendChild(node); }
       if (card && card.type === 'envelope' && card.intent !== 'FOOD_RECOMMEND' && !found) {
         found = draftFromEnvelope(card.data);
       }
     });
+    paintDisclaimers(allCodes, body);
     $('thread').appendChild(msg);
     scrollThread();
     if (found) applyDraft(found);
@@ -2134,7 +2189,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         if (agent && agent.reply) {
           typing.remove();
           mergeState(agent.state);
-          renderReply(agent.reply, agent.cards, text, false);
+          renderReply(agent.reply, agent.cards, text, false, agent.disclaimers);
           pushTurn('assistant', agent.reply);
           if (agent.state && agent.state.city) renderTripName(agent.state);
           return;
@@ -4655,7 +4710,6 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       if(meta.length) row.appendChild(el('span','route-meta', escapeHtml(meta.join(' · '))));
       box.appendChild(row);
     });
-    box.appendChild(el('div','wx-tip','距离与耗时是路径规划接口的预估，不含等车、排队与检票时间，实际以地图 App 与现场为准。'));
     return box;
   }
 
@@ -4678,7 +4732,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       row.appendChild(el('div','t', escapeHtml(temps + (wind ? ' · ' + wind : ''))));
       box.appendChild(row);
     });
-    box.appendChild(el('div','wx-tip','预报会变，出行当天再看一次；温度是区间，早晚差得多记得带外套。'));
+    box.appendChild(el('div','wx-tip','温度是区间，早晚差得多记得带外套。'));
     return box;
   }
 
@@ -4879,8 +4933,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       box.appendChild(line);
     });
     box.appendChild(el('div','wx-tip', links.length
-      ? '票价为原文快照，未核验不补数字；余票未核验、不代下单。点评价数看官方评论入口。'
-      : '票价未核验就不补数字；购票请到景区官方公众号/官网或现场窗口，余票未核验、不代下单。'));
+      ? '点评价数可看官方评论入口。'
+      : '暂无经核验的官方购票链接，可到景区官方公众号/官网或现场窗口查询。'));
     return box;
   }
 

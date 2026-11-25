@@ -1062,7 +1062,9 @@ GET /api/itineraries/{id}/export
 
 返回 `text/plain;charset=UTF-8`，并带 `Content-Disposition: attachment` 与 UTF-8 文件名。
 内容包括：行程基本信息、成员与授权、方案、每日安排、交通、住宿、费用与小计、
-预算分析、候选与投票、行程检查，结尾附「不构成预订承诺、价格以官方为准」的说明。
+预算分析、候选与投票、行程检查；为空的章节不单独占标题，合并为一行「未填写：…」；
+草案生成的溯源备注拆成正文可读行（票价、开放时间，未知值注明需核实），景点 ID 与
+数据来源移入文末「数据溯源」附录；结尾附「不构成预订承诺、价格以官方为准」的说明。
 
 导出**纯文本**而不是 PDF/Word：没有字体与分页依赖，任何编辑器都能打开，也便于贴进群聊。
 服务端不写用户磁盘，落点由调用方决定。
@@ -1707,7 +1709,8 @@ Content-Type: application/json
   "cards": [ { "type": "envelope", "intent": "FOOD_RECOMMEND", "data": { "status": "OK", "providerId": "builtin.food", "result": { "facts": [] } } } ],
   "trace": [ { "tool": "find_food", "label": "找餐馆", "ok": true } ],
   "state": { "city": "武汉", "days": 3 },
-  "source": "agent", "note": null }
+  "source": "agent", "note": null,
+  "disclaimers": ["GENERAL_DISH_LIST"] }
 ```
 
 | 字段 | 说明 |
@@ -1717,10 +1720,12 @@ Content-Type: application/json
 | `trace` | 这次查了哪些工具，界面显示「查了 天气、景点」，让结论可追溯 |
 | `state` | 本轮结束后的已知槽位，下一轮原样传回即可 |
 | `source` | `agent` 模型驱动 / `unavailable` 模型不可用（未配密钥、余额不足、超时） |
+| `disclaimers` | 契约 1.1 的结构化核验声明 code，由工具与 Provider 按本次返回的字段状态逐层上报；界面按 code 去重后只渲染一条尾注（`planner.html` 的 `paintDisclaimers`）。白名单见 `tools/agent/provider-contract.json` 的 `enums.disclaimerCode` |
 
 CLI 使用流式接口 `POST /api/chat/stream`，请求体与 `/api/chat` 相同，响应为 SSE：
 `progress` 提示正在处理，`token` 携带 `{ "text": "..." }` 的答复增量，`done` 返回最终答复和会话状态，
-`error` 表示流中断。普通 `/api/chat` 保持原 JSON 响应，供现有网页调用。
+`error` 表示流中断。`done` 同时带顶层 `disclaimers` 与契约形状的 `verification.disclaimers`（同一份列表）；
+普通 `/api/chat` 保持原 JSON 响应，供现有网页调用。
 
 **模型能用十个工具**（`application/chat/ChatTools`）。其中五个是「主 Agent 调子 Agent」：
 票务、天气、灵感、行程、美食全部经由 `builtin.*` Provider 走 L1 编排，同一入口、
@@ -1732,7 +1737,7 @@ CLI 使用流式接口 `POST /api/chat/stream`，请求体与 `/api/chat` 相同
 | `search_attractions(city, keywords)` | 用户点名景点或类别 | 景区知识库，按城市与名称过滤 |
 | `list_attractions(city, limit)` | 问有什么好玩的、门票多少 | 景区知识库 |
 | `get_weather(city, days)` | 问天气、气温、要不要带伞 | `builtin.weather`（`WEATHER_ADVICE`，走 L1 编排） |
-| `find_food(city)` | 问吃什么、找馆子 | `builtin.food`（走 L1 编排与契约校验） |
+| `find_food(city)` | 问吃什么、有什么好吃的 | `builtin.food`（走 L1 编排与契约校验）；回答按「先当地特色菜（菜名凭通用资料整理、未逐一核验）、后餐馆」组织，餐馆数字只引用工具结果 |
 | `draft_itinerary(city, days, …)` | 要行程、问怎么安排 | `builtin.planning`（同上） |
 | `book_ticket(message)` | 问门票怎么买、购票条件缺什么 | `builtin.ticket`（`TICKET_ADVICE`，同上；只给建议不能下单） |
 | `get_inspiration(city)` | 「随便逛逛」「不知道去哪」 | `builtin.inspiration`（`CONTENT_INSPIRATION`：知识库按评分挑候选；知识库没收录的地名如区县「黄梅」自动改用地图工具层实时检索，结果标注未经核验） |

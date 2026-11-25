@@ -238,6 +238,12 @@ public class ContractValidator {
     body.put("advice", result.advice());
     body.put("unknownFields", result.unknownFields());
     body.put("notices", result.notices());
+    // 契约 1.1：核验声明只在有内容时输出；缺字段仍是合法响应，旧 Provider 不用改。
+    if (!result.disclaimers().isEmpty()) {
+      Map<String, Object> verification = new LinkedHashMap<>();
+      verification.put("disclaimers", result.disclaimers());
+      body.put("verification", verification);
+    }
     Map<String, Object> usage = new LinkedHashMap<>();
     usage.put("elapsedMs", result.usage().elapsedMs());
     usage.put("modelCalls", result.usage().modelCalls());
@@ -280,6 +286,33 @@ public class ContractValidator {
     }
     checkStringList(out, response, "unknownFields", "maxUnknownFields");
     checkStringList(out, response, "notices", "maxNotices");
+    // 契约 1.1：verification 可选；出现时结构、枚举与去重都由规范源判定，不在 Java 里另立白名单。
+    Object verification = response.get("verification");
+    if (verification != null) {
+      if (!(verification instanceof Map<?, ?> raw)) {
+        failCode(out, E_SCHEMA_TYPE, "T-05", "verification", verification, "含 disclaimers 的对象");
+      } else {
+        Map<String, Object> vm = castMap(raw);
+        schemaShape(out, vm, "verification", "response", "verification");
+        Object disclaimers = vm.get("disclaimers");
+        if (!(disclaimers instanceof List<?> codes)) {
+          failCode(out, E_SCHEMA_TYPE, "T-05", "verification.disclaimers", disclaimers, "字符串数组");
+        } else {
+          if (codes.size() > rules.limit("maxDisclaimers")) {
+            failCode(out, E_SCHEMA_LIMIT, "T-05", "verification.disclaimers", codes.size(),
+                "不超过 " + rules.limit("maxDisclaimers") + " 项");
+          }
+          Set<String> seen = new HashSet<>();
+          for (Object code : codes) {
+            if (!(code instanceof String s)
+                || !rules.enums("disclaimerCode").contains(s) || !seen.add(s)) {
+              failCode(out, E_SCHEMA_TYPE, "T-05", "verification.disclaimers[]", code,
+                  "规范枚举内且不重复的 disclaimerCode");
+            }
+          }
+        }
+      }
+    }
     String advice = str(response, "advice");
     if (response.containsKey("advice") && advice != null) {
       validateAdvice(out, advice, facts instanceof List<?> list ? list : List.of());

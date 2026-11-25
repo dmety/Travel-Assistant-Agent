@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.0",
+  "contractVersion": "1.1",
   "description": "G1 契约探针与 G2 安全探针的固定用例集。用例集随规范版本入库，同一配置、同一版规则集、同一组用例必须得到一致判定。",
   "cases": [
     {
@@ -237,6 +237,34 @@
       },
       "expect": { "outcome": "ACCEPT", "allowRefused": true, "maxElapsedMs": 10000 },
       "detectorCode": "E_TRANSPORT_TIMEOUT"
+    },
+    {
+      "id": "GC-09",
+      "gate": "G1",
+      "name": "结构化核验声明",
+      "input": {
+        "intent": "FOOD_RECOMMEND",
+        "runId": "gc09-run-0001",
+        "context": { "city": "杭州" },
+        "facts": [
+          {
+            "factId": "gc09-fact-1",
+            "type": "ATTRACTION",
+            "value": { "name": "西湖" },
+            "evidence": {
+              "sourceKind": "KB",
+              "sourceId": "kb:attraction:001",
+              "verificationStatus": "unverified",
+              "fetchedAt": "2026-11-09T00:00:00Z",
+              "excerpt": "西湖"
+            }
+          }
+        ],
+        "hints": {},
+        "deadline": "FUTURE"
+      },
+      "expect": { "outcome": "ACCEPT", "status": "OK", "allowRefused": true, "disclaimersValid": true },
+      "detectorCode": "E_SEMANTIC_VERIFIED"
     }
   ]
 }

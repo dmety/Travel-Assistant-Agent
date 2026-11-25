@@ -98,7 +98,7 @@ class ContractValidatorTest {
 
   @Test
   void contractSourceIsOnClasspathAndReadable() {
-    assertEquals("1.0", rules.contractVersion());
+    assertEquals("1.1",rules.contractVersion());
     assertEquals(1, rules.majorVersion());
     assertTrue(rules.enums("capability").contains("FOOD_RECOMMEND"));
     assertEquals(50, rules.limit("maxFacts"));
@@ -126,7 +126,7 @@ class ContractValidatorTest {
     assertEquals("G0", report.stage());
     assertTrue(report.warnings().isEmpty());
     assertNotNull(report.checkedAt());
-    assertEquals("1.0", report.contractVersion());
+    assertEquals("1.1",report.contractVersion());
     assertEquals("py.food.recommender", report.providerId());
   }
 
@@ -396,6 +396,41 @@ class ContractValidatorTest {
       assertTrue(local.validateConfig(m, 0, true).blocked(), bad);
 
     }
+  }
+
+  @Test
+  void verificationDisclaimersFollowContractEnum() {
+    Set<String> allowed = rules.enums("disclaimerCode");
+    assertEquals(8, allowed.size());
+    assertTrue(resultCodes(m -> m.put("verification",
+        Map.of("disclaimers", List.of("UNVERIFIED_TICKET", "OFFICIAL_NOTICE")))).isEmpty());
+    assertTrue(resultCodes(m -> m.put("verification",
+        Map.of("disclaimers", List.of("NOT_A_CODE")))).contains("E_SCHEMA_TYPE"));
+    assertTrue(resultCodes(m -> m.put("verification",
+        Map.of("disclaimers", List.of("UNVERIFIED_TICKET", "UNVERIFIED_TICKET"))))
+        .contains("E_SCHEMA_TYPE"));
+    assertTrue(resultCodes(m -> m.put("verification", Map.of("debug", 1)))
+        .contains("E_SCHEMA_ADDITIONAL"));
+  }
+
+  @Test
+  void chatDisclaimersAreContractCodesAndDeduplicated() {
+    var reply = new com.travelassistant.server.application.chat.ChatReply(
+        "ok", List.of(), List.of(
+            new com.travelassistant.server.application.chat.ChatReply.ToolTrace(
+                "search_attractions", "查景点", true, null,
+                List.of("UNVERIFIED_TICKET", "NOT_A_CODE")),
+            new com.travelassistant.server.application.chat.ChatReply.ToolTrace(
+                "get_weather", "查天气", true, null,
+                List.of("FORECAST_NOT_REALTIME", "UNVERIFIED_TICKET"))),
+        null, "agent", null);
+    List<String> codes =
+        com.travelassistant.server.interfaces.rest.ChatController.disclaimersOf(reply);
+    assertTrue(rules.enums("disclaimerCode").containsAll(codes));
+    assertEquals(codes.size(), new java.util.HashSet<>(codes).size());
+    assertTrue(codes.contains("FORECAST_NOT_REALTIME"));
+    assertFalse(codes.contains("NOT_A_CODE"));
+    assertEquals(List.of("UNVERIFIED_TICKET", "FORECAST_NOT_REALTIME"), codes);
   }
 
 }
