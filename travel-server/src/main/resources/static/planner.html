@@ -218,6 +218,10 @@ svg.ico{width:1em;height:1em;display:inline-block;vertical-align:-.15em;flex:0 0
 .fab:hover{border-color:var(--pine);color:var(--pine-text)}
 .fab.clay{background:var(--clay);border-color:var(--clay);color:#fff}
 .fab.clay:hover{filter:brightness(.93);border-color:var(--clay);color:#fff}
+/* 景点图层开关：开启态用松绿填充，与行程点位的纸白编号钉区分开 */
+.fab.on{background:var(--pine);border-color:var(--pine);color:#fff}
+.fab.on:hover{filter:brightness(.94);border-color:var(--pine);color:#fff}
+.fab.on b{color:#fff}
 .drawer-mask{position:fixed;inset:0;z-index:65;background:rgba(32,36,30,.28);display:none}
 .drawer-mask.open{display:block}
 .drawer{position:fixed;z-index:66;top:0;right:0;bottom:0;width:min(380px,92vw);
@@ -1474,6 +1478,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
         <span><i style="background:var(--ok)"></i>已核验</span>
       </div>
       <div class="fabs">
+        <button class="fab" type="button" id="fabScenic" aria-pressed="true"
+                title="在底图上标出目的地周边的景点，点击标注看详情">景点 <b id="fabScenicN">0</b></button>
         <button class="fab" type="button" id="fabPool" title="候选里还没排进行程的地点">待规划 <b id="fabPoolN">0</b></button>
         <button class="fab clay" type="button" id="fabCand" title="未回答的补问与平票，等你们定">待你定 <b id="fabCandN">0</b></button>
       </div>
@@ -3420,6 +3426,8 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       try { map.setViewport(pts, { margins: [70, 70, 70, 70] }); }
       catch (e) { map.centerAndZoom(pts[0], 12); }
     } else if (pts.length) { map.centerAndZoom(pts[0], 13); }
+    // clearOverlays 会把景点图层一起清掉，行程点重画后补画回去
+    if (scenicOn) drawScenicLayer();
   }
   /* 草案点位 → 真实地图标注：KB 之外的模型生成点位用百度地理编码（直接返回 BD09，
      无需坐标系换算）；按名称缓存避免重复配额；解析失败的点跳过，不臆造坐标。 */
@@ -3448,6 +3456,235 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     });
     Promise.all(jobs).then(function () { if (tok === mapToken) drawBMapPoints(); });
   }
+
+  /* ---------- 景点图层：把目的地周边的景点标到底图上 ---------- */
+  /* 数据来自 /api/map/scenic（高德 + 百度双源，服务端已统一成 BD-09），底图是百度 BMapGL，
+     坐标可直接用。图层与行程点分开管理：行程点用编号水滴，景点用山形钉 + 胶囊名牌；
+     两套各自增删，重画行程不会把景点一起抹掉。 */
+  var scenicOn = true, scenicCity = '', scenicPois = [], scenicOverlays = [], scenicSeq = 0;
+  var scenicActive = '';   // 当前选中的景点名：选中后图钉换成黏土色并压在最上层
+  var scenicCache = {}, scenicGeocoding = false, scenicMoveTimer = null;
+
+  /* 图钉：水滴底 + 山形图标 + 投影。做法是整颗画成 SVG 图标，缩放不糊；
+     未选中是纸白底深绿描边，选中换成黏土色实心，和行程点的编号水滴区分得开。 */
+  function scenicPinIcon(active) {
+    var dark = mapWantsDark();
+    var body = active ? (dark ? '#D9805A' : '#B4542A') : (dark ? '#242A21' : '#FCFAF5');
+    var line = active ? (dark ? '#F6DFCE' : '#7E381A') : (dark ? '#8FCDB0' : '#1E4A3E');
+    var glyph = active ? (dark ? '#3A2116' : '#FCFAF5') : (dark ? '#9ACDB4' : '#2E6B52');
+    var w = active ? 31 : 27, h = active ? 40 : 35;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 27 35">' +
+      '<defs><filter id="ps" x="-45%" y="-35%" width="190%" height="190%">' +
+      '<feDropShadow dx="0" dy="1.1" stdDeviation="1.2" flood-color="#141C16" flood-opacity="' +
+      (dark ? '.6' : '.28') + '"/></filter></defs>' +
+      '<path d="M13.5 33.4C13.5 33.4 2.7 22.5 2.7 13.1A10.8 10.8 0 1 1 24.3 13.1C24.3 22.5 13.5 33.4 13.5 33.4Z" ' +
+      'fill="' + body + '" stroke="' + line + '" stroke-width="1.4" stroke-linejoin="round" filter="url(#ps)"/>' +
+      '<circle cx="13.5" cy="12.9" r="7.5" fill="none" stroke="' + glyph + '" stroke-opacity=".16" stroke-width="1"/>' +
+      '<circle cx="16.8" cy="9.7" r="1.7" fill="' + glyph + '"/>' +
+      '<path d="M8.6 16.4L11.9 12.1L13.9 14.7L15.5 12.7L18.5 16.4Z" fill="' + glyph + '"/>' +
+      '</svg>';
+    return new window.BMapGL.Icon('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
+      new window.BMapGL.Size(w, h),
+      { anchor: new window.BMapGL.Size(w / 2, h - 1.5), imageSize: new window.BMapGL.Size(w, h) });
+  }
+  /* 名称牌：圆角胶囊 + 细描边 + 轻投影，压在钉尖下方。
+     比「纯文字 + 四向描边」干净，浅色底图上也糊不成一片；选中态反白，和钉身同色系。
+     百度 GL 会给标签容器自带一圈红框和底色，这里先清空容器样式，只让内层 span 负责外观。 */
+  function scenicLabel(text, point, offsetX, active) {
+    var dark = mapWantsDark();
+    var bg = active ? (dark ? '#9ACDB4' : '#1E4A3E')
+                    : (dark ? 'rgba(28,32,25,.92)' : 'rgba(255,253,247,.96)');
+    var fg = active ? (dark ? '#16201A' : '#FCFAF5')
+                    : (dark ? '#E8E4D8' : '#2A352D');
+    var bd = active ? 'transparent' : (dark ? 'rgba(154,205,180,.26)' : 'rgba(30,74,62,.20)');
+    var sh = dark ? '0 1px 3px rgba(0,0,0,.55)' : '0 1px 2px rgba(18,26,20,.18),0 2px 7px rgba(18,26,20,.10)';
+    var html = '<span style="display:inline-block;padding:1px 7px;border-radius:999px;' +
+      'background:' + bg + ';border:1px solid ' + bd + ';' +
+      'box-shadow:' + sh + ';' +
+      'font-size:12px;line-height:17px;letter-spacing:.2px;font-weight:' + (active ? '650' : '600') + ';' +
+      'color:' + fg + ';white-space:nowrap;">' + escapeHtml(text) + '</span>';
+    var label = new window.BMapGL.Label(html, {
+      position: point,
+      offset: new window.BMapGL.Size(offsetX || 0, 3)
+    });
+    label.setStyle({
+      border: '0', background: 'transparent', padding: '0', margin: '0',
+      boxShadow: 'none', whiteSpace: 'nowrap', lineHeight: '0'
+    });
+    return label;
+  }
+  /* 12px 汉字约 12px 宽，加左右各 7px 内边距与 1px 描边，用于居中和避让计算。 */
+  function scenicLabelWidth(text) {
+    return String(text).length * 12 + 16;
+  }
+  /* 两个像素矩形是否相撞（pad 是额外留白）。用于名称牌避让。 */
+  function scenicBoxClash(a, b, pad) {
+    var p = pad || 0;
+    return a.x1 < b.x2 + p && b.x1 < a.x2 + p && a.y1 < b.y2 + p && b.y1 < a.y2 + p;
+  }
+  function clearScenic() {
+    if (!window.__bmap) { scenicOverlays = []; return; }
+    scenicOverlays.forEach(function (o) { try { window.__bmap.removeOverlay(o); } catch (e) {} });
+    scenicOverlays = [];
+  }
+  function drawScenicLayer() {
+    if (!window.__bmap) return;
+    clearScenic();
+    if (!scenicOn) { $('fabScenicN').textContent = '0'; return; }
+    var map = window.__bmap;
+    var placed = [];
+    scenicPois.forEach(function (p) {
+      if (p.lat == null || p.lon == null) return;
+      placed.push({ poi: p, point: new window.BMapGL.Point(p.lon, p.lat) });
+    });
+    placed.forEach(function (it) {
+      var active = !!scenicActive && scenicActive === it.poi.name;
+      var marker = new window.BMapGL.Marker(it.point, { icon: scenicPinIcon(active), title: it.poi.name });
+      marker.addEventListener('click', function () { showScenicSpot(it.poi); });
+      if (active) { try { marker.setTop(true); } catch (e) {} }
+      map.addOverlay(marker);
+      scenicOverlays.push(marker);
+    });
+    /* 名称避让：选中的先放，其余按评分顺序先到先得。
+       牌既不能压住别的图钉，也不能和已放下的牌叠在一起；放不下就只留图钉 —— 宁可少一个名字，也不糊成一团。
+       底图缩得越小点越密，所以缩放后要整体重算一次（见 onScenicMoveEnd）。 */
+    var pinBoxes = [];
+    placed.forEach(function (it) {
+      var px;
+      try { px = map.pointToPixel(it.point); } catch (e) { px = null; }
+      if (!px) return;
+      pinBoxes.push({ it: it, box: { x1: px.x - 14, x2: px.x + 14, y1: px.y - 34, y2: px.y } });
+    });
+    var ordered = placed.slice().sort(function (a, b) {
+      var aa = scenicActive === a.poi.name ? 0 : 1;
+      var bb = scenicActive === b.poi.name ? 0 : 1;
+      return aa - bb;
+    });
+    var labelBoxes = [];
+    ordered.forEach(function (it) {
+      var px;
+      try { px = map.pointToPixel(it.point); } catch (e) { px = null; }
+      if (!px) return;
+      var w = scenicLabelWidth(it.poi.name);
+      var box = { x1: px.x - w / 2, x2: px.x + w / 2, y1: px.y + 2, y2: px.y + 22 };
+      var clash = labelBoxes.some(function (b) { return scenicBoxClash(box, b, 3); }) ||
+        pinBoxes.some(function (p) { return p.it !== it && scenicBoxClash(box, p.box, 1); });
+      if (clash) return;
+      labelBoxes.push(box);
+      var active = scenicActive === it.poi.name;
+      var label = scenicLabel(it.poi.name, it.point, -Math.round(w / 2), active);
+      map.addOverlay(label);
+      scenicOverlays.push(label);
+    });
+    $('fabScenicN').textContent = String(placed.length);
+  }
+  function showScenicSpot(p) {
+    var bits = [];
+    if (p.type) bits.push(p.type);
+    if (p.rating != null) {
+      bits.push('评分 ' + p.rating + (p.commentCount != null ? '（' + p.commentCount + ' 条评价）' : ''));
+    }
+    if (p.address) bits.push(p.address);
+    bits.push('来源：' + (p.source || '地图') + ' · 票价与开放时间未核验');
+    $('spotName').textContent = p.name;
+    $('spotMeta').textContent = bits.join(' · ');
+    $('spotNavigation').href = 'https://map.baidu.com/search/' + encodeURIComponent(p.name);
+    $('spotCard').classList.add('open');
+    if (scenicActive !== p.name) {
+      scenicActive = p.name;
+      /* 点击时正在派发事件给这个图标，等一拍再重画，避免自己把自己从地图上摘掉。 */
+      setTimeout(drawScenicLayer, 0);
+    }
+  }
+  /* 反查地图中心的城市：没生成草案时也能知道「当前这块地方叫什么」，
+     只用于决定去哪个城市取景点，不当作定位精度声明。 */
+  function reverseCity(done) {
+    if (scenicGeocoding || !window.__bmap || !window.BMapGL || !window.BMapGL.Geocoder) {
+      done('');
+      return;
+    }
+    scenicGeocoding = true;
+    var finished = false;
+    function finish(city) {
+      if (finished) return;
+      finished = true;
+      scenicGeocoding = false;
+      done(city || '');
+    }
+    var timer = setTimeout(function () { finish(''); }, 6000);
+    try {
+      new window.BMapGL.Geocoder().getLocation(window.__bmap.getCenter(), function (res) {
+        clearTimeout(timer);
+        var city = res && res.addressComponents && res.addressComponents.city;
+        finish(city);
+      });
+    } catch (e) { clearTimeout(timer); finish(''); }
+  }
+  function scenicTargetCity() {
+    return (convoState && convoState.city) || scenicCity;
+  }
+  function loadScenicLayer(force) {
+    if (!window.__bmap) return;
+    if (!scenicOn) { clearScenic(); return; }
+    var city = scenicTargetCity();
+    if (!city) {
+      reverseCity(function (c) {
+        if (!c) { $('mapNote').textContent = '实时地图（BMapGL）· 未识别当前城市'; return; }
+        scenicCity = c;
+        loadScenicLayer(force);
+      });
+      return;
+    }
+    if (!force && scenicCache[city]) {
+      scenicPois = scenicCache[city];
+      if (scenicCity && scenicCity !== city) scenicActive = '';   // 换城市后旧选中不跨城保留
+      drawScenicLayer();
+      return;
+    }
+    var seq = ++scenicSeq;
+    fetch('/api/map/scenic?place=' + encodeURIComponent(city) + '&limit=12',
+      { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (seq !== scenicSeq) return;
+        scenicPois = (d && d.items) || [];
+        var nextCity = (d && d.place) || city;
+        if (scenicCity && scenicCity !== nextCity) scenicActive = '';   // 换城市后旧选中不跨城保留
+        scenicCity = nextCity;
+        scenicCache[city] = scenicPois;
+        drawScenicLayer();
+        if (!scenicPois.length) $('mapNote').textContent = '实时地图（BMapGL）· 周边未检索到景点';
+      })
+      .catch(function () { /* 配额或网络失败时保留行程点，不打断页面 */ });
+  }
+  /* 拖动地图换城市才重新取数：同一城市有缓存，不会每帧都打地图配额。
+     缩放只影响像素密度，不换城市，重算一次标签避让即可。 */
+  function onScenicMoveEnd(zoomOnly) {
+    if (!scenicOn || !window.__bmap) return;
+    if (zoomOnly) { drawScenicLayer(); return; }
+    if (convoState && convoState.city) return;   // 有草案目的地时不跟着视口漂移
+    if (scenicMoveTimer) clearTimeout(scenicMoveTimer);
+    scenicMoveTimer = setTimeout(function () {
+      reverseCity(function (c) {
+        if (!c || c === scenicCity) return;
+        scenicCity = c;
+        loadScenicLayer();
+      });
+    }, 700);
+  }
+  function setScenicOn(on) {
+    scenicOn = !!on;
+    var btn = $('fabScenic');
+    if (btn) {
+      btn.classList.toggle('on', scenicOn);
+      btn.setAttribute('aria-pressed', scenicOn ? 'true' : 'false');
+    }
+    if (scenicOn) loadScenicLayer();
+    else { clearScenic(); $('fabScenicN').textContent = '0'; }
+  }
+  $('fabScenic').addEventListener('click', function () { setScenicOn(!scenicOn); });
+  // 默认开启：地图尚未就绪时这里只负责按钮态，首次取数由 __initBaiduMap 触发
+  setScenicOn(true);
   /* 个性化底图样式：色值直接取自项目设计令牌（paper/pine/clay），与 CSS 变量同源，
      浅/深两套随主题切换，保证地图与页面同一套色彩语言；行程路线仍用 clay 描边。
      仅做色彩与标注密度收敛，不改变地理数据；样式服务不可用时静默保留默认底图。 */
@@ -3534,6 +3771,7 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
       window.__bmap.setMapStyleV2({ styleJson: mapWantsDark() ? MAP_STYLE_DARK : MAP_STYLE_LIGHT });
     } catch (e) { /* 个性化样式服务不可用时保留默认底图，不影响点位与路线 */ }
     setActiveMarker(-1);
+    if (scenicOn) drawScenicLayer();   // 名称描边颜色跟随主题
   }
   window.__initBaiduMap = function () {
     if (!window.BMapGL) return;
@@ -3556,6 +3794,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     // 地图就绪时若已有草案点位，补一次地理编码标注；通常此时还没有草案，
     // 真正触发在 renderMap → geocodeAndDraw。
     geocodeAndDraw();
+    // 景点图层默认开启：先按草案目的地城市取，没有草案就反查视口城市。
+    setScenicOn(true);
+    window.__bmap.addEventListener('moveend', function () { onScenicMoveEnd(false); });
+    window.__bmap.addEventListener('zoomend', function () { onScenicMoveEnd(true); });
   };
 
   /* ---------- 启动与事件 ---------- */
@@ -3605,7 +3847,10 @@ html[data-theme="dark"] .ai-head .ai-ico{color:var(--pine-text)}
     updateFabs();
     toast('已清除当前需求，草案与地图已重置');
   });
-  $('spotClose').addEventListener('click', function () { $('spotCard').classList.remove('open'); });
+  $('spotClose').addEventListener('click', function () {
+    $('spotCard').classList.remove('open');
+    if (scenicActive) { scenicActive = ''; drawScenicLayer(); }   // 关卡片即取消高亮
+  });
 
   /* ---------- 状态胶囊：待规划 / 待你定（真实计数 + 抽屉） ---------- */
   function poolList() {
