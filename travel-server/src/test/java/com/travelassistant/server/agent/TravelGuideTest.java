@@ -26,6 +26,40 @@ class TravelGuideTest {
   TravelGuide compose(PlanningRequest r, List<Attraction> spots) {
     return new TravelGuideComposer(null).compose(r, spots, DraftAssembler.assemble(r, spots).dailySchedules());
   }
+  @Test void explicitlyAssignedVisitStaysOnRequestedDay() throws Exception {
+    var r=request(3,"{\"visitDays\":{\"博物馆\":2}}");
+    var days=DraftAssembler.arrange(r,List.of(spot("a","博物馆",113,"09:00-17:00"),spot("b","公园",113.01,"09:00-17:00")));
+    assertThat(days).anySatisfy(day -> { assertThat(day.dayIndex()).isEqualTo(2); assertThat(day.items()).anyMatch(item -> item.name().equals("博物馆")); });
+    assertThat(days).filteredOn(day -> day.dayIndex()!=2).allSatisfy(day -> assertThat(day.items()).noneMatch(item -> item.name().equals("博物馆")));
+  }
+  @Test void noClimbingExcludesDocumentedMountainActivityAndDisclosesUnknownTerrain() throws Exception {
+    var r=request(2,"{\"mobility\":\"不爬山\"}");
+    var base=spot("mountain","山地景点",113,"09:00-17:00");
+    var mountain=new Attraction(base.id(),base.name(),base.city(),base.province(),"山岳型景观",null,null,base.openTime(),base.ticket(),base.address(),null,null,null,"登山步道",base.lat(),base.lon(),"KB",List.of("KB"),"verified","verified","GCJ-02");
+    var flat=spot("unknown","普通公园",113.01,"09:00-17:00");
+    var g=compose(r,List.of(mountain,flat));
+    assertThat(g.days().stream().flatMap(d -> d.slots().stream()).filter(slot -> slot.kind().equals("VISIT")).map(TravelGuide.Slot::title))
+        .doesNotContain("山地景点");
+    assertThat(g.days().getFirst().checks()).anyMatch(c -> c.contains("坡度") && c.contains("缺证据"));
+  }
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings={"博物馆内东院","坤宁宫"})
+  void breakfastInsideClosedAttractionIsNotRecommended(String address) throws Exception {
+    AmapClient api=mock(AmapClient.class); when(api.configured()).thenReturn(true);
+    when(api.searchFoodNearby(anyString(),anyInt(),anyInt())).thenReturn(List.of(
+        new FoodPlace("inside","院内餐厅",40.0,113.0,"中餐",null,50.0,"08:00-17:00",null,"AMAP",Instant.now(),address)));
+    var r=request(1,"{}"); var spots=List.of(spot("a","博物馆",113,"08:30-17:00"));
+    var g=new TravelGuideComposer(api).compose(r,spots,DraftAssembler.arrange(r,spots));
+    assertThat(g.days().getFirst().slots()).filteredOn(slot -> slot.title().equals("早餐"))
+        .allSatisfy(slot -> assertThat(slot.restaurants()).isEmpty());
+    assertThat(g.days().getFirst().checks()).anyMatch(c -> c.contains("入园"));
+  }
+  @Test void limitedMobilityDoesNotPackTwoMustVisitsOnArrivalDay() throws Exception {
+    var r=request(3,"{\"origin\":\"上海\",\"transportPreference\":\"往返高铁\",\"seniors\":1,\"mobility\":\"少走路，不爬山\",\"mustVisit\":[\"甲\",\"乙\"]}");
+    var days=DraftAssembler.arrange(r,List.of(spot("a","甲",113,"09:00-17:00"),spot("b","乙",113.01,"09:00-17:00")));
+    assertThat(days).allSatisfy(day -> assertThat(day.items()).hasSizeLessThanOrEqualTo(1));
+    assertThat(days.stream().flatMap(d -> d.items().stream()).map(DraftDay.Item::name)).containsExactlyInAnyOrder("甲","乙");
+  }
   @Test void keepsRequestedDaysAndUnknownCosts() throws Exception {
     var g = compose(request(5,"{}"), List.of(spot("a","云冈石窟",113,"09:00-17:00")));
     assertThat(g.days()).hasSize(5);

@@ -75,7 +75,7 @@ public final class DraftAssembler {
 
     int plannedDays = request.effectiveDays() == null ? 0
         : Math.min(request.effectiveDays(), MAX_DAYS);
-    int usable = Math.min(unique.size(), plannedDays * MAX_PER_DAY);
+    int usable = Math.min(unique.size(), plannedDays * dailyLimit(request));
     List<Attraction> selected = unique.subList(0, Math.max(usable, 0));
     boolean crowded = needsPacking(selected, plannedDays);
     List<DraftDay> daily = arrange(request, selected);
@@ -131,21 +131,48 @@ public final class DraftAssembler {
    * 出现一次，不逐天重复。确认保存走同一个方法，因此正式行程里也不会写进空天。
    */
   public static List<DraftDay> arrange(PlanningRequest request, List<Attraction> selected) {
-    List<Attraction> safe = uniqueForSchedule(selected == null ? List.of() : selected);
+    List<Attraction> safe = uniqueForSchedule(selected == null ? List.of() : selected).stream()
+        .filter(a -> !incompatibleClimbing(request,a)).toList();
     Integer effective = request.effectiveDays();
     if (effective == null || effective <= 0 || safe.isEmpty()) {
       return List.of();
     }
     // 展示与确认保存都走这里，重排一次即可保证「看到什么就存什么」。
     List<Attraction> ordered = DraftRouteOptimizer.optimize(safe);
+    // Keep mandatory candidates ahead of optional ones after route optimization.
+    if (request.details() != null) {
+      ordered = new ArrayList<>(ordered);
+      ordered.sort(java.util.Comparator.<Attraction>comparingInt(a -> assignedDay(request,a)!=null?0:1).thenComparingInt(a -> request.details().mustVisit().stream()
+          .anyMatch(name -> PlanningService.matchesMustVisit(name, a)) ? 0 : 1));
+    }
     int allowedDays = Math.min(effective, MAX_DAYS);
-    List<List<Attraction>> groups = groupByDay(ordered);
-    if (groups.size() > allowedDays) {
-      if (ordered.size() >= allowedDays * MAX_PER_DAY) {
-        // 每天容量已用满时保留候选完整性；旅行衔接仍需用户按实际核实。
-        groups = packByCapacity(ordered, allowedDays);
-      } else {
-        groups = List.copyOf(groups.subList(0, allowedDays));
+    List<List<Attraction>> groups;
+    boolean constrained = limitedMobility(request) || request.details()!=null && request.details().origin()!=null || request.details() != null && (!request.details().mustVisit().isEmpty()
+        || request.details().maxAttractionsPerDay() != null || !request.details().visitDays().isEmpty())
+        || ordered.stream().anyMatch(a -> java.util.stream.IntStream.range(1, allowedDays + 1)
+            .anyMatch(day -> OpeningHours.evaluate(a.openTime(), dateForDay(request, day)).status() == OpeningHours.Status.CLOSED));
+    if (!constrained) {
+      groups = groupByDay(ordered);
+      if (groups.size() > allowedDays) groups = ordered.size() >= allowedDays * MAX_PER_DAY
+          ? packByCapacity(ordered, allowedDays) : List.copyOf(groups.subList(0, allowedDays));
+    } else {
+      groups = new ArrayList<>();
+      for (int day = 0; day < allowedDays; day++) groups.add(new ArrayList<>());
+      for (Attraction attraction : ordered) {
+        boolean placed = false;
+        Integer assigned=assignedDay(request,attraction);
+        for (int day = 0; day < allowedDays; day++) {
+          if(assigned!=null && day+1!=assigned) continue;
+          if (groups.get(day).size() >= scheduleLimit(request, day + 1)) continue;
+          if (OpeningHours.evaluate(attraction.openTime(), dateForDay(request, day + 1)).status() == OpeningHours.Status.CLOSED) continue;
+          groups.get(day).add(attraction);
+          placed = true;
+          break;
+        }
+        if (!placed && assigned==null && java.util.stream.IntStream.range(1, allowedDays + 1).allMatch(day ->
+            OpeningHours.evaluate(attraction.openTime(), dateForDay(request, day)).status() == OpeningHours.Status.CLOSED)) {
+          for (var group : groups) if (group.size() < scheduleLimit(request, groups.indexOf(group) + 1)) { group.add(attraction); break; }
+        }
       }
     }
     LocalDate depart = request.departDate();
@@ -170,6 +197,43 @@ public final class DraftAssembler {
       days.add(new DraftDay(i + 1, date, note, items));
     }
     return List.copyOf(days);
+  }
+
+  private static Integer assignedDay(PlanningRequest request,Attraction attraction) {
+    if(request.details()==null) return null;
+    return request.details().visitDays().entrySet().stream()
+        .filter(entry -> PlanningService.matchesMustVisit(entry.getKey(),attraction)).map(java.util.Map.Entry::getValue).findFirst().orElse(null);
+  }
+
+  static boolean avoidsClimbing(PlanningRequest request) {
+    String mobility=request.details()==null?"":String.valueOf(request.details().mobility());
+    String preferences=mobility+String.join("、",request.preferences());
+    return preferences.contains("不爬山") || preferences.contains("不登山") || preferences.contains("不爬坡");
+  }
+
+  private static boolean incompatibleClimbing(PlanningRequest request,Attraction attraction) {
+    if(!avoidsClimbing(request)) return false;
+    String evidence=String.valueOf(attraction.type())+"；"+String.valueOf(attraction.description());
+    if(evidence.contains("无需爬山") || evidence.contains("无需登山")) return false;
+    return java.util.regex.Pattern.compile("登山|爬山|山岳|山峰|攀登").matcher(evidence).find();
+  }
+
+  private static boolean limitedMobility(PlanningRequest request) {
+    var d=request.details();
+    return d!=null && (d.seniors()!=null && d.seniors()>0 || d.mobility()!=null && !d.mobility().equals("无"))
+        || request.preferences().stream().anyMatch(p -> p.contains("少走") || p.contains("慢节奏"));
+  }
+
+  private static int scheduleLimit(PlanningRequest request, int day) {
+    int limit=dailyLimit(request);
+    // Reserve arrival/departure capacity; a maximum is not a target to fill.
+    boolean intercity=request.details()!=null && request.details().origin()!=null;
+    return limitedMobility(request) || intercity && (day==1 || day==request.effectiveDays()) ? 1 : limit;
+  }
+
+  static int dailyLimit(PlanningRequest request) {
+    Integer limit = request.details() == null ? null : request.details().maxAttractionsPerDay();
+    return limit == null ? MAX_PER_DAY : Math.max(1, Math.min(MAX_PER_DAY, limit));
   }
 
   /** 逐日日期的唯一口径：按出发日顺推；有明确返回日时不得越过返回日。 */

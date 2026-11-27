@@ -47,7 +47,22 @@ public record PlanningRequest(
       List<String> dietaryRestrictions, List<String> mustVisit, String hotel,
       String transportMode, Boolean includeWeather, List<String> excludedAttractionIds,
       java.util.Map<String, BigDecimal> confirmedGroupCosts, Integer maxWalkingMeters, QueryOptions queries, Integer vehicles, String originCity, String arrivalCity,
-      String lodgingPreference, String budgetScope, String transportPreference) {
+      String lodgingPreference, String budgetScope, String transportPreference, Integer maxAttractionsPerDay,
+      java.util.Map<String,Integer> visitDays) {
+    public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
+        List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
+        java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity,
+        String lodgingPreference,String budgetScope,String transportPreference,Integer maxAttractionsPerDay) {
+      this(origin,seniors,children,mobility,dietaryRestrictions,mustVisit,hotel,transportMode,includeWeather,excludedAttractionIds,
+          confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,lodgingPreference,budgetScope,transportPreference,maxAttractionsPerDay,java.util.Map.of());
+    }
+    public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
+        List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
+        java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity,
+        String lodgingPreference,String budgetScope,String transportPreference) {
+      this(origin,seniors,children,mobility,dietaryRestrictions,mustVisit,hotel,transportMode,includeWeather,excludedAttractionIds,
+          confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,lodgingPreference,budgetScope,transportPreference,null);
+    }
     public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
         List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
         java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity) {
@@ -55,6 +70,8 @@ public record PlanningRequest(
           confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,null,null,null);
     }
     public Details {
+      visitDays=visitDays==null?java.util.Map.of():java.util.Map.copyOf(visitDays);
+      if(visitDays.values().stream().anyMatch(day -> day<1 || day>30)) throw new IllegalArgumentException("指定游览日必须为1至30");
       confirmedGroupCosts = confirmedGroupCosts == null ? java.util.Map.of() : java.util.Map.copyOf(confirmedGroupCosts);
       if (confirmedGroupCosts.values().stream().anyMatch(v -> v.signum() < 0)) throw new IllegalArgumentException("费用不能为负数");
       dietaryRestrictions = dietaryRestrictions == null ? List.of() : List.copyOf(dietaryRestrictions);

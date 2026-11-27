@@ -42,13 +42,28 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     }
   }
 
+  @com.fasterxml.jackson.annotation.JsonProperty("budgetSummary")
+  public String budgetSummary() {
+    java.util.Map<String, Long> counts = costs.stream().filter(c -> c.groupAmountCny() == null)
+        .collect(java.util.stream.Collectors.groupingBy(c -> switch(c.category()) {
+          case "HOTEL" -> "住宿"; case "TICKET" -> "门票"; case "TRANSPORT" -> "交通"; case "FOOD" -> "餐饮"; default -> "其他";
+        }, java.util.LinkedHashMap::new, java.util.stream.Collectors.counting()));
+    String missing = counts.entrySet().stream().map(e -> e.getKey() + e.getValue() + "项")
+        .collect(java.util.stream.Collectors.joining("、"));
+    if (costs.stream().anyMatch(c -> c.itemId().startsWith("intercity-") && c.groupAmountCny() == null)) missing += "（含往返跨城交通）";
+    return "已确认 " + amount(knownSubtotalCny) + "元；已覆盖部分（含已确认及参考）"
+        + amount(referenceSubtotalCny) + "~" + amount(referenceSubtotalMaxCny) + "元；"
+        + (unknownCostCount > 0 ? "未覆盖：" + missing + "。" : "")
+        + "预算判断：" + budgetLabel(budgetVerdict) + "；未知费用不按零计算。";
+  }
+
   public String render() {
     StringBuilder out=new StringBuilder("旅行攻略草案\n时间为规划假设；未确定的衔接只列顺序，出发前请核对开放与预约。");
     java.util.LinkedHashSet<String> evidence=new java.util.LinkedHashSet<>();
     java.util.LinkedHashSet<String> checks=new java.util.LinkedHashSet<>();
     for (Day day : days) {
       out.append("\n\n第").append(day.dayIndex()).append("天").append(day.date()==null?"（日期待定）":" · "+day.date());
-      if(day.routeReason()!=null && !day.routeReason().isBlank()) out.append("\n路线编排依据：").append(day.routeReason());
+
       for(Slot slot:day.slots()) {
         out.append("\n").append(slot.period()).append(" ").append(slot.title());
         switch(slot.kind()) {
@@ -65,26 +80,24 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
             else {
               out.append(slot.status().equals("HOURS_COVER_PLAN")?" · 营业原文覆盖此餐时段，仍需确认供餐/订位":" · 以下为可定位备选，供餐时段待确认");
               for(FoodPlace food:slot.restaurants()) {
-                out.append("\n  ").append(food.name()).append(" · ").append(food.address()==null?"地址未返回；地图坐标 "+food.lon()+","+food.lat():food.address())
-                    .append(" · 人均参考 ").append(food.pricePerPersonCny()==null?"未知":food.pricePerPersonCny()+"元");
-                if(food.openHours()!=null) out.append(" · 营业原文 ").append(food.openHours());
-                evidence.add(food.source()+"餐馆信息，查询于 "+food.fetchedAt()+"；人均非商家结算报价");
+                out.append("\n  ").append(food.name()).append(" · 人均参考 ")
+                    .append(food.pricePerPersonCny()==null?"未知":food.pricePerPersonCny()+"元");
+                evidence.add(food.name()+"；地址="+(food.address()==null?"未返回；地图坐标 "+food.lon()+","+food.lat():food.address())
+                    +"；营业原文="+(food.openHours()==null?"未知":food.openHours())+"；来源="+food.source()
+                    +"，查询于 "+food.fetchedAt()+"；人均非商家结算报价");
               }
             }
             if(slot.note().contains("不覆盖实际餐时")) checks.add("第"+day.dayIndex()+"天"+slot.title()+"：部分餐馆的营业原文不覆盖实际餐时，已移出本餐和费用");
           }
           case "TRANSPORT" -> {
-            if(slot.route()==null) out.append(" · 路线耗时未确定，后续只作顺序参考");
+            if(slot.route()==null) out.append(" · ").append(slot.note());
             else {
               out.append(" · ").append(slot.route().mode().label()).append("约").append(slot.route().durationText()).append("，").append(slot.route().distanceText());
               if(slot.route().walkingDistanceMeters()!=null) out.append("，其中步行约").append(slot.route().walkingDistanceMeters()).append("米");
               evidence.add(slot.route().source()+"路线估算，查询于 "+slot.route().queriedAt());
               if(slot.route().requestedDate()!=null) out.append("，地图查询过滤日期 ").append(slot.route().requestedDate()).append("（非余票验证）");
               if(slot.route().fare()!=null && slot.route().fare().taxiAlternativePerVehicleCny()!=null) out.append("；打车备选约").append(amount(slot.route().fare().taxiAlternativePerVehicleCny())).append("元/车次，不计入当前方案费用");
-              for(var rail:slot.route().railways()) {
-                out.append("；地图铁路参考 ").append(rail.trip()).append(" ").append(rail.departureStation()).append(" ").append(rail.departureTime()).append(" → ").append(rail.arrivalStation()).append(" ").append(rail.arrivalTime()).append("（日期、售票和余票未核验）");
-                for(var seat:rail.seats()) if(seat.referencePriceCny()!=null) out.append("，席别代码").append(seat.code()).append("参考").append(amount(seat.referencePriceCny())).append("元/人，作为备选不重复累计");
-              }
+
             }
             if(slot.note().contains("停车候选：")) out.append("；").append(slot.note().substring(slot.note().indexOf("停车候选：")));
           }
@@ -94,7 +107,9 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
         }
       }
       checks.addAll(day.checks());
+      if(day.routeReason()!=null && !day.routeReason().isBlank()) evidence.add("路线编排依据：" + day.routeReason());
     }
+    out.append("\n\n预算覆盖：").append(budgetSummary());
     out.append("\n\n费用明细（人民币，全团口径；未知项另计）");
     int index=0;
     for(Cost cost:costs) {

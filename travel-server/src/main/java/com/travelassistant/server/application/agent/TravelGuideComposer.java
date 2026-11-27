@@ -60,7 +60,7 @@ public class TravelGuideComposer {
     RouteResult outbound = null, inbound = null;
     String parkingNote = "";
     LatLon originPoint = null;
-    if (details != null && details.origin() != null && (mode(details) == RouteMode.DRIVING || mode(details) == RouteMode.TRANSIT && details.originCity()!=null)) {
+    if (details != null && details.origin() != null && !requiresSpecificIntercity(details) && (mode(details) == RouteMode.DRIVING || mode(details) == RouteMode.TRANSIT && details.originCity()!=null)) {
       LatLon origin = lookup.geocode(details.origin(), details.originCity());
       originPoint = origin;
       LatLon target = hotel;
@@ -93,6 +93,7 @@ public class TravelGuideComposer {
       DraftDay scheduled = arranged.stream().filter(day -> day.dayIndex() == index).findFirst().orElse(null);
       LocalDate date = DraftAssembler.dateForDay(request, d);
       List<String> checks = new ArrayList<>();
+      if (DraftAssembler.avoidsClimbing(request)) checks.add("不爬山要求：已排除资料明确涉及登山的候选；其余候选的坡度、台阶和景区内部步行仍缺证据，不能认定已满足平地/无障碍要求，须确认具体游览路线");
       if (request.returnDate() != null && date != null && date.isAfter(request.returnDate())) {
         checks.add("本日超过返回日期，须先调整日期或天数"); date = null;
       }
@@ -237,9 +238,10 @@ public class TravelGuideComposer {
         }
       }
       details.confirmedGroupCosts().keySet().stream().filter(id -> !ids.contains(id)).forEach(id -> notices.add("费用键未匹配本次行程，未计入：" + id));
-      for (String must : details.mustVisit()) if (arranged.stream().flatMap(day -> day.items().stream()).noneMatch(it -> it.name().equals(must)))
+      for (String must : details.mustVisit()) if (arranged.stream().flatMap(day -> day.items().stream()).noneMatch(it -> candidates.stream().anyMatch(a -> a.id().equals(it.attractionId()) && PlanningService.matchesMustVisit(must, a))))
         notices.add("必去点未进入安排：" + must + "；请分别检索并核对位置，不能视为已满足");
     }
+    if (details != null && requiresSpecificIntercity(details)) notices.add("跨城交通要求：" + details.transportPreference() + "；尚未取得对应班次、发到时刻和报价，未用普速/公交方案替代，首末日游览待确认");
     BigDecimal known = BigDecimal.ZERO, reference = BigDecimal.ZERO, referenceMax = BigDecimal.ZERO;
     int unknown = 0;
     for (var cost : costs) {
@@ -373,9 +375,16 @@ public class TravelGuideComposer {
     unknown(costs, id, "TRANSPORT", title, people);
   }
 
+  private static boolean requiresSpecificIntercity(PlanningRequest.Details details) {
+    String preference = details.transportPreference();
+    return preference != null && java.util.regex.Pattern.compile("高铁|动车|飞机|航班").matcher(preference).find();
+  }
+
   private static List<TravelGuide.Slot> timeline(List<TravelGuide.Slot> slots, Map<String, Attraction> byId, List<String> checks, LocalDate date) {
     int cursor = 8 * 60;
-    boolean anchored = true;
+    boolean anchored = slots.stream().noneMatch(slot -> slot.id().startsWith("intercity-")
+        && (slot.route() == null || slot.route().mode() == RouteMode.TRANSIT));
+    if (!anchored) checks.add("跨城到达或返程班次未确认，当日景点仅为待确认候选，不能承诺可执行");
     List<TravelGuide.Slot> result = new ArrayList<>();
     Set<String> movedMeals=new HashSet<>();
     for (var slot : slots) {
@@ -463,7 +472,7 @@ public class TravelGuideComposer {
         }
       }
       if (slot.kind().equals("MEAL")) {
-        result.add(checkedMeal(slot,cursor,duration,anchored,date));
+        result.add(checkedMeal(guardAdmission(slot,byId,cursor,duration,anchored,date,checks),cursor,duration,anchored,date));
         if(anchored) cursor+=duration;
         continue;
       }
@@ -473,6 +482,22 @@ public class TravelGuideComposer {
     if(anchored && cursor>1260) checks.add("本日假设安排晚于21点，建议删减/换日，不视为已可执行");
     return result;
   }
+  private static TravelGuide.Slot guardAdmission(TravelGuide.Slot slot, Map<String,Attraction> places,
+      int cursor, int duration, boolean anchored, LocalDate date, List<String> checks) {
+    List<FoodPlace> kept=new ArrayList<>();
+    for (FoodPlace food:slot.restaurants()) {
+      String address=food.address()==null?"":food.address();
+      // Only explicit containment evidence is used; nearby coordinates do not prove containment.
+      Attraction parent=places.values().stream().filter(a -> a.name()!=null && address.contains(a.name())
+          && (address.contains("内") || address.contains("院"))).findFirst().orElse(null);
+      boolean internal=parent!=null || address.contains("园内") || address.contains("院内") || address.contains("宫内") || address.matches(".*(?:宫|殿|院)$");
+      if (internal && (parent==null || !anchored || !Boolean.TRUE.equals(OpeningHours.covers(parent.openTime(),date,cursor,duration)))) {
+        checks.add(slot.title()+"："+food.name()+"存在景区内部位置线索，入园条件与用餐时段未能同时满足，未作为本餐候选或计费");
+      } else kept.add(food);
+    }
+    return new TravelGuide.Slot(slot.id(),slot.period(),slot.kind(),slot.title(),slot.status(),List.copyOf(kept),slot.route(),slot.note());
+  }
+
   private static TravelGuide.Slot checkedMeal(TravelGuide.Slot slot,int cursor,int duration,boolean anchored,LocalDate date) {
     List<FoodPlace> kept=new ArrayList<>(); List<String> unknown=new ArrayList<>(); List<String> closed=new ArrayList<>();
     for(FoodPlace food:slot.restaurants()) {

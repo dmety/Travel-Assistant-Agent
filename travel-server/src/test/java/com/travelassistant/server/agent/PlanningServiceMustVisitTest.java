@@ -72,4 +72,48 @@ class PlanningServiceMustVisitTest {
         null, null, "北京市内", null, null, null, null, 39.9, 116.4,
         "本地知识库", List.of("本地知识库"), null, null, "GCJ-02", null, null);
   }
+  @Test
+  void missingMandatoryAttractionProducesBlockingFinalCheck() throws Exception {
+    var draft = plan(List.of(attraction("temple", "天坛公园", "北京市")), List.of(), "颐和园");
+    assertThat(draft.checks()).anySatisfy(c -> {
+      assertThat(c.code()).isEqualTo("MUST_VISIT_MISSING");
+      assertThat(c.severity()).isEqualTo("HIGH");
+    });
+  }
+
+  @Test
+  void aliasSatisfiedDoesNotProduceMissingCheck() throws Exception {
+    var draft = plan(List.of(attraction("palace", "故宫博物院", "北京市")), List.of(), "故宫");
+    assertThat(draft.checks()).noneMatch(c -> c.code().equals("MUST_VISIT_MISSING"));
+    assertThat(draft.guide().notices()).noneMatch(n -> n.contains("必去点未进入安排"));
+  }
+
+  @Test
+  void preservesBothMandatoryPointsAndHighSpeedRailRequirement() throws Exception {
+    var mapper = new ObjectMapper().findAndRegisterModules();
+    var details = mapper.readValue("{\"origin\":\"上海\",\"originCity\":\"上海\",\"transportMode\":\"TRANSIT\",\"transportPreference\":\"往返高铁\",\"mustVisit\":[\"故宫\",\"颐和园\"],\"maxAttractionsPerDay\":1}", PlanningRequest.Details.class);
+    var candidates = List.of(attraction("palace", "故宫博物院", "北京市"), attraction("summer", "颐和园", "北京市"));
+    var request = new PlanningRequest("北京", 3, List.of(), new java.math.BigDecimal("6000"), "CNY", 2, LocalDate.of(2026,12,12), null, details);
+    var days = com.travelassistant.server.application.agent.DraftAssembler.arrange(request, candidates);
+    assertThat(days).allSatisfy(d -> assertThat(d.items()).hasSizeLessThanOrEqualTo(1));
+    assertThat(days.stream().flatMap(d -> d.items().stream()).map(i -> i.name()).toList()).contains("故宫博物院", "颐和园");
+    var guide = new TravelGuideComposer(null).compose(request, candidates, days);
+    assertThat(guide.days().stream().flatMap(d -> d.slots().stream()).filter(slot -> slot.id().startsWith("intercity-")).toList())
+        .allSatisfy(slot -> assertThat(slot.route()).isNull());
+    assertThat(guide.budgetSummary()).contains("未覆盖", "往返跨城交通", "住宿", "无法确认");
+    assertThat(mapper.valueToTree(guide).path("budgetSummary").asText()).isEqualTo(guide.budgetSummary());
+  }
+
+  @Test
+  void movesClosedMandatoryVisitToOpenDay() throws Exception {
+    var details = new ObjectMapper().readValue("{\"mustVisit\":[\"故宫\"],\"maxAttractionsPerDay\":1}", PlanningRequest.Details.class);
+    var palace = new Attraction("palace", "故宫博物院", "北京市", "北京市", "景点", null, null,
+        "周一闭馆；周二至周日 08:30-16:30", null, "北京市内", null, null, null, null, 39.9, 116.4,
+        "本地知识库", List.of("本地知识库"), null, null, "GCJ-02", null, null);
+    var request = new PlanningRequest("北京", 2, List.of(), null, "CNY", 2, LocalDate.of(2026,12,14), null, details);
+    var days = com.travelassistant.server.application.agent.DraftAssembler.arrange(request, List.of(palace));
+    assertThat(days).hasSize(1);
+    assertThat(days.getFirst().date()).isEqualTo(LocalDate.of(2026,12,15));
+  }
+
 }

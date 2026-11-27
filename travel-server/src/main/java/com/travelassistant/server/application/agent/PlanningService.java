@@ -214,6 +214,22 @@ public class PlanningService {
       assembled = new DraftAssembler.Draft(assembled.questions(), actual, assembled.checks(),
           DraftAssembler.estimate(request, candidates.stream().filter(a -> included.contains(a.id())).toList(), new ArrayList<>()), assembled.notices());
     }
+    List<DraftCheck> finalChecks = new ArrayList<>(assembled.checks());
+    if (request.details() != null) {
+      for (String name : request.details().mustVisit()) {
+        boolean present = candidates.stream().filter(a -> matchesMustVisit(name, a)).anyMatch(a ->
+            guide.days().stream().flatMap(day -> day.slots().stream())
+                .anyMatch(slot -> slot.kind().equals("VISIT") && slot.id().endsWith("-visit-" + a.id())));
+        if (!present) finalChecks.add(new DraftCheck("MUST_VISIT_MISSING", "HIGH", "mustVisit",
+            "必去点未排入：" + name, "调整日期或减少其他景点后重排；未满足前不能确认完成"));
+      }
+    }
+    for (var day : guide.days()) {
+      for (String check : day.checks()) if (check.contains("未确认") || check.contains("未验证") || check.contains("待确认"))
+        finalChecks.add(new DraftCheck("CONNECTION_UNVERIFIED", "MEDIUM", "time", check, "核实班次、开放与预约后再确认"));
+    }
+    assembled = new DraftAssembler.Draft(assembled.questions(), assembled.dailySchedules(), List.copyOf(finalChecks),
+        assembled.budgetEstimate(), assembled.notices());
     String advice = guide.render();
     if (weather != null && request.departDate() != null) {
       java.util.Set<java.time.LocalDate> covered = weather.days().stream()
@@ -241,7 +257,7 @@ public class PlanningService {
         assembled.checks(), assembled.budgetEstimate(), Instant.now(), guide);
   }
 
-  private static boolean matchesMustVisit(String requestedName, Attraction attraction) {
+  static boolean matchesMustVisit(String requestedName, Attraction attraction) {
     if (requestedName == null || requestedName.isBlank() || attraction == null
         || attraction.name() == null || attraction.name().isBlank()) return false;
     String requested = normalizePlaceName(requestedName);
