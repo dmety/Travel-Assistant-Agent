@@ -39,6 +39,16 @@ class TravelClientCommandTest {
     else System.setProperty("travel.cli.history-file",previousHistory);
   }
 
+  @Test void plainFollowUpKeepsPlanDetailsAndNewTripClearsThem() throws Exception {
+    var client=new TravelClient("http://localhost:1");
+    JsonNode plan=JSON.readTree("{\"cards\":[{\"intent\":\"PLAN_DRAFT\",\"data\":{\"result\":{\"facts\":[{\"value\":{\"category\":\"PLAN_DRAFT\",\"guideText\":\"旧方案\"}}]}}}]}");
+    client.rememberResult(plan);
+    client.rememberResult(JSON.readTree("{\"reply\":\"解释\",\"cards\":[],\"trace\":[]}"));
+    assertEquals(plan,client.detailsResult());
+    client.rememberResult(JSON.readTree("{\"state\":{\"planning\":{\"_intent\":\"start\"}},\"cards\":[]}"));
+    assertFalse(client.detailsResult().toString().contains("旧方案"));
+  }
+
   @Test
   void unknownCommandDoesNotRegisterAnAccount() throws Exception {
     var registrations = new AtomicInteger();

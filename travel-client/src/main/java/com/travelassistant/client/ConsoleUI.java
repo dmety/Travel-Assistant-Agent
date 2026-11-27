@@ -386,13 +386,24 @@ public final class ConsoleUI implements AutoCloseable {
     return line;
   }
 
-  private static List<String> wrap(String text, int maxWidth) {
+  static List<String> wrap(String text, int maxWidth) {
     text = sanitize(text);
     if (text.isEmpty()) return List.of("");
     List<String> lines = new ArrayList<>();
     StringBuilder line = new StringBuilder();
     int used = 0;
     for (int i = 0; i < text.length();) {
+      // Keep dates, times and decimal amounts intact when they fit on a fresh line.
+      if (Character.isDigit(text.codePointAt(i))) {
+        int end=i;
+        while(end<text.length() && (Character.isDigit(text.charAt(end)) || "-:./~".indexOf(text.charAt(end))>=0)) end++;
+        String token=text.substring(i,end);
+        int tokenWidth=displayWidth(token);
+        if(tokenWidth<=maxWidth && used>0 && used+tokenWidth>maxWidth) {
+          lines.add(line.toString()); line.setLength(0); used=0;
+        }
+        if(tokenWidth<=maxWidth) { line.append(token); used+=tokenWidth; i=end; continue; }
+      }
       int cp = text.codePointAt(i);
       int cells = codePointWidth(cp);
       if (used + cells > maxWidth && used > 0) {
@@ -458,7 +469,7 @@ public final class ConsoleUI implements AutoCloseable {
       println(text);
       return;
     }
-    int width = Math.max(20, terminal.getWidth());
+    int width = Math.max(19, terminal.getWidth() - 1);
     int height = Math.max(8, terminal.getHeight());
     int pageSize = Math.max(1, height - 3);
     List<String> lines = new ArrayList<>();

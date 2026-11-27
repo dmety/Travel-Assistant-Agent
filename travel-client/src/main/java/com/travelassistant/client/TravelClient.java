@@ -54,6 +54,7 @@ public class TravelClient {
   private final Path transcriptFile;
   private JsonNode chatState;
   private JsonNode latestChatResult;
+  private JsonNode latestPlanResult;
   private int exitCode;
   private List<Map<String, String>> failedChatHistory;
 
@@ -916,7 +917,7 @@ public class TravelClient {
     }
 
     JsonNode result = state.completion;
-    latestChatResult = result.deepCopy();
+    rememberResult(result);
     String reply = result.path("reply").asText("");
     if (result.path("state").isObject()) chatState = result.path("state").deepCopy();
     if (state.tokenSeen) ui.println();
@@ -1100,8 +1101,16 @@ public class TravelClient {
                   cardText(day, "date", "日期待定"), names.isEmpty() ? "暂无可排景点" : String.join("、", names)));
             }
           }
+          boolean connectionWarningShown = false;
+          for (JsonNode check : draft.path("checks")) {
+            if ("HIGH".equals(check.path("severity").asText())) ui.warn(check.path("message").asText());
+            else if (!connectionWarningShown && "CONNECTION_UNVERIFIED".equals(check.path("code").asText())) {
+              ui.warn("执行条件待核对：班次、开放与预约等尚未全部确认，详见 /details。");
+              connectionWarningShown = true;
+            }
+          }
           ui.note("旅行攻略草案 · 逐日摘要");
-          if (!rows.isEmpty()) ui.table(List.of("日期", "出行日", "安排"), rows);
+          for (var row : rows) ui.note(row.get(0) + " · " + row.get(1) + "：" + row.get(2));
           JsonNode guide = draft.path("guide");
           if (guide.isObject()) {
             java.math.BigDecimal referenceMin = guide.path("referenceSubtotalCny").isNumber()
@@ -1112,14 +1121,15 @@ public class TravelClient {
                 : referenceMax != null && referenceMax.compareTo(referenceMin) > 0
                     ? referenceMin.toPlainString() + "~" + referenceMax.toPlainString()
                     : referenceMin.toPlainString();
-            ui.note("费用参考：已确认 " + cardText(guide, "knownSubtotalCny", "未知")
+            if (!guide.path("budgetSummary").isTextual()) ui.note("费用参考：已确认 " + cardText(guide, "knownSubtotalCny", "未知")
                 + " 元；参考区间 " + reference
                 + " 元；另有 " + cardText(guide, "unknownCostCount", "未知") + " 项未覆盖。"
                 + "未覆盖费用不按零元计算。");
           }
           printBudgetWarning(draft.path("request"), guide);
+          if (guide.path("budgetSummary").isTextual()) ui.note(guide.path("budgetSummary").asText());
           printGuideBudgetSummary(guide);
-          ui.note("输入 /details 展开完整路线、费用分类、天气覆盖和工具查询记录。");
+          ui.note("输入 /details 从头阅读完整方案（PgUp/PgDn 翻页，q 返回）。");
           return true;
         }
         JsonNode days = draft.path("dailySchedules");
@@ -1171,21 +1181,40 @@ public class TravelClient {
     return false;
   }
 
+  void rememberResult(JsonNode result) {
+    // A new trip/reset must not expose the previous trip through /details.
+    if ("start".equals(result.path("state").path("planning").path("_intent").asText())) latestPlanResult = null;
+    latestChatResult = result.deepCopy();
+    for (JsonNode card : result.path("cards")) {
+      if ("PLAN_DRAFT".equals(card.path("intent").asText()) && findPlanDraft(card.path("data")) != null)
+        latestPlanResult = result.deepCopy();
+    }
+  }
+
+  JsonNode detailsResult() {
+    return latestPlanResult != null ? latestPlanResult : latestChatResult;
+  }
+
   private void showLatestDetails() {
-    if (latestChatResult == null) {
+    JsonNode detailResult = detailsResult();
+    if (detailResult == null) {
       ui.warn("本次会话还没有可展开的工具结果。");
       return;
     }
-    StringBuilder detail = new StringBuilder("本轮工具查询记录");
-    JsonNode traces = latestChatResult.path("trace");
+    StringBuilder detail = new StringBuilder();
+    if (!detailResult.equals(latestChatResult)) detail.append("保留的最近方案；本轮追问未生成新方案。\n");
+    if ("revision_pending".equals(chatState == null ? "" : chatState.path("planning").path("_phase").asText()))
+      detail.append("需求已修改，以下旧方案待重排。\n");
+    StringBuilder toolDetail = new StringBuilder("\n\n工具查询状态");
+    JsonNode traces = detailResult.path("trace");
     if (traces.isArray() && !traces.isEmpty()) {
-      for (JsonNode trace : traces) detail.append("\n- ")
+      for (JsonNode trace : traces) toolDetail.append("\n- ")
           .append(cardText(trace, "label", cardText(trace, "tool", "工具")))
           .append(trace.path("ok").asBoolean() ? "：已返回" : "：未成功")
-          .append(trace.path("summary").asText("").isBlank() ? "" : "\n  " + trace.path("summary").asText(""));
-    } else detail.append("\n- 本轮没有返回可展示的工具调用记录");
+          ;
+    } else toolDetail.append("\n- 本轮没有工具调用记录");
 
-    JsonNode cards = latestChatResult.path("cards");
+    JsonNode cards = detailResult.path("cards");
     if (cards.isArray()) {
       for (JsonNode card : cards) {
         String intent = card.path("intent").asText("");
@@ -1194,11 +1223,11 @@ public class TravelClient {
         JsonNode draft = findPlanDraft(data);
         if (draft == null) continue;
         JsonNode guide = draft.path("guide");
-        detail.append("\n\n費用分类（全团 CNY）");
+        detail.append(draft.path("guideText").asText("本轮未返回完整攻略正文。"));
+        detail.append("\n\n费用分类（全团 CNY）");
         detail.append("\n类别 | 已确认 | 参考 | 实价 | 未知项");
         appendBudgetBreakdown(detail, guide.path("costs"));
-        detail.append("\n\n完整逐日路线、来源和待核验事项\n")
-            .append(draft.path("guideText").asText("本轮未返回完整攻略正文。"));
+
         JsonNode weather = draft.path("weather");
         if (weather.isObject()) {
           detail.append("\n\n天气核验范围：来源 ").append(cardText(weather, "source", "未返回/未核验"))
@@ -1212,6 +1241,7 @@ public class TravelClient {
         } else detail.append("\n\n天气核验：本轮没有天气结果，不能据此推荐晴雨日期。");
       }
     }
+    detail.append(toolDetail);
     ui.viewText("旅行助手 · 最近一次详情", detail.toString());
   }
 
@@ -1412,6 +1442,7 @@ public class TravelClient {
     chatHistory.clear();
     chatState = null;
     latestChatResult = null;
+    latestPlanResult = null;
     failedChatHistory = null;
   }
 

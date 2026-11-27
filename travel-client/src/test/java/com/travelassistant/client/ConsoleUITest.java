@@ -23,6 +23,15 @@ import org.junit.jupiter.api.Test;
  */
 class ConsoleUITest {
 
+  @Test void wrapKeepsDatesTimesAndAmountsWholeWhenTheyFit() {
+    for(String token:List.of("2026-12-12","08:30","171.0")) {
+      var lines=ConsoleUI.wrap("较长前缀文字"+token,12);
+      assertTrue(lines.stream().anyMatch(line -> line.contains(token)));
+      assertTrue(lines.stream().allMatch(line -> ConsoleUI.displayWidth(line)<=12));
+    }
+    assertEquals("123456789012345",String.join("",ConsoleUI.wrap("123456789012345",4)));
+  }
+
   @Test
   void maskedInputDoesNotLeakOrKeepItsPromptForTheNextCommand() throws Exception {
     String secret = "probe-only-123";
