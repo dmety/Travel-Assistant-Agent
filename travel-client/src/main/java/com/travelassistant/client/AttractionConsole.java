@@ -42,6 +42,8 @@ public class AttractionConsole {
   private final HttpClient client;
   private final ObjectMapper json = new ObjectMapper();
   private final ConsoleUI ui;
+  private int exitCode;
+  int exitCode() { return exitCode; }
 
   /** 当前列表中的 ID，序号从 1 开始。 */
   private final List<String> currentIds = new ArrayList<>();
@@ -135,7 +137,7 @@ public class AttractionConsole {
   // ---- 查询 ----
 
   private void search(String keyword) throws Exception {
-    currentIds.clear();
+    // Replace the selection only after a successful response.
 
     JsonNode byCity = fetchQuery("city", keyword);
     if (byCity == null) {
@@ -160,6 +162,7 @@ public class AttractionConsole {
       scope = "名称";
     }
 
+    currentIds.clear();
     int matched = result.path("matched").asInt(0);
     if (matched == 0) {
       String message = result.path("message").asText("");
@@ -209,13 +212,12 @@ public class AttractionConsole {
     }
     if (ui.isInteractive()) {
       ui.note("输入序号查看详情，或输入新的城市/景点名继续查询。");
-    } else {
-      ui.println("  输入序号查看详情，或输入新的城市/景点名继续查询。");
     }
   }
 
-  private void showDetailByIndex(int index) throws Exception {
+  void showDetailByIndex(int index) throws Exception {
     if (currentIds.isEmpty()) {
+      exitCode = 2;
       ui.warn("当前没有可选的列表，请先输入城市名或景点名查询。");
       return;
     }
@@ -262,6 +264,7 @@ public class AttractionConsole {
     }
     if (response.statusCode() != 200) {
       ui.error("查询失败：HTTP " + response.statusCode() + " " + response.body());
+      exitCode = response.statusCode() == 401 || response.statusCode() == 403 ? 3 : 1;
       return null;
     }
     return json.readTree(response.body());
@@ -287,12 +290,15 @@ public class AttractionConsole {
   private HttpResponse<String> send(String url) throws Exception {
     HttpRequest request = HttpRequest.newBuilder(URI.create(url))
         .timeout(Duration.ofSeconds(15)).GET().build();
-    return client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    var response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    if (response.statusCode() >= 400) exitCode = response.statusCode() == 401 || response.statusCode() == 403 ? 3 : 1;
+    return response;
   }
 
   // ---- 输出辅助 ----
 
   private void printUnavailable(JsonNode body) {
+    exitCode = 1;
     String reason = body == null ? "" : body.path("reason").asText("");
     ui.error("景点查询当前不可用。");
     if (!reason.isEmpty()) {

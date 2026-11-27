@@ -63,6 +63,10 @@ public final class ConsoleUI implements AutoCloseable {
   private String serviceLabel = "服务连接中";
   private String userLabel = "未登录";
   private long lastRenderNanos;
+  private volatile String activityLabel;
+  private volatile boolean activityRunning;
+  private volatile int activityFrame;
+  private Thread activityThread;
 
   private ConsoleUI(boolean interactive, Collection<String> initialSuggestions) {
     suggestions.addAll(initialSuggestions);
@@ -220,6 +224,41 @@ public final class ConsoleUI implements AutoCloseable {
     if (fullscreen) renderScreen();
   }
 
+  /** 将用户刚提交的内容留在对话记录中，避免清屏布局隐藏输入回显。 */
+  public void userMessage(String value) {
+    append("你 > " + sanitize(value), true);
+  }
+
+  /** 在等待远端响应期间显示轻量旋转指示。 */
+  public synchronized void startActivity(String label) {
+    stopActivity();
+    activityLabel = sanitize(label);
+    activityRunning = true;
+    activityThread = new Thread(() -> {
+      while (activityRunning) {
+        activityFrame = (activityFrame + 1) % 4;
+        renderActivityFooter();
+        try {
+          Thread.sleep(140);
+        } catch (InterruptedException ignored) {
+          Thread.currentThread().interrupt();
+          break;
+        }
+      }
+    }, "travel-cli-animation");
+    activityThread.setDaemon(true);
+    activityThread.start();
+    renderActivityFooter();
+  }
+
+  public synchronized void stopActivity() {
+    activityRunning = false;
+    activityLabel = null;
+    if (activityThread != null) activityThread.interrupt();
+    activityThread = null;
+    renderActivityFooter();
+  }
+
   private boolean commandMenu() {
     String prefix = reader.getBuffer().toString();
     if (!prefix.startsWith("/") || prefix.contains(" ")) {
@@ -245,7 +284,7 @@ public final class ConsoleUI implements AutoCloseable {
     writer.flush(); return true;
   }
 
-  private void append(String text, boolean newline) {
+  private synchronized void append(String text, boolean newline) {
     String value = sanitize(text);
     for (int i = 0; i < value.length(); i++) {
       char ch = value.charAt(i);
@@ -268,7 +307,7 @@ public final class ConsoleUI implements AutoCloseable {
     if (now - lastRenderNanos > 45_000_000L) renderScreen();
   }
 
-  private void renderScreen() {
+  private synchronized void renderScreen() {
     if (!fullscreen) return;
     int width = Math.max(20, terminal.getWidth()) - 1;
     int height = Math.max(8, terminal.getHeight());
@@ -278,27 +317,54 @@ public final class ConsoleUI implements AutoCloseable {
     if (!partialLine.isEmpty()) lines.addAll(wrap(partialLine.toString(), width));
     int start = Math.max(0, lines.size() - contentRows);
     PrintWriter writer = terminal.writer();
-    writer.print("\u001b[H\u001b[2J");
+    writer.print("\u001b[1;1H");
     String header = "旅行助手  ·  " + serviceLabel + "  ·  账号 " + userLabel;
     writer.print(paint(ConsoleUI.truncateToWidth(header, width),
-        AttributedStyle.CYAN, true));
-    writer.print("\r\n");
+        AttributedStyle.CYAN, true) + "\u001b[K");
     for (int i = 0; i < contentRows; i++) {
       String line = start + i < lines.size() ? lines.get(start + i) : "";
-      writer.print(styleTranscriptLine(ConsoleUI.truncateToWidth(line, width)));
-      writer.print("\u001b[K\r\n");
+      writer.print("\u001b[" + (i + 2) + ";1H"
+          + styleTranscriptLine(ConsoleUI.truncateToWidth(line, width)) + "\u001b[K");
     }
-    writer.print("\u001b[2m" + "─".repeat(width) + "\u001b[0m\u001b[K\r\n");
-    writer.print(paint(ConsoleUI.truncateToWidth(
-        "Enter 发送  ·  / 命令菜单  ·  Ctrl+R 搜索历史  ·  Alt+V 图片  ·  ↑↓ 历史", width - 1),
-        AttributedStyle.WHITE, false) + "\u001b[K");
+    writer.print("\u001b[" + (height - 2) + ";1H\u001b[2m"
+        + "─".repeat(width) + "\u001b[0m\u001b[K");
+    writer.print("\u001b[" + (height - 1) + ";1H" + footerText(width) + "\u001b[K");
     writer.print("\u001b[" + height + ";1H");
     writer.flush();
     lastRenderNanos = System.nanoTime();
   }
 
+  private String footerText(int width) {
+    String footer = activityLabel == null
+        ? "输入内容后按 Enter 发送  ·  help 帮助  ·  exit 退出"
+        : new String[] {"◒", "◐", "◓", "◑"}[activityFrame] + "  " + activityLabel + "…";
+    return paint(ConsoleUI.truncateToWidth(footer, width - 1),
+        activityLabel == null ? AttributedStyle.WHITE : AttributedStyle.YELLOW,
+        activityLabel != null);
+  }
+
+  private synchronized void renderActivityFooter() {
+    if (!fullscreen) return;
+    int width = Math.max(20, terminal.getWidth()) - 1;
+    int row = Math.max(8, terminal.getHeight()) - 1;
+    var writer = terminal.writer();
+    writer.print("\u001b[" + row + ";1H\u001b[2K" + footerText(width)
+        + "\u001b[K\u001b[" + (row + 1) + ";1H");
+    writer.flush();
+  }
+
   private String styleTranscriptLine(String line) {
     if (!color || line.isEmpty()) return line;
+    if (line.startsWith("  ╭") || line.startsWith("  ╰") || line.startsWith("  │")) {
+      if (line.contains("✦")) return paint(line, AttributedStyle.MAGENTA, true);
+      if (line.contains("服务：")) return paint(line, AttributedStyle.GREEN, false);
+      if (line.contains("地址：")) return paint(line, AttributedStyle.BLUE, false);
+      if (line.contains("示例：")) return paint(line, AttributedStyle.YELLOW, true);
+      return paint(line, AttributedStyle.CYAN, true);
+    }
+    if (line.startsWith("你 > ")) {
+      return paint(line, AttributedStyle.GREEN, true);
+    }
     if (line.startsWith("  [OK]") || line.startsWith("■ ")) {
       return paint(line, AttributedStyle.GREEN, true);
     }
@@ -650,8 +716,26 @@ public final class ConsoleUI implements AutoCloseable {
   /** 首页横幅。 */
   public void banner(String serviceName, String baseUrl) {
     setServiceLabel(serviceName + " · 已连接");
-    printlnStyled(paint("  你好，欢迎使用旅行助手。", AttributedStyle.CYAN, true));
-    println("  输入 help 查看常用操作，登录后可直接描述旅行需求。");
+    int boxWidth = terminal == null ? 76 : Math.min(96, Math.max(20, terminal.getWidth() - 4));
+    int contentWidth = Math.max(12, boxWidth - 6);
+    List<String> content = new ArrayList<>();
+    content.add("✦ 旅行助手 · 开始规划旅程");
+    content.add("● 服务：" + serviceName + " · 已连接");
+    content.add("↗ 地址：" + baseUrl);
+    content.add("① 输入 help 查看所有操作");
+    content.add("② 输入 register 用户名 注册，再输入 login 用户名 登录");
+    content.add("✦ 示例：我想去杭州玩两天");
+    content.add("登录后直接描述需求；输入 exit 退出");
+    content.add("对话记录保存在本机，可用 /history 查看历史");
+
+    String border = "  ╭" + "─".repeat(boxWidth - 4) + "╮";
+    printlnStyled(paint(border, AttributedStyle.CYAN, false));
+    for (String item : content) {
+      for (String line : wrap(item, contentWidth)) {
+        printlnStyled(paint("  │ " + padRight(line, contentWidth) + " │", AttributedStyle.CYAN, false));
+      }
+    }
+    printlnStyled(paint("  ╰" + "─".repeat(boxWidth - 4) + "╯", AttributedStyle.CYAN, false));
   }
 
   private String paint(String text, int foreground, boolean bold) {
@@ -663,8 +747,16 @@ public final class ConsoleUI implements AutoCloseable {
     if (bold) {
       style = style.bold();
     }
-    return new AttributedStringBuilder().style(style).append(safe)
-        .toAttributedString().toAnsi();
+    int ansi = switch (foreground) {
+      case AttributedStyle.CYAN -> 96;
+      case AttributedStyle.GREEN -> 92;
+      case AttributedStyle.YELLOW -> 93;
+      case AttributedStyle.RED -> 91;
+      case AttributedStyle.MAGENTA -> 95;
+      case AttributedStyle.BLUE -> 94;
+      default -> 97;
+    };
+    return "\u001b[" + (bold ? "1;" : "") + ansi + "m" + safe + "\u001b[0m";
   }
 
   private void printlnStyled(String text) {

@@ -18,6 +18,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,6 +40,7 @@ public class TravelClient {
     private JsonNode completion;
     private String error;
     private boolean tokenSeen;
+    private final StringBuilder partial = new StringBuilder();
   }
 
   private record TranscriptEntry(String role, String text) {}
@@ -47,8 +51,11 @@ public class TravelClient {
   private final ConsoleUI ui;
   private final List<Map<String, String>> chatHistory = new ArrayList<>();
   private final List<TranscriptEntry> transcriptHistory = new ArrayList<>();
+  private final Path transcriptFile;
   private JsonNode chatState;
   private JsonNode latestChatResult;
+  private int exitCode;
+  private List<Map<String, String>> failedChatHistory;
 
   public TravelClient(String base) {
     this(base, ConsoleUI.plain());
@@ -60,9 +67,13 @@ public class TravelClient {
     this.client = HttpClient.newBuilder().cookieHandler(cookies)
         .connectTimeout(Duration.ofSeconds(5)).build();
     this.ui = ui;
+    this.transcriptFile = transcriptFile();
+    loadTranscriptHistory();
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) { System.exit(run(args)); }
+
+  static int run(String[] args) {
     // 默认端口与 tools/run-server.sh 保持一致。
     String base = args.length > 0 ? args[0] : "http://localhost:8080";
     // 有真实终端时默认进入 REPL；伪终端可用 JVM 属性显式启用，脚本用法保持不变。
@@ -75,22 +86,53 @@ public class TravelClient {
             "reset", "api")
         : ConsoleUI.plain()) {
       var cli = new TravelClient(base, ui);
+      if (args.length > 1 && List.of("help", "--help", "-h").contains(args[1])) {
+        ui.title("Travel Assistant"); cli.printReplHelp(false); return 0;
+      }
+      if (args.length > 1 && !List.of("attractions", "invitations", "invite", "ticket", "api", "timeline", "comment", "plan", "votes", "candidate", "vote", "advice", "export", "archive", "unarchive", "auth", "status").contains(args[1].toLowerCase(java.util.Locale.ROOT))) {
+        ui.warn("未知命令：" + args[1]); return 2;
+      }
+      if (args.length > 1) {
+        int required = switch(args[1].toLowerCase(java.util.Locale.ROOT)) {
+          case "api", "invitations", "auth" -> 4;
+          case "ticket" -> 3;
+          case "timeline", "plan", "votes", "advice", "export", "archive", "unarchive" -> 5;
+          case "invite", "comment", "candidate" -> 6;
+          case "vote" -> 7;
+          default -> 2;
+        };
+        if(args.length < required || ("invitations".equalsIgnoreCase(args[1]) && args.length==5)) {
+          ui.warn("命令参数不足，请使用 help 查看用法。"); return 2;
+        }
+      }
+      if (args.length > 4 && "invitations".equalsIgnoreCase(args[1])
+          && !List.of("accept", "reject").contains(args[4].toLowerCase(java.util.Locale.ROOT))) {
+        ui.warn("邀请操作只能为 accept 或 reject"); return 2;
+      }
+      if (args.length > 5 && "plan".equalsIgnoreCase(args[1]) && !args[5].startsWith("--")) {
+        try { if (Integer.parseInt(args[5]) <= 0) throw new NumberFormatException(); }
+        catch (NumberFormatException e) { ui.warn("天数必须是正整数"); return 2; }
+      }
       String service = cli.checkHealth();
       if (repl) {
         ui.enterFullscreen();
         cli.runRepl(service);
-        return;
+        return 0;
       }
-      if (args.length >= 2 && "attractions".equalsIgnoreCase(args[1])) {
+      if (args.length >= 2 && "status".equalsIgnoreCase(args[1])) {
+        cli.showStatus();
+      } else if (args.length >= 2 && "attractions".equalsIgnoreCase(args[1])) {
         // 景点查询：attractions（交互） / attractions 杭州（一次性） / attractions --id <ID>
         var console = new AttractionConsole(base, ui);
         if (args.length >= 4 && "--id".equalsIgnoreCase(args[2])) {
           console.detailByIdAndPrint(args[3]);
         } else if (args.length >= 3) {
           console.searchAndPrint(args[2]);
+          if (args.length > 3 && console.exitCode() == 0) console.showDetailByIndex(Integer.parseInt(args[3]));
         } else {
           console.runInteractive();
         }
+        cli.exitCode = console.exitCode();
       } else if (args.length >= 4 && "invitations".equalsIgnoreCase(args[1])) {
         // 我的待处理邀请：invitations <用户名> <密码> [accept|reject <邀请ID>]
         cli.loginOnly(args[2], resolvePassword(args[3], ui));
@@ -124,7 +166,7 @@ public class TravelClient {
         // 规划草案（V2 §2）：plan <用户名> <密码> <目的地> [天数]
         cli.loginOnly(args[2], resolvePassword(args[3], ui));
         Integer days = args.length >= 6 ? parseIntOrNull(args[5]) : null;
-        cli.showPlan(args[4], days);
+        cli.showPlan(args[4], days, java.util.Arrays.asList(args).contains("--json"), java.util.Arrays.asList(args).contains("--details"));
       } else if (args.length >= 5 && "votes".equalsIgnoreCase(args[1])) {
         // 候选与投票（V3 §1）：votes <用户名> <密码> <行程ID>
         cli.loginOnly(args[2], resolvePassword(args[3], ui));
@@ -151,15 +193,15 @@ public class TravelClient {
         // 归档/取消归档（V3 §4）：archive|unarchive <用户名> <密码> <行程ID>
         cli.loginOnly(args[2], resolvePassword(args[3], ui));
         cli.setArchived(args[4], "archive".equalsIgnoreCase(args[1]));
-      } else if (args.length >= 3) {
-        cli.demoAuth(args[1], resolvePassword(args[2], ui));
+      } else if (args.length >= 4 && "auth".equalsIgnoreCase(args[1])) {
+        cli.demoAuth(args[2], resolvePassword(args[3], ui));
       } else {
         ui.println("交互式命令台：java -jar travel-client/target/travel-client-0.1.0-SNAPSHOT.jar " + base);
         ui.println("服务端 API 通用入口：java -jar travel-client.jar " + base + " api <METHOD> <路径> [JSON]");
         ui.println("景点查询（交互）：java -jar travel-client.jar " + base + " attractions");
         ui.println("按城市查询：      java -jar travel-client.jar " + base + " attractions 杭州");
         ui.println("按 ID 查详情：    java -jar travel-client.jar " + base + " attractions --id <景点ID>");
-        ui.println("登录演示（含预算与检查）：java -jar travel-client.jar " + base + " <用户名> <密码>");
+        ui.println("登录演示（含预算与检查）：java -jar travel-client.jar " + base + " auth <用户名> <密码>");
         ui.println("我的待处理邀请：  java -jar travel-client.jar " + base
             + " invitations <用户名> <密码>");
         ui.println("接受/拒绝邀请：   java -jar travel-client.jar " + base
@@ -188,33 +230,28 @@ public class TravelClient {
         ui.println("密码安全：把 <密码> 写成 env:TRAVEL_CLI_PASSWORD（从环境变量读）或 -（掩码/管道输入），"
             + "避免明文出现在进程列表与 shell 历史。");
       }
+      return cli.exitCode;
+    } catch (CliHttpException e) {
+      System.out.println(e.getMessage()); return e.status == 401 || e.status == 403 ? 3 : 1;
     } catch (IllegalArgumentException e) {
-      System.err.println(e.getMessage());
-      System.exit(1);
+      System.out.println(e.getMessage()); return 2;
     } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      System.err.println("连接已中断");
-      System.exit(1);
+      Thread.currentThread().interrupt(); System.out.println("连接已中断"); return 1;
     } catch (Exception e) {
-      System.err.println("无法连接旅行服务：" + e.getMessage());
-      System.err.println("请先启动服务：bash tools/run-server.sh [端口]，"
-          + "或用 java -jar travel-client.jar http://<地址>:<端口> 指定地址。");
-      System.exit(1);
+      System.out.println("无法完成旅行服务请求：" + e.getMessage()); return 1;
     }
   }
 
   private String checkHealth() throws Exception {
     var request = HttpRequest.newBuilder(URI.create(base + "/api/health"))
         .timeout(Duration.ofSeconds(10)).GET().build();
-    var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    var response = send(request);
     if (response.statusCode() != 200) {
       throw new RuntimeException("HTTP " + response.statusCode());
     }
     HealthResponse health = json.readValue(response.body(), HealthResponse.class);
     // 交互模式下由横幅展示连接信息，避免重复一行。
-    if (!ui.isInteractive()) {
-      ui.println("旅行助手：已连接服务 " + health.application() + "，状态 " + health.status());
-    }
+
     return health.application();
   }
 
@@ -234,7 +271,7 @@ public class TravelClient {
         "details", "/details", "history", "/history", "search", "/search", "clear", "/clear", "api"};
     String username = null;
     while (true) {
-      String line = ui.readLine("\n" + (username == null ? "未登录" : username) + " > ");
+      String line = ui.readLine((username == null ? "未登录" : username) + " > ");
       if (line == null) {
         break;
       }
@@ -242,6 +279,7 @@ public class TravelClient {
       if (line.isEmpty()) {
         continue;
       }
+      ui.userMessage(line);
       String[] parts = line.split("\\s+");
       String cmd = parts[0].toLowerCase(java.util.Locale.ROOT);
       if (cmd.startsWith("/")) cmd = cmd.substring(1);
@@ -257,7 +295,7 @@ public class TravelClient {
           case "history" -> showConversationHistory();
           case "search" -> {
             String query = line.substring(parts[0].length()).strip();
-            if (query.isBlank()) ui.warn("用法：/search <关键词>，搜索本次会话记录。");
+            if (query.isBlank()) ui.warn("用法：/search <关键词>，搜索本机保存的对话记录。");
             else searchConversation(query);
           }
           case "login" -> {
@@ -321,7 +359,7 @@ public class TravelClient {
             var response = postEmpty("/api/logout");
             username = null;
             ui.setUserLabel(null);
-            resetConversation();
+            clearSessionHistory();
             ui.note("已退出登录（HTTP " + response.statusCode() + "）。");
           }
           case "status" -> showStatus();
@@ -421,7 +459,10 @@ public class TravelClient {
           }
           case "api" -> handleApiCommand(line);
           default -> {
-            if (requireLogin(username)) sendChat(line);
+            if (parts[0].startsWith("/")) {
+              String suggestion = nearestCommand(cmd);
+              ui.warn("未知命令：" + parts[0] + (suggestion == null ? "" : "，是否想输入 /" + suggestion + "？"));
+            } else if (requireLogin(username)) sendChat(line);
           }
         }
       } catch (Exception e) {
@@ -453,8 +494,8 @@ public class TravelClient {
       ui.kv("plan", "目的地 [天数] 生成行程草案（需登录）");
       ui.kv("status", "查看服务状态");
       ui.kv("/details", "展开最近一轮工具输出、完整攻略路线与费用来源");
-      ui.kv("/search", "关键词 搜索本次进程内的对话记录");
-      ui.kv("/history", "分页查看本次进程内的对话记录");
+      ui.kv("/search", "关键词 搜索本机保存的对话记录");
+      ui.kv("/history", "分页查看跨进程保存的对话记录");
       ui.kv("help all", "查看全部命令");
       ui.kv("exit", "退出 CLI");
       ui.note("回答会逐段显示；有结构化结果时，末尾会附精简表格或行程摘要。");
@@ -489,7 +530,7 @@ public class TravelClient {
     ui.kv("route", "<步行|公交> <起点经度,纬度> <终点经度,纬度> [城市]");
     ui.kv("weather", "<城市> 查询天气");
     ui.kv("chat", "<问题> 对话 Agent（需登录）");
-    ui.kv("reset", "清空本次 CLI 会话的对话历史和上下文");
+    ui.kv("reset", "清空本次进程的模型上下文；不删除本机保存的历史记录");
     ui.kv("api", "<METHOD> </api/...> [JSON] 调用现有 REST API");
     ui.kv("exit / q", "退出");
     ui.note("输入 / 浏览快捷命令；Ctrl+R 搜索本次命令历史，/search 搜索本次对话；/details 展开最近一次工具输出。");
@@ -713,20 +754,90 @@ public class TravelClient {
     showJsonResponse("天气预报", get("/api/location/weather?city=" + encode(city)));
   }
 
-  private void sendChat(String message) throws Exception {
-    if (message == null || message.isBlank()) {
+  static String nearestCommand(String input) {
+    String best = null; int score = Integer.MAX_VALUE;
+    for (String command : List.of("details", "history", "search", "help", "status", "login", "logout", "plan", "reset")) {
+      int[][] d = new int[input.length()+1][command.length()+1];
+      for(int i=0;i<=input.length();i++) d[i][0]=i;
+      for(int j=0;j<=command.length();j++) d[0][j]=j;
+      for(int i=1;i<=input.length();i++) for(int j=1;j<=command.length();j++)
+        d[i][j]=Math.min(d[i-1][j]+1,Math.min(d[i][j-1]+1,d[i-1][j-1]+(input.charAt(i-1)==command.charAt(j-1)?0:1)));
+      if(d[input.length()][command.length()]<score) {score=d[input.length()][command.length()];best=command;}
+    }
+    return score<=2?best:null;
+  }
+
+  static String planDetails(JsonNode plan) {
+    StringBuilder details=new StringBuilder("逐日安排\n");
+    for(var day:plan.path("dailySchedules")) {
+      details.append("第").append(day.path("dayIndex").asInt()).append("天 ").append(cardText(day,"date","")).append('\n');
+      JsonNode items=day.has("items")?day.path("items"):day.path("activities");
+      for(var item:items) details.append("  ").append(cardText(item,"name",cardText(item,"title","待定活动")))
+          .append(" ").append(cardText(item,"note","")).append('\n');
+    }
+    details.append("费用明细（金额与来源保持原值）\n");
+    for(var cost:plan.path("guide").path("costs")) {
+      details.append(cardText(cost,"description","未知项目")).append(" | ")
+          .append(cardText(cost,"groupAmountCny","未知")).append(" | ")
+          .append(cardText(cost,"source","来源未知")).append(" | ")
+          .append(cardText(cost,"informationDate","核验日期未知")).append('\n');
+    }
+    return details.toString();
+  }
+
+  private void printBudgetWarning(JsonNode request, JsonNode guide) {
+    double limit=request.path("budget").asDouble();
+    double reference=guide.path("referenceSubtotalCny").asDouble();
+    if(limit>0 && reference>limit) ui.warn("参考小计 " + reference + " 元已超过预算 " + request.path("budget").asText() + " 元，超出 " + (reference-limit) + " 元");
+  }
+
+  private void clearSessionHistory() { resetConversation(); transcriptHistory.clear(); }
+
+  private void removeFailedChatAttempt() {
+    if (failedChatHistory != null) {
+      chatHistory.clear();
+      chatHistory.addAll(failedChatHistory);
+      failedChatHistory = null;
+    }
+  }
+
+  private void sendChat(String message) throws Exception { sendChat(message, Duration.ofSeconds(30), CHAT_REQUEST_TIMEOUT); }
+
+  void sendChat(String message, Duration idleTimeout, Duration totalTimeout) throws Exception {
+    sendChat(message, idleTimeout, totalTimeout, ui.takePendingImages());
+  }
+
+  private void sendChat(String message, List<String> images) throws Exception {
+    sendChat(message, Duration.ofSeconds(30), CHAT_REQUEST_TIMEOUT, images);
+  }
+
+  private void sendChat(String message, Duration idleTimeout, Duration totalTimeout, List<String> images) throws Exception {
+    ui.startActivity("正在连接旅行助手");
+    try {
+      sendChatRequest(message, idleTimeout, totalTimeout, images);
+    } finally {
+      ui.stopActivity();
+    }
+  }
+
+  private void sendChatRequest(String message, Duration idleTimeout, Duration totalTimeout, List<String> images) throws Exception {
+    removeFailedChatAttempt();
+    List<Map<String, String>> historyBefore = List.copyOf(chatHistory);
+    if (idleTimeout.isZero() || idleTimeout.isNegative() || totalTimeout.isZero() || totalTimeout.isNegative())
+      throw new IllegalArgumentException("对话超时必须为正数");
+    long started = System.nanoTime();
+    if ((message == null || message.isBlank()) && images.isEmpty()) {
       ui.warn("请输入想聊的旅行需求。");
       return;
     }
-    List<String> images = ui.takePendingImages();
-    String prompt = message.replaceAll("\\[图片\\d+已附加\\]", "").strip();
+    String prompt = (message == null ? "" : message).replaceAll("\\[图片\\d+已附加\\]", "").strip();
     Map<String, Object> requestBody = new LinkedHashMap<>();
     requestBody.put("message", prompt);
     requestBody.put("history", List.copyOf(chatHistory));
     requestBody.put("state", chatState);
     requestBody.put("images", images);
     var request = HttpRequest.newBuilder(URI.create(base + "/api/chat/stream"))
-        .timeout(CHAT_REQUEST_TIMEOUT)
+        .timeout(totalTimeout)
         .header("Content-Type", "application/json")
         .header("Accept", "text/event-stream")
         .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(requestBody)))
@@ -742,6 +853,18 @@ public class TravelClient {
     }
 
     ChatStreamState state = new ChatStreamState();
+    var lastData = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+    var timedOut = new java.util.concurrent.atomic.AtomicBoolean();
+    var watchdog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+      Thread thread = new Thread(r, "chat-stream-timeout"); thread.setDaemon(true); return thread;
+    });
+    watchdog.scheduleAtFixedRate(() -> {
+      long now = System.nanoTime();
+      if (now-lastData.get() >= idleTimeout.toNanos() || now-started >= totalTimeout.toNanos()) {
+        timedOut.set(true);
+        try { response.body().close(); } catch (java.io.IOException ignored) { }
+      }
+    }, 10, 10, java.util.concurrent.TimeUnit.MILLISECONDS);
     ui.title("旅行助手");
     try (BufferedReader reader = new BufferedReader(
         new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
@@ -749,8 +872,10 @@ public class TravelClient {
       StringBuilder eventData = new StringBuilder();
       String line;
       while ((line = reader.readLine()) != null) {
+        lastData.set(System.nanoTime());
         if (line.isEmpty()) {
           handleChatStreamEvent(eventName, eventData.toString(), state);
+          if (state.completion != null || state.error != null) break;
           eventName = "message";
           eventData.setLength(0);
         } else if (line.startsWith("event:")) {
@@ -760,23 +885,33 @@ public class TravelClient {
           eventData.append(line.substring(5).stripLeading());
         }
       }
-      if (eventData.length() > 0) {
+      if (eventData.length() > 0 && state.completion == null && state.error == null) {
         handleChatStreamEvent(eventName, eventData.toString(), state);
       }
     } catch (java.io.IOException e) {
       if (state.tokenSeen) ui.println();
-      ui.error("连接中断，回复可能未完整返回。请重试。");
+      ui.error(timedOut.get() ? "对话响应超时，请重试。" : "连接中断，回复可能未完整返回。请重试。");
+      rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt); rememberChat("assistant", state.partial + "[未完成]"); failedChatHistory=historyBefore;
+      return;
+    } finally {
+      watchdog.shutdownNow();
+    }
+    if (timedOut.get()) {
+      ui.error("对话响应超时，请重试。");
+      rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt); rememberChat("assistant", state.partial + "[未完成]"); failedChatHistory=historyBefore;
       return;
     }
 
     if (state.error != null) {
       if (state.tokenSeen) ui.println();
       ui.error("回复生成中断：" + state.error);
+      rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt); rememberChat("assistant", state.partial + "[未完成]"); failedChatHistory=historyBefore;
       return;
     }
     if (state.completion == null) {
       if (state.tokenSeen) ui.println();
       ui.error("连接已结束，但助手没有返回完整答复。请重试。");
+      rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt); rememberChat("assistant", state.partial + "[未完成]"); failedChatHistory=historyBefore;
       return;
     }
 
@@ -967,14 +1102,22 @@ public class TravelClient {
           }
           ui.note("旅行攻略草案 · 逐日摘要");
           if (!rows.isEmpty()) ui.table(List.of("日期", "出行日", "安排"), rows);
-          printSelectionBasis(days);
           JsonNode guide = draft.path("guide");
           if (guide.isObject()) {
+            java.math.BigDecimal referenceMin = guide.path("referenceSubtotalCny").isNumber()
+                ? guide.path("referenceSubtotalCny").decimalValue() : null;
+            java.math.BigDecimal referenceMax = guide.path("referenceSubtotalMaxCny").isNumber()
+                ? guide.path("referenceSubtotalMaxCny").decimalValue() : referenceMin;
+            String reference = referenceMin == null ? "未知"
+                : referenceMax != null && referenceMax.compareTo(referenceMin) > 0
+                    ? referenceMin.toPlainString() + "~" + referenceMax.toPlainString()
+                    : referenceMin.toPlainString();
             ui.note("费用参考：已确认 " + cardText(guide, "knownSubtotalCny", "未知")
-                + " 元；含参考价格 " + cardText(guide, "referenceSubtotalCny", "未知")
+                + " 元；参考区间 " + reference
                 + " 元；另有 " + cardText(guide, "unknownCostCount", "未知") + " 项未覆盖。"
                 + "未覆盖费用不按零元计算。");
           }
+          printBudgetWarning(draft.path("request"), guide);
           printGuideBudgetSummary(guide);
           ui.note("输入 /details 展开完整路线、费用分类、天气覆盖和工具查询记录。");
           return true;
@@ -1088,7 +1231,7 @@ public class TravelClient {
 
   private static List<List<String>> budgetRows(JsonNode costs) {
     if (!costs.isArray()) return List.of(List.of("费用账本未返回", "—", "—", "—", "—"));
-    class Sum { java.math.BigDecimal confirmed = java.math.BigDecimal.ZERO; java.math.BigDecimal reference = java.math.BigDecimal.ZERO; java.math.BigDecimal realtime = java.math.BigDecimal.ZERO; int unknown; }
+    class Sum { java.math.BigDecimal confirmed = java.math.BigDecimal.ZERO; java.math.BigDecimal reference = java.math.BigDecimal.ZERO; java.math.BigDecimal referenceMax = java.math.BigDecimal.ZERO; java.math.BigDecimal realtime = java.math.BigDecimal.ZERO; int unknown; }
     Map<String, Sum> grouped = new LinkedHashMap<>();
     for (JsonNode cost : costs) {
       String category = switch (cost.path("category").asText("")) {
@@ -1102,14 +1245,22 @@ public class TravelClient {
       switch (cost.path("priceType").asText("")) {
         case "USER_CONFIRMED" -> sum.confirmed = sum.confirmed.add(value);
         case "REALTIME" -> sum.realtime = sum.realtime.add(value);
-        case "REFERENCE" -> sum.reference = sum.reference.add(value);
+        case "REFERENCE", "REFERENCE_RANGE" -> {
+          sum.reference = sum.reference.add(value);
+          JsonNode maximum = cost.path("groupAmountMaxCny");
+          sum.referenceMax = sum.referenceMax.add(maximum.isNumber()
+              ? maximum.decimalValue() : value);
+        }
         default -> sum.unknown++;
       }
     }
     List<List<String>> rows = new ArrayList<>();
     for (var entry : grouped.entrySet()) {
       Sum sum = entry.getValue();
-      rows.add(List.of(entry.getKey(), amountOrDash(sum.confirmed), amountOrDash(sum.reference),
+      String reference = sum.referenceMax.compareTo(sum.reference) > 0
+          ? amountOrDash(sum.reference) + "~" + amountOrDash(sum.referenceMax)
+          : amountOrDash(sum.reference);
+      rows.add(List.of(entry.getKey(), amountOrDash(sum.confirmed), reference,
           amountOrDash(sum.realtime), String.valueOf(sum.unknown)));
     }
     return List.copyOf(rows);
@@ -1122,35 +1273,19 @@ public class TravelClient {
     ui.table(List.of("类别", "已确认", "参考", "实价", "未知项"), budgetRows(costs));
   }
 
-  private void printSelectionBasis(JsonNode days) {
-    if (!days.isArray()) return;
-    int shown = 0;
-    for (JsonNode day : days) {
-      JsonNode items = day.path("items");
-      if (!items.isArray()) continue;
-      for (JsonNode item : items) {
-        if (shown >= 10) { ui.note("其余景点的来源与筛选说明见 /details。"); return; }
-        String reason = cardText(item, "selectionBasis", "");
-        if (reason.isBlank()) continue;
-        ui.note("筛选依据 · " + cardText(item, "name", "景点") + "：" + shortCell(reason, 88));
-        shown++;
-      }
-    }
-  }
-
   private static String amountOrDash(java.math.BigDecimal amount) {
     return amount.signum() == 0 ? "—" : amount.stripTrailingZeros().toPlainString() + " 元";
   }
 
   private void showConversationHistory() {
-    if (transcriptHistory.isEmpty()) { ui.warn("本次进程还没有对话记录。"); return; }
+    if (transcriptHistory.isEmpty()) { ui.warn("本机还没有保存的对话记录。"); return; }
     StringBuilder history = new StringBuilder();
     for (int i = 0; i < transcriptHistory.size(); i++) {
       TranscriptEntry entry = transcriptHistory.get(i);
       history.append(i + 1).append(". ").append("user".equals(entry.role()) ? "你" : "助手")
           .append("\n").append(entry.text()).append("\n\n");
     }
-    ui.viewText("本次 CLI 会话历史 · /search 可检索", history.toString());
+    ui.viewText("本机对话历史 · /search 可检索", history.toString());
   }
 
   private void searchConversation(String query) {
@@ -1164,7 +1299,7 @@ public class TravelClient {
           .append("\n").append(entry.text()).append("\n\n");
       if (++found >= 100) break;
     }
-    ui.viewText("搜索「" + query + "」· " + found + " 条命中", found == 0 ? "没有找到匹配的本次会话记录。" : matches.toString());
+    ui.viewText("搜索「" + query + "」· " + found + " 条命中", found == 0 ? "没有找到匹配的本机记录。" : matches.toString());
   }
 
   private boolean printPlanningIntakeCard() {
@@ -1205,9 +1340,11 @@ public class TravelClient {
         if (!message.isBlank()) ui.note(message);
       }
       case "token" -> {
+        ui.stopActivity();
         String text = data.path("text").asText("");
         if (!text.isEmpty()) {
           ui.print(text);
+          state.partial.append(text);
           state.tokenSeen = true;
         }
       }
@@ -1227,12 +1364,55 @@ public class TravelClient {
     if (trimmed.length() > 240) trimmed = trimmed.substring(0, 240);
     chatHistory.add(Map.of("role", role, "text", trimmed));
     while (chatHistory.size() > 8) chatHistory.remove(0);
+    saveTranscriptHistory();
+  }
+
+  private static Path transcriptFile() {
+    String override = System.getProperty("travel.cli.history-file");
+    if (override != null && !override.isBlank()) return Path.of(override);
+    String localAppData = System.getenv("LOCALAPPDATA");
+    Path root = localAppData == null || localAppData.isBlank()
+        ? Path.of(System.getProperty("user.home"), ".travel-assistant")
+        : Path.of(localAppData, "TravelAssistant");
+    return root.resolve("cli-history.json");
+  }
+
+  private void loadTranscriptHistory() {
+    if (!Files.isRegularFile(transcriptFile)) return;
+    try {
+      var type = json.getTypeFactory().constructCollectionType(List.class, TranscriptEntry.class);
+      List<TranscriptEntry> saved = json.readValue(transcriptFile.toFile(), type);
+      if (saved != null) transcriptHistory.addAll(saved);
+      if (transcriptHistory.size() > 2000) {
+        transcriptHistory.subList(0, transcriptHistory.size() - 2000).clear();
+      }
+    } catch (Exception e) {
+      ui.warn("无法读取本机历史记录：" + e.getMessage());
+    }
+  }
+
+  private void saveTranscriptHistory() {
+    Path temp = transcriptFile.resolveSibling(transcriptFile.getFileName() + ".tmp");
+    try {
+      Files.createDirectories(transcriptFile.getParent());
+      json.writeValue(temp.toFile(), transcriptHistory);
+      try {
+        Files.move(temp, transcriptFile, StandardCopyOption.REPLACE_EXISTING,
+            StandardCopyOption.ATOMIC_MOVE);
+      } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+        Files.move(temp, transcriptFile, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } catch (Exception e) {
+      ui.warn("无法保存本机对话历史：" + e.getMessage());
+      try { Files.deleteIfExists(temp); } catch (Exception ignored) { }
+    }
   }
 
   private void resetConversation() {
     chatHistory.clear();
     chatState = null;
     latestChatResult = null;
+    failedChatHistory = null;
   }
 
   private void handleApiCommand(String line) throws Exception {
@@ -1247,12 +1427,10 @@ public class TravelClient {
   private void apiRequest(String method, String path, String body) throws Exception {
     String verb = method.toUpperCase(java.util.Locale.ROOT);
     if (!path.startsWith("/api/") || path.contains("\r") || path.contains("\n")) {
-      ui.warn("API 路径必须是相对的 /api/... 路径。");
-      return;
+      throw new IllegalArgumentException("API 路径必须是相对的 /api/... 路径。");
     }
     if (!List.of("GET", "POST", "PUT", "PATCH", "DELETE").contains(verb)) {
-      ui.warn("支持 GET、POST、PUT、PATCH、DELETE。");
-      return;
+      throw new IllegalArgumentException("支持 GET、POST、PUT、PATCH、DELETE。");
     }
     var builder = HttpRequest.newBuilder(URI.create(base + encodeUri(path)))
         .timeout(Duration.ofSeconds(30));
@@ -1261,7 +1439,7 @@ public class TravelClient {
         ? builder.method(verb, HttpRequest.BodyPublishers.noBody()).build()
         : builder.method(verb, HttpRequest.BodyPublishers.ofString(body == null ? "" : body)).build();
     showJsonResponse("API " + verb + " " + path,
-        client.send(request, HttpResponse.BodyHandlers.ofString()));
+        send(request));
   }
 
   private void showJsonResponse(String title, HttpResponse<String> response) throws Exception {
@@ -1269,6 +1447,7 @@ public class TravelClient {
   }
 
   private void showJsonResponse(String title, int statusCode, String body) throws Exception {
+    if (statusCode >= 400) exitCode = statusCode == 401 || statusCode == 403 ? 3 : 1;
     String heading = title + " · HTTP " + statusCode;
     if (body == null || body.isBlank()) {
       ui.title(heading);
@@ -1457,11 +1636,11 @@ public class TravelClient {
         .timeout(Duration.ofSeconds(10))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .POST(HttpRequest.BodyPublishers.ofString(form)).build();
-    var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    var response = send(request);
     if (response.statusCode() != 200) {
-      throw new RuntimeException("登录失败：HTTP " + response.statusCode() + " " + response.body());
+      throw new CliHttpException(response.statusCode(), "登录失败：HTTP " + response.statusCode());
     }
-    ui.println("已登录：" + username);
+    if (ui.isInteractive()) ui.println("已登录：" + username);
   }
 
   /** 列出「我收到的待处理邀请」，编号可直接用于 accept / reject。 */
@@ -1645,7 +1824,11 @@ public class TravelClient {
   }
 
   /** 打印一份规划草案（不落库，需用户另行确认保存）。 */
-  private void showPlan(String destination, Integer days) throws Exception {
+  private void showPlan(String destination, Integer days) throws Exception { showPlan(destination, days, false); }
+
+  private void showPlan(String destination, Integer days, boolean rawJson) throws Exception { showPlan(destination, days, rawJson, false); }
+
+  private void showPlan(String destination, Integer days, boolean rawJson, boolean detailed) throws Exception {
     var payload = new java.util.LinkedHashMap<String, Object>();
     payload.put("destination", destination);
     if (days != null) {
@@ -1659,8 +1842,25 @@ public class TravelClient {
       return;
     }
 
-    ui.println();
+    if (rawJson) { ui.println(response.body()); return; }
+    if (detailed) { ui.println(planDetails(body)); return; }
+    if (!ui.isInteractive()) {
+      ui.title("规划草案：" + destination);
+      var candidates = body.path("candidates");
+      ui.println("候选景点 · 共 " + candidates.size() + " 个");
+      for (int i=0; i<Math.min(8,candidates.size()); i++) ui.println("  " + text(candidates.get(i), "name"));
+      if (candidates.size()>8) ui.note("另有 " + (candidates.size()-8) + " 个候选");
+      ui.println("逐日安排");
+      for (var day:body.path("dailySchedules")) {
+        ui.println("第" + day.path("dayIndex").asInt() + "天 " + cardText(day,"date",""));
+        JsonNode items=day.has("items")?day.path("items"):day.path("activities");
+        for(var item:items) ui.println("  " + cardText(item,"name",cardText(item,"title","待定活动")));
+      }
+      ui.note("添加 --details 查看完整费用及来源；--json 输出完整草案。");
+      return;
+    }
     ui.println("== 规划草案：" + destination + " ==");
+    printBudgetWarning(body.path("request"), body.path("guide"));
 
     JsonNode candidates = body.path("candidates");
     ui.println("候选景点（共 " + candidates.size() + " 条，各自来源见攻略）：");
@@ -1841,8 +2041,7 @@ public class TravelClient {
       ui.println("导出失败：HTTP " + res.statusCode() + " " + res.body());
       return;
     }
-    ui.println();
-    ui.println(res.body());
+    ui.print(res.body()); ui.print("\n");
   }
 
   /** 归档或取消归档。 */
@@ -1909,17 +2108,28 @@ public class TravelClient {
     }
   }
 
+  private static final class CliHttpException extends RuntimeException {
+    final int status;
+    CliHttpException(int status, String message) { super(message); this.status=status; }
+  }
+
+  private HttpResponse<String> send(HttpRequest request) throws Exception {
+    var response=client.send(request, HttpResponse.BodyHandlers.ofString());
+    if(response.statusCode()>=400) exitCode=response.statusCode()==401 || response.statusCode()==403 ? 3 : 1;
+    return response;
+  }
+
   private HttpResponse<String> postEmpty(String path) throws Exception {
     var request = HttpRequest.newBuilder(URI.create(base + path))
         .timeout(Duration.ofSeconds(10))
         .POST(HttpRequest.BodyPublishers.noBody()).build();
-    return client.send(request, HttpResponse.BodyHandlers.ofString());
+    return send(request);
   }
 
   private HttpResponse<String> get(String path) throws Exception {
     var request = HttpRequest.newBuilder(URI.create(base + path))
         .timeout(Duration.ofSeconds(10)).GET().build();
-    return client.send(request, HttpResponse.BodyHandlers.ofString());
+    return send(request);
   }
 
   private HttpResponse<String> postJson(String path, String body) throws Exception {
@@ -1932,7 +2142,7 @@ public class TravelClient {
         .timeout(timeout)
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body)).build();
-    return client.send(request, HttpResponse.BodyHandlers.ofString());
+    return send(request);
   }
 
   /**
