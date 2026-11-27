@@ -203,7 +203,7 @@ public class ChatTools {
                   "description", "只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏"),
               "departDate", str("出发日期 YYYY-MM-DD，不知道就省略"),
               "returnDate", str("返回日期 YYYY-MM-DD，不知道就省略"),
-              "details", Map.of("type", "object", "description", "增量继承用户已确认信息：origin, seniors, children, mobility, dietaryRestrictions字符串数组, mustVisit字符串数组, hotel, transportMode(WALKING/DRIVING/TRANSIT/CYCLING), maxWalkingMeters单段步行上限, excludedAttractionIds字符串数组, confirmedGroupCosts按费用键填全团CNY金额，vehicles车辆数，originCity出发城市/arrivalCity到达城市用于地图跨城换乘参考（非余票），queries对象含priorityDays整数数组和可选maxRouteCalls/maxFoodCalls/maxGeocodeCalls/maxDurationMillis；用户要求补查某天时设置priorityDays。只传用户提供的值")),
+              "details", Map.of("type", "object", "description", "增量继承用户已确认信息：origin, seniors, children, mobility, dietaryRestrictions字符串数组, mustVisit字符串数组, hotel, transportMode(WALKING/DRIVING/TRANSIT/CYCLING), maxWalkingMeters单段步行上限, maxAttractionsPerDay每天景点上限, visitDays对象为用户指定景点名到游览日的映射（1至30）, transportPreference跨城交通要求原话（高铁/飞机等，不得用市内交通覆盖）, excludedAttractionIds字符串数组, confirmedGroupCosts按费用键填全团CNY金额，vehicles车辆数，originCity出发城市/arrivalCity到达城市用于地图跨城换乘参考（非余票），queries对象含priorityDays整数数组和可选maxRouteCalls/maxFoodCalls/maxGeocodeCalls/maxDurationMillis；用户要求补查某天时设置priorityDays。只传用户提供的值")),
           List.of("city", "days")),
       fn("route_plan", "算两点之间的步行 / 驾车 / 公交距离与耗时（高德路径规划），"
           + "返回值是接口预估，不含等车、排队与检票时间。"
@@ -1020,7 +1020,7 @@ public class ChatTools {
         sb.append("；另有 ").append(trimmed.intValue())
             .append(" 天没有可查景点，草案未硬凑空天，不要替用户补景点或天数");
       }
-      if (m.get("budgetEstimate") instanceof Map<?, ?> budget
+      if (!m.containsKey("guide") && m.get("budgetEstimate") instanceof Map<?, ?> budget
           && budget.get("message") != null) {
         sb.append("\n门票预算：").append(budget.get("message"));
       }
@@ -1031,6 +1031,7 @@ public class ChatTools {
             && new java.math.BigDecimal(max.toString()).compareTo(new java.math.BigDecimal(min.toString())) > 0) {
           reference += "~" + displayGuideValue(max);
         }
+        if (guide.get("budgetSummary") != null) sb.append("\n预算覆盖：").append(guide.get("budgetSummary"));
         sb.append("\n费用：已确认 ").append(displayGuideValue(guide.get("knownSubtotalCny")))
             .append(" 元；参考区间 ").append(reference)
             .append(" 元；另有 ").append(displayGuideValue(guide.get("unknownCostCount")))

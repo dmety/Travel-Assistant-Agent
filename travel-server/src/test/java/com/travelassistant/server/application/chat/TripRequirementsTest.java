@@ -9,6 +9,23 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.assertj.core.api.Assertions.*;
 
 class TripRequirementsTest {
+  @Test void extractionFailureCannotReplayOldConfirmationAndNewTripClearsSnapshot() {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("invalid", "{\"intent\":\"start\",\"city\":\"上海\"}");
+    var old=new ConversationState("北京",3,2,null,java.util.List.of(),java.util.Map.of("_structured",true,"_phase","generated","_intent","confirm","_planContext",java.util.Map.of("version",1)));
+    var safe=TripRequirements.update(model,new ObjectMapper(),old,"解释一下");
+    assertThat(safe.planning()).containsEntry("_intent","question").containsKey("_planContext");
+    var fresh=TripRequirements.update(model,new ObjectMapper(),safe,"重新去上海");
+    assertThat(fresh.planning()).doesNotContainKey("_planContext");
+  }
+  @Test void updatingRequirementsMarksExistingPlanAsStale() {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("{\"intent\":\"update\",\"travelers\":3}");
+    var old=new ConversationState("北京",3,2,null,java.util.List.of(),java.util.Map.of("_structured",true,"_phase","generated","_planContext",java.util.Map.of("version",1)));
+    var revised=TripRequirements.update(model,new ObjectMapper(),old,"改成3人");
+    assertThat(revised.planning()).containsEntry("_phase","revision_pending");
+    verify(model).complete(anyString(),org.mockito.ArgumentMatchers.argThat(input -> !input.contains("_planContext")));
+  }
   @Test void confirmedAmountsMergeAndNewPartyClearsOnlyOldTotals() {
     var model=mock(DeepSeekClient.class);when(model.configured()).thenReturn(true);
     when(model.complete(anyString(),anyString())).thenReturn(

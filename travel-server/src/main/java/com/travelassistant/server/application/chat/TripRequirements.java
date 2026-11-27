@@ -13,6 +13,11 @@ final class TripRequirements {
   private TripRequirements() {}
 
   static ConversationState update(DeepSeekClient model, ObjectMapper mapper, ConversationState old, String text) {
+    // Intent belongs to the current turn; an extraction failure must not replay a previous confirm/update.
+    if (Boolean.TRUE.equals(old.planning().get("_structured"))) {
+      Map<String,Object> safe=new LinkedHashMap<>(old.planning()); safe.put("_intent","question");
+      old=new ConversationState(old.city(),old.days(),old.travelers(),old.budget(),old.preferences(),safe);
+    }
     if (model == null || !model.configured() || text.isBlank()) return old;
     try {
       String raw = model.complete("""
@@ -22,17 +27,18 @@ final class TripRequirements {
           字段：intent,city(目的地，绝不能把出发地当目的地),days,travelers,budget,preferences(字符串数组),
           departDate/returnDate(YYYY-MM-DD，按天气选日尚未确认时省略),weatherRequest(天气选日原话),
           details对象字段：origin,originCity,arrivalCity,hotel(仅具体酒店名或地址，特色住宿不填这里),
-          lodgingPreference,budgetScope,transportPreference,transportMode(明确自驾DRIVING/公交TRANSIT/步行WALKING/骑行CYCLING，委托你选择舒适交通可取TRANSIT),
+          lodgingPreference,budgetScope,transportPreference(跨城交通原话，如往返高铁；不得被市内公交地铁覆盖),maxAttractionsPerDay(每天最多景点数，正整数),transportMode(明确自驾DRIVING/公交TRANSIT/步行WALKING/骑行CYCLING，委托你选择舒适交通可取TRANSIT),
           seniors,children(非负整数人数；明确没有=0；只说有但没说数量则省略),mobility,dietaryRestrictions(无忌口为空数组),mustVisit(明确必去的名称数组),
-          excludedAttractionIds(取消/不去的景点名称数组，不编造ID),includeWeather(问天气或按天气选日为true)。
+          visitDays(仅用户明确指定的景点名到第几天的对象，如故宫放第二天为{"故宫":2}),excludedAttractionIds(取消/不去的景点名称数组，不编造ID),includeWeather(问天气或按天气选日为true)。
           budgetScope只有用户明确说“全团/总预算”时取group_total，明确说“人均/每人”时取per_person；仅说预算金额时必须省略，不能按人数推断。
           用户明确确认已发生或已报价的费用，提取details.confirmedGroupCosts对象，全团人民币金额。
           键：D1-breakfast/D1-lunch/D1-dinner表示第1天三餐，D1-hotel表示第1晚，intercity-out/intercity-back表示去返程；其他天替换数字。
           预算和期望花费不是确认费用，不能填此对象；人均报价仅在人数明确时乘人数，未知键不猜。
+          纠错、指出漏掉景点是update，必须提取被遗漏的必去景点及交通限制，不能作为新旅行清空旧条件。只询问修改方法且暂不生成时是question。
           start仅用于发起新旅行；补充日期人数偏好用update；明确开始规划用confirm；先出初稿用preview。
           问天气用weather；一般问答、读图、否定规划用question。数组仅输出本轮涉及内容。
           """, "今天=" + LocalDate.now(ZoneId.of("Asia/Shanghai")) + "\n已有需求="
-          + mapper.writeValueAsString(old) + "\n用户=" + text);
+          + mapper.writeValueAsString(extractionState(old)) + "\n用户=" + text);
       if (raw == null) return old;
       int begin=raw.indexOf('{'), end=raw.lastIndexOf('}');
       if (begin < 0 || end < begin) return old;
@@ -41,6 +47,8 @@ final class TripRequirements {
       if (!Set.of("start","update","confirm","preview","weather","question").contains(intent)) return old;
       Map<String,Object> planning=new LinkedHashMap<>(old.planning());
       if (intent.equals("start")) planning.clear();
+      if (!intent.equals("question")) planning.remove("_budgetSummary");
+      if (intent.equals("update") && planning.containsKey("_planContext")) planning.put("_phase","revision_pending");
       planning.put("_structured",true); planning.put("_intent",intent);
       if (intent.equals("start")) planning.put("_phase","collecting");
       for (String field:List.of("departDate","returnDate")) if(patch.hasNonNull(field)) {
@@ -74,6 +82,11 @@ final class TripRequirements {
           details.put(e.getKey(),amounts);
         } else details.put(e.getKey(),mapper.convertValue(e.getValue(),Object.class));
       });
+      if(details.get("visitDays") instanceof Map<?,?> assignments) {
+        LinkedHashSet<String> names=new LinkedHashSet<>();
+        if(details.get("mustVisit") instanceof List<?> must) must.forEach(v -> names.add(v.toString()));
+        assignments.keySet().forEach(v -> names.add(v.toString())); details.put("mustVisit",List.copyOf(names));
+      }
       String explicitBudgetScope = explicitBudgetScope(text);
       if (explicitBudgetScope != null) details.put("budgetScope", explicitBudgetScope);
       if(details.get("mustVisit") instanceof List<?> must && details.get("excludedAttractionIds") instanceof List<?> excluded)
@@ -88,6 +101,12 @@ final class TripRequirements {
       if(patch.path("preferences").isArray()) patch.get("preferences").forEach(v->{if(!prefs.contains(v.asText()))prefs.add(v.asText());});
       return new ConversationState(city,days,people,budget,prefs,planning);
     } catch (RuntimeException | java.io.IOException ignored) { return old; }
+  }
+
+  private static ConversationState extractionState(ConversationState state) {
+    Map<String,Object> planning=new LinkedHashMap<>(state.planning());
+    planning.keySet().removeIf(key -> key.startsWith("_") && !key.equals("_phase"));
+    return new ConversationState(state.city(),state.days(),state.travelers(),state.budget(),state.preferences(),planning);
   }
 
   private static Integer positive(JsonNode p,String key,Integer fallback) {
@@ -129,20 +148,23 @@ final class TripRequirements {
     if (d.get("seniors") != null) known.add("老人"+d.get("seniors")+"位");
     if (d.get("children") != null) known.add("儿童"+d.get("children")+"位");
     if (d.get("seniors") == null || d.get("children") == null) missing.add("老人和儿童人数（没有可写0）");
+    if (d.get("visitDays") != null) known.add("指定游览日"+d.get("visitDays"));
     if (d.get("mobility") != null) known.add("步行要求"+d.get("mobility"));
     else if (s.preferences().stream().noneMatch(TripRequirements::mentionsWalkingLimit)) optional.add("步行强度或限制（没有可写无）");
     if (d.get("lodgingPreference") != null) known.add("住宿偏好"+d.get("lodgingPreference"));
     if(!s.preferences().isEmpty())known.add("偏好"+String.join("、",s.preferences()));
+    if(d.get("transportPreference") != null) known.add("跨城交通要求" + d.get("transportPreference"));
+    if(d.get("maxAttractionsPerDay") instanceof Number limit) known.add("每天最多" + limit + "个景点");
     if(d.get("mustVisit") instanceof List<?> names && !names.isEmpty())known.add("必去"+names);
     if(d.get("excludedAttractionIds") instanceof List<?> names && !names.isEmpty())known.add("不去"+names);
     if(s.preferences().isEmpty() && !(d.get("mustVisit") instanceof List<?> names && !names.isEmpty())) optional.add("游玩偏好或必去点");
     boolean structured = Boolean.TRUE.equals(s.planning().get("_structured"));
     StringBuilder reply = new StringBuilder(structured ? "【规划条件待确认】" : "【旅行需求收集】");
-    if (!known.isEmpty()) reply.append("已知：").append(String.join("；", known)).append("。 ");
+    if (!known.isEmpty()) reply.append("\n已知：\n- ").append(String.join("\n- ", known)).append("\n");
     if (missing.isEmpty()) reply.append("关键条件已齐，回复‘确认开始规划’即可；也可继续修改。");
-    else reply.append("还需确认：").append(String.join("、", missing)).append("。");
-    if (!optional.isEmpty()) reply.append("可选补充：").append(String.join("、", optional)).append("。");
-    if (!missing.isEmpty()) reply.append("未定项可写‘待定’；也可回复‘先出初稿’查看预览。");
+    else reply.append("\n还需确认：\n- ").append(String.join("\n- ", missing)).append("\n");
+    if (!optional.isEmpty()) reply.append("\n可选补充：").append(String.join("、", optional)).append("。");
+    if (!missing.isEmpty()) reply.append("\n未定项可写‘待定’；也可回复‘先出初稿’查看预览。");
     return reply.toString();
   }
 

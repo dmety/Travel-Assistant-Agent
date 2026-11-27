@@ -55,6 +55,70 @@ class ChatAgentTest {
     return new ModelTurn("", List.of(new ToolCall(id, name, args)));
   }
 
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings={
+      "早餐是哪家？", "第二天具体去了哪里？", "为什么安排八大处？", "只解释，不改行程", "不要重新生成攻略",
+      "用三条说明时间冲突", "故宫内餐厅是否需要先入园？", "这笔钱是人均还是全团？", "4000元包含高铁吗？",
+      "住宿有实时报价吗？", "门票未知是不是免费？", "这版方案能直接执行吗？", "餐馆几点关门？",
+      "第三天有哪些候选？", "首日到达时间确定了吗？", "为什么不能保证少走路？", "旧方案和新方案有什么区别？",
+      "这是谁提供的信息？", "天气预报覆盖出行日期吗？", "先说怎么修改，不要生成"})
+  void explanationNeverRegeneratesPlanEvenIfModelRequestsIt(String question) {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"question\"}");
+    when(model.chat(anyList(),anyList(),anyInt()))
+        .thenReturn(call("unexpected","draft_itinerary","{\"city\":\"北京\"}"))
+        .thenReturn(say("本轮仅解释，方案没有修改。"));
+    var state=new ConversationState("北京",3,2,null,List.of(),Map.of("_structured",true,"_phase","needs_review"));
+    assertThat(agent.chat(question,List.of(),state).reply()).contains("没有修改");
+    verify(tools,never()).execute(eq("draft_itinerary"),any(),anyList(),any());
+  }
+
+  @Test void systemPromptHasOnePresentationContractAndBoundedPrinciples() {
+    when(model.chat(anyList(),anyList(),anyInt())).thenAnswer(inv -> {
+      String system=((List<Map<String,Object>>)inv.getArgument(0)).getFirst().get("content").toString();
+      assertThat(system.length()).isLessThan(1600);
+      assertThat(system).contains("一、事实与来源","五、表达与呈现","Java 统一控制","正文只简述结果");
+      assertThat(system).doesNotContain("必须按 D1","9a.","13a.");
+      return say("我是旅行助手。");
+    });
+    agent.chat("你叫什么？",List.of(),ConversationState.empty());
+  }
+  @Test void toolDraftSnapshotSurvivesNextTurnAndReplacesOlderVersion() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"preview\"}","{\"intent\":\"update\"}","{\"intent\":\"question\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(call("d","draft_itinerary","{\"city\":\"北京\",\"days\":3}"))
+        .thenReturn(call("e","draft_itinerary","{\"city\":\"北京\",\"days\":3}"))
+        .thenReturn(say("按最新方案解释。"));
+    var oldDraft=Map.of("category","PLAN_DRAFT","guide",Map.of("days",List.of(Map.of("dayIndex",1,"slots",List.of(Map.of("id","D1-breakfast","title","早餐","restaurants",List.of(Map.of("name","旧餐厅"))))))));
+    var newDraft=Map.of("category","PLAN_DRAFT","guide",Map.of("days",List.of(Map.of("dayIndex",2,"slots",List.of(Map.of("id","D2-breakfast","title","早餐","restaurants",List.of(Map.of("name","新餐厅"))))))));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any()))
+        .thenReturn(new ChatTools.Outcome(true,"旧草案",new ChatTools.Card("plan","PLAN_DRAFT",Map.of("result",Map.of("facts",List.of(Map.of("value",oldDraft)))))))
+        .thenReturn(new ChatTools.Outcome(true,"新草案",new ChatTools.Card("plan","PLAN_DRAFT",Map.of("result",Map.of("facts",List.of(Map.of("value",newDraft)))))));
+    var first=agent.chat("先出初稿",List.of(),ConversationState.empty());
+    var next=agent.chat("替换早餐",List.of(),first.state());
+    assertThat(next.state().planning().get("_planContext").toString()).contains("新餐厅","version=2").doesNotContain("旧餐厅");
+    agent.chat("早餐是哪家？",List.of(),next.state());
+    @SuppressWarnings("unchecked") ArgumentCaptor<List<Map<String,Object>>> messages=ArgumentCaptor.forClass(List.class);
+    verify(model,times(3)).chat(messages.capture(),anyList(),anyInt());
+    assertThat(messages.getAllValues().get(2).getFirst().get("content").toString()).contains("新餐厅","version=2").doesNotContain("旧餐厅");
+  }
+
+  @Test void followUpReceivesStructuredPlanEvenWithoutChatHistory() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"question\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenAnswer(inv -> {
+      String context=inv.getArgument(0).toString();
+      assertThat(context).contains("坤宁宫东院餐厅", "08:00", "version=2");
+      return say("早餐候选是坤宁宫东院餐厅，时间存在冲突。");
+    });
+    var state=new ConversationState("北京",3,2,null,List.of(),Map.of("_structured",true,"_phase","needs_review",
+        "_planContext",Map.of("version",2,"days",List.of(Map.of("restaurant","坤宁宫东院餐厅","period","08:00")))));
+    assertThat(agent.chat("早餐是哪家？",List.of(),state).reply()).contains("坤宁宫");
+  }
+  @Test void structuredGeneratedPhaseOverridesOldIntakeText() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"question\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(say("可以解释上一份方案。"));
+    var state=new ConversationState("北京",3,2,null,List.of(),Map.of("_structured",true,"_phase","generated"));
+    assertThat(agent.chat("为什么这样安排？",List.of(new ConversationTurn("assistant","【规划条件待确认】")),state).reply())
+        .contains("解释").doesNotContain("回复‘确认");
+  }
   @Test
   @DisplayName("不需要工具时直接回答：不查任何数据，也不给卡片")
   void answersWithoutTools() {
@@ -130,15 +194,14 @@ class ChatAgentTest {
   @Test
   @DisplayName("条件复述只输出一次确认提示")
   void printsPlanningConfirmationOnce() {
-    when(model.chat(anyList(), eq(List.of()), eq(280))).thenReturn(say(
-        "【规划条件待确认】已知：武汉出发，大同5天。可补充条件，或回复‘确认开始规划’开始；"
-            + "回复‘确认开始规划’按现有信息生成。"));
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"update\",\"departDate\":\"2026-11-20\"}");
 
     ChatReply reply = agent.chat("2026年11月20日出发吧",
         List.of(new ConversationTurn("assistant", "【旅行需求收集】请补充日期和人数。")),
         ConversationState.empty());
 
-    assertThat(reply.reply().split("回复‘确认开始规划’", -1)).hasSize(2);
+    assertThat(reply.reply().split("先出初稿", -1)).hasSize(2);
+    verify(model, never()).chat(anyList(), anyList(), anyInt());
     assertThat(reply.reply()).doesNotContain("可补充条件");
   }
 
@@ -164,7 +227,7 @@ class ChatAgentTest {
         List.of(new ConversationTurn("assistant", "【攻略草案已生成】大同5天攻略已生成。")),
         ConversationState.empty());
 
-    assertThat(reply.reply()).contains("【旅行需求收集】");
+    assertThat(reply.reply()).contains("【规划条件待确认】");
     verify(model, never()).chat(anyList(), anyList(), anyInt());
   }
 
@@ -363,4 +426,14 @@ class ChatAgentTest {
     Map<?,?> details=(Map<?,?>)reply.state().planning().get("details"); Map<?,?> amounts=(Map<?,?>)details.get("confirmedGroupCosts");
     assertThat(amounts).hasSize(1); assertThat(amounts.get("D1-lunch")).isEqualTo(120);
   }
+  @Test
+  void unchangedCorrectionIsNotReportedAsSuccess() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"preview\"}","{\"intent\":\"update\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(call("c", "draft_itinerary", "{\"city\":\"北京\"}"));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any())).thenReturn(new ChatTools.Outcome(true,"草案",null));
+    var first=agent.chat("北京三天先出初稿",List.of(),ConversationState.empty());
+    var next=agent.chat("你漏掉了必去景点，请纠正",List.of(),first.state());
+    assertThat(next.reply()).contains("方案未变化", "不能视为已完成纠错");
+  }
+
 }
