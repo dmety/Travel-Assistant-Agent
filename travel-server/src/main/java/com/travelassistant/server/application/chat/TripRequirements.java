@@ -23,8 +23,9 @@ final class TripRequirements {
           departDate/returnDate(YYYY-MM-DD，按天气选日尚未确认时省略),weatherRequest(天气选日原话),
           details对象字段：origin,originCity,arrivalCity,hotel(仅具体酒店名或地址，特色住宿不填这里),
           lodgingPreference,budgetScope,transportPreference,transportMode(明确自驾DRIVING/公交TRANSIT/步行WALKING/骑行CYCLING，委托你选择舒适交通可取TRANSIT),
-          seniors,children,mobility,dietaryRestrictions(无忌口为空数组),mustVisit(明确必去的名称数组),
+          seniors,children(非负整数人数；明确没有=0；只说有但没说数量则省略),mobility,dietaryRestrictions(无忌口为空数组),mustVisit(明确必去的名称数组),
           excludedAttractionIds(取消/不去的景点名称数组，不编造ID),includeWeather(问天气或按天气选日为true)。
+          budgetScope只有用户明确说“全团/总预算”时取group_total，明确说“人均/每人”时取per_person；仅说预算金额时必须省略，不能按人数推断。
           用户明确确认已发生或已报价的费用，提取details.confirmedGroupCosts对象，全团人民币金额。
           键：D1-breakfast/D1-lunch/D1-dinner表示第1天三餐，D1-hotel表示第1晚，intercity-out/intercity-back表示去返程；其他天替换数字。
           预算和期望花费不是确认费用，不能填此对象；人均报价仅在人数明确时乘人数，未知键不猜。
@@ -53,10 +54,16 @@ final class TripRequirements {
         details.remove("confirmedGroupCosts");
       if(patch.path("details").isObject()) patch.get("details").fields().forEachRemaining(e->{
         if(e.getValue().isNull()) return;
+        // 预算口径是财务语义，不能接受模型从人数和金额推断；只从用户原话的显式词语提取。
+        if(e.getKey().equals("budgetScope")) return;
         if(Set.of("mustVisit","excludedAttractionIds").contains(e.getKey())) {
           LinkedHashSet<String> names=new LinkedHashSet<>();
           if(details.get(e.getKey()) instanceof List<?> values) values.forEach(v->names.add(v.toString()));
           e.getValue().forEach(v->names.add(v.asText())); details.put(e.getKey(),List.copyOf(names));
+        } else if(Set.of("seniors","children").contains(e.getKey())) {
+          Integer count=partyCount(e.getValue());
+          if(count!=null) details.put(e.getKey(),count);
+          else if(e.getValue().isBoolean() && e.getValue().asBoolean()) details.remove(e.getKey());
         } else if(e.getKey().equals("confirmedGroupCosts") && e.getValue().isObject()) {
           Map<String,Object> amounts=new LinkedHashMap<>();
           if(details.get(e.getKey()) instanceof Map<?,?> prior) prior.forEach((k,v)->amounts.put(k.toString(),v));
@@ -67,6 +74,8 @@ final class TripRequirements {
           details.put(e.getKey(),amounts);
         } else details.put(e.getKey(),mapper.convertValue(e.getValue(),Object.class));
       });
+      String explicitBudgetScope = explicitBudgetScope(text);
+      if (explicitBudgetScope != null) details.put("budgetScope", explicitBudgetScope);
       if(details.get("mustVisit") instanceof List<?> must && details.get("excludedAttractionIds") instanceof List<?> excluded)
         details.put("mustVisit",must.stream().filter(v->!excluded.contains(v)).toList());
       planning.put("details",details);
@@ -86,19 +95,98 @@ final class TripRequirements {
     return fallback;
   }
 
+  private static Integer partyCount(JsonNode value) {
+    if(value.isIntegralNumber() && value.canConvertToInt() && value.intValue()>=0) return value.intValue();
+    if(value.isTextual() && value.asText().strip().matches("\\d+")) {
+      try { return Integer.valueOf(value.asText().strip()); }
+      catch(NumberFormatException ignored) { return null; }
+    }
+    return value.isBoolean() && !value.asBoolean() ? 0 : null;
+  }
+
   static String summary(ConversationState s) {
     Map<?,?> d=s.planning().get("details") instanceof Map<?,?> m?m:Map.of();
-    List<String> known=new ArrayList<>(),missing=new ArrayList<>();
+    List<String> known=new ArrayList<>(),missing=new ArrayList<>(),optional=new ArrayList<>();
     if(s.city()!=null) known.add("目的地"+s.city()); else missing.add("目的地");
     if(d.get("origin")!=null) known.add(d.get("origin")+"出发"); else missing.add("出发地");
-    if(s.days()!=null) known.add(s.days()+"天"); else missing.add("天数");
-    if(s.travelers()!=null) known.add(s.travelers()+"人"); else missing.add("人数及老幼情况");
-    if(s.budget()!=null) known.add("全团预算"+s.budget()+"元"); else missing.add("预算");
-    if(s.planning().get("departDate")!=null) known.add(s.planning().get("departDate")+"出发"); else missing.add("出发日期（可先查天气选日）");
-    for(String key:List.of("budgetScope","transportPreference","lodgingPreference")) if(d.get(key)!=null) known.add(d.get(key).toString());
-    if(!s.preferences().isEmpty())known.add(String.join("、",s.preferences()));
+    if(s.days()!=null) known.add(s.days()+"天"); else missing.add("游玩天数");
+    if(s.travelers()!=null) known.add(s.travelers()+"人"); else missing.add("同行人数");
+    if(s.budget()!=null) {
+      String scope = budgetScopeKey(d.get("budgetScope"));
+      if ("group_total".equals(scope)) known.add("全团预算"+amount(s.budget())+"元");
+      else if ("per_person".equals(scope)) {
+        String total = s.travelers() == null ? "" : "（"+s.travelers()+"人折合全团"+amount(s.budget().multiply(java.math.BigDecimal.valueOf(s.travelers())))+"元）";
+        known.add("人均预算"+amount(s.budget())+"元"+total);
+      } else {
+        known.add("预算"+amount(s.budget())+"元（口径待确认）");
+        missing.add("预算口径（全团总额还是人均）");
+      }
+    } else missing.add("预算金额及口径");
+    if(s.planning().get("departDate")!=null) known.add(s.planning().get("departDate")+"出发"); else missing.add("出发日期或大致月份");
+    if (d.get("transportMode") != null) known.add("交通"+transportLabel(d.get("transportMode")));
+    else if (d.get("transportPreference") != null) known.add("交通偏好"+d.get("transportPreference"));
+    else missing.add("交通方式（自驾/公共交通/包车或由我安排）");
+    if (d.get("seniors") != null) known.add("老人"+d.get("seniors")+"位");
+    if (d.get("children") != null) known.add("儿童"+d.get("children")+"位");
+    if (d.get("seniors") == null || d.get("children") == null) missing.add("老人和儿童人数（没有可写0）");
+    if (d.get("mobility") != null) known.add("步行要求"+d.get("mobility"));
+    else if (s.preferences().stream().noneMatch(TripRequirements::mentionsWalkingLimit)) optional.add("步行强度或限制（没有可写无）");
+    if (d.get("lodgingPreference") != null) known.add("住宿偏好"+d.get("lodgingPreference"));
+    if(!s.preferences().isEmpty())known.add("偏好"+String.join("、",s.preferences()));
     if(d.get("mustVisit") instanceof List<?> names && !names.isEmpty())known.add("必去"+names);
     if(d.get("excludedAttractionIds") instanceof List<?> names && !names.isEmpty())known.add("不去"+names);
-    return "【规划条件待确认】"+String.join("；",known)+"。\n"+(missing.isEmpty()?"关键条件已齐，回复‘确认开始规划’即可；也可继续修改。":"还需确认："+String.join("、",missing)+"。未定也可回复‘先出初稿’查看预览。");
+    if(s.preferences().isEmpty() && !(d.get("mustVisit") instanceof List<?> names && !names.isEmpty())) optional.add("游玩偏好或必去点");
+    boolean structured = Boolean.TRUE.equals(s.planning().get("_structured"));
+    StringBuilder reply = new StringBuilder(structured ? "【规划条件待确认】" : "【旅行需求收集】");
+    if (!known.isEmpty()) reply.append("已知：").append(String.join("；", known)).append("。 ");
+    if (missing.isEmpty()) reply.append("关键条件已齐，回复‘确认开始规划’即可；也可继续修改。");
+    else reply.append("还需确认：").append(String.join("、", missing)).append("。");
+    if (!optional.isEmpty()) reply.append("可选补充：").append(String.join("、", optional)).append("。");
+    if (!missing.isEmpty()) reply.append("未定项可写‘待定’；也可回复‘先出初稿’查看预览。");
+    return reply.toString();
+  }
+
+  private static String explicitBudgetScope(String text) {
+    String value = text == null ? "" : text.replaceAll("\\s+", "");
+    boolean budgetMention = value.contains("预算") || value.contains("经费") || value.contains("人均")
+        || value.contains("每人") || value.contains("每位");
+    if (!budgetMention) return null;
+    if (value.contains("人均") || value.contains("每人") || value.contains("每位")) return "per_person";
+    if (value.contains("全团") || value.contains("总预算") || value.contains("总共")
+        || value.contains("合计") || value.contains("一共")) return "group_total";
+    return null;
+  }
+
+  private static String budgetScopeKey(Object scope) {
+    if (scope == null) return null;
+    String value = scope.toString().toLowerCase(Locale.ROOT);
+    if (value.contains("per_person") || value.contains("人均") || value.contains("每人")) return "per_person";
+    if (value.contains("group_total") || value.contains("全团") || value.contains("总额")) return "group_total";
+    return null;
+  }
+
+  static boolean budgetScopeConfirmed(ConversationState state) {
+    if (state == null || state.budget() == null) return true;
+    Map<?, ?> details = state.planning().get("details") instanceof Map<?, ?> map ? map : Map.of();
+    return budgetScopeKey(details.get("budgetScope")) != null;
+  }
+
+  private static String amount(java.math.BigDecimal value) {
+    return value.stripTrailingZeros().toPlainString();
+  }
+
+  private static String transportLabel(Object mode) {
+    return switch (mode.toString().toUpperCase(Locale.ROOT)) {
+      case "DRIVING" -> "自驾";
+      case "TRANSIT" -> "公共交通";
+      case "WALKING" -> "步行";
+      case "CYCLING" -> "骑行";
+      default -> mode.toString();
+    };
+  }
+
+  private static boolean mentionsWalkingLimit(String preference) {
+    return preference.contains("走路") || preference.contains("步行") || preference.contains("少走")
+        || preference.contains("慢节奏") || preference.contains("行动不便");
   }
 }

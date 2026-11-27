@@ -193,7 +193,7 @@ public class ChatAgent {
       return summarizePlanningIntake(text, history, known);
     }
     if (!structured && attachedImages.isEmpty() && shouldStartPlanningIntake(text, history) && !explicitQuickDraft(text)) {
-      String question = "【旅行需求收集】先把关键信息一次收齐，再查资料排攻略。按序号回复，未定写‘待定’：1 从哪出发、哪天/哪月？2 几人，有老人/儿童或少走路要求吗？3 全团预算？4 自驾/公共交通/包车？5 偏好或必去点（古迹/自然/美食等）？忌口和住宿可选。收到后我先复述给你确认；回‘确认开始规划’才生成，也可回‘先出初稿’。";
+      String question = TripRequirements.summary(known);
       return new ChatReply(question, List.of(new ChatTools.Card("intake", "PLANNING_INTAKE", Map.of())),
           List.of(), known, "agent", null);
     }
@@ -288,6 +288,12 @@ public class ChatAgent {
               + "预报不足时只能保留为待定。确定日期后再规划；如只想预览，可回复‘先出初稿’。";
           if (onDelta != null) onDelta.accept(missing);
           return new ChatReply(missing, cards, trace, carried, "agent", null);
+        }
+        if ("draft_itinerary".equals(call.name()) && collecting && !explicitQuickDraft(text)
+            && !TripRequirements.budgetScopeConfirmed(carried)) {
+          String pending = TripRequirements.summary(carried);
+          if (onDelta != null) onDelta.accept(pending);
+          return new ChatReply(pending, cards, trace, carried, "agent", null);
         }
         // 用户定案：所有子 Agent 收集到的信息全量交给主 Agent 整理草案，再由评委投票。
         // vote_plan 因此会收到此前工具产生的全部卡片；其他工具不感知这个内部字段。

@@ -905,19 +905,32 @@ public class ChatTools {
       int cappedTravelers = Math.min(Math.max(travelers, 1), MAX_TRAVELERS);
       capped = capped || cappedTravelers != travelers;
       context.put("travelers", cappedTravelers);
+      travelers = cappedTravelers;
     }
+    Map<String, Object> details = args.path("details").isObject()
+        ? new com.fasterxml.jackson.databind.ObjectMapper().convertValue(args.get("details"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {})
+        : new LinkedHashMap<>();
     double budget = decimal(args, "budget", 0);
+    String budgetScope = String.valueOf(details.getOrDefault("budgetScope", "")).toLowerCase(java.util.Locale.ROOT);
+    boolean perPersonBudget = budgetScope.contains("per_person") || budgetScope.contains("人均") || budgetScope.contains("每人");
+    String budgetConversionNote = "";
     if (budget > 0) {
-      context.put("budget", budget);
+      if (perPersonBudget) {
+        if (travelers == null) return new Outcome(false, "人均预算需要先确认同行人数，暂不能折算全团预算。", null);
+        java.math.BigDecimal perPerson = args.path("budget").decimalValue();
+        java.math.BigDecimal groupTotal = perPerson.multiply(java.math.BigDecimal.valueOf(travelers));
+        context.put("budget", groupTotal);
+        budgetConversionNote = "预算折算：人均" + perPerson.stripTrailingZeros().toPlainString()
+            + "元 × " + travelers + "人 = 全团" + groupTotal.stripTrailingZeros().toPlainString() + "元。";
+      } else {
+        context.put("budget", budget);
+      }
     }
     String depart = text(args, "departDate");
     if (depart != null) {
       context.put("departDate", depart);
     }
     if (text(args, "returnDate") != null) context.put("returnDate", text(args, "returnDate"));
-    Map<String, Object> details = args.path("details").isObject()
-        ? new com.fasterxml.jackson.databind.ObjectMapper().convertValue(args.get("details"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {})
-        : new LinkedHashMap<>();
     details.put("includeWeather", Boolean.TRUE.equals(details.get("includeWeather")) || asksForWeather(userRawRequest));
     context.put("details", details);
     List<String> prefs = strings(args, "preferences");
@@ -934,6 +947,9 @@ public class ChatTools {
     if (unknown != null && unknown.asInt() > 0) codes.add("UNVERIFIED_TICKET");
     if (draftNode.findValue("channels") != null) codes.add("NO_REALTIME_STOCK");
     Outcome tagged = result.plusDisclaimers(codes);
+    if (!budgetConversionNote.isEmpty()) {
+      tagged = new Outcome(tagged.ok(), budgetConversionNote + tagged.summary(), tagged.card(), tagged.disclaimers());
+    }
     if (!capped) {
       return tagged;
     }
@@ -1009,8 +1025,14 @@ public class ChatTools {
         sb.append("\n门票预算：").append(budget.get("message"));
       }
       if (m.get("guide") instanceof Map<?, ?> guide) {
+        String reference = displayGuideValue(guide.get("referenceSubtotalCny"));
+        Object max = guide.get("referenceSubtotalMaxCny");
+        if (max instanceof Number && guide.get("referenceSubtotalCny") instanceof Number min
+            && new java.math.BigDecimal(max.toString()).compareTo(new java.math.BigDecimal(min.toString())) > 0) {
+          reference += "~" + displayGuideValue(max);
+        }
         sb.append("\n费用：已确认 ").append(displayGuideValue(guide.get("knownSubtotalCny")))
-            .append(" 元；含参考价格 ").append(displayGuideValue(guide.get("referenceSubtotalCny")))
+            .append(" 元；参考区间 ").append(reference)
             .append(" 元；另有 ").append(displayGuideValue(guide.get("unknownCostCount")))
             .append(" 项未覆盖。详细费用与来源见攻略卡。");
       }

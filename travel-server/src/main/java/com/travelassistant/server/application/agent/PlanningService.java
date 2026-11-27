@@ -114,21 +114,46 @@ public class PlanningService {
     if (request.details() != null) {
       int lookups = 0;
       List<Attraction> mandatory = new ArrayList<>();
+      Set<String> mandatoryKeys = new java.util.LinkedHashSet<>();
       List<Attraction> regionalCandidates = List.copyOf(candidates);
       for (String name : request.details().mustVisit()) {
         if (++lookups > 4) { notices.add("必去点查询上限4个，剩余点待逐个核对"); break; }
-        ToolOutcome<List<Attraction>> found = tools.searchByName(name, 10);
-        if (found.ok()) found.value().stream().filter(a -> name.equals(a.name()))
-            .filter(a -> regionalCandidates.stream().anyMatch(c -> java.util.Objects.equals(c.city(), a.city()))
-                || city.equals(a.city()) || city.equals(a.province()))
-            .findFirst().ifPresent(mandatory::add);
+        Attraction match = regionalCandidates.stream()
+            .filter(attraction -> matchesMustVisit(name, attraction))
+            .findFirst().orElse(null);
+        if (match == null) {
+          ToolOutcome<List<Attraction>> found = tools.searchByName(name, 50);
+          if (found.ok()) {
+            match = found.value().stream()
+                .filter(attraction -> matchesMustVisit(name, attraction))
+                .filter(attraction -> belongsToDestination(city, attraction))
+                .findFirst().orElse(null);
+          }
+        }
+        if (match == null) notices.add("必去点「" + name + "」未匹配到「" + city + "」的景点候选，未排入行程");
+        else {
+          mandatory.add(match);
+          mandatoryKeys.add(attractionKey(match));
+          if (!normalizePlaceName(name).equals(normalizePlaceName(match.name()))) {
+            notices.add("必去点「" + name + "」按当地候选匹配为「" + match.name() + "」");
+          }
+        }
       }
       candidates.addAll(0, mandatory);
+      // A broad must-visit label such as 「长城」 can match several separate scenic sections.
+      // Keep the single resolved representative so the itinerary does not schedule every alias.
+      candidates.removeIf(attraction -> request.details().mustVisit().stream()
+          .anyMatch(name -> matchesMustVisit(name, attraction))
+          && !mandatoryKeys.contains(attractionKey(attraction)));
     }
     candidates = mergeEntities(candidates);
     candidates.removeIf(a -> DraftAssembler.excluded(request,a));
     candidates = new ArrayList<>(DraftAssembler.uniqueAttractions(candidates));
-    candidates.sort(java.util.Comparator.<Attraction>comparingInt(a -> request.details() != null && request.details().mustVisit().contains(a.name()) ? 0 : 1)
+    Set<String> mandatoryKeys = request.details() == null ? Set.of()
+        : candidates.stream().filter(a -> request.details().mustVisit().stream()
+            .anyMatch(name -> matchesMustVisit(name, a)))
+            .map(PlanningService::attractionKey).collect(java.util.stream.Collectors.toSet());
+    candidates.sort(java.util.Comparator.<Attraction>comparingInt(a -> mandatoryKeys.contains(attractionKey(a)) ? 0 : 1)
         .thenComparing(java.util.Comparator.comparingInt((Attraction a) -> preferenceMatches(request, a)).reversed())
         .thenComparing(java.util.Comparator.comparingLong((Attraction a) -> request.preferences().stream().anyMatch(p -> p.contains("热门")) ? reviewCount(a) : 0).reversed())
         .thenComparing(com.travelassistant.server.application.place.RatingOrder.ATTRACTION));
@@ -214,6 +239,42 @@ public class PlanningService {
     return new PlanDraft(request, candidates, weather, ticketAdvice, advice,
         notices, List.copyOf(sources), assembled.questions(), assembled.dailySchedules(),
         assembled.checks(), assembled.budgetEstimate(), Instant.now(), guide);
+  }
+
+  private static boolean matchesMustVisit(String requestedName, Attraction attraction) {
+    if (requestedName == null || requestedName.isBlank() || attraction == null
+        || attraction.name() == null || attraction.name().isBlank()) return false;
+    String requested = normalizePlaceName(requestedName);
+    String actual = normalizePlaceName(attraction.name());
+    return actual.equals(requested) || actual.contains(requested);
+  }
+
+  private static boolean belongsToDestination(String destination, Attraction attraction) {
+    return sameRegion(destination, attraction.city()) || sameRegion(destination, attraction.province());
+  }
+
+  private static boolean sameRegion(String left, String right) {
+    return left != null && right != null && normalizeRegion(left).equals(normalizeRegion(right));
+  }
+
+  private static String normalizeRegion(String value) {
+    String normalized = value.strip().replaceAll("[\\s　]+", "");
+    for (String suffix : List.of("特别行政区", "维吾尔自治区", "壮族自治区", "回族自治区",
+        "自治区", "自治州", "地区", "省", "市", "县", "区")) {
+      if (normalized.endsWith(suffix) && normalized.length() > suffix.length()) {
+        return normalized.substring(0, normalized.length() - suffix.length());
+      }
+    }
+    return normalized;
+  }
+
+  private static String normalizePlaceName(String value) {
+    return value.strip().toLowerCase(java.util.Locale.ROOT).replaceAll("[\\s　]+", "");
+  }
+
+  private static String attractionKey(Attraction attraction) {
+    if (attraction.id() != null && !attraction.id().isBlank()) return "id:" + attraction.id();
+    return "name:" + normalizePlaceName(attraction.name()) + "|city:" + normalizeRegion(attraction.city());
   }
 
   private static int preferenceMatches(PlanningRequest request, Attraction a) {

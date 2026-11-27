@@ -149,8 +149,6 @@ public final class DraftAssembler {
       }
     }
     LocalDate depart = request.departDate();
-    LocalDate ret = request.returnDate();
-    boolean validRange = depart != null && ret != null && !ret.isBefore(depart);
     String baseNote = "游览时刻待确认，景点信息来自本地知识库快照";
 
     List<DraftDay> days = new ArrayList<>();
@@ -163,20 +161,24 @@ public final class DraftAssembler {
         continue;  // 不生成「暂无候选」空行
       }
 
-      LocalDate date = null;
+      LocalDate date = dateForDay(request, i + 1);
       String note = "第 " + (i + 1) + " 天；首站按景点候选排序；"
           + selectionReason(groups.get(i).getFirst()) + "；" + baseNote;
-      if (validRange) {
-        LocalDate candidate = depart.plusDays(i);
-        if (!candidate.isAfter(ret)) {
-          date = candidate;
-        } else {
-          note = "第 " + (i + 1) + " 天超出出发/返回区间，未分配具体日期";
-        }
+      if (depart != null && date == null) {
+        note = "第 " + (i + 1) + " 天超出出发/返回区间，未分配具体日期";
       }
       days.add(new DraftDay(i + 1, date, note, items));
     }
     return List.copyOf(days);
+  }
+
+  /** 逐日日期的唯一口径：按出发日顺推；有明确返回日时不得越过返回日。 */
+  public static LocalDate dateForDay(PlanningRequest request, int dayIndex) {
+    if (request == null || request.departDate() == null || dayIndex < 1) return null;
+    LocalDate date = request.departDate().plusDays(dayIndex - 1L);
+    LocalDate ret = request.returnDate();
+    if (ret != null && (ret.isBefore(request.departDate()) || date.isAfter(ret))) return null;
+    return date;
   }
 
   /** 把知识库记录转成可追溯的草案条目。 */

@@ -79,6 +79,9 @@ public class TravelGuideComposer {
         lookup.parkingNote = parkingNote;
       } else parkingNote = lookup.parkingNote;
     }
+    if (details != null && details.origin() != null && originPoint == null) {
+      originPoint = lookup.geocode(details.origin(), details.originCity());
+    }
 
     boolean removedVisit = false;
     List<Integer> queryOrder = new ArrayList<>();
@@ -88,7 +91,7 @@ public class TravelGuideComposer {
       lookup.day = d;
       int index = d;
       DraftDay scheduled = arranged.stream().filter(day -> day.dayIndex() == index).findFirst().orElse(null);
-      LocalDate date = request.departDate() == null ? null : request.departDate().plusDays(d - 1);
+      LocalDate date = DraftAssembler.dateForDay(request, d);
       List<String> checks = new ArrayList<>();
       if (request.returnDate() != null && date != null && date.isAfter(request.returnDate())) {
         checks.add("本日超过返回日期，须先调整日期或天数"); date = null;
@@ -105,8 +108,16 @@ public class TravelGuideComposer {
       LatLon firstCenter = lookup.coordinate(firstVisit);
       if (firstCenter == null && cityReference == null) cityReference = lookup.geocode(request.destination(), request.destination());
       LatLon breakfastCenter = hotel != null ? hotel : firstCenter != null ? firstCenter : cityReference;
-      if (d == 1 && outbound != null && originPoint != null) breakfastCenter = originPoint;
-      List<FoodPlace> breakfast = lookup.food(breakfastCenter, details, "早餐附近餐馆");
+      boolean missingDepartureBreakfastAnchor = d == 1 && details != null
+          && details.origin() != null && originPoint == null;
+      if (d == 1 && details != null && details.origin() != null && originPoint != null) {
+        breakfastCenter = originPoint;
+      }
+      List<FoodPlace> breakfast = missingDepartureBreakfastAnchor
+          ? List.of() : lookup.food(breakfastCenter, details, "早餐附近餐馆");
+      if (missingDepartureBreakfastAnchor) {
+        checks.add("已填写出发地但未能定位，首日早餐未推荐目的地餐馆；请在出发地自行安排");
+      }
       TravelGuide.Slot outSlot = slots.stream().filter(it -> it.id().equals("intercity-out")).findFirst().orElse(null);
       if (outSlot != null) slots.remove(outSlot);
       meal(slots, costs, prefix + "-breakfast", "早餐", breakfast, people);
@@ -229,20 +240,25 @@ public class TravelGuideComposer {
       for (String must : details.mustVisit()) if (arranged.stream().flatMap(day -> day.items().stream()).noneMatch(it -> it.name().equals(must)))
         notices.add("必去点未进入安排：" + must + "；请分别检索并核对位置，不能视为已满足");
     }
-    BigDecimal known = BigDecimal.ZERO, reference = BigDecimal.ZERO;
+    BigDecimal known = BigDecimal.ZERO, reference = BigDecimal.ZERO, referenceMax = BigDecimal.ZERO;
     int unknown = 0;
     for (var cost : costs) {
       if (cost.groupAmountCny() == null) { unknown++; continue; }
       reference = reference.add(cost.groupAmountCny());
+      referenceMax = referenceMax.add(cost.groupAmountMaxCny() == null
+          ? cost.groupAmountCny() : cost.groupAmountMaxCny());
       if (cost.priceType().equals("USER_CONFIRMED")) known = known.add(cost.groupAmountCny());
     }
     String verdict = request.budget() == null ? "NO_BUDGET" : !request.currencyOrDefault().equals("CNY") ? "CURRENCY_MISMATCH"
-        : known.compareTo(request.budget()) > 0 ? "EXCEEDS_LIMIT" : reference.compareTo(request.budget()) > 0 ? "REFERENCE_EXCEEDS_LIMIT" : unknown > 0 || known.compareTo(reference) != 0 ? "CANNOT_DETERMINE" : "WITHIN_CONFIRMED_SCOPE";
+        : known.compareTo(request.budget()) > 0 ? "EXCEEDS_LIMIT"
+        : reference.compareTo(request.budget()) > 0 ? "REFERENCE_EXCEEDS_LIMIT"
+        : referenceMax.compareTo(request.budget()) > 0 ? "REFERENCE_RANGE_CROSSES_LIMIT"
+        : unknown > 0 || known.compareTo(reference) != 0 ? "CANNOT_DETERMINE" : "WITHIN_CONFIRMED_SCOPE";
     notices.add("地图可能返回跨城换乘及铁路段参考，不代表指定旅行日可售班次或余票；铁路座席价仅展示备选，不重复累加到换乘总价。道路收费仅是一部分自驾成本，车辆数未提供时不按人数乘车费，油电/停车等仍需补充。");
     notices.add("骑行路线不代表有共享车辆、可停放或适合儿童；老幼优惠、餐馆营业与忌口均须单独确认。参考小计不等于完整预算，未覆盖项不能当零。");
     notices.add("老幼票种未核验：门票金额仅是全团按普通成人全价的参考场景，不代表老幼适用或已享优惠；人均/每日均为未覆盖项之外的小计。三餐候选来自附近检索，早餐供餐、特色菜和营业时间须核实。");
     notices.add("更换人数、日期、酒店或排除景点后重新生成；用 details.confirmedGroupCosts 按费用键录入全团CNY金额。没有交易报价时不承诺精确账单。");
-    return new TravelGuide(List.copyOf(days), List.copyOf(costs), known, reference,
+    return new TravelGuide(List.copyOf(days), List.copyOf(costs), known, reference, referenceMax,
         people == null ? null : reference.divide(BigDecimal.valueOf(people), 2, RoundingMode.HALF_UP),
         count == 0 ? null : reference.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP), unknown, verdict, List.copyOf(notices), List.copyOf(lookup.issues), lookup.usage());
   }
@@ -491,11 +507,23 @@ public class TravelGuideComposer {
         "预留60分钟（假设）；附近餐馆为可定位备选，营业原文需按实际餐时核对，不能据名称确认早餐/供餐"));
   }
   private static TravelGuide.Cost mealCost(TravelGuide.Slot slot, Integer people) {
-    FoodPlace food=slot.restaurants().stream().filter(p -> p.pricePerPersonCny()!=null && Double.isFinite(p.pricePerPersonCny()) && p.pricePerPersonCny()>0).findFirst().orElse(null);
-    BigDecimal price=food==null?null:BigDecimal.valueOf(food.pricePerPersonCny());
-    return new TravelGuide.Cost(slot.id(),"FOOD",slot.title()+(food==null?"":"参考场景 "+food.name()+"（营业/供餐仍须确认）"),price,people,"人",
-        price==null||people==null?null:price.multiply(BigDecimal.valueOf(people)),price==null?"UNKNOWN":"REFERENCE",
-        food==null?"未取得参考价格":food.source(),food==null||food.fetchedAt()==null?null:food.fetchedAt().toString());
+    List<FoodPlace> priced = slot.restaurants().stream()
+        .filter(p -> p.pricePerPersonCny() != null && Double.isFinite(p.pricePerPersonCny())
+            && p.pricePerPersonCny() > 0)
+        .sorted(Comparator.comparingDouble(FoodPlace::pricePerPersonCny)).toList();
+    FoodPlace first = priced.isEmpty() ? null : priced.getFirst();
+    FoodPlace last = priced.isEmpty() ? null : priced.getLast();
+    BigDecimal low = first == null ? null : BigDecimal.valueOf(first.pricePerPersonCny());
+    BigDecimal high = last == null ? null : BigDecimal.valueOf(last.pricePerPersonCny());
+    BigDecimal groupLow = low == null || people == null ? null : low.multiply(BigDecimal.valueOf(people));
+    BigDecimal groupHigh = high == null || people == null ? null : high.multiply(BigDecimal.valueOf(people));
+    String description = slot.title() + (priced.isEmpty() ? "（未选餐馆，价格未知）"
+        : "候选参考区间（未选餐馆；" + priced.size() + "家有价候选"
+            + (priced.size() == slot.restaurants().size() ? "" : "，另有价格未知候选") + "）");
+    return new TravelGuide.Cost(slot.id(), "FOOD", description, low, people, "人",
+        groupLow, low == null ? "UNKNOWN" : "REFERENCE_RANGE",
+        first == null ? "未取得参考价格" : first.source(),
+        first == null || first.fetchedAt() == null ? null : first.fetchedAt().toString(), groupHigh);
   }
   private static String ticketDate(Attraction a) {
     if(a==null) return null;

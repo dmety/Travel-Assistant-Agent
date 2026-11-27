@@ -459,6 +459,24 @@ class ChatToolsTest {
   }
 
   @Test
+  @DisplayName("人均预算按人数折算为全团预算后再进入行程核算")
+  void planConvertsPerPersonBudgetToGroupTotal() {
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("PLAN_DRAFT",
+        "builtin.planning", planFact()));
+    when(orchestrator.contractBody(any())).thenReturn(Map.of("facts", List.of()));
+
+    ChatTools.Outcome outcome = tools.execute("draft_itinerary",
+        "{\"city\":\"武汉\",\"days\":3,\"travelers\":2,\"budget\":1000,"
+            + "\"details\":{\"budgetScope\":\"per_person\"}}");
+
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("人均1000元 × 2人 = 全团2000元");
+    ArgumentCaptor<DispatchRequest> captor = ArgumentCaptor.captor();
+    verify(orchestrator).dispatch(captor.capture());
+    assertThat(captor.getValue().context()).containsEntry("budget", new java.math.BigDecimal("2000"));
+  }
+
+  @Test
   @DisplayName("排行程摘要带上逐日景点：模型不会误以为工具只给了空壳")
   void planSummaryIncludesDailyItems() {
     when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("PLAN_DRAFT",

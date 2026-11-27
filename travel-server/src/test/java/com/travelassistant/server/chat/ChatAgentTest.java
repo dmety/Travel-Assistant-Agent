@@ -82,6 +82,22 @@ class ChatAgentTest {
   }
 
   @Test
+  @DisplayName("预算口径未确认时，用户确认也不能按全团预算生成攻略")
+  void confirmationDoesNotGuessBudgetScope() {
+    when(model.complete(any(), any())).thenReturn("{\"intent\":\"confirm\"}");
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("d", "draft_itinerary", "{\"city\":\"北京\",\"days\":2,\"departDate\":\"2026-11-28\"}"));
+    ConversationState state = new ConversationState("北京", 2, 2, new java.math.BigDecimal("1000"), List.of(),
+        Map.of("_structured", true, "_phase", "collecting", "departDate", "2026-11-28",
+            "details", Map.of("origin", "上海", "transportMode", "TRANSIT", "seniors", 0, "children", 0)));
+
+    ChatReply reply = agent.chat("确认开始规划", List.of(), state);
+
+    assertThat(reply.reply()).contains("预算1000元（口径待确认）", "预算口径（全团总额还是人均）");
+    verify(tools, never()).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
   void explicitlyRequestedPreviewCanKeepDateUndecided() {
     when(model.chat(anyList(), anyList(), anyInt()))
         .thenReturn(call("d", "draft_itinerary", "{\"city\":\"大同\",\"days\":5}"));

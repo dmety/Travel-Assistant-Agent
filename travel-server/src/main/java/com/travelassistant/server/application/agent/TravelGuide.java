@@ -8,9 +8,18 @@ import java.util.List;
 
 /** Single response model for the guide, transport and group cost ledger. Never a booking guarantee. */
 public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubtotalCny,
-    BigDecimal referenceSubtotalCny, BigDecimal perPersonReferenceCny, BigDecimal perDayReferenceCny,
+    BigDecimal referenceSubtotalCny, BigDecimal referenceSubtotalMaxCny,
+    BigDecimal perPersonReferenceCny, BigDecimal perDayReferenceCny,
     int unknownCostCount, String budgetVerdict, List<String> notices,
     List<QueryIssue> queryIssues, QueryUsage queryUsage) {
+  public TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubtotalCny,
+      BigDecimal referenceSubtotalCny, BigDecimal perPersonReferenceCny,
+      BigDecimal perDayReferenceCny, int unknownCostCount, String budgetVerdict,
+      List<String> notices, List<QueryIssue> queryIssues, QueryUsage queryUsage) {
+    this(days, costs, knownSubtotalCny, referenceSubtotalCny, referenceSubtotalCny,
+        perPersonReferenceCny, perDayReferenceCny, unknownCostCount, budgetVerdict,
+        notices, queryIssues, queryUsage);
+  }
   public record QueryIssue(int dayIndex, String kind, String reason, String target) {}
   public record QueryUsage(int routeLimit, int routeCalls, int foodLimit, int foodCalls, int geocodeLimit, int geocodeCalls, long durationLimitMillis, long elapsedMillis) {}
 
@@ -24,7 +33,14 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
       List<FoodPlace> restaurants, RouteResult route, String note) {}
   public record Cost(String itemId, String category, String description, BigDecimal unitPriceCny,
       Integer quantity, String unit, BigDecimal groupAmountCny, String priceType,
-      String source, String informationDate) {}
+      String source, String informationDate, BigDecimal groupAmountMaxCny) {
+    public Cost(String itemId, String category, String description, BigDecimal unitPriceCny,
+        Integer quantity, String unit, BigDecimal groupAmountCny, String priceType,
+        String source, String informationDate) {
+      this(itemId, category, description, unitPriceCny, quantity, unit, groupAmountCny,
+          priceType, source, informationDate, groupAmountCny);
+    }
+  }
 
   public String render() {
     StringBuilder out=new StringBuilder("旅行攻略草案\n时间为规划假设；未确定的衔接只列顺序，出发前请核对开放与预约。");
@@ -84,16 +100,30 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     for(Cost cost:costs) {
       String day=cost.itemId().matches("D[0-9]+-.*")?"第"+cost.itemId().substring(1,cost.itemId().indexOf('-'))+"天 ":"";
       out.append("\n").append(++index).append(". ").append(day).append(cost.description()).append("：")
-          .append(cost.groupAmountCny()==null?"金额未知":amount(cost.groupAmountCny())+"元")
+          .append(cost.groupAmountCny()==null?"金额未知":amount(cost.groupAmountCny())
+              + (cost.groupAmountMaxCny()!=null && cost.groupAmountMaxCny().compareTo(cost.groupAmountCny())>0
+                  ? "~"+amount(cost.groupAmountMaxCny()) : "") + "元")
           .append("（").append(priceLabel(cost.priceType())).append("）");
-      if(cost.unitPriceCny()!=null) out.append("；").append(amount(cost.unitPriceCny())).append("元 × ")
-          .append(cost.quantity()==null?"数量待确认":cost.quantity()).append(" ").append(cost.unit());
+      if(cost.unitPriceCny()!=null) {
+        out.append("；").append(amount(cost.unitPriceCny()));
+        if(cost.groupAmountMaxCny()!=null && cost.groupAmountCny()!=null
+            && cost.groupAmountMaxCny().compareTo(cost.groupAmountCny())>0
+            && cost.quantity()!=null && cost.quantity()>0) {
+          out.append("~").append(amount(cost.groupAmountMaxCny()
+              .divide(BigDecimal.valueOf(cost.quantity()), 2, java.math.RoundingMode.HALF_UP)));
+        }
+        out.append("元 × ").append(cost.quantity()==null?"数量待确认":cost.quantity())
+            .append(" ").append(cost.unit());
+      }
       if(cost.source()!=null && !cost.source().isBlank() && !cost.source().startsWith("未取得")) evidence.add(cost.source()+"；信息日期 "+(cost.informationDate()==null?"未返回/未核验":cost.informationDate()));
     }
-    out.append("\n你确认的费用小计：").append(amount(knownSubtotalCny)).append("元；含参考价格的小计：").append(amount(referenceSubtotalCny))
+    out.append("\n你确认的费用小计：").append(amount(knownSubtotalCny)).append("元；含参考价格的小计：")
+        .append(referenceSubtotalMaxCny != null && referenceSubtotalMaxCny.compareTo(referenceSubtotalCny) > 0
+            ? amount(referenceSubtotalCny) + "~" + amount(referenceSubtotalMaxCny)
+            : amount(referenceSubtotalCny))
         .append("元，另有").append(unknownCostCount).append("项费用未覆盖。")
-        .append("\n人均参考小计：").append(perPersonReferenceCny==null?"人数待补":amount(perPersonReferenceCny)+"元")
-        .append("；每日参考小计：").append(perDayReferenceCny==null?"天数待补":amount(perDayReferenceCny)+"元")
+        .append("\n人均参考下限：").append(perPersonReferenceCny==null?"人数待补":amount(perPersonReferenceCny)+"元")
+        .append("；每日参考下限：").append(perDayReferenceCny==null?"天数待补":amount(perDayReferenceCny)+"元")
         .append("。\n预算判断：").append(budgetLabel(budgetVerdict));
     if(!checks.isEmpty()) {
       out.append("\n\n出发前需确认"); for(String check:checks) out.append("\n- ").append(check);
@@ -129,11 +159,13 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
   private static String amount(BigDecimal value) { return value.stripTrailingZeros().toPlainString(); }
   private static String priceLabel(String type) {
     return switch(type) { case "USER_CONFIRMED" -> "你确认的金额"; case "REFERENCE" -> "来源参考价格，非实时报价";
+      case "REFERENCE_RANGE" -> "有价候选的参考区间，未选餐馆，非实时报价";
       case "REALTIME" -> "实时报价"; default -> "待补充，未按零元计"; };
   }
   private static String budgetLabel(String verdict) {
     return switch(verdict) { case "EXCEEDS_LIMIT" -> "已确认费用已超过预算";
-      case "REFERENCE_EXCEEDS_LIMIT" -> "含参考价格的小计已超过预算，尚有未知项未计入";
+      case "REFERENCE_EXCEEDS_LIMIT" -> "有价参考费用下限已超过预算，且仍有未知费用";
+      case "REFERENCE_RANGE_CROSSES_LIMIT" -> "参考价格区间跨过预算上限，且仍有未知费用，暂不能判断是否超支";
       case "WITHIN_CONFIRMED_SCOPE" -> "当前已确认费用未超预算，请核对是否覆盖全部支出";
       case "NO_BUDGET" -> "尚未填写预算上限"; case "CURRENCY_MISMATCH" -> "预算币种与人民币账本不同，暂不直接比较";
       default -> "仍有未知或参考费用，无法确认总花费是否超预算"; };
