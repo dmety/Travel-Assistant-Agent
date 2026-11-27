@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @DisplayName("任务 #2 注册登录")
 class AccountApiTest extends ApiTestBase {
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
 
   // ---- 注册 ----
 
@@ -100,16 +103,21 @@ class AccountApiTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("密码以 BCrypt 哈希落盘，文件中不存在明文")
+  @DisplayName("密码以 BCrypt 哈希持久化，存储中不存在明文")
   void passwordIsStoredAsBcryptHash() throws Exception {
     String username = uniqueUsername("hash");
     register(username, DEFAULT_PASSWORD);
 
-    Path accounts = DATA_DIR.resolve("accounts.json");
-    assertThat(Files.exists(accounts)).as("账号文件应已创建").isTrue();
-    String raw = Files.readString(accounts, StandardCharsets.UTF_8);
+    String raw;
+    if (jdbc != null) {
+      raw = "[" + jdbc.queryForObject("SELECT payload FROM travel_accounts WHERE id = ?", String.class, username) + "]";
+    } else {
+      Path accounts = DATA_DIR.resolve("accounts.json");
+      assertThat(Files.exists(accounts)).as("账号文件应已创建").isTrue();
+      raw = Files.readString(accounts, StandardCharsets.UTF_8);
+    }
 
-    assertThat(raw).as("文件中不得出现密码明文").doesNotContain(DEFAULT_PASSWORD);
+    assertThat(raw).as("存储中不得出现密码明文").doesNotContain(DEFAULT_PASSWORD);
     JsonNode records = json.readTree(raw);
     JsonNode target = null;
     for (JsonNode record : records) {
@@ -117,7 +125,7 @@ class AccountApiTest extends ApiTestBase {
         target = record;
       }
     }
-    assertThat(target).as("应能在文件中找到该账号").isNotNull();
+    assertThat(target).as("应能在存储中找到该账号").isNotNull();
     assertThat(target.get("passwordHash").asText())
         .as("密码应为 BCrypt 格式")
         .startsWith("$2a$");

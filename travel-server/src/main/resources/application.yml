@@ -17,12 +17,24 @@ server:
         # （SESSION_COOKIE_SECURE=true），否则 Cookie 会随明文请求泄漏。见部署说明 P5。
         secure: ${SESSION_COOKIE_SECURE:false}
 spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/travel_assistant?characterEncoding=UTF-8
+    # 填写本机数据库账号和密码。
+    username: "root"
+    password: "248650"
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 30000
+      validation-timeout: 5000
   application:
     name: travel-assistant
   lifecycle:
     # 优雅停机每阶段最长等待，超时强制退出；与 server.shutdown=graceful 配套。
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
 travel:
+  persistence: mysql
+  mysql:
+    import-json: false
   # 当前仅支持显式标注的沙箱支付；其它模式在适配器具备并核验前拒绝启动。
   payment:
     mode: ${TRAVEL_PAYMENT_MODE:sandbox}

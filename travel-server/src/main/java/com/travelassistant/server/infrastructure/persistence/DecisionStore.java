@@ -27,6 +27,7 @@ import org.springframework.stereotype.Repository;
  * <p>删除候选项时连带清掉它名下的选票，避免留下指向已删除候选的孤儿票。
  */
 @Repository
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "travel.persistence", havingValue = "json", matchIfMissing = true)
 public class DecisionStore {
   private static final Logger log = LoggerFactory.getLogger(DecisionStore.class);
 

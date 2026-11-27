@@ -27,6 +27,7 @@ import org.springframework.stereotype.Repository;
  * 操作流水，不是审计底账，无上限增长会让单文件无限膨胀。行程删除时整份清零。
  */
 @Repository
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "travel.persistence", havingValue = "json", matchIfMissing = true)
 public class CollaborationStore {
   private static final Logger log = LoggerFactory.getLogger(CollaborationStore.class);
 

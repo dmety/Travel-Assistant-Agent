@@ -23,6 +23,7 @@ import org.springframework.stereotype.Repository;
  * 因此单独成库。
  */
 @Repository
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "travel.persistence", havingValue = "json", matchIfMissing = true)
 public class InvitationStore {
   private static final Logger log = LoggerFactory.getLogger(InvitationStore.class);
 

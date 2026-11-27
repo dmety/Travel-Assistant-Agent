@@ -13,16 +13,36 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
   private final Path dataDirectory;
+  private final String persistence;
+  private final java.util.Optional<org.springframework.jdbc.core.JdbcTemplate> jdbc;
 
-  public HealthController(@Value("${travel.data-directory}") String dataDirectory) {
-    this.dataDirectory = Paths.get(dataDirectory).toAbsolutePath().normalize();
+  public HealthController(String dataDirectory) {
+    this(dataDirectory, "json", java.util.Optional.empty());
   }
 
-  // 就绪探针：数据目录可写才 UP（JSON 持久化是唯一写依赖），不可写返回 503 供反代/监控摘流；
-  // 景点知识库只读、缺失时仅搜索降级，不纳入就绪判定。
+  @org.springframework.beans.factory.annotation.Autowired
+  public HealthController(@Value("${travel.data-directory}") String dataDirectory,
+      @Value("${travel.persistence:json}") String persistence,
+      java.util.Optional<org.springframework.jdbc.core.JdbcTemplate> jdbc) {
+    this.dataDirectory = Paths.get(dataDirectory).toAbsolutePath().normalize();
+    this.persistence = persistence;
+    this.jdbc = jdbc;
+  }
+
+  // 按实际存储模式检查依赖；MySQL 不依赖业务 JSON 目录。
+  // SELECT 1 检查连接可用性，不替代建表及写权限验证；景点检索降级不阻止就绪。
   @GetMapping("/api/health")
   public ResponseEntity<HealthResponse> health() {
-    boolean ready = Files.isWritable(dataDirectory);
+    boolean ready;
+    if ("mysql".equals(persistence)) {
+      try {
+        ready = jdbc.isPresent() && Integer.valueOf(1).equals(jdbc.get().queryForObject("SELECT 1", Integer.class));
+      } catch (org.springframework.dao.DataAccessException e) {
+        ready = false;
+      }
+    } else {
+      ready = Files.isWritable(dataDirectory);
+    }
     HealthResponse body = new HealthResponse(ready ? "UP" : "DOWN", "travel-assistant");
     return ready ? ResponseEntity.ok(body) : ResponseEntity.status(503).body(body);
   }

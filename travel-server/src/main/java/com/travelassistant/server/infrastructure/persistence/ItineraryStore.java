@@ -20,6 +20,7 @@ import org.springframework.stereotype.Repository;
  * 读取走内存副本，写入先落临时文件再原子替换，避免并发损坏。
  */
 @Repository
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "travel.persistence", havingValue = "json", matchIfMissing = true)
 public class ItineraryStore {
   private static final Logger log = LoggerFactory.getLogger(ItineraryStore.class);
 

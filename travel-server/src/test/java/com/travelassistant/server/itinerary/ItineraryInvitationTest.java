@@ -26,6 +26,9 @@ import org.springframework.test.web.servlet.MvcResult;
  * 只有接受才产生成员关系，拒绝则什么都不留下。
  */
 class ItineraryInvitationTest extends ApiTestBase {
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
 
   // ---- 发起与可见性 ----
 
@@ -372,7 +375,7 @@ class ItineraryInvitationTest extends ApiTestBase {
   }
 
   @Test
-  @DisplayName("邀请落盘到 invitations.json，重启后仍可读取")
+  @DisplayName("邀请持久化内容可读取")
   void invitationsArePersisted() throws Exception {
     MockHttpSession owner = registerAndLogin();
     String inviteeName = uniqueUsername("guest");
@@ -380,9 +383,14 @@ class ItineraryInvitationTest extends ApiTestBase {
     String id = createItinerary(owner, "呼伦贝尔");
     String invId = inviteId(id, owner, inviteeName, List.of("DAILY"), 201);
 
-    Path file = DATA_DIR.resolve("invitations.json");
-    assertThat(Files.exists(file)).as("邀请文件应已创建").isTrue();
-    String text = Files.readString(file, StandardCharsets.UTF_8);
+    String text;
+    if (jdbc != null) {
+      text = jdbc.queryForObject("SELECT payload FROM travel_invitations WHERE id = ?", String.class, invId);
+    } else {
+      Path file = DATA_DIR.resolve("invitations.json");
+      assertThat(Files.exists(file)).as("邀请文件应已创建").isTrue();
+      text = Files.readString(file, StandardCharsets.UTF_8);
+    }
     assertThat(text).contains(invId).contains("\"PENDING\"").contains(inviteeName);
   }
 

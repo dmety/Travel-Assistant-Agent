@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 /** 沙箱订单的单进程 JSON 持久化；不适用于真实收款、水平扩容或并发多实例。 */
 @Repository
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "travel.persistence", havingValue = "json", matchIfMissing = true)
 public class DemoTicketOrderStore {
   private final ObjectMapper mapper;
   private final Path file;
