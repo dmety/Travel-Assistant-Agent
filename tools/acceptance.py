@@ -46,11 +46,24 @@ def check(condition, description):
 
 
 def main():
-    check(JAR.exists(), 'packaged server exists')
+    server_classpath = os.environ.get('ACCEPTANCE_SERVER_CLASSPATH')
+    check(bool(server_classpath) or JAR.exists(), 'server launch input exists')
     env = dict(os.environ, AMAP_KEY='', BAIDU_AK='', DEEPSEEK_API_KEY='',
         NO_PROXY='127.0.0.1,localhost', PYTHONIOENCODING='utf-8')
+    persistence = os.environ.get('ACCEPTANCE_PERSISTENCE', 'json')
+    if persistence not in {'json', 'mysql'}:
+        raise ValueError('ACCEPTANCE_PERSISTENCE must be json or mysql')
+    if persistence == 'mysql':
+        # Explicit isolated database only: never inherit the application's business database.
+        for key in ('MYSQL_TEST_URL', 'MYSQL_TEST_USER', 'MYSQL_TEST_PASSWORD'):
+            if not os.environ.get(key):
+                raise ValueError('MySQL acceptance requires ' + key)
+        env.update(SPRING_DATASOURCE_URL=os.environ['MYSQL_TEST_URL'],
+                   SPRING_DATASOURCE_USERNAME=os.environ['MYSQL_TEST_USER'],
+                   SPRING_DATASOURCE_PASSWORD=os.environ['MYSQL_TEST_PASSWORD'])
     with tempfile.TemporaryDirectory(prefix='travel-acceptance-') as temporary:
         data = Path(temporary) / 'data'
+        env['LOG_DIR'] = str(Path(temporary) / 'logs')
         process = None
         with (Path(temporary) / 'server.log').open('w', encoding='utf-8') as log:
             def stop():
@@ -70,9 +83,12 @@ def main():
                     sock.bind(('127.0.0.1', 0))
                     port = sock.getsockname()[1]
                 base = f'http://127.0.0.1:{port}'
-                process = subprocess.Popen(['java', '-jar', str(JAR),
+                launch = (['java', '-cp', server_classpath, 'com.travelassistant.server.TravelServerApplication']
+                          if server_classpath else ['java', '-jar', str(JAR)])
+                process = subprocess.Popen(launch + [
                     f'--server.port={port}', '--server.address=127.0.0.1',
-                    f'--travel.data-directory={data}',
+                    f'--travel.data-directory={data}', f'--travel.persistence={persistence}',
+                    '--travel.mysql.import-json=false',
                     f'--travel.attraction-kb-path={ROOT / "data/attractions_index.json"}',
                     '--travel.amap.key=', '--travel.ai.api-key='], cwd=ROOT, env=env,
                     stdout=log, stderr=subprocess.STDOUT,
@@ -98,6 +114,35 @@ def main():
                 check(request(owner, base, '/api/account/register', credentials)[0] == 409, 'duplicate rejected')
                 check(request(owner, base, '/api/login', dict(credentials, password='WrongPassword'), form=True)[0] == 401, 'wrong password rejected')
                 check(request(owner, base, '/api/login', credentials, form=True)[0] == 200, 'login')
+
+                code, order = request(owner, base, '/api/demo-orders',
+                    {'attractionName': '回归测试景点', 'productCode': 'DEMO_ADMISSION', 'quantity': 2})
+                check(code == 200 and order['orderStatus'] == 'PAYMENT_PENDING', 'sandbox order created')
+                order_path = '/api/demo-orders/' + order['id']
+                payment = {'eventId': 'acceptance-payment', 'amount': 2, 'currency': 'CNY'}
+                check(request(owner, base, order_path + '/simulate-payment', dict(payment, amount=1))[0] == 400,
+                      'sandbox payment rejects mismatched amount')
+                code, paid = request(owner, base, order_path + '/simulate-payment', payment)
+                check(code == 200 and paid['ticketStatus'] == 'DEMO_ISSUED', 'sandbox payment issues demo ticket')
+                code, repeated = request(owner, base, order_path + '/simulate-payment', payment)
+                check(code == 200 and repeated['ticketId'] == paid['ticketId'], 'duplicate sandbox payment is idempotent')
+                code, refunded = request(owner, base, order_path + '/refund', {})
+                check(code == 200 and refunded['ticketStatus'] == 'DEMO_VOIDED', 'sandbox refund voids demo ticket')
+                check(request(owner, base, order_path + '/refund', {})[0] == 200, 'sandbox refund is idempotent')
+                check(request(stranger, base, order_path)[0] == 401, 'anonymous cannot read orders')
+                other = client()
+                other_credentials = {'username': 'acceptance_order_other', 'password': 'Password123'}
+                check(request(other, base, '/api/account/register', other_credentials)[0] == 201, 'register second order owner')
+                check(request(other, base, '/api/login', other_credentials, form=True)[0] == 200, 'login second order owner')
+                check(request(other, base, order_path)[0] == 403, 'other account cannot read order')
+                check(request(other, base, '/api/demo-orders')[1] == [], 'orders isolated by owner')
+                code, failed = request(owner, base, '/api/demo-orders',
+                    {'attractionName': '回归测试景点', 'productCode': 'DEMO_ADMISSION', 'quantity': 1})
+                failed_path = '/api/demo-orders/' + failed['id']
+                check(request(owner, base, failed_path + '/simulate-failure', {})[1]['orderStatus'] == 'PAYMENT_FAILED',
+                      'sandbox payment failure persisted')
+                check(request(owner, base, failed_path + '/cancel', {})[1]['orderStatus'] == 'CANCELLED',
+                      'failed order can be cancelled')
                 # A-2：模型购票建议会消耗配额，匿名请求必须在安全层被拒，不能进入控制器。
                 check(request(client(), base, '/api/agent/tickets/advice', {})[0] == 401,
                     'anonymous model advice is rejected with 401')
@@ -344,12 +389,16 @@ def main():
                       'coordinateSystem reaches Java detail API for food anchors')
                 check(request(owner, base, '/api/logout', {}, method='POST')[0] == 200, 'logout')
                 check(request(owner, base, path)[0] == 401, 'logged-out session rejected')
-                accounts = json.loads((data / 'accounts.json').read_text(encoding='utf-8'))
-                check(all(x['passwordHash'].startswith('$2') for x in accounts), 'passwords stored as BCrypt')
+                if persistence == 'json':
+                    accounts = json.loads((data / 'accounts.json').read_text(encoding='utf-8'))
+                    check(all(x['passwordHash'].startswith('$2') for x in accounts), 'passwords stored as BCrypt')
+                else:
+                    check(not (data / 'accounts.json').exists(), 'MySQL mode does not create account JSON')
                 stop()
                 base = start()
                 owner = client()
                 check(request(owner, base, '/api/login', credentials, form=True)[0] == 200, 'account survives actual process restart')
+                check(request(owner, base, order_path)[1]['ticketStatus'] == 'DEMO_VOIDED', 'sandbox refund survives process restart')
                 check(request(owner, base, path)[1]['title'] == 'restart-check', 'itinerary survives actual process restart')
                 restored = request(owner, base, path)[1]
                 record = restored['dailySchedules'][0]['activities'][0]['ticketRecord']
