@@ -16,12 +16,21 @@
   } catch (e) { /* 忽略 */ }
 })();
 </script>
+<style>
+/* 灵感层特色菜：百度 Agent Plan 语义检索 → 模型整理成菜名，与对话口径一致 */
+.dish-hints{padding:11px 13px;margin:10px 0 14px;background:var(--clay-soft);
+  border:1px solid #E4C4AE;border-radius:var(--r-card)}
+.dish-h-t{font-size:var(--fs-xs);font-weight:600;color:var(--clay);margin-bottom:7px}
+.dish-h-list{display:flex;gap:6px;flex-wrap:wrap}
+.dish-h-chip{font-size:var(--fs-xs);padding:3px 10px;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--line-strong);color:var(--text-2)}
+</style>
 </head>
 <body>
 <header class="app-topbar">
   <a class="back" href="/planner.html" title="返回工作台" aria-label="返回工作台">‹</a>
   <h1>美食推荐</h1>
-  <span class="sub" id="locLabel">武当山</span>
+  <span class="sub" id="locLabel">实时检索</span>
   <span class="sp"></span>
   <button class="iconbtn" type="button" id="themeBtn" title="外观：跟随系统" aria-label="切换外观">
     <svg class="ico" id="themeIcon"><use href="#i-moon"/></svg>
@@ -32,32 +41,17 @@
   <div class="food-head">
     <h2>想吃这一口</h2>
     <span class="sp"></span>
-    <span class="loc">目的地 / 景点 · 说一句就行</span>
+    <span class="loc">城市或景点 · 实时检索</span>
   </div>
   <form class="set-row" id="askForm" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:6px">
     <svg class="ico" aria-hidden="true"><use href="#i-ai"/></svg>
-    <input class="field" id="askInput" style="margin:0;flex:1" placeholder="例如：武当山有什么好吃的素斋？" autocomplete="off" />
-    <button class="btn btn-primary btn-sm" type="submit">问小满</button>
+    <input class="field" id="askInput" style="margin:0;flex:1" placeholder="例如：武当山 / 杭州" autocomplete="off" />
+    <button class="btn btn-primary btn-sm" type="submit" id="askBtn">找吃的</button>
   </form>
-  <p class="notice-bar" id="askNote" style="margin-top:8px">演示环境未接通美食 Agent 时，展示下方设计样例；人均与营业状态建议出行前再核实。</p>
+  <p class="notice-bar" id="askNote" style="margin-top:8px">输入城市或景点后点「找吃的」。餐馆、评分、人均、距离都来自美食 Agent 实时检索；没查到就留空，不编造店名。</p>
 
-  <div class="advice" id="advice">
-    <div class="who"><svg class="ico"><use href="#i-bowl"/></svg>旅行助手 · 美食建议</div>
-    武当山以<b>道家素斋</b>见长，推荐优先「紫霄宫素斋」（人均 ¥45、评分 4.7）。口味偏清淡，若想换口味可看「武当山道家斋饭」。以下为按评分与距离排序的候选，<b>人均与营业状态建议出行前再核实</b>。
-  </div>
-
-  <div class="food-grid" id="restList"><!-- 餐馆卡片由脚本渲染 --></div>
-
-  <!-- 对话内美食卡示意 -->
-  <div class="chat" style="margin-top:22px">
-    <div class="msg"><div class="who">我</div><div class="bubble">武当山有什么好吃的素斋？</div></div>
-    <div class="msg"><div class="who">旅行助手</div><div class="bubble">武当山的素斋做得讲究，先列几家；人均价格出门前再核一次：
-      <div class="food-card">
-        <div class="ch"><svg class="ico"><use href="#i-bowl"/></svg>美食推荐 · 武当山</div>
-        <div class="cb" id="chatList"><!-- 对话卡列表由脚本渲染 --></div>
-      </div>
-    </div></div>
-  </div>
+  <div id="advice"></div>
+  <div class="food-grid" id="restList"></div>
 </main>
 
 <svg id="glyphDefs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
@@ -98,86 +92,131 @@
     applyTheme(ORDER[(ORDER.indexOf(currentTheme()) + 1) % ORDER.length]);
   });
 
-  /* ---------- 样例数据（设计稿：武当山 · 道家素斋） ---------- */
-  var SAMPLE = {
-    advice: '武当山以<b>道家素斋</b>见长，推荐优先「紫霄宫素斋」（人均 ¥45、评分 4.7）。口味偏清淡，若想换口味可看「武当山道家斋饭」。以下为按评分与距离排序的候选，<b>人均与营业状态建议出行前再核实</b>。',
-    rests: [
-      { name: '紫霄宫素斋', tags: ['素斋', '道家'], rating: 4.7, price: 45, dist: '距金顶 1.2km', hours: '11:00–20:00', verified: true, recommend: true },
-      { name: '武当山道家斋饭', tags: ['斋饭'], rating: 4.5, price: 38, dist: '距南岩宫 0.4km', hours: '10:30–19:30', verified: false },
-      { name: '山下农家土菜馆', tags: ['土菜'], rating: 4.4, price: 62, dist: '距游客中心 0.8km', hours: '09:00–21:00', verified: true },
-      { name: '琼台仙谷茶舍', tags: ['茶饮'], rating: 4.8, price: 30, dist: '距索道上站 0.3km', hours: '08:30–18:00', verified: true }
-    ]
-  };
-
+  /* ---------- 美食推荐：真实接口，无数据空占位，不编造店名 ----------
+     ① /api/attractions?city= 取一条带坐标系的真实景点作锚点；
+     ② /api/agent/invoke(FOOD_RECOMMEND, {city, anchor}) 取契约信封；
+     ③ 只渲染 result.facts 里 category=FOOD 的条目。 */
   function stars(r) {
-    var full = Math.round(r);
+    var full = Math.max(0, Math.min(5, Math.round(Number(r) || 0)));
     return '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
   }
-  function render(data) {
-    if (data.advice) $('advice').innerHTML = '<div class="who"><svg class="ico"><use href="#i-bowl"/></svg>旅行助手 · 美食建议</div>' + data.advice;
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function clear() { $('advice').innerHTML = ''; $('restList').innerHTML = ''; }
+  function render(result, city) {
+    clear();
+    if (result.advice) {
+      $('advice').innerHTML = '<div class="who"><svg class="ico"><use href="#i-bowl"/></svg>旅行助手 · 美食建议</div>' + esc(result.advice);
+    }
+    var all = (result.facts || []).filter(function (f) {
+      return f && f.type === 'CONTENT' && f.value && f.value.category === 'FOOD';
+    });
+    var facts = [], hints = [], hintSource = '';
+    all.forEach(function (f) {
+      if (f.value.kind === 'DISH_HINT') {
+        if (Array.isArray(f.value.names)) {
+          hints = f.value.names.slice(0, 8);
+          hintSource = String(f.value.source || '');
+        }
+        return;
+      }
+      facts.push(f);
+    });
+    if (hints.length) {
+      var label = hintSource === 'BAIDU_AGENT_PLAN' ? '百度地图 Agent Plan 灵感层' : '通用资料线索';
+      var box = document.createElement('div');
+      box.className = 'dish-hints';
+      box.innerHTML = '<div class="dish-h-t">当地特色 · 来自' + esc(label) + '</div>' +
+        '<div class="dish-h-list">' + hints.map(function (n) {
+          return '<span class="dish-h-chip">' + esc(n) + '</span>';
+        }).join('') + '</div>';
+      $('advice').appendChild(box);
+    }
     var list = $('restList');
-    list.innerHTML = '';
-    (data.rests || []).forEach(function (r) {
+    facts.forEach(function (f) {
+      var v = f.value;
+      var verified = String((f.evidence || {}).verificationStatus || '') === 'verified';
+      var stTag = verified ? '<span class="st st-verified">已核验</span>' : '<span class="st st-pending">待核</span>';
+      var rec = v.locality === 'LOCAL' ? '<span class="tag">本地口味</span>' : '';
+      var rating = v.rating != null ? stars(v.rating) + ' <span class="rating">' + Number(v.rating).toFixed(1) + '</span>' : '评分未提供';
+      var price = v.pricePerPersonCny != null ? '人均 ¥' + esc(v.pricePerPersonCny) : '人均未提供';
+      var dist = v.distanceMeters != null ? '距参考点约 ' + Math.round(v.distanceMeters) + ' 米' : '距离未提供';
       var card = document.createElement('div');
       card.className = 'rest';
-      var stTag = r.verified
-        ? '<span class="st st-verified">已核验</span>'
-        : '<span class="st st-pending">待核</span>';
-      var rec = r.recommend ? '<span class="tag">推荐</span>' : '';
       card.innerHTML =
-        '<div class="rh"><span class="nm">' + r.name + '</span><span class="sp"></span>' + rec + '</div>' +
+        '<div class="rh"><span class="nm">' + esc(v.name || '未命名') + '</span><span class="sp"></span>' + rec + '</div>' +
         '<div class="rb">' +
-          '<div class="row"><span class="star">' + stars(r.rating) + '</span>' +
-            '<span class="rating">' + r.rating.toFixed(1) + '</span>' +
-            '<span>· 人均 ¥' + r.price + '</span><span>· ' + r.dist + '</span></div>' +
-          '<div class="row">营业 ' + r.hours + ' · ' + (r.verified ? '已核验' : '待核实') + '</div>' +
-          '<div class="tag-row">' + (r.tags || []).map(function (t) { return '<span class="tag">' + t + '</span>'; }).join('') + stTag + '</div>' +
+          '<div class="row"><span class="star">' + rating + '</span> · ' + price + ' · ' + esc(dist) + '</div>' +
+          (v.openHours ? '<div class="row">营业 ' + esc(v.openHours) + '</div>' : '') +
+          ((v.source || v.queriedAt) ? '<div class="row">' + (v.source ? '来源 ' + esc(v.source) : '') + (v.queriedAt ? ' · ' + esc(v.queriedAt) : '') + '</div>' : '') +
+          '<div class="tag-row">' + (v.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join('') + stTag + '</div>' +
         '</div>';
       list.appendChild(card);
     });
-    var chat = $('chatList');
-    chat.innerHTML = '';
-    (data.rests || []).slice(0, 3).forEach(function (r) {
-      var row = document.createElement('div');
-      row.className = 'fr';
-      row.innerHTML = '<span class="nm">' + r.name + '</span>' +
-        '<span class="rt"><b>' + r.rating.toFixed(1) + '</b><br>¥' + r.price + ' · ' + r.dist.replace(/距\S+\s/, '') + '</span>';
-      chat.appendChild(row);
-    });
+    return facts.length;
   }
-  render(SAMPLE);
-
-  /* ---------- 问小满（尽力调用，失败回落样例） ---------- */
-  $('askForm').addEventListener('submit', function (e) {
+  $('askForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     var q = $('askInput').value.trim();
     if (!q) return;
     var note = $('askNote');
-    note.textContent = '正在询问小满…';
+    note.textContent = '正在检索「' + q + '」附近的餐馆…';
     note.style.color = '';
-    fetch('/api/agent/invoke', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent: 'FOOD_RECOMMEND', query: q })
-    }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
-      .then(function (d) {
-        // 兼容两种返回：直接带 rests 数组，或包在 data/result 里
-        var rests = (d && (d.rests || (d.data && d.data.rests) || (d.result && d.result.rests))) || null;
-        var advice = (d && (d.advice || (d.data && d.data.advice))) || null;
-        if (rests && rests.length) {
-          render({ advice: advice || SAMPLE.advice, rests: rests });
-          note.textContent = '已返回实时结果；人均与营业状态仍建议出行前再核实。';
-          var m = (q.match(/([\u4e00-\u9fa5]{2,8}(山|市|区|县|景区|古城|镇)?)/) || [])[1];
-          if (m) $('locLabel').textContent = m;
-        } else {
-          note.textContent = '小满暂未返回餐馆列表（样例仍展示）。' + (advice ? ' 建议：' + advice : '');
-          if (advice) render({ advice: advice, rests: SAMPLE.rests });
-        }
-      })
-      .catch(function () {
-        note.textContent = '演示环境暂未接通美食 Agent，以下为设计样例；人均与营业状态建议出行前再核实。';
-        render(SAMPLE);
-      });
+    clear();
+    $('askBtn').disabled = true;
+    try {
+      async function anchorBy(key) {
+        return await fetch('/api/attractions?limit=1&' + key + '=' + encodeURIComponent(q),
+          { credentials: 'same-origin' })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); });
+      }
+      var anchorRes = await anchorBy('city');
+      var a0 = anchorRes && anchorRes.items && anchorRes.items[0];
+      if (!a0) {
+        var byName = await anchorBy('name');
+        a0 = byName && byName.items && byName.items[0];
+      }
+      if (!a0 || a0.lat == null || a0.lon == null || !a0.coordinateSystem) {
+        note.style.color = 'var(--err)';
+        note.textContent = '知识库里没有「' + q + '」的可用坐标锚点；未默认按城市中心检索，也没有编造餐馆。可换个收录的城市试试。';
+        return;
+      }
+      var city = a0.city || q.replace(/景区|风景名胜区|市$/g, '');
+      var d = await fetch('/api/agent/invoke', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent: 'FOOD_RECOMMEND', context: {
+          city: city, includeInspiration: true,
+          anchor: { lat: a0.lat, lon: a0.lon, coordinateSystem: a0.coordinateSystem,
+            source: 'KB', referenceName: a0.name }
+        } })
+      }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); });
+      var result = (d && d.result) || {};
+      if (result.status === 'REFUSED') {
+        note.style.color = 'var(--err)';
+        note.textContent = '本次未返回餐馆（' + ((result.unknownFields || []).join('、') || (result.advice || '条件不足')) + '）。未编造店名或价格。';
+        return;
+      }
+      var n = render(result, city);
+      if (!n) {
+        note.style.color = 'var(--err)';
+        note.textContent = '本次没有找到可展示的餐馆。未编造店名或价格。';
+        if ((result.notices || []).length) note.textContent += ' ' + result.notices.join(' ');
+        return;
+      }
+      $('locLabel').textContent = city;
+      note.style.color = '';
+      note.textContent = '已返回 ' + n + ' 家餐馆；人均与营业状态出行前请再核实。' +
+        ((result.notices || []).length ? ' ' + result.notices.join(' ') : '');
+    } catch (err) {
+      note.style.color = 'var(--err)';
+      note.textContent = '检索失败：' + (err && err.message ? err.message : '未知错误') + '。未展示任何编造数据。';
+    } finally {
+      $('askBtn').disabled = false;
+    }
   });
 })();
 </script>

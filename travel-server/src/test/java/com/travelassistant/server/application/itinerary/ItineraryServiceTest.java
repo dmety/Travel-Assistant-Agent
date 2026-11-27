@@ -56,7 +56,7 @@ class ItineraryServiceTest {
     store = mock(ItineraryStore.class);
     changeLog = mock(ChangeLogRecorder.class);
     service = new ItineraryService(store, mock(AccountStore.class), changeLog,
-        mock(DecisionStore.class));
+        mock(DecisionStore.class), mock(com.travelassistant.server.infrastructure.persistence.CollaborationStore.class));
   }
 
   /** 基准行程：创建者 + 一个只有 PLAN 权、一个只有 DAILY 权的成员；归档与否决定版本号。 */

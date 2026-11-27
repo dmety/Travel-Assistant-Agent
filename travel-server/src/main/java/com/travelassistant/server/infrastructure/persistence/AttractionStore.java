@@ -69,6 +69,9 @@ public class AttractionStore {
   /** 小写名称 → 景点，用于精确名命中优先。 */
   private volatile Map<String, List<Attraction>> nameIndex = Map.of();
 
+  /** 省→市→景点条数聚合，随 {@link #buildIndexes} 一次性构建，供知识库按省分组展示。 */
+  private volatile Map<String, Map<String, Integer>> provinceCityCounts = Map.of();
+
   /**
    * 模糊查询结果缓存（有界 LRU）。{@code /api/attractions?name=} 是匿名公开接口，
    * 未命中精确索引时会全表扫描全量记录；缓存避免同一关键词反复扫描。
@@ -235,6 +238,42 @@ public class AttractionStore {
     this.idIndex = Map.copyOf(byId);
     this.cityIndex = Map.copyOf(byCity);
     this.nameIndex = Map.copyOf(byName);
+    this.provinceCityCounts = buildProvinceCounts(items);
+  }
+
+  /**
+   * 省→市→条数聚合：只统计同时有省和市字段的记录，省按总量降序、省内市按量降序，
+   * 保证前端折叠列表顺序稳定可读。分组键去行政区划后缀（深圳/深圳市、广东省/广东
+   * 合并为一条），查询走 cityIndex 别名，简称同样能命中全量记录。
+   */
+  private static Map<String, Map<String, Integer>> buildProvinceCounts(List<Attraction> items) {
+    Map<String, Map<String, Integer>> agg = new LinkedHashMap<>();
+    for (Attraction a : items) {
+      String prov = PlaceholderValues.clean(a.province());
+      String city = PlaceholderValues.clean(a.city());
+      if (prov == null || city == null) {
+        continue;
+      }
+      agg.computeIfAbsent(stripRegionSuffix(prov), k -> new LinkedHashMap<>())
+          .merge(stripRegionSuffix(city), 1, Integer::sum);
+    }
+    Map<String, Map<String, Integer>> sorted = new LinkedHashMap<>();
+    agg.entrySet().stream()
+        .sorted(Comparator.<Map.Entry<String, Map<String, Integer>>>comparingInt(
+            e -> e.getValue().values().stream().mapToInt(Integer::intValue).sum()).reversed())
+        .forEach(pe -> {
+          Map<String, Integer> cities = new LinkedHashMap<>();
+          pe.getValue().entrySet().stream()
+              .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+              .forEach(ce -> cities.put(ce.getKey(), ce.getValue()));
+          sorted.put(pe.getKey(), cities);
+        });
+    return sorted;
+  }
+
+  /** 省→市→景点条数（不可变视图）；库未加载时为空 Map。 */
+  public Map<String, Map<String, Integer>> provinceCityCounts() {
+    return provinceCityCounts;
   }
 
   /** 城市别名：原名、去"市"、"加市"，如 杭州 ↔ 杭州市。 */

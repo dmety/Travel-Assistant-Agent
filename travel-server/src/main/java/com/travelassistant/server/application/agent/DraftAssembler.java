@@ -137,7 +137,10 @@ public final class DraftAssembler {
       return List.of();
     }
     // 展示与确认保存都走这里，重排一次即可保证「看到什么就存什么」。
-    List<Attraction> ordered = DraftRouteOptimizer.optimize(safe);
+    // 以候选地理质心作为城市锚点，让多个地理片区按离中心由近及远排列，减少跨天横跳；
+    // 真实酒店/出发地的接驳卡仍由 TravelGuideComposer 走高德，锚点只影响片区先后。
+    List<Attraction> ordered =
+        DraftRouteOptimizer.optimize(safe, DraftRouteOptimizer.cityAnchor(safe));
     int allowedDays = Math.min(effective, MAX_DAYS);
     List<List<Attraction>> groups = groupByDay(ordered);
     if (groups.size() > allowedDays) {
@@ -302,7 +305,8 @@ public final class DraftAssembler {
     if (allowedDays <= 0 || selected.isEmpty()) {
       return false;
     }
-    List<Attraction> ordered = DraftRouteOptimizer.optimize(selected);
+    List<Attraction> ordered =
+        DraftRouteOptimizer.optimize(selected, DraftRouteOptimizer.cityAnchor(selected));
     return groupByDay(ordered).size() > allowedDays
         && ordered.size() >= allowedDays * MAX_PER_DAY;
   }

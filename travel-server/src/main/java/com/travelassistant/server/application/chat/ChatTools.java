@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.time.LocalDate;
 import java.util.TreeMap;
 import org.slf4j.Logger;
@@ -65,6 +66,8 @@ public class ChatTools {
   /** 天数与人数上限，口径与 {@code IntentParser} 的 1~30 保持一致：两条链路的边界不能不一样。 */
   private static final int MAX_DAYS = 30;
   private static final int MAX_TRAVELERS = 30;
+  /** 用户只说地名没给天数时的自动上限；DraftAssembler 会按真实候选数收敛，不排空天。 */
+  private static final int AUTO_DAYS = 5;
 
   /**
    * 一次工具执行的结果。{@code card} 为 null 表示这次没有可渲染的卡片。
@@ -194,7 +197,7 @@ public class ChatTools {
       fn("find_food", "查某城市真实餐馆候选（人均、评分、距离）。问吃什么、有什么好吃的先调它，再按「先特色菜、后餐馆」组织回答；没有本地景点坐标时会用地图对城市名的地理编码结果作明确搜索参考点。",
           Map.of("city", str("城市名，如「武汉」")), List.of("city")),
       fn("draft_itinerary", "按城市与天数出逐日草案（候选景点、步行段、预算、待补问题）。"
-          + "用户要行程时用它；没给天数先问，别默认 3 天。",
+          + "用户说出地名/景点即用它出一版草案；没给天数就省略 days，系统按可查候选景点量自动排，日期与预算标待定。",
           Map.of("city", str("城市名，如「武汉」"),
               "days", Map.of("type", "integer", "description", "1~30"),
               "travelers", Map.of("type", "integer", "description", "同行人数，含本人"),
@@ -204,7 +207,7 @@ public class ChatTools {
               "departDate", str("出发日期 YYYY-MM-DD，不知道就省略"),
               "returnDate", str("返回日期 YYYY-MM-DD，不知道就省略"),
               "details", Map.of("type", "object", "description", "增量继承用户已确认信息：origin, seniors, children, mobility, dietaryRestrictions字符串数组, mustVisit字符串数组, hotel, transportMode(WALKING/DRIVING/TRANSIT/CYCLING), maxWalkingMeters单段步行上限, excludedAttractionIds字符串数组, confirmedGroupCosts按费用键填全团CNY金额，vehicles车辆数，originCity出发城市/arrivalCity到达城市用于地图跨城换乘参考（非余票），queries对象含priorityDays整数数组和可选maxRouteCalls/maxFoodCalls/maxGeocodeCalls/maxDurationMillis；用户要求补查某天时设置priorityDays。只传用户提供的值")),
-          List.of("city", "days")),
+          List.of("city")),
       fn("route_plan", "算两点之间的步行 / 驾车 / 公交距离与耗时（高德路径规划），"
           + "返回值是接口预估，不含等车、排队与检票时间。"
           + "用户问「怎么走」「多远」「走过去要多久」「打车方便吗」时用它。"
@@ -815,23 +818,35 @@ public class ChatTools {
     Map<String, Object> context = new LinkedHashMap<>();
     context.put("city", city);
     boolean geocodedReference = false;
-    try {
-      MapTools.GeoAnchor anchor = maps.geocodeAnchor(city, city);
-      Map<String, Object> reference = new LinkedHashMap<>();
-      reference.put("lat", anchor.lat());
-      reference.put("lon", anchor.lon());
-      reference.put("coordinateSystem", anchor.coordinateSystem());
-      reference.put("source", "AMAP_GEOCODE");
-      reference.put("referenceName", anchor.placeName());
-      context.put("anchor", reference);
-      geocodedReference = true;
-    } catch (RuntimeException ignored) {
-      String anchorId = anchorOf(city);
-      if (anchorId == null) {
+    // 锚点口径必须与「美食」视图一致：优先知识库真实景点坐标（城市键→景点名），
+    // 城市名地理编码只在前两者都没有时兜底。城市中心常落在行政点，周边未必有游客
+    // 餐馆；景点坐标才有稳定召回（例：武当山→十堰的风景区坐标）。
+    String anchorId = anchorOf(city);
+    if (anchorId == null) {
+      Optional<Attraction> byName = anchorByName(city);
+      if (byName.isPresent()) {
+        Attraction a = byName.get();
+        anchorId = a.id();
+        if (a.city() != null && !a.city().isBlank()) context.put("city", a.city());
+      }
+    }
+    if (anchorId != null) {
+      context.put("attractionIds", List.of(anchorId));
+    } else {
+      try {
+        MapTools.GeoAnchor anchor = maps.geocodeAnchor(city, city);
+        Map<String, Object> reference = new LinkedHashMap<>();
+        reference.put("lat", anchor.lat());
+        reference.put("lon", anchor.lon());
+        reference.put("coordinateSystem", anchor.coordinateSystem());
+        reference.put("source", "AMAP_GEOCODE");
+        reference.put("referenceName", anchor.placeName());
+        context.put("anchor", reference);
+        geocodedReference = true;
+      } catch (RuntimeException ignored) {
         return new Outcome(false, "「" + city + "」没有可用的景点坐标，地图也未能将城市名解析为搜索参考点；"
             + "本轮未检索餐馆，不编造店名。", null);
       }
-      context.put("attractionIds", List.of(anchorId));
     }
     DispatchOutcome outcome = orchestrator.dispatch(
         new DispatchRequest("FOOD_RECOMMEND", context, Map.of()));
@@ -890,13 +905,16 @@ public class ChatTools {
     if (city == null) {
       return new Outcome(false, "缺少 city 参数。", null);
     }
-    if (days == null) {
-      return new Outcome(false, "缺少 days 参数。先问用户玩几天，不要默认成 3 天。", null);
+    // 用户只说地名没给天数时不再卡住追问：给一个确定性上限，DraftAssembler 按真实
+    // 候选景点数收敛，不会为了凑天数排空天；天数未在卡片中作为「已确认」事实呈现。
+    boolean autoDays = days == null;
+    if (autoDays) {
+      days = AUTO_DAYS;
     }
     // 模型给的数字不可信：与意图解析链路同一条边界，超出 1~30 就夹住并说明，
     // 不能让「999 天」一路排到 Provider 里去生成 999 个逐日条目。
     int cappedDays = Math.min(Math.max(days, 1), MAX_DAYS);
-    boolean capped = cappedDays != days;
+    boolean capped = !autoDays && cappedDays != days;
     Map<String, Object> context = new LinkedHashMap<>();
     context.put("destination", city);
     context.put("days", cappedDays);
@@ -934,6 +952,12 @@ public class ChatTools {
     if (unknown != null && unknown.asInt() > 0) codes.add("UNVERIFIED_TICKET");
     if (draftNode.findValue("channels") != null) codes.add("NO_REALTIME_STOCK");
     Outcome tagged = result.plusDisclaimers(codes);
+    if (autoDays) {
+      return new Outcome(tagged.ok(),
+          tagged.summary() + "\n用户未给天数，草案按可查候选景点自动收敛；"
+              + "天数与日期标为待定，回答时不要说成用户已确认的天数。",
+          tagged.card(), tagged.disclaimers());
+    }
     if (!capped) {
       return tagged;
     }
@@ -1497,12 +1521,22 @@ public class ChatTools {
   /** 取该城市第一个带坐标系的景点当锚点；没有就不查，绝不按城市中心兜底。 */
   private String anchorOf(String city) {
     for (Attraction a : store.findByCity(city)) {
-      if (a.lat() != null && a.lon() != null && a.coordinateSystem() != null
-          && !a.coordinateSystem().isBlank()) {
-        return a.id();
-      }
+      if (hasAnchor(a)) return a.id();
     }
     return null;
+  }
+
+  /** 名称兜底：用户说「武当山」而库里城市键是「十堰」时，用同名景点的真实坐标。 */
+  private Optional<Attraction> anchorByName(String name) {
+    for (Attraction a : store.findByName(name)) {
+      if (hasAnchor(a)) return Optional.of(a);
+    }
+    return Optional.empty();
+  }
+
+  private static boolean hasAnchor(Attraction a) {
+    return a != null && a.lat() != null && a.lon() != null
+        && a.coordinateSystem() != null && !a.coordinateSystem().isBlank();
   }
 
   private JsonNode read(String raw) {

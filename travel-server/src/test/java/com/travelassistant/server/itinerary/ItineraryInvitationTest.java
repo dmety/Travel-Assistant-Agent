@@ -331,6 +331,12 @@ class ItineraryInvitationTest extends ApiTestBase {
         .andExpect(status().isForbidden());
     mvc.perform(get("/api/itineraries/" + id).session(owner)).andExpect(status().isOk());
     assertThat(memberNames(id, owner)).doesNotContain(memberName);
+
+    // 退出广播：留言区给仍在行程的成员留一条系统留言（问题清单 #5）
+    String comments = mvc.perform(get("/api/itineraries/" + id + "/comments").session(owner))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    assertThat(comments).contains(memberName).contains("退出了行程");
   }
 
   @Test

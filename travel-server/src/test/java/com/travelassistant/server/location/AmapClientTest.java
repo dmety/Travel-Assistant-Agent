@@ -12,12 +12,14 @@ import com.travelassistant.server.domain.location.RouteMode;
 import com.travelassistant.server.domain.location.RouteResult;
 import com.travelassistant.server.domain.location.WeatherResult;
 import com.travelassistant.server.infrastructure.amap.AmapClient;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -214,6 +216,24 @@ class AmapClientTest {
     assertThatThrownBy(() -> client("test-key").searchPlaces("西湖", null, 5))
         .isInstanceOf(AmapUnavailableException.class)
         .hasMessageContaining("请求失败");
+  }
+
+  @Test
+  @DisplayName("网络异常：请求 URL 中的密钥在响应与异常链中脱敏")
+  void redactsKeyFromNetworkFailure() {
+    String secret = "0123456789abcdef0123456789abcdef";
+    RestTemplate failing = new RestTemplate() {
+      @Override
+      public <T> T getForObject(URI url, Class<T> responseType) {
+        throw new ResourceAccessException("I/O error on GET request for \"" + url + "\"");
+      }
+    };
+
+    assertThatThrownBy(() -> new AmapClient(failing, secret).searchPlaces("西湖", null, 5))
+        .isInstanceOf(AmapUnavailableException.class)
+        .hasMessageContaining("key=<redacted>")
+        .hasMessageNotContaining(secret)
+        .hasNoCause();
   }
 
   @Test

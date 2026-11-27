@@ -1,6 +1,7 @@
 package com.travelassistant.server.application.itinerary;
 
 import com.travelassistant.server.application.collaboration.ChangeLogRecorder;
+import com.travelassistant.server.domain.collaboration.Comment;
 import com.travelassistant.server.domain.itinerary.DailyActivity;
 import com.travelassistant.server.domain.itinerary.DailySchedule;
 import com.travelassistant.server.domain.itinerary.Expense;
@@ -11,6 +12,7 @@ import com.travelassistant.server.domain.itinerary.Plan;
 import com.travelassistant.server.domain.itinerary.Section;
 import com.travelassistant.server.domain.itinerary.Transport;
 import com.travelassistant.server.infrastructure.persistence.AccountStore;
+import com.travelassistant.server.infrastructure.persistence.CollaborationStore;
 import com.travelassistant.server.infrastructure.persistence.DecisionStore;
 import com.travelassistant.server.infrastructure.persistence.ItineraryStore;
 import java.time.LocalDate;
@@ -40,14 +42,16 @@ public class ItineraryService {
   private final AccountStore accounts;
   private final ChangeLogRecorder changeLog;
   private final DecisionStore decisions;
+  private final CollaborationStore collaboration;
   private final Object[] writeLocks = new Object[LOCK_STRIPES];
 
   public ItineraryService(ItineraryStore store, AccountStore accounts, ChangeLogRecorder changeLog,
-      DecisionStore decisions) {
+      DecisionStore decisions, CollaborationStore collaboration) {
     this.store = store;
     this.accounts = accounts;
     this.changeLog = changeLog;
     this.decisions = decisions;
+    this.collaboration = collaboration;
     for (int i = 0; i < LOCK_STRIPES; i++) {
       writeLocks[i] = new Object();
     }
@@ -431,6 +435,10 @@ public class ItineraryService {
       Itinerary updated = it.withMembers(members);
       store.save(updated);
       changeLog.record(id, user, "MEMBER", "成员 " + user + " 退出", updated.version());
+      // 广播给仍在行程里的成员：留言区多一条系统留言，协作面板轮询即可见。
+      // 与修改记录同一口径——旁路数据，不再动版本号。
+      collaboration.addComment(Comment.create(id, user,
+          "我退出了行程「" + (it.title() == null || it.title().isBlank() ? id : it.title()) + "」"));
       return null;
     });
   }

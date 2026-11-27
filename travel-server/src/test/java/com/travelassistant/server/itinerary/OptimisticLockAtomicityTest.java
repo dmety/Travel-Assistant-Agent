@@ -58,7 +58,8 @@ class OptimisticLockAtomicityTest {
     accounts.init();
     ItineraryService service = new ItineraryService(store, accounts,
         org.mockito.Mockito.mock(com.travelassistant.server.application.collaboration.ChangeLogRecorder.class),
-        org.mockito.Mockito.mock(com.travelassistant.server.infrastructure.persistence.DecisionStore.class));
+        org.mockito.Mockito.mock(com.travelassistant.server.infrastructure.persistence.DecisionStore.class),
+        org.mockito.Mockito.mock(com.travelassistant.server.infrastructure.persistence.CollaborationStore.class));
     String id = service.create(OWNER, "并发测试", new Plan("杭州", "初始", "")).id();
 
     AtomicInteger success = new AtomicInteger();

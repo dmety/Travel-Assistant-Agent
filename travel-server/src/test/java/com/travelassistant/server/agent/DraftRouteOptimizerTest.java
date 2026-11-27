@@ -133,6 +133,52 @@ class DraftRouteOptimizerTest {
     assertThat(DraftRouteOptimizer.optimize(two)).isSameAs(two);
   }
 
+  @Test
+  @DisplayName("跨地理片区时同片区景点连续、不被另一片区穿插")
+  void regionClustersStayContiguous() {
+    // 市区两点 + 北部两点，优先级顺序把两地交替（C1,N1,C2,N2），正是「市区↔远郊」横跳。
+    Attraction city1 = spot("c1", "市区甲", 30.55, 114.30, "GCJ-02");
+    Attraction city2 = spot("c2", "市区乙", 30.56, 114.32, "GCJ-02");
+    Attraction north1 = spot("n1", "北郊甲", 31.10, 114.30, "GCJ-02");
+    Attraction north2 = spot("n2", "北郊乙", 31.11, 114.32, "GCJ-02");
+    List<Attraction> interleaved = List.of(city1, north1, city2, north2);
+
+    List<Attraction> ordered =
+        DraftRouteOptimizer.optimize(interleaved, DraftRouteOptimizer.cityAnchor(interleaved));
+
+    assertThat(ordered).containsExactly(city1, city2, north1, north2);
+    // 市区片区整体在前、北部片区整体在后，绝不出现 市区-北郊-市区 的穿插。
+    assertThat(indexOf(ordered, city2)).isLessThan(indexOf(ordered, north1));
+    // 优化后总路程显著短于交替顺序。
+    assertThat(pathLength(ordered)).isLessThan(pathLength(interleaved));
+  }
+
+  @Test
+  @DisplayName("多个远片区时按离城市锚点由近及远排列，首选点片区仍排第一")
+  void anchoredClustersAreOrderedByProximityToAnchor() {
+    Attraction home = spot("h", "首选点", 30.0, 114.0, "GCJ-02");
+    Attraction east = spot("e", "东部远点", 30.0, 116.0, "GCJ-02");
+    Attraction west = spot("w", "西部远点", 30.0, 112.0, "GCJ-02");
+    // 锚点在西部远点附近：西部片区应排在东部之前，但首选点片区永远第一。
+    double[] anchor = {30.0, 111.9};
+
+    List<Attraction> ordered =
+        DraftRouteOptimizer.optimize(List.of(home, east, west), anchor);
+
+    assertThat(ordered).containsExactly(home, west, east);
+    assertThat(ordered.get(0)).isSameAs(home);
+  }
+
+  @Test
+  @DisplayName("Or-opt 后仍是原候选的全排列，起点与数量不变、不新增编造字段")
+  void orOptKeepsPermutationAndAnchorStart() {
+    List<Attraction> ranked = List.of(WEST_LAKE, QIANDAO, LINGYIN, XIXI);
+    List<Attraction> ordered =
+        DraftRouteOptimizer.optimize(ranked, DraftRouteOptimizer.cityAnchor(ranked));
+    assertThat(ordered).hasSize(4).containsExactlyInAnyOrder(WEST_LAKE, QIANDAO, LINGYIN, XIXI);
+    assertThat(ordered.get(0)).isSameAs(WEST_LAKE);
+  }
+
   private static int indexOf(List<Attraction> spots, Attraction target) {
     for (int i = 0; i < spots.size(); i++) {
       if (spots.get(i) == target) {

@@ -101,10 +101,11 @@ class ExportServiceTest {
     assertThat(text).contains("时间：未填出发 ~ 未填返回");
     assertThat(text).contains("暂无其他成员");
     assertThat(text).contains("暂无安排");
-    assertThat(text).contains("暂无交通安排");
-    assertThat(text).contains("暂无住宿安排");
-    assertThat(text).contains("暂无费用记录");
-    assertThat(text).contains("暂无候选项");
+    assertThat(text).contains("未填写：交通、住宿、费用、候选与投票");
+    assertThat(text).doesNotContain("【交通】");
+    assertThat(text).doesNotContain("【住宿】");
+    assertThat(text).doesNotContain("【费用】");
+    assertThat(text).doesNotContain("【候选与投票】");
     assertThat(text).contains("未发现问题");
     assertThat(text).doesNotContain("null");
   }
@@ -168,8 +169,7 @@ class ExportServiceTest {
 
   @Test
   @DisplayName("活动同时有起止时间时输出时间区间，只有自由文本时退回文本")
-  void activityTimeFallsBackToFreeText() {
-    Itinerary it = base().withDaily(List.of(new DailySchedule("d1", LocalDate.of(2026, 11, 21),
+  void activityTimeFallsBackToFreeText() {    Itinerary it = base().withDaily(List.of(new DailySchedule("d1", LocalDate.of(2026, 11, 21),
         "第一天", List.of(
             new DailyActivity("a1", null, "灵隐寺", "灵隐", null,
                 LocalTime.of(9, 0), LocalTime.of(11, 30)),
@@ -179,6 +179,51 @@ class ExportServiceTest {
 
     assertThat(text).contains("09:00–11:30 灵隐寺（灵隐）");
     assertThat(text).contains("下午 河坊街（上城）");
+  }
+
+  @Test
+  @DisplayName("草案溯源备注拆成可读行：票价/开放时间进正文，ID 与来源进文末数据溯源附录")
+  void draftStyleNoteIsSplitIntoReadableLines() {
+    String note = "attractionId=amap-B0FFFYF0GP；来源=Amap；票价=门票130元(旺季)；中心湖区套票195元(含船票)；"
+        + "开放时间=00:00-24:00；游船入园8:30-14:40；未知项=无";
+    Itinerary it = base().withDaily(List.of(new DailySchedule("d1", LocalDate.of(2026, 11, 21),
+        null, List.of(new DailyActivity("a1", "待定", "千岛湖风景区", "杭州市", note)))));
+
+    String text = export(it);
+
+    // 票价、开放时间值里就带「；」，按锚点拆分不能拆错
+    assertThat(text).contains("票价：门票130元(旺季)；中心湖区套票195元(含船票)");
+    assertThat(text).contains("开放时间：00:00-24:00；游船入园8:30-14:40");
+    assertThat(text).doesNotContain("备注：attractionId=");
+    assertThat(text).contains("【数据溯源（供核验，非价格依据）】");
+    assertThat(text).contains("- 千岛湖风景区：attractionId=amap-B0FFFYF0GP，来源=Amap");
+  }
+
+  @Test
+  @DisplayName("草案备注里票价/开放时间未知时写明需核实，未知项归入待核实行")
+  void draftStyleUnknownValuesAreHintedNotHidden() {
+    String note = "attractionId=amap-1；来源=未标注；票价=未知；开放时间=未知；"
+        + "未知项=票价未知、开放时间未知、来源未标注";
+    Itinerary it = base().withDaily(List.of(new DailySchedule("d1", LocalDate.of(2026, 11, 21),
+        null, List.of(new DailyActivity("a1", null, "某景点", "杭州", note)))));
+
+    String text = export(it);
+
+    assertThat(text).contains("票价：未知（需核实，未知不等于免费）");
+    assertThat(text).contains("开放时间：未知（需核实）");
+    assertThat(text).contains("待核实：票价未知、开放时间未知、来源未标注");
+  }
+
+  @Test
+  @DisplayName("普通自由文本备注原样留在正文，不生成数据溯源附录")
+  void plainActivityNoteStaysInlineWithoutTraceSection() {
+    Itinerary it = base().withDaily(List.of(new DailySchedule("d1", LocalDate.of(2026, 11, 21),
+        null, List.of(new DailyActivity("a1", null, "河坊街", "上城", "下午人少，注意防晒")))));
+
+    String text = export(it);
+
+    assertThat(text).contains("备注：下午人少，注意防晒");
+    assertThat(text).doesNotContain("数据溯源");
   }
 
   @Test

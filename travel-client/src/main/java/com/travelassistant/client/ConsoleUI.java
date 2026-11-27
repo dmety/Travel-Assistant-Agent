@@ -53,7 +53,20 @@ public final class ConsoleUI implements AutoCloseable {
   private final PrintWriter output;
   private final boolean color;
   private final List<String> suggestions = new ArrayList<>();
-  private final List<String> transcript = new ArrayList<>();
+  /**
+   * 全屏视图里的一行：纯文本 + 可选 SGR 前缀（如粗体/前景色）。
+   * 样式只在 renderScreen 输出时拼接到行首尾，宽度计算与截断始终按纯文本进行；
+   * plain / 无终端模式忽略 sgr，绝不产出 ANSI。
+   */
+  private static final class StyledLine {
+    final String text;
+    final String sgr;
+    StyledLine(String text, String sgr) {
+      this.text = text;
+      this.sgr = sgr;
+    }
+  }
+  private final List<StyledLine> transcript = new ArrayList<>();
   private final StringBuilder partialLine = new StringBuilder();
   private final List<String> pendingImages = new ArrayList<>();
   private boolean fullscreen;
@@ -240,13 +253,30 @@ public final class ConsoleUI implements AutoCloseable {
       char ch = value.charAt(i);
       if (ch == '\r') continue;
       if (ch == '\n') {
-        transcript.add(partialLine.toString());
+        transcript.add(new StyledLine(partialLine.toString(), ""));
         partialLine.setLength(0);
       } else partialLine.append(ch);
     }
     if (newline) {
-      transcript.add(partialLine.toString());
+      transcript.add(new StyledLine(partialLine.toString(), ""));
       partialLine.setLength(0);
+    }
+    if (transcript.size() > 10_000) transcript.subList(0, transcript.size() - 10_000).clear();
+    if (fullscreen) renderScreenThrottled();
+  }
+
+  /** 全屏视图追加一整行带样式（粗体/前景色）的标题；非全屏由调用方走 paint 路径。 */
+  private void appendStyled(String text, String sgr) {
+    String value = sanitize(text);
+    if (value.indexOf('\n') < 0) {
+      if (!partialLine.isEmpty()) {
+        transcript.add(new StyledLine(partialLine.toString(), ""));
+        partialLine.setLength(0);
+      }
+      transcript.add(new StyledLine(value, sgr));
+    } else {
+      for (String segment : value.split("\n", -1)) appendStyled(segment, sgr);
+      return;
     }
     if (transcript.size() > 10_000) transcript.subList(0, transcript.size() - 10_000).clear();
     if (fullscreen) renderScreenThrottled();
@@ -262,17 +292,22 @@ public final class ConsoleUI implements AutoCloseable {
     int width = Math.max(20, terminal.getWidth()) - 1;
     int height = Math.max(8, terminal.getHeight());
     int contentRows = Math.max(1, height - 4);
-    List<String> lines = new ArrayList<>();
-    for (String line : transcript) lines.addAll(wrap(line, width));
-    if (!partialLine.isEmpty()) lines.addAll(wrap(partialLine.toString(), width));
+    List<StyledLine> lines = new ArrayList<>();
+    for (StyledLine source : transcript) {
+      for (String wrapped : wrap(source.text, width)) lines.add(new StyledLine(wrapped, source.sgr));
+    }
+    if (!partialLine.isEmpty()) {
+      for (String wrapped : wrap(partialLine.toString(), width)) lines.add(new StyledLine(wrapped, ""));
+    }
     int start = Math.max(0, lines.size() - contentRows);
     PrintWriter writer = terminal.writer();
     writer.print("\u001b[H\u001b[2J");
     writer.print(ConsoleUI.truncateToWidth("旅行助手  ·  " + terminal.getName(), width));
     writer.print("\r\n");
     for (int i = 0; i < contentRows; i++) {
-      String line = start + i < lines.size() ? lines.get(start + i) : "";
-      writer.print(ConsoleUI.truncateToWidth(line, width));
+      StyledLine line = start + i < lines.size() ? lines.get(start + i) : new StyledLine("", "");
+      String body = ConsoleUI.truncateToWidth(line.text, width);
+      writer.print(styleLine(body, line.sgr, color));
       writer.print("\u001b[K\r\n");
     }
     writer.print("\u001b[2m" + "─".repeat(width) + "\u001b[0m\u001b[K\r\n");
@@ -280,6 +315,16 @@ public final class ConsoleUI implements AutoCloseable {
     writer.print("\u001b[" + height + ";1H");
     writer.flush();
     lastRenderNanos = System.nanoTime();
+  }
+
+  /**
+   * 全屏行渲染：{@code color} 且带 SGR 时把样式码包在已截断的纯文本两侧，否则原样返回。
+   * 截断必须先按纯文本算显示宽度，ANSI 只在最后拼接，避免转义字节撑宽列。
+   * 纯函数，便于无终端单测。
+   */
+  static String styleLine(String plainBody, String sgr, boolean color) {
+    if (!color || sgr == null || sgr.isEmpty()) return plainBody;
+    return sgr + plainBody + "\u001b[0m";
   }
 
   private static List<String> wrap(String text, int maxWidth) {
@@ -564,17 +609,42 @@ public final class ConsoleUI implements AutoCloseable {
     return text;
   }
 
-  /** 一级标题：上留一行空行，标题加青色粗体，下面一条分隔线。 */
+  /** 一级标题：上留一行空行，标题青色粗体，下面一条分隔线。全屏视图同样加粗。 */
   public void title(String text) {
-    println();
     String safe = sanitize(text);
+    String rule = "  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(safe) + 6)));
+    if (fullscreen) {
+      append("", true);
+      appendStyled("  " + safe, "\u001b[1;36m");
+      append(rule, true);
+      return;
+    }
+    println();
     printlnStyled(paint("  " + safe, AttributedStyle.CYAN, true));
-    println("  " + "-".repeat(Math.min(64, Math.max(24, displayWidth(safe) + 6))));
+    println(rule);
   }
 
-  /** 二级小节标题。 */
+  /** 二级小节标题（如「相关资料」）。全屏视图加粗。 */
   public void section(String text) {
-    printlnStyled(paint("  " + sanitize(text), AttributedStyle.YELLOW, true));
+    String safe = "  " + sanitize(text);
+    if (fullscreen) { appendStyled(safe, "\u001b[1;33m"); return; }
+    printlnStyled(paint(safe, AttributedStyle.YELLOW, true));
+  }
+
+  /** 卡片小标题：前置空行 + 黄色粗体 + ▸ 标记，让每块资料一眼分开；全屏同样加粗。 */
+  public void subheading(String text) {
+    String safe = "  ▸ " + sanitize(text);
+    if (fullscreen) { append("", true); appendStyled(safe, "\u001b[1;33m"); return; }
+    println();
+    printlnStyled(paint(safe, AttributedStyle.YELLOW, true));
+  }
+
+  /** 助手正文段落：按行缩进两格、正常换行、不加粗。 */
+  public void paragraph(String text) {
+    String safe = sanitize(text);
+    for (String line : safe.split("\n", -1)) {
+      println(line.isEmpty() ? "" : "  " + line);
+    }
   }
 
   public void success(String text) {

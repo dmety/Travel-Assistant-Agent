@@ -155,7 +155,7 @@ public class AgentOrchestrator {
     String advice = summary == null ? result.advice() : summary;
     AgentResult merged = new AgentResult(status, result.facts(), advice,
         cap(unknown, rules.limit("maxUnknownFields")),
-        cap(notices, rules.limit("maxNotices")), result.usage());
+        cap(notices, rules.limit("maxNotices")), result.disclaimers(), result.usage());
     return new DispatchOutcome(intent, status, providerId, merged,
         List.copyOf(attempts), registry.version());
   }
@@ -183,6 +183,7 @@ public class AgentOrchestrator {
         raw.advice(),
         raw.unknownFields() == null ? List.of() : raw.unknownFields(),
         raw.notices() == null ? List.of() : raw.notices(),
+        raw.disclaimers(),
         raw.usage() == null ? new Usage(0L, 0) : raw.usage());
   }
 

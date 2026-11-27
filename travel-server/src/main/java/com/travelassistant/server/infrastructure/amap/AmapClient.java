@@ -475,8 +475,9 @@ public class AmapClient {
     try {
       root = restTemplate.getForObject(uri, JsonNode.class);
     } catch (RestClientException e) {
-      throw new AmapUnavailableException(
-          "高德" + what + "请求失败：" + brief(e.getMessage()), e);
+      String detail = brief(e.getMessage());
+      log.warn("高德{}请求失败：{}", what, detail);
+      throw new AmapUnavailableException("高德" + what + "请求失败：" + detail);
     }
     if (root == null) {
       throw new AmapUnavailableException("高德" + what + "返回空响应");
@@ -589,6 +590,9 @@ public class AmapClient {
     if (message == null) {
       return "无详细信息";
     }
-    return message.length() > 160 ? message.substring(0, 160) + "…" : message;
+    String sanitized = message
+        .replaceAll("(?i)(\\b(?:key|ak|token|secret|api[_-]?key|appcode)\\s*[=:]\\s*)[^&\\s,\"']+", "$1<redacted>")
+        .replaceAll("(?i)(\\bBearer\\s+)[A-Za-z0-9._~+/-]+=*", "$1<redacted>");
+    return sanitized.length() > 160 ? sanitized.substring(0, 160) + "…" : sanitized;
   }
 }

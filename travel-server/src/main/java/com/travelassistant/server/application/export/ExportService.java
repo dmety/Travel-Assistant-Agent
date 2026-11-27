@@ -3,6 +3,7 @@ package com.travelassistant.server.application.export;
 import com.travelassistant.server.application.budget.BudgetService;
 import com.travelassistant.server.application.decision.CandidateService;
 import com.travelassistant.server.application.itinerary.ItineraryService;
+import com.travelassistant.server.domain.attraction.PlaceholderValues;
 import com.travelassistant.server.domain.budget.BudgetAnalysis;
 import com.travelassistant.server.domain.budget.BudgetSummary;
 import com.travelassistant.server.domain.budget.CategoryTotal;
@@ -23,7 +24,10 @@ import com.travelassistant.server.domain.itinerary.Transport;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,6 +43,10 @@ import org.springframework.stereotype.Service;
  *   <li>不同币种分行列出，绝不合并成一个数字；</li>
  *   <li>结尾必须写明「不构成预订承诺、价格以官方为准」——导出件会被转发，
  *       脱离上下文后很容易被当成价格凭据。</li>
+ *   <li>草案生成的溯源备注（{@code attractionId=…} 开头）拆成可读行：票价与开放时间
+ *       进正文，景点 ID、来源等内部字段移到文末「数据溯源」附录——导出件是给同行的人
+ *       读的，不是核验台账。普通自由文本备注保持原样；值里含「；」也不能拆错，
+ *       所以解析用键名锚点而不是切分符。</li>
  * </ul>
  */
 @Service
@@ -46,6 +54,13 @@ public class ExportService {
 
   private static final DateTimeFormatter STAMP =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
+
+  /**
+   * 草案溯源备注的键名锚点（DraftAssembler.itemOf 的格式）。票价、开放时间的值本身
+   * 含「；」，所以用键名做锚、值用惰性匹配，未知项收在行尾。
+   */
+  private static final Pattern DRAFT_NOTE = Pattern.compile(
+      "attractionId=([^；]*)；来源=([^；]*)；票价=(.*?)；开放时间=(.*?)；未知项=(.*)");
 
   private final ItineraryService itineraries;
   private final BudgetService budgets;
@@ -78,15 +93,17 @@ public class ExportService {
   private String render(Itinerary it, BudgetSummary summary, BudgetAnalysis analysis,
       ItineraryChecks checks, CandidateBoard board) {
     StringBuilder sb = new StringBuilder();
+    List<String> missing = new ArrayList<>();
+    List<String> trace = new ArrayList<>();
     Plan plan = it.plan() == null ? Plan.empty() : it.plan();
 
     sb.append("行程摘要：").append(text(it.title(), "未命名行程")).append('\n');
-    sb.append("创建者：").append(it.owner()).append('\n');
-    sb.append("状态：").append(it.archived() ? "已归档（只读）" : "进行中").append('\n');
-    sb.append("目的地：").append(text(plan.destination(), "未填写")).append('\n');
-    sb.append("时间：").append(dateRange(plan)).append('\n');
-    sb.append("版本：v").append(it.version()).append("　导出时间：")
-        .append(STAMP.format(java.time.Instant.now())).append('\n');
+    sb.append("状态：").append(it.archived() ? "已归档（只读）" : "进行中")
+        .append("｜版本：v").append(it.version())
+        .append("｜导出时间：").append(STAMP.format(java.time.Instant.now())).append('\n');
+    sb.append("创建者：").append(it.owner())
+        .append("｜目的地：").append(text(plan.destination(), "未填写"))
+        .append("｜时间：").append(dateRange(plan)).append('\n');
     sb.append('\n');
 
     // ---- 成员 ----
@@ -124,8 +141,24 @@ public class ExportService {
           sb.append("  - 当天没有具体活动\n");
         }
         for (DailyActivity a : day.activities()) {
-          sb.append("  - ").append(timeRange(a)).append(text(a.title(), "未命名"))
-              .append(place(a.location())).append(noteSuffix(a.note())).append('\n');
+          String title = text(a.title(), "未命名");
+          Matcher draft = draftNote(a.note());
+          sb.append("  - ").append(timeRange(a)).append(title).append(place(a.location()));
+          if (draft == null) {
+            sb.append(noteSuffix(a.note()));
+          }
+          sb.append('\n');
+          if (draft != null) {
+            sb.append("    票价：").append(unknownHint(draft.group(3), "未知（需核实，未知不等于免费）"))
+                .append('\n');
+            sb.append("    开放时间：").append(unknownHint(draft.group(4), "未知（需核实）"))
+                .append('\n');
+            if (!"无".equals(draft.group(5))) {
+              sb.append("    待核实：").append(draft.group(5)).append('\n');
+            }
+            trace.add("- " + title + "：attractionId=" + draft.group(1)
+                + "，来源=" + draft.group(2));
+          }
           if (a.ticketRecord() != null) {
             var r = a.ticketRecord();
             sb.append("    用户自报已购票／已预约，未经平台核验：")
@@ -141,10 +174,10 @@ public class ExportService {
     sb.append('\n');
 
     // ---- 交通 ----
-    sb.append("【交通】\n");
     if (it.transports().isEmpty()) {
-      sb.append("- 暂无交通安排\n");
+      missing.add("交通");
     } else {
+      sb.append("【交通】\n");
       for (Transport t : it.transports()) {
         sb.append("- ").append(t.date() == null ? "日期未填" : t.date().toString()).append(' ')
             .append(text(t.mode(), "交通")).append("：")
@@ -162,14 +195,14 @@ public class ExportService {
         }
         sb.append(noteSuffix(t.note())).append('\n');
       }
+      sb.append('\n');
     }
-    sb.append('\n');
 
     // ---- 住宿 ----
-    sb.append("【住宿】\n");
     if (it.lodgings().isEmpty()) {
-      sb.append("- 暂无住宿安排\n");
+      missing.add("住宿");
     } else {
+      sb.append("【住宿】\n");
       for (Lodging l : it.lodgings()) {
         sb.append("- ").append(text(l.name(), "未命名住宿"))
             .append("：").append(dateOrUnknown(l.checkIn())).append(" → ")
@@ -182,14 +215,14 @@ public class ExportService {
         }
         sb.append(noteSuffix(l.note())).append('\n');
       }
+      sb.append('\n');
     }
-    sb.append('\n');
 
     // ---- 费用 ----
-    sb.append("【费用】\n");
     if (it.expenses().isEmpty()) {
-      sb.append("- 暂无费用记录\n");
+      missing.add("费用");
     } else {
+      sb.append("【费用】\n");
       for (Expense e : it.expenses()) {
         sb.append("- ").append(text(e.category(), "未分类")).append("：")
             .append(e.amount() == null ? "金额待填写" : money(e.amount()) + " " + currency(e))
@@ -211,8 +244,8 @@ public class ExportService {
               .append(' ').append(c.currency()).append('\n');
         }
       }
+      sb.append('\n');
     }
-    sb.append('\n');
 
     // ---- 预算分析 ----
     sb.append("【预算分析】\n");
@@ -236,10 +269,10 @@ public class ExportService {
     sb.append('\n');
 
     // ---- 候选与投票 ----
-    sb.append("【候选与投票】\n");
     if (board.candidates().isEmpty()) {
-      sb.append("- 暂无候选项\n");
+      missing.add("候选与投票");
     } else {
+      sb.append("【候选与投票】\n");
       for (CandidateTally tally : board.candidates()) {
         sb.append("- ").append(tally.candidate().name())
             .append("（").append(tally.candidate().kind().label()).append("）");
@@ -258,8 +291,12 @@ public class ExportService {
       for (String note : board.notes()) {
         sb.append("  注：").append(note).append('\n');
       }
+      sb.append('\n');
     }
-    sb.append('\n');
+    if (!missing.isEmpty()) {
+      sb.append("未填写：").append(String.join("、", missing)).append('\n');
+      sb.append('\n');
+    }
 
     // ---- 体检 ----
     sb.append("【行程检查】\n");
@@ -273,12 +310,34 @@ public class ExportService {
     }
     sb.append('\n');
 
+    if (!trace.isEmpty()) {
+      sb.append("【数据溯源（供核验，非价格依据）】\n");
+      for (String t : trace) {
+        sb.append(t).append('\n');
+      }
+      sb.append('\n');
+    }
+
     sb.append("说明：本摘要由系统按当前记录生成，票价、余票与开放时间以景区官方渠道为准，\n");
     sb.append("不构成预订承诺；同行成员的实际支出请以各自票据为准。\n");
     return sb.toString();
   }
 
   // ---- 格式化辅助 ----
+
+  /** 草案溯源备注按键名锚点解析；不是草案格式（普通备注）返回 null，正文原样保留。 */
+  private Matcher draftNote(String note) {
+    if (!notBlank(note)) {
+      return null;
+    }
+    Matcher m = DRAFT_NOTE.matcher(note.strip());
+    return m.matches() ? m : null;
+  }
+
+  /** 值为「未知」占位时换成带提示的文案，避免被读成「没有这项信息 = 不重要/免费」。 */
+  private String unknownHint(String value, String hint) {
+    return PlaceholderValues.UNKNOWN_LABEL.equals(value.strip()) ? hint : value;
+  }
 
   private String dateRange(Plan plan) {
     if (!plan.hasDateRange()) {

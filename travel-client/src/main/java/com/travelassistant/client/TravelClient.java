@@ -37,6 +37,7 @@ public class TravelClient {
     private JsonNode completion;
     private String error;
     private boolean tokenSeen;
+    private final StringBuilder text = new StringBuilder();
   }
 
   private record TranscriptEntry(String role, String text) {}
@@ -782,15 +783,17 @@ public class TravelClient {
     latestChatResult = result.deepCopy();
     String reply = result.path("reply").asText("");
     if (result.path("state").isObject()) chatState = result.path("state").deepCopy();
-    if (state.tokenSeen) ui.println();
-    else if (!reply.isBlank()) ui.println(reply);
-    else {
+    String body = (state.text.length() > 0 ? state.text.toString() : reply)
+        .replace("**", "").strip();
+    if (!body.isEmpty()) {
+      ui.paragraph(body);
+    } else {
       String note = result.path("note").asText("");
       ui.warn(note.isBlank() ? "助手暂时没有返回内容。" : note);
     }
     printChatCards(result.path("cards"));
     rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt);
-    if (!reply.isBlank()) rememberChat("assistant", reply);
+    if (!body.isEmpty()) rememberChat("assistant", body);
   }
 
   /** 将 Agent 的结构化结果压缩成终端可读的小卡片，不输出原始 JSON 或内部过程。 */
@@ -843,14 +846,11 @@ public class TravelClient {
       shownPlaces.add(place);
     }
     if (rows.isEmpty()) return false;
-    ui.note("景点（最多显示 5 个）");
+    ui.subheading("景点（最多显示 5 个）");
     ui.table(List.of("名称", "评分", "门票/成人票", "开放时间"), rows);
     for (JsonNode place : shownPlaces) {
       String name = cardText(place, "name", "景点");
       ui.note("  " + name + " 地址：" + cardText(place, "address", "未返回/未核验"));
-      ui.note("    来源：" + cardText(place, "source", "未标注")
-          + "；查询时间：" + cardText(place, "retrievedAt", "未返回/未核验")
-          + "；信息更新时间：" + cardText(place, "informationUpdatedAt", "未返回/未核验"));
     }
     return true;
   }
@@ -866,7 +866,7 @@ public class TravelClient {
           cardText(day, "nightWeather", "—") + " " + cardText(day, "nightTemp", "—") + "°",
           cardText(day, "dayWind", "—") + " " + cardText(day, "dayPower", "") + "级"));
     }
-    ui.note("天气预报 · 非实时天气 · " + cardText(data, "city", "未知城市"));
+    ui.subheading("天气预报 · 非实时天气 · " + cardText(data, "city", "未知城市"));
     ui.table(List.of("日期", "白天", "夜间", "风"), rows);
     return true;
   }
@@ -875,8 +875,8 @@ public class TravelClient {
     String origin = cardText(data, "origin");
     String destination = cardText(data, "destination");
     if ("未知".equals(origin) || "未知".equals(destination)) return false;
-    ui.note("路线：" + origin + " → " + destination + " · "
-        + cardText(data, "modeLabel", "出行") + " · "
+    ui.subheading("路线 · " + origin + " → " + destination);
+    ui.note("  " + cardText(data, "modeLabel", "出行") + " · "
         + cardText(data, "distanceText", "距离未知") + " · 约 "
         + cardText(data, "durationText", "耗时未知"));
     JsonNode steps = data.path("steps");
@@ -898,7 +898,7 @@ public class TravelClient {
     JsonNode ranking = data.path("ranking");
     String winner = cardText(data, "winner", "");
     if (winner.isBlank() && (!ranking.isArray() || ranking.isEmpty())) return false;
-    if (!winner.isBlank()) ui.note("投票推荐：" + winner);
+    if (!winner.isBlank()) ui.subheading("投票推荐 · " + winner);
     if (ranking.isArray() && !ranking.isEmpty()) {
       List<List<String>> rows = new ArrayList<>();
       for (JsonNode item : ranking) {
@@ -921,13 +921,15 @@ public class TravelClient {
         JsonNode value = fact.path("value");
         if (!"FOOD".equals(value.path("category").asText())) continue;
         if (rows.size() >= 4) break;
-        rows.add(List.of(cardText(value, "name", "餐馆"),
+        String name = cardText(value, "name", "");
+        if (name.isBlank()) continue; // 无名占位结果不进候选，避免「餐馆/未知元」假行
+        rows.add(List.of(name,
             cardText(value, "pricePerPersonCny", "未知") + " 元/人",
             cardText(value, "rating", "—"), shortCell(cardText(value, "distanceMeters", "—"), 12) + " 米"));
         shownFoods.add(value);
       }
       if (rows.isEmpty()) return false;
-      ui.note("餐馆候选（最多显示 4 家；距离为地图参考点直线距离）");
+      ui.subheading("餐馆候选（最多显示 4 家；距离为地图参考点直线距离）");
       ui.table(List.of("名称", "人均", "评分", "距离"), rows);
       for (JsonNode value : shownFoods) {
         JsonNode tags = value.path("tags");
@@ -935,10 +937,9 @@ public class TravelClient {
             ? java.util.stream.StreamSupport.stream(tags.spliterator(), false)
                 .map(JsonNode::asText).limit(4).collect(java.util.stream.Collectors.joining("、"))
             : "";
-        ui.note("  " + cardText(value, "name", "餐馆")
-            + (tagText.isBlank() ? "" : " · 标签 " + tagText)
-            + " · 来源 " + cardText(value, "source", "未标注")
-            + " · 查询时间 " + cardText(value, "queriedAt", "未返回/未核验"));
+        if (!tagText.isBlank()) {
+          ui.note("  " + cardText(value, "name", "餐馆") + " · 标签 " + tagText);
+        }
       }
       return true;
     }
@@ -963,7 +964,7 @@ public class TravelClient {
                   cardText(day, "date", "日期待定"), names.isEmpty() ? "暂无可排景点" : String.join("、", names)));
             }
           }
-          ui.note("旅行攻略草案 · 逐日摘要");
+          ui.subheading("旅行攻略草案 · 逐日摘要");
           if (!rows.isEmpty()) ui.table(List.of("日期", "出行日", "安排"), rows);
           printSelectionBasis(days);
           JsonNode guide = draft.path("guide");
@@ -997,7 +998,7 @@ public class TravelClient {
           if (rows.size() >= 6) break;
         }
         if (rows.isEmpty()) return false;
-        ui.note("逐日行程草案");
+        ui.subheading("逐日行程草案");
         ui.table(List.of("日期", "安排"), rows);
         return true;
       }
@@ -1054,6 +1055,23 @@ public class TravelClient {
         appendBudgetBreakdown(detail, guide.path("costs"));
         detail.append("\n\n完整逐日路线、来源和待核验事项\n")
             .append(draft.path("guideText").asText("本轮未返回完整攻略正文。"));
+        JsonNode basisDays = draft.path("dailySchedules");
+        StringBuilder basis = new StringBuilder("\n\n来源与筛选依据（全部）");
+        boolean anyBasis = false;
+        if (basisDays.isArray()) {
+          for (JsonNode day : basisDays) {
+            JsonNode items = day.path("items");
+            if (!items.isArray()) continue;
+            for (JsonNode item : items) {
+              String reason = cardText(item, "selectionBasis", "");
+              if (reason.isBlank()) continue;
+              basis.append("\n- ").append(cardText(item, "name", "景点")).append("：").append(reason);
+              anyBasis = true;
+            }
+          }
+        }
+        if (anyBasis) detail.append(basis);
+        else detail.append("\n\n来源与筛选依据：本轮未返回逐景点筛选依据。");
         JsonNode weather = draft.path("weather");
         if (weather.isObject()) {
           detail.append("\n\n天气核验范围：来源 ").append(cardText(weather, "source", "未返回/未核验"))
@@ -1116,21 +1134,25 @@ public class TravelClient {
   private void printGuideBudgetSummary(JsonNode guide) {
     JsonNode costs = guide.path("costs");
     if (!costs.isArray() || costs.isEmpty()) return;
-    ui.note("预算分类（全团；实价、参考价与未知分开）");
+    ui.subheading("预算分类（全团；实价、参考价与未知分开）");
     ui.table(List.of("类别", "已确认", "参考", "实价", "未知项"), budgetRows(costs));
   }
 
   private void printSelectionBasis(JsonNode days) {
     if (!days.isArray()) return;
     int shown = 0;
+    boolean headered = false;
     for (JsonNode day : days) {
       JsonNode items = day.path("items");
       if (!items.isArray()) continue;
       for (JsonNode item : items) {
-        if (shown >= 10) { ui.note("其余景点的来源与筛选说明见 /details。"); return; }
         String reason = cardText(item, "selectionBasis", "");
         if (reason.isBlank()) continue;
-        ui.note("筛选依据 · " + cardText(item, "name", "景点") + "：" + shortCell(reason, 88));
+        String shownReason = shortCell(stripSourceDisclosure(reason), 80);
+        if (shownReason.isBlank()) continue;
+        if (shown >= 8) { ui.note("  其余景点的排序依据详见 /details。"); return; }
+        if (!headered) { ui.subheading("筛选依据 · 排序与匹配"); headered = true; }
+        ui.note("  " + cardText(item, "name", "景点") + "：" + shownReason);
         shown++;
       }
     }
@@ -1193,6 +1215,23 @@ public class TravelClient {
     return ConsoleUI.truncateToWidth(value == null ? "" : value, width);
   }
 
+  /** 抹掉服务端筛选依据文本里的字段来源/信息日期披露，只留排序与匹配理由；完整依据仍见 /details。 */
+  static String stripSourceDisclosure(String reason) {
+    if (reason == null) return "";
+    return reason
+        // 来源「百度 …」/ 字段来源：「…」
+        .replaceAll("(?:字段)?来源\\s*[=＝:：]?\\s*「[^」]*」", "")
+        // 来源=百度 [值=…; 信息日期=…] 或 来源：高德
+        .replaceAll("(?:字段)?来源\\s*[=＝:：]\\s*[^\\s，,；;、「」]+(?:\\s*\\[[^\\]]*\\])?", "")
+        .replaceAll("信息日期\\s*[=＝:：]\\s*[^\\s，,；;、\\[\\]]*\\]?", "")
+        .replaceAll("[，,]{2,}", "，")
+        .replaceAll("[；;]{2,}", "；")
+        .replaceAll("[，,]\\s*[；;]", "；")
+        .replaceAll("[，,；;、]+\\s*$", "")
+        .replaceAll("^[，,；;、]+\\s*", "")
+        .strip();
+  }
+
   private void handleChatStreamEvent(String eventName, String rawData, ChatStreamState state)
       throws java.io.IOException {
     if (rawData == null || rawData.isBlank()) return;
@@ -1205,7 +1244,9 @@ public class TravelClient {
       case "token" -> {
         String text = data.path("text").asText("");
         if (!text.isEmpty()) {
-          ui.print(text);
+          // 缓冲而非逐 token 直绘：避免 Markdown 标记被截断成半截星号、正文连成一坨。
+          // 结束后统一以段落渲染，全屏视图也能正确换行与加粗。
+          state.text.append(text);
           state.tokenSeen = true;
         }
       }

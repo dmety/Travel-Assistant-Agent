@@ -101,6 +101,18 @@ class AgentOrchestratorTest {
   }
 
   @Test
+  @DisplayName("Provider 上报的核验声明经编排层逐层透传到 result")
+  void providerDisclaimersSurviveOrchestration() {
+    when(registry.find(PRIMARY)).thenReturn(Optional.of(provider(PRIMARY, context ->
+        new AgentResult("OK", List.of(), "已按已核实事实整理建议", List.of(), List.of(),
+            List.of("GENERAL_DISH_LIST"), new Usage(0L, 0)))));
+    DispatchOutcome outcome = orchestrator.dispatch(request());
+    assertThat(outcome.result().disclaimers()).containsExactly("GENERAL_DISH_LIST");
+    assertThat(orchestrator.contractBody(outcome).get("verification"))
+        .isEqualTo(Map.of("disclaimers", List.of("GENERAL_DISH_LIST")));
+  }
+
+  @Test
   @DisplayName("primary 抛契约违规异常时切下一个，并如实标 DEGRADED")
   void contractViolationFallsBackAndMarksDegraded() {
     when(registry.find(PRIMARY)).thenReturn(Optional.of(provider(PRIMARY, context -> {

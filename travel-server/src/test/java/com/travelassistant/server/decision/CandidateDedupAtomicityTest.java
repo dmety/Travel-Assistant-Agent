@@ -61,7 +61,9 @@ class CandidateDedupAtomicityTest {
     ItineraryService itineraryService = new ItineraryService(itineraries, accounts,
         org.mockito.Mockito.mock(
             com.travelassistant.server.application.collaboration.ChangeLogRecorder.class),
-        org.mockito.Mockito.mock(DecisionStore.class));
+        org.mockito.Mockito.mock(DecisionStore.class),
+        org.mockito.Mockito.mock(
+            com.travelassistant.server.infrastructure.persistence.CollaborationStore.class));
     CandidateService service = new CandidateService(itineraryService, decisions);
     String id = itineraryService.create(OWNER, "候选并发", new Plan("杭州", "初始", "")).id();
 

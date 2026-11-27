@@ -2,6 +2,7 @@ package com.travelassistant.server.application.attraction;
 
 import com.travelassistant.server.domain.attraction.Attraction;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,6 +75,31 @@ public class AttractionService {
   /** 知识库状态（含不可用原因），供运维与客户端提示。 */
   public AttractionStore.Status status() {
     return store.status();
+  }
+
+  /** 城市条目：名称与收录景点数。 */
+  public record CityCount(String city, int count) {}
+
+  /** 省份分组：省名、省内总条数与按量降序的城市清单。 */
+  public record ProvinceGroup(String province, int count, List<CityCount> cities) {}
+
+  /**
+   * 全部收录城市按省份分组（知识库 tab 折叠列表的数据源）。
+   * 库不可用时与查询接口同一口径抛异常，避免前端把「没加载」误读成「没有城市」。
+   */
+  public List<ProvinceGroup> provinces() {
+    ensureAvailable();
+    List<ProvinceGroup> out = new ArrayList<>();
+    store.provinceCityCounts().forEach((province, cities) -> {
+      List<CityCount> list = new ArrayList<>();
+      int total = 0;
+      for (var e : cities.entrySet()) {
+        list.add(new CityCount(e.getKey(), e.getValue()));
+        total += e.getValue();
+      }
+      out.add(new ProvinceGroup(province, total, list));
+    });
+    return out;
   }
 
   /** Region aliases used to reject an external POI whose address names a different city. */

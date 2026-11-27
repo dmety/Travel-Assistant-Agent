@@ -82,6 +82,78 @@ class ChatAgentTest {
   }
 
   @Test
+  @DisplayName("出现地名直接出草案卡：华山不进需求收集、不等确认")
+  void placeNameProducesDraftWithoutIntake() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("c1", "draft_itinerary", "{\"city\":\"华山\",\"days\":4}"));
+    when(tools.execute(eq("draft_itinerary"), any(), anyList(), any()))
+        .thenReturn(new ChatTools.Outcome(true, "华山草案", new ChatTools.Card(
+            "envelope", "PLAN_DRAFT", Map.of("status", "OK"))));
+
+    // collecting 阶段 + 无日期：旧逻辑会被两道门禁拦下要求确认
+    var collecting = new ConversationState("华山", null, null, null, List.of(),
+        Map.of("_structured", true, "_intent", "start", "_phase", "collecting"));
+
+    ChatReply reply = agent.chat("华山", List.of(), collecting);
+
+    assertThat(reply.reply()).contains("【攻略草案已生成】").doesNotContain("待确认");
+    assertThat(reply.cards()).hasSize(1);
+    verify(tools).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
+  @DisplayName("省略句承接著名景点也算地名，直接出草案不等确认")
+  void ellipsisWithFamousPlaceProducesDraft() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("c1", "draft_itinerary", "{\"city\":\"华山\",\"days\":4}"));
+    when(tools.execute(eq("draft_itinerary"), any(), anyList(), any()))
+        .thenReturn(new ChatTools.Outcome(true, "华山草案", null));
+
+    var collecting = new ConversationState("华山", null, null, null, List.of(),
+        Map.of("_structured", true, "_intent", "start", "_phase", "collecting"));
+
+    ChatReply reply = agent.chat("那华山呢",
+        List.of(new ConversationTurn("user", "之前聊过行程")), collecting);
+
+    assertThat(reply.reply()).contains("【攻略草案已生成】").doesNotContain("待确认");
+    verify(tools).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
+  @DisplayName("纯问答提到地名也补一版草案卡：天气卡保留，草案卡附加")
+  void pureQuestionWithPlaceStillGetsDraftCard() {
+    when(model.chat(anyList(), anyList(), anyInt()))
+        .thenReturn(call("w1", "get_weather", "{\"city\":\"大同\"}"))
+        .thenReturn(say("大同这两天晴。"));
+    when(tools.execute(eq("get_weather"), any()))
+        .thenReturn(new ChatTools.Outcome(true, "大同天气预报", new ChatTools.Card("weather", null, Map.of())));
+    when(tools.execute(eq("draft_itinerary"), any(), anyList(), any()))
+        .thenReturn(new ChatTools.Outcome(true, "大同草案", new ChatTools.Card(
+            "envelope", "PLAN_DRAFT", Map.of("status", "OK"))));
+
+    // 本轮只问天气、模型没调 draft_itinerary；state 里承接了地名
+    var state = new ConversationState("大同", null, null, null, List.of());
+    ChatReply reply = agent.chat("大同天气怎么样", List.of(), state);
+
+    assertThat(reply.reply()).contains("大同");
+    assertThat(reply.cards()).hasSize(2);
+    assertThat(reply.cards()).anySatisfy(c -> assertThat(c.type()).isEqualTo("weather"));
+    assertThat(reply.cards()).anySatisfy(c -> assertThat(c.intent()).isEqualTo("PLAN_DRAFT"));
+    verify(tools).execute(eq("draft_itinerary"), any(), anyList(), any());
+  }
+
+  @Test
+  @DisplayName("明确否定规划时不因地名强行出草案")
+  void explicitRejectionSkipsDraft() {
+    when(model.chat(anyList(), anyList(), anyInt())).thenReturn(say("好的，那先不排行程。"));
+
+    ChatReply reply = agent.chat("华山门票多少，不用排行程", List.of(), ConversationState.empty());
+
+    assertThat(reply.reply()).doesNotContain("【攻略草案已生成】");
+    verify(tools, never()).execute(eq("draft_itinerary"), any(), any(), any());
+  }
+
+  @Test
   void explicitlyRequestedPreviewCanKeepDateUndecided() {
     when(model.chat(anyList(), anyList(), anyInt()))
         .thenReturn(call("d", "draft_itinerary", "{\"city\":\"大同\",\"days\":5}"));

@@ -6,6 +6,7 @@ import com.travelassistant.server.interfaces.rest.dto.AttractionQueryResponse;
 import com.travelassistant.server.interfaces.rest.dto.AttractionView;
 import com.travelassistant.server.infrastructure.persistence.AttractionStore;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,6 +65,12 @@ public class AttractionController {
         .<ResponseEntity<Object>>map(a -> ResponseEntity.ok(AttractionView.from(a)))
         .orElseGet(() -> ResponseEntity.status(404).body(Map.of(
             "error", "景点不存在", "id", id)));
+  }
+
+  /** 全部收录城市按省分组（省、市、条数），供知识库折叠列表；库不可用同样 503。 */
+  @GetMapping("/provinces")
+  public List<AttractionService.ProvinceGroup> provinces() {
+    return service.provinces();
   }
 
   /** 知识库状态；不可用时给出原因，便于人工排查。 */

@@ -34,8 +34,10 @@
 }
 .iconbtn:hover { border-color: var(--pine); color: var(--pine); }
 
-.app-wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 96px; }
-.app-wrap.narrow { max-width: 720px; }
+/* 页面内容铺满视口：设计稿 .browser{max-width:1180px;margin:0 auto} 是「模拟浏览器
+   窗口」的展示外壳，不是真实产品版心。真实页再夹一层居中窄版心会两侧大片留白。 */
+.app-wrap { width: 100%; max-width: none; margin: 0; padding: 20px 28px 96px; }
+.app-wrap.narrow { max-width: none; }
 
 /* ---------- 设置页 ---------- */
 .set-head {

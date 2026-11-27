@@ -57,19 +57,21 @@ public class ChatAgent {
   private static final long BUDGET_MS = 45_000L;
 
   private static final String SYSTEM_PROMPT = """
-      你是「旅行助手」的对话 Agent。用户用中文提问，你可以调用工具查真实数据，然后用自己的话回答。
+      你是「游小满」，旅行助手的看板娘，陪用户规划行程、查景点、美食、天气和购票信息。
+      用户用中文提问，你可以调用工具查真实数据，然后用自己的话回答。
+      语气轻快、亲切、口语化，称呼「你」；可以偶尔一句俏皮话，但不卖萌、不堆感叹号、不推销功能；
+      你只做信息整理与建议，不代下单、不夸大承诺，数据没查到就坦率说没查到。
 
-      完整攻略的收集流程
-      A. 第一次听到「去某地玩 N 天，帮我安排/做攻略」，默认这是初步意向，不代表用户已准备好接受完整攻略。
-         若用户没有明确说「先出初稿」「按现有信息直接规划」等快捷要求，先不要调用 draft_itinerary。
-         用一条简短问题集中收集：出发地与日期/月份、人数及老人儿童/步行限制、全团预算、交通方式、兴趣与必去点；
-         忌口和住宿偏好可选。未定项允许回答「待定」，不要反复逐项追问。
-         收集期间用户另问天气等即时信息时，仍应调用对应工具回答；不要把用户赶去自行查询，也不要因此生成攻略。
-      B. 用户补充后，先用不超过 120 字复述已提供条件，指出尚缺的关键项，询问是否按这些条件开始规划。
-         用户明确回复「确认开始规划」后才调用 draft_itinerary。若用户明确说先出初稿，可跳过确认，缺项标为未提供。
-         条件未确认时不得先查一轮、生成整份攻略再让用户补资料。
-      C. draft_itinerary 成功后，只用一句话说明已生成草案及重要限制；完整内容交给结构化卡片展示。
-         不要把 guideText 或整份攻略复制进聊天正文。不得把模型工具调用前的客套话当作最终答复。
+     地名即出草案（默认行为）
+     A. 用户只要说出地名或景点名（如「武当山」「武汉三天」「去大理」），直接调用 draft_itinerary 出一版草案，
+        不要先收集条件、不要让用户回复「确认开始规划」。没给天数就省略 days，系统按可查候选景点自动收敛；
+        没给日期、预算、人数就在草案里标待定，不要为这些反复追问。
+     B. 用户同时问天气、美食、门票等具体问题时，照常调用对应工具回答；提到地名且本会话还没有草案时
+        再出一版草案，但同一轮只调一次 draft_itinerary。只有用户明确说「不要规划」「不用排行程」时才不排。
+     C. draft_itinerary 成功后，只用一句话说明已生成草案及重要限制；完整内容交给结构化卡片展示。
+        不要把 guideText 或整份攻略复制进聊天正文。不得把模型工具调用前的客套话当作最终答复。
+     D. 对话历史里已有未确认草案时不要重新规划：用户问天气、美食、门票等就只回答本问题，
+        不调 draft_itinerary；只有用户明确要求重排、改天数、增删景点时才再调一次。
 
       工具使用
       1. 凡是涉及具体事实的问题——某地有什么景点、门票多少、天气如何、附近有什么馆子、
@@ -85,8 +87,9 @@ public class ChatAgent {
       3. search_attractions 只用于用户明确点名的景点或类别；list_attractions 和 get_inspiration
          只用于用户问全市推荐、有什么好玩的或不知道去哪。点名查询未命中时如实说没查到，
          不得用同城其他景点补位；用户没有要求推荐时，不要额外扩展候选。
-      4. 用户只说「玩几天」「怎么安排」但没给天数：先问一句玩几天，不要默认成 3 天。
-         用户同时问行程和最近天气时，先用 draft_itinerary 已返回的预报；若草案没返回天气，再调用一次 get_weather。无天气数据时明确说未查到，不能判断适不适合出行。
+      4. 用户只说地名没给天数时直接出草案、不要先追问玩几天，系统按可查候选景点自动收敛，缺项标为待定；
+         用户给了天数就用用户给的天数，不自行加码。用户同时问行程和最近天气时，先用 draft_itinerary 已返回的预报；
+         若草案没返回天气，再调用一次 get_weather。无天气数据时明确说未查到，不能判断适不适合出行。
       5. 查完发现数据不足（工具说没查到），就如实告诉用户「这个我没查到」，不要解释内部数据来源；
          不要用常识补齐景点名、票价或餐厅。没查到的地名，get_inspiration 会自动改用
          地图实时检索——实时结果没有票价等级，按工具原文说，缺就说没查到。
@@ -103,15 +106,17 @@ public class ChatAgent {
       9. book_ticket 只给购票建议与经核验的官方入口、方法，不代下单、不查库存余票、不退款，
          不要说「已经买好」；工具给出的说明照实说一次，不要额外补免责话术或编网址；缺条件就照
          工具说的问，不要替用户猜年龄、学生资格。
-      9a. 用户附图时描述可辨认内容、读取菜单/票面文字并结合工具核验，看不清的字段标注未核验，
+          9a. 用户附图时描述可辨认内容、读取菜单/票面文字并结合工具核验，看不清的字段标注未核验，
           不能仅凭截图推断实时价格或库存。问「有什么好吃的」「吃什么」先调 find_food：先列当地
-          特色菜与代表小吃（菜名属通用资料），再把工具返回的餐馆挂到菜品上；餐馆名、人均、评分、
+          特色菜与代表小吃（菜名属通用资料），再把工具返回的餐馆挂到菜品上；菜名只列该城市本域
+          菜系与本地小吃，不得混入外市外省菜（问杭州不要列宁波菜），拿不准归属的就不列；
+          餐馆名、人均、评分、
           距离只引用 find_food 结果，没查到餐馆就只给菜品线索并如实说明。
 
       回答方式
       10. 用口语，称呼「你」。普通问答最多 4 句话；用户要行程时必须按 D1、D2 等逐日分段列出工具给出的安排，不能漏天、重复景点或补空天；可适度展开。不要表格、emoji、Markdown 加粗。
           核验提醒由界面统一尾注展示，正文一律不写「未核验 / 以官方为准 / 余票未核验 / 预报非实况」这类话；数据缺就直接说没查到，不要补免责。
-      11. 景点事实默认注明返回来源与查询时间；查询时间不等于景区信息更新时间。行程类未被问及天气时，不要主动报告天气缺失。数字必须与工具结果完全一致；票价与开放时间按工具原文说，缺就说没查到。
+      11. 来源与查询时间不主动说，用户问起才按工具结果讲清楚；查询时间不等于景区信息更新时间。行程类未被问及天气时，不要主动报告天气缺失。数字必须与工具结果完全一致；票价与开放时间按工具原文说，缺就说没查到。
       12. 提到门票时把价格念出来（例如「成人票 60 元、淡季 40 元」），不要只说「有门票」
           或「需要买票」这种等于没说的概括；工具结果里没有票价就直说没查到，不要估算。
       13. 天气是预报不是实况，说明时要讲清楚。
@@ -181,18 +186,24 @@ public class ChatAgent {
     String intent = String.valueOf(known.planning().getOrDefault("_intent", ""));
     boolean collecting = structured ? "collecting".equals(known.planning().get("_phase")) : planningIntakePending(history);
     boolean confirmed = structured ? intent.equals("confirm") || intent.equals("preview") : explicitPlanningConfirmation(text) || explicitQuickDraft(text);
-    if (structured && attachedImages.isEmpty() && (intent.equals("start") || collecting && intent.equals("update"))) {
+    // 「出现地名即出草案」：本轮或最近用户话里有明确地名/景点、且用户没有否定规划时，
+    // 视为已具备直接出草案的条件，跳过收集/确认门禁。地名仍以 TripRequirements 抽取的
+    // city 或著名景点权威归属为准，不从普通名词里猜。
+    boolean placeMentioned = hasPlaceMention(known, activePlace, text);
+    if (structured && attachedImages.isEmpty() && !placeMentioned
+        && (intent.equals("start") || collecting && intent.equals("update"))) {
       return new ChatReply(TripRequirements.summary(known), List.of(), List.of(), known, "agent", null);
     }
     if (text.isEmpty() && attachedImages.isEmpty()) {
       return new ChatReply("想聊点什么？说个城市和天数，我来排行程。", List.of(), List.of(),
           known, "agent", null);
     }
-    if (!structured && attachedImages.isEmpty() && planningIntakePending(history) && !explicitPlanningConfirmation(text)
-        && !explicitQuickDraft(text) && !isWeatherLookup(text)) {
+    if (!structured && attachedImages.isEmpty() && !placeMentioned && planningIntakePending(history)
+        && !explicitPlanningConfirmation(text) && !explicitQuickDraft(text) && !isWeatherLookup(text)) {
       return summarizePlanningIntake(text, history, known);
     }
-    if (!structured && attachedImages.isEmpty() && shouldStartPlanningIntake(text, history) && !explicitQuickDraft(text)) {
+    if (!structured && attachedImages.isEmpty() && !placeMentioned
+        && shouldStartPlanningIntake(text, history) && !explicitQuickDraft(text)) {
       String question = "【旅行需求收集】先把关键信息一次收齐，再查资料排攻略。按序号回复，未定写‘待定’：1 从哪出发、哪天/哪月？2 几人，有老人/儿童或少走路要求吗？3 全团预算？4 自驾/公共交通/包车？5 偏好或必去点（古迹/自然/美食等）？忌口和住宿可选。收到后我先复述给你确认；回‘确认开始规划’才生成，也可回‘先出初稿’。";
       return new ChatReply(question, List.of(new ChatTools.Card("intake", "PLANNING_INTAKE", Map.of())),
           List.of(), known, "agent", null);
@@ -243,6 +254,9 @@ public class ChatAgent {
         lastContent = turn.content();
       }
       if (!turn.wantsTools()) {
+        // 「出现地名就出卡」的确定性兜底：模型有时只回答了天气/门票等具体问题而漏排行程。
+        // 识别到地名且本轮还没有草案卡时补一次，纯问答也照样给一版草案（用户选的激进模式）。
+        supplementDraftCard(cards, trace, carried, known, activePlace, text, placeMentioned, history);
         ChatReply completed = reply(lastContent, cards, trace, carried, null);
         if (onDelta != null && completed.reply() != null) {
           onDelta.accept(completed.reply());
@@ -276,12 +290,12 @@ public class ChatAgent {
         calls++;
         String args = reconcileArgs(call.arguments(), activePlace);
         if ("draft_itinerary".equals(call.name())) args = inheritPlanning(args, carried);
-        if ("draft_itinerary".equals(call.name()) && collecting && !confirmed) {
+        if ("draft_itinerary".equals(call.name()) && collecting && !confirmed && !placeMentioned) {
           String pending = structured ? TripRequirements.summary(carried) : "【规划条件待确认】请确认条件后再生成攻略。";
           if(onDelta!=null)onDelta.accept(pending);
           return new ChatReply(pending,cards,trace,carried,"agent",null);
         }
-        if ("draft_itinerary".equals(call.name()) && collecting
+        if ("draft_itinerary".equals(call.name()) && collecting && !placeMentioned
             && !explicitQuickDraft(text) && !intent.equals("preview") && !hasDepartureDate(args)) {
           String missing = "【规划条件待确认】出发日期尚未确定，暂不能生成可执行的逐日攻略。"
               + "按天气选日的条件还未完成，目的地预报和满足条件的日期仍需核验；"
@@ -480,6 +494,82 @@ public class ChatAgent {
         + (activePlace == null ? "" : "\n本次聊的是「" + activePlace.name() + "」，查景点与排行程"
             + "按「" + activePlace.destination() + "」这个名字，不要换成别的城市")
         + "\n";
+  }
+
+  /**
+   * 模型收尾时若提到地名却没产出草案卡，补一次 draft_itinerary，兑现「说地名就给卡片」。
+   *
+   * <p>只在：识别到地名、本轮无草案卡、历史里也没有出过草案（提示词 D 条：已有未确认草案不重排）、
+   * 模型已配置、工具预算未用尽时补。补卡走与主链路
+   * 同一个 tools.execute，天数/人数/预算只取用户本轮确实提供的；补卡失败就保持原答复，
+   * 不编造卡片。天气等即时问答的卡片保留，草案卡作为附加一并呈现给用户。
+   */
+  private void supplementDraftCard(List<ChatTools.Card> cards, List<ChatReply.ToolTrace> trace,
+      ConversationState carried, ConversationState known, FamousPlaces.Entry activePlace,
+      String text, boolean placeMentioned, List<ConversationTurn> history) {
+    if (!placeMentioned || !model.configured()) {
+      return;
+    }
+    boolean draftShown = history != null && history.stream().anyMatch(t -> t != null
+        && ConversationTurn.ASSISTANT.equals(t.role())
+        && t.text() != null && t.text().contains("草案"));
+    if (draftShown) {
+      return;
+    }
+    boolean hasDraft = cards.stream().anyMatch(c -> c != null
+        && "envelope".equals(c.type()) && "PLAN_DRAFT".equals(c.intent()));
+    if (hasDraft) {
+      return;
+    }
+    String city = known.city() != null && !known.city().isBlank() ? known.city()
+        : carried.city() != null && !carried.city().isBlank() ? carried.city()
+        : activePlace == null ? null : activePlace.destination();
+    if (city == null || city.isBlank()) {
+      return;
+    }
+    ObjectNode args = mapper.createObjectNode();
+    args.put("city", city);
+    if (known.days() != null) args.put("days", known.days());
+    if (known.travelers() != null) args.put("travelers", known.travelers());
+    if (known.budget() != null) args.put("budget", known.budget());
+    try {
+      ChatTools.Outcome outcome = tools.execute("draft_itinerary", mapper.writeValueAsString(args),
+          List.of(), text);
+      if (!outcome.ok() || outcome.card() == null) {
+        return;
+      }
+      cards.add(outcome.card());
+      String summary = outcome.summary() == null ? "" : outcome.summary();
+      trace.add(new ChatReply.ToolTrace("draft_itinerary", label("draft_itinerary"), true,
+          summary.length() > 1200 ? summary.substring(0, 1200) + "…（输出已截断）" : summary,
+          outcome.disclaimers()));
+    } catch (Exception e) {
+      log.warn("地名即出草案兜底失败：{}", e.getMessage());
+    }
+  }
+
+  /**
+   * 本轮是否已经出现足以直接出草案的地名。
+   *
+   * <p>只认两类可信信号：TripRequirements 从本轮抽取的目的地，以及著名景点权威归属
+   * （含最近用户轮次的承接）。普通名词不算地名，避免「这个怎么安排」之类误触发。
+   * 用户明确说「不要规划/不用排行程」时不算，尊重否定意图。
+   */
+  private static boolean hasPlaceMention(ConversationState known, FamousPlaces.Entry activePlace,
+      String text) {
+    if (text != null && text.matches("(?s).*(?:不要|不用|别|无需).{0,6}(?:规划|行程|攻略|安排|草案).*")) {
+      return false;
+    }
+    if (known.city() != null && !known.city().isBlank()) {
+      return true;
+    }
+    // 著名景点归属（含从最近用户轮次的承接）也算地名；省略句如「那华山呢」由此覆盖。
+    if (activePlace != null) {
+      return true;
+    }
+    // 用户本句直接写了城市名（含常见城市 token 或「X市/X省」写法）也算。
+    // 天气这类即时问答的 intent 常常不抽 city，靠这条兜住「武汉天气怎么样」。
+    return FamousPlaces.mentionsOtherPlace(text);
   }
 
   /** 这句话里的著名景点优先；没写地名时才从最近的用户轮次里找（只看用户说的话）。 */

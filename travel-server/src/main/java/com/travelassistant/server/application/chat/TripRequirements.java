@@ -4,22 +4,42 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelassistant.server.application.intent.ConversationState;
 import com.travelassistant.server.infrastructure.ai.DeepSeekClient;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** User requirements survive history trimming; provider facts never become user requirements. */
 final class TripRequirements {
   private TripRequirements() {}
 
   static ConversationState update(DeepSeekClient model, ObjectMapper mapper, ConversationState old, String text) {
+    ConversationState state = extract(model, mapper, old, text);
+    // 模型没抽到预算时，从用户原话做一次确定性兜底：只认明确写出的金额，模糊区间不猜。
+    // 放在抽取之外，模型未配置/返回空/抛异常时同样生效——用户说了就是说了，
+    // 不该因为模型没接住就把「预算两千」丢成待定。
+    if (state.budget() == null && text != null && !text.isBlank()) {
+      BigDecimal parsed = budgetFromText(text);
+      if (parsed != null) {
+        state = new ConversationState(state.city(), state.days(), state.travelers(),
+            parsed, state.preferences(), state.planning());
+      }
+    }
+    return state;
+  }
+
+  private static ConversationState extract(DeepSeekClient model, ObjectMapper mapper, ConversationState old, String text) {
     if (model == null || !model.configured() || text.isBlank()) return old;
     try {
       String raw = model.complete("""
           你只提取旅行需求，不回答用户，不查询事实。输出一个JSON对象，不要Markdown。
           intent只能是 start/update/confirm/preview/weather/question；否定句如不要规划是question。
           已有需求用来理解指代，只输出当前用户明确新增或修改的字段，没说的省略，不猜日期或景点。
-          字段：intent,city(目的地，绝不能把出发地当目的地),days,travelers,budget,preferences(字符串数组),
+          字段：intent,city(目的地，绝不能把出发地当目的地),days,travelers,preferences(字符串数组),
+          budget(全团预算上限，阿拉伯数字，单位元；中文数字须换算，如"两千"=2000、"一万五"=15000、"1.5万"=15000；
+          "人均X"仅人数明确时乘人数，否则省略；"两三千"这类模糊区间省略此字段，不要替用户猜一个值),
           departDate/returnDate(YYYY-MM-DD，按天气选日尚未确认时省略),weatherRequest(天气选日原话),
           details对象字段：origin,originCity,arrivalCity,hotel(仅具体酒店名或地址，特色住宿不填这里),
           lodgingPreference,budgetScope,transportPreference,transportMode(明确自驾DRIVING/公交TRANSIT/步行WALKING/骑行CYCLING，委托你选择舒适交通可取TRANSIT),
@@ -74,12 +94,133 @@ final class TripRequirements {
       String city=patch.hasNonNull("city")?patch.get("city").asText():fresh?null:old.city();
       Integer days=positive(patch,"days",fresh?null:old.days());
       Integer people=positive(patch,"travelers",fresh?null:old.travelers());
-      var budget=patch.path("budget").isNumber()&&patch.get("budget").decimalValue().signum()>0?patch.get("budget").decimalValue():fresh?null:old.budget();
+      BigDecimal budget=budget(patch,fresh,old.budget());
       List<String> prefs=new ArrayList<>(fresh?List.of():old.preferences());
       if(patch.path("preferences").isArray()) patch.get("preferences").forEach(v->{if(!prefs.contains(v.asText()))prefs.add(v.asText());});
       return new ConversationState(city,days,people,budget,prefs,planning);
     } catch (RuntimeException | java.io.IOException ignored) { return old; }
   }
+
+  /** 只取模型明确给出的预算；数字字符串、中文数字也接住，解析不了才回退旧值。 */
+  private static BigDecimal budget(JsonNode patch, boolean fresh, BigDecimal old) {
+    JsonNode node = patch == null ? null : patch.get("budget");
+    BigDecimal parsed = budgetValue(nodeText(node));
+    return parsed != null ? parsed : (fresh ? null : old);
+  }
+
+  private static String nodeText(JsonNode node) {
+    if (node == null || node.isNull()) return null;
+    if (node.isNumber()) return node.decimalValue().toPlainString();
+    return node.isTextual() ? node.asText() : null;
+  }
+
+  /** 把「两千」「二千五」「一万五」「1.5万」「2000元」稳稳解析成一个数；解析不了返回 null。 */
+  private static BigDecimal budgetValue(String raw) {
+    if (raw == null) return null;
+    String s = raw.trim()
+        .replaceAll("[¥￥,，\\s]", "")
+        .replace("块钱", "").replace("块", "").replace("元", "")
+        .replace("人民币", "").replace("RMB", "").replace("rmb", "")
+        .replaceAll("^(预算|全团预算|全团|一共|总共|总|大约|大概|约|差不多)", "")
+        .replaceAll("(大约|大概|约|差不多|左右|上下|前后)$", "")
+        .trim();
+    if (s.isEmpty()) return null;
+    Matcher mixed = MIXED_AMOUNT.matcher(s);
+    if (mixed.matches()) {
+      BigDecimal v = new BigDecimal(mixed.group(1))
+          .multiply(BigDecimal.valueOf(unit(mixed.group(2).charAt(0))));
+      return v.signum() > 0 ? plain(v) : null;
+    }
+    if (s.matches("\\d+(?:\\.\\d+)?")) {
+      BigDecimal v = new BigDecimal(s);
+      return v.signum() > 0 ? plain(v) : null;
+    }
+    return chineseAmount(s);
+  }
+
+  /** 纯中文数字金额；「两三千」这类相邻双数字是模糊区间，不替用户猜一个值。 */
+  private static BigDecimal chineseAmount(String s) {
+    if (s.matches(".*[一二两三四五六七八九]{2}.*")) return null;
+    boolean hasZero = s.indexOf('零') >= 0 || s.indexOf('〇') >= 0;
+    long total = 0, section = 0, num = 0, lastUnit = 0;
+    for (char c : s.toCharArray()) {
+      int d = digit(c);
+      if (d >= 0) { num = d; continue; }
+      long unit = unit(c);
+      if (unit < 0) return null;
+      if (unit >= 10000) {
+        total += (section + num) * unit;
+        section = 0; num = 0;
+      } else {
+        section += (num == 0 ? 1 : num) * unit;
+        num = 0;
+      }
+      lastUnit = unit;
+    }
+    long value = total + section;
+    // 「二千五 / 一万五 / 一千二」口语省略了末位单位：尾数按最近单位的十分位补齐。
+    if (num > 0 && !hasZero && lastUnit >= 10 && digit(s.charAt(s.length() - 1)) >= 0) {
+      value += num * (lastUnit / 10);
+    } else {
+      value += num;
+    }
+    return value > 0 ? BigDecimal.valueOf(value) : null;
+  }
+
+  private static int digit(char c) {
+    return switch (c) {
+      case '零', '〇' -> 0;
+      case '一' -> 1;
+      case '二', '两' -> 2;
+      case '三' -> 3;
+      case '四' -> 4;
+      case '五' -> 5;
+      case '六' -> 6;
+      case '七' -> 7;
+      case '八' -> 8;
+      case '九' -> 9;
+      default -> -1;
+    };
+  }
+
+  private static long unit(char c) {
+    return switch (c) {
+      case '十' -> 10L;
+      case '百' -> 100L;
+      case '千' -> 1000L;
+      case '万' -> 10000L;
+      case '亿' -> 100000000L;
+      default -> -1L;
+    };
+  }
+
+  /** 规整成无科学计数法的 BigDecimal，避免卡片里出现 1.5E+4 这种值。 */
+  private static BigDecimal plain(BigDecimal v) {
+    return new BigDecimal(v.stripTrailingZeros().toPlainString());
+  }
+
+  /**
+   * 从用户原话兜底取预算：只认「预算/花费…+金额」或「金额+元/块」。
+   * 天数、人数等数字不带这些信号，不会被误当成钱；人均、模糊区间一律不猜。
+   */
+  static BigDecimal budgetFromText(String text) {
+    if (text == null || text.isBlank()) return null;
+    if (text.contains("人均") || text.contains("每人")) return null;
+    Matcher hint = BUDGET_HINT.matcher(text);
+    Matcher money = MONEY_TOKEN.matcher(text);
+    String raw = hint.find() ? hint.group(1) : money.find() ? money.group(1) : null;
+    return budgetValue(raw);
+  }
+
+  private static final String AMOUNT =
+      "([0-9][0-9,]*(?:\\.[0-9]+)?(?:[十百千万亿])?|[零〇一二两三四五六七八九十百千万亿]+)";
+  private static final Pattern MIXED_AMOUNT =
+      Pattern.compile("^(\\d+(?:\\.\\d+)?)([十百千万亿])$");
+  private static final Pattern BUDGET_HINT = Pattern.compile(
+      "(?:预算|花费|费用|经费|不超过|控制在|上限|全程|全团|总价|总共)"
+      + "[^0-9零〇一二两三四五六七八九十百千万亿]{0,8}"
+      + AMOUNT + "(?![天日人晚次个])");
+  private static final Pattern MONEY_TOKEN = Pattern.compile(AMOUNT + "\\s*(?:元|块钱|块|人民币)");
 
   private static Integer positive(JsonNode p,String key,Integer fallback) {
     if(p.path(key).canConvertToInt() && p.path(key).asInt()>0) return p.get(key).asInt();

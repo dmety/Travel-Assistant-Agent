@@ -2,7 +2,9 @@ package com.travelassistant.server.agent.food;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,6 +22,8 @@ import com.travelassistant.server.application.agent.spi.Fact;
 import com.travelassistant.server.application.agent.spi.RunBudget;
 import com.travelassistant.server.domain.food.FoodPlace;
 import com.travelassistant.server.infrastructure.amap.AmapClient;
+import com.travelassistant.server.infrastructure.ai.DeepSeekClient;
+import com.travelassistant.server.infrastructure.baidu.BaiduAgentPlanClient;
 import com.travelassistant.server.infrastructure.baidu.BaiduPlaceClient;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -102,6 +106,61 @@ class FoodRecommendationServiceTest {
     assertThat(withoutAnchor.unknownFields()).contains("anchor");
     assertContractCompliant(withoutAnchor);
     verify(amap, never()).searchFoodNearby(anyString(), anyInt(), anyInt());
+  }
+
+  @Test
+  @DisplayName("灵感层：特色菜线索作为独立 FACT 返回，零餐馆时状态仍 DEGRADED")
+  void inspirationDishHints() {
+    DeepSeekClient model = mock(DeepSeekClient.class);
+    when(model.configured()).thenReturn(true);
+    when(model.chat(anyList(), anyList(), anyInt())).thenReturn(new DeepSeekClient.ModelTurn(
+        "道家素斋、武当山珍、丹江口翘嘴鲌、郧阳三合汤、酸浆面", List.of()));
+    FoodRecommendationService withHints = new FoodRecommendationService(amap, baidu, null, model);
+
+    AgentResult result = withHints.recommend(context(baseContext(),
+        List.of(anchor(30.259, 120.13, "GCJ-02"))));
+
+    assertThat(result.facts()).hasSize(1);
+    Fact hint = result.facts().get(0);
+    assertThat(hint.type()).isEqualTo("CONTENT");
+    assertThat(hint.value()).containsEntry("category", "FOOD")
+        .containsEntry("kind", "DISH_HINT");
+    assertThat(String.valueOf(hint.value().get("names"))).contains("道家素斋", "酸浆面");
+    assertThat(hint.evidence().verificationStatus()).isEqualTo("unverified");
+    assertThat(result.disclaimers()).contains("GENERAL_DISH_LIST");
+    // 灵感层不是餐馆：没有地图候选时仍如实降级，不把特色菜冒充成 POI
+    assertThat(result.status()).isEqualTo("DEGRADED");
+    assertThat(result.advice()).isNull();
+    assertContractCompliant(result);
+  }
+
+  @Test
+  @DisplayName("灵感层：百度返回餐馆 POI 时，提示词明确禁止用常识补通用菜")
+  void inspirationPromptForbidsGenericDishes() {
+    BaiduAgentPlanClient agentPlan = mock(BaiduAgentPlanClient.class);
+    when(agentPlan.configured()).thenReturn(true);
+    when(agentPlan.searchPlaces(anyString(), anyString())).thenReturn(
+        "{\"results\":[{\"name\":\"源水鱼庄·翘嘴鲌店\"},{\"name\":\"农耕二张烙馍村\"}]}");
+    DeepSeekClient model = mock(DeepSeekClient.class);
+    when(model.configured()).thenReturn(true);
+    when(model.chat(anyList(), anyList(), anyInt())).thenReturn(new DeepSeekClient.ModelTurn(
+        "翘嘴鲌、烙馍", List.of()));
+    FoodRecommendationService withAgents =
+        new FoodRecommendationService(amap, baidu, null, model, agentPlan);
+
+    withAgents.recommend(context(baseContext(),
+        List.of(anchor(30.259, 120.13, "GCJ-02"))));
+
+    ArgumentCaptor<List> msgCaptor = ArgumentCaptor.forClass(List.class);
+    verify(model).chat(msgCaptor.capture(), anyList(), anyInt());
+    List<Map<String, Object>> messages = msgCaptor.getValue();
+    String all = String.valueOf(messages);
+    assertThat(all).contains("餐馆 POI 列表").contains("招牌菜");
+    assertThat(all).contains("绝不用常识补").contains("小龙虾");
+    // 检索词也应指向餐馆而非「只列菜名」
+    ArgumentCaptor<String> qCaptor = ArgumentCaptor.forClass(String.class);
+    verify(agentPlan).searchPlaces(qCaptor.capture(), anyString());
+    assertThat(qCaptor.getValue()).contains("餐馆").doesNotContain("只列菜名");
   }
 
   @Test
@@ -305,7 +364,8 @@ class FoodRecommendationServiceTest {
     service.recommend(context(baseContext(), List.of(anchor(39.9087, 116.3975, "WGS-84"))));
 
     ArgumentCaptor<String> amapLocation = ArgumentCaptor.forClass(String.class);
-    verify(amap).searchFoodNearby(amapLocation.capture(), anyInt(), anyInt());
+    // 候选为空时半径逐级放宽会多次重试，但每次传入的坐标锚点不变，这里只断言锚点换算。
+    verify(amap, atLeastOnce()).searchFoodNearby(amapLocation.capture(), anyInt(), anyInt());
     String[] amapParts = amapLocation.getValue().split(",");
     assertThat(Double.parseDouble(amapParts[0]))
         .isCloseTo(116.403743573, Offset.offset(1e-6));
@@ -313,7 +373,7 @@ class FoodRecommendationServiceTest {
         .isCloseTo(39.910103499, Offset.offset(1e-6));
 
     ArgumentCaptor<String> baiduLocation = ArgumentCaptor.forClass(String.class);
-    verify(baidu).searchFoodNearby(baiduLocation.capture(), anyInt(), anyInt());
+    verify(baidu, atLeastOnce()).searchFoodNearby(baiduLocation.capture(), anyInt(), anyInt());
     String[] baiduParts = baiduLocation.getValue().split(",");
     // GCJ-02 (39.910103499, 116.403743573) -> BD-09LL
     assertThat(Double.parseDouble(baiduParts[0]))

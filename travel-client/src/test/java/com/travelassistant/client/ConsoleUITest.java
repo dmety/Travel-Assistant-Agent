@@ -181,6 +181,8 @@ class ConsoleUITest {
         ui.println("■ 已接受邀请");
         ui.println("  · 这是一条提示");
         ui.title("服务状态");
+        ui.subheading("旅行攻略草案 · 逐日摘要");
+        ui.paragraph("天气先说\n第二行");
         ui.kv("城市", "杭州");
         ui.table(List.of("名称"), List.of(List.of("西湖")));
       }
@@ -191,8 +193,20 @@ class ConsoleUITest {
     assertFalse(output.contains("\u001b"));
     assertTrue(output.contains("== 景点详情 =="));
     assertTrue(output.contains("■ 已接受邀请"));
+    assertTrue(output.contains("▸ 旅行攻略草案"));
+    assertTrue(output.contains("天气先说"));
+    assertTrue(output.contains("  第二行"));
     assertTrue(output.contains("城市"));
     assertTrue(output.contains("杭州"));
+  }
+
+  @Test
+  void styleLineOnlyWrapsSgrWhenColorEnabled() {
+    assertEquals("\u001b[1;33m标题\u001b[0m", ConsoleUI.styleLine("标题", "\u001b[1;33m", true));
+    assertEquals("标题", ConsoleUI.styleLine("标题", "\u001b[1;33m", false));
+    assertEquals("标题", ConsoleUI.styleLine("标题", "", true));
+    // ANSI 只在拼接后出现，宽度仍按纯文本计算，不会撑歪表格列。
+    assertEquals(4, ConsoleUI.displayWidth(ConsoleUI.styleLine("标题", "\u001b[1;33m", true)));
   }
 
   @Test

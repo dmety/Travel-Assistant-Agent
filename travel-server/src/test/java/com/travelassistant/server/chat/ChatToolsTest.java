@@ -3,8 +3,10 @@ package com.travelassistant.server.chat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -411,6 +413,28 @@ class ChatToolsTest {
   }
 
   @Test
+  @DisplayName("找餐馆：城市键没收录但景点名命中时，用景点坐标和归属城市检索")
+  void foodByAttractionName() {
+    when(store.findByCity("武当山")).thenReturn(List.of());
+    when(store.findByName("武当山")).thenReturn(List.of(
+        new Attraction("wds", "武当山风景区", "十堰", "湖北省", "景点", "5A", "4.8",
+            "08:00-18:00", "免费", "十堰市", null, null, null, "说明", 32.4, 111.0,
+            "KB", List.of("KB"), "KNOWN", "KNOWN", "GCJ-02")));
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("FOOD_RECOMMEND",
+        "builtin.food", foodFact()));
+    when(orchestrator.contractBody(any())).thenReturn(Map.of("facts", List.of()));
+
+    ChatTools.Outcome outcome = tools.execute("find_food", "{\"city\":\"武当山\"}");
+
+    assertThat(outcome.ok()).isTrue();
+    ArgumentCaptor<DispatchRequest> captor = ArgumentCaptor.captor();
+    verify(orchestrator).dispatch(captor.capture());
+    assertThat(captor.getValue().context()).containsEntry("city", "十堰");
+    assertThat(captor.getValue().context().get("attractionIds")).isEqualTo(List.of("wds"));
+    verify(maps, never()).geocodeAnchor(anyString(), anyString());
+  }
+
+  @Test
   @DisplayName("找餐馆：有锚点就走 L1 编排，返回契约信封当卡片")
   void foodWithAnchor() {
     when(store.findByCity("武汉")).thenReturn(List.of(attraction("a1", "黄鹤楼", 30.5)));
@@ -430,12 +454,20 @@ class ChatToolsTest {
   }
 
   @Test
-  @DisplayName("排行程：没给天数就不排，先问用户")
+  @DisplayName("排行程：只给地名没给天数也直接排，天数按候选自动收敛并标注待定")
   void planWithoutDays() {
+    when(orchestrator.dispatch(any(DispatchRequest.class))).thenReturn(ok("PLAN_DRAFT",
+        "builtin.planning", planFact()));
+    when(orchestrator.contractBody(any())).thenReturn(Map.of("facts", List.of()));
+
     ChatTools.Outcome outcome = tools.execute("draft_itinerary", "{\"city\":\"武汉\"}");
 
-    assertThat(outcome.ok()).isFalse();
-    assertThat(outcome.summary()).contains("玩几天");
+    assertThat(outcome.ok()).isTrue();
+    assertThat(outcome.summary()).contains("未给天数").contains("待定").doesNotContain("玩几天");
+    ArgumentCaptor<DispatchRequest> captor = ArgumentCaptor.captor();
+    verify(orchestrator).dispatch(captor.capture());
+    // 自动天数上限 5，不是用户确认过的数字
+    assertThat(captor.getValue().context().get("days")).isEqualTo(5);
   }
 
   @Test
