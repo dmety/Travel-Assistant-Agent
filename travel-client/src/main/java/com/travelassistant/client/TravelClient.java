@@ -278,6 +278,7 @@ public class TravelClient {
             loginOnly(loginName, password);
             if (!loginName.equals(username)) resetConversation();
             username = loginName;
+            ui.setUserLabel(username);
           }
           case "register" -> {
             if (parts.length < 2) {
@@ -319,6 +320,7 @@ public class TravelClient {
           case "logout" -> {
             var response = postEmpty("/api/logout");
             username = null;
+            ui.setUserLabel(null);
             resetConversation();
             ui.note("已退出登录（HTTP " + response.statusCode() + "）。");
           }
@@ -1267,14 +1269,21 @@ public class TravelClient {
   }
 
   private void showJsonResponse(String title, int statusCode, String body) throws Exception {
-    ui.title(title + " · HTTP " + statusCode);
+    String heading = title + " · HTTP " + statusCode;
     if (body == null || body.isBlank()) {
+      ui.title(heading);
       ui.note("（空响应）");
       return;
     }
     try {
-      ui.println(json.writerWithDefaultPrettyPrinter().writeValueAsString(json.readTree(body)));
+      String formatted = json.writerWithDefaultPrettyPrinter().writeValueAsString(json.readTree(body));
+      if (ui.isFullscreen()) ui.viewText(heading, formatted);
+      else {
+        ui.title(heading);
+        ui.println(formatted);
+      }
     } catch (Exception e) {
+      ui.title(heading);
       ui.println(body);
     }
   }
