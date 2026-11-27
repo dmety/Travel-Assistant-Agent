@@ -58,6 +58,8 @@ mvn clean verify
 java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 ```
 
+Windows 下重新构建前，先停止正在从 `travel-server/target/` 运行的服务；运行中的 JAR 会被 JVM 占用，阻止 Maven 重命名和重打包。构建完成后再启动。
+
 构建成功后启动服务，浏览器打开 `http://localhost:8080/` 为登录页（`index.html`）；登录后默认落到行程工作台 `planner.html`，接口测试台为 `api-console.html`，管理后台为 `/admin`（要 `X-Admin-Token`）。另有 `mobile.html`（窄屏布局）、`settings.html`（个人中心）、`food.html`（美食推荐）三个页面。默认端口为 `8080`，运行数据默认存放在项目根目录的 `data/` 下。
 
 **Windows 免命令行启动**：首次使用先把项目根目录 `.env.example` 复制为 `.env`，在 `.env` 中填写 `DEEPSEEK_API_KEY`（自然语言模型对话必需；地图密钥按需填写）。然后双击 `tools\run-server.bat` 即可。启动脚本会读取本地 `.env`、把 `AMAP_API_KEY` 映射为 `AMAP_KEY`，再启动 JAR；启动横幅只显示各密钥有无，不打印值。需要换端口时用 `tools\run-server.bat 18080`。仓库解压路径含空格或中文时同样可用。
@@ -67,6 +69,32 @@ java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar
 不想用脚本时，也可以在 IDE 的运行配置里一次性填好环境变量（`AMAP_KEY`、`BAIDU_AK`、`DEEPSEEK_API_KEY`），之后直接点运行按钮，效果相同。
 
 > 这些只是**本地开发**的启动方式。部署给最终用户时，密钥配置在服务端进程的环境变量里，用户只需用浏览器访问，无需安装任何东西，也接触不到密钥。生产部署的硬化清单（单实例定位、HTTPS 反代、优雅停机、健康监控、日志、备份恢复、容器化、上线前安全清单）见 [部署说明](docs/部署说明.md)。
+
+### MySQL 业务数据存储（默认）
+
+正常运行默认使用 MySQL，覆盖账号、行程、邀请、留言、修改记录、候选、选票和演示订单；全国景点索引、来源证据和购票规则沿用现有文件流程。
+
+1. 准备 MySQL 8.0+，创建独立数据库 `travel_assistant`（`utf8mb4`），为应用配置该库的连接及建表、查询、写入权限。公共连接及连接池配置在 `travel-server/src/main/resources/application.yml`，默认连接本机 `3306/travel_assistant`，连接池最大 5。
+2. 直接在 `travel-server/src/main/resources/application.yml` 的 `spring.datasource.username`、`spring.datasource.password` 填写本机数据库账号和密码；地址有差异时修改同一位置的 `url`。随后使用原有启动脚本、IDE 或 `java -jar travel-server/target/travel-server-0.1.0-SNAPSHOT.jar`，无需额外配置文件、profile 或路径参数。修改 classpath 配置后需重新构建 JAR。提交代码前不要纳入真实凭据。
+
+3. 首次启动自动创建 `travel_` 前缀业务表。连接或建表失败会阻止启动，不会静默回退 JSON。
+4. 要迁移已有数据，先停旧服务并备份，在**空业务表**上，在 `application.yml` 中设置 `travel.mysql.import-json=true`，确认 `travel.data-directory` 指向旧数据目录后启动。全部导入与完成标记在同一事务提交；失败回滚，非空目标拒绝覆盖。已完成的导入不会在重启后重复执行。完成后将 `travel.mysql.import-json` 改回 `false`。源文件不会被修改或删除。
+
+每个实体单独一行，标识、行程关联和订单归属建立索引，复杂内容保留 JSON，避免本阶段大规模重写领域模型。账号名保持大小写敏感；候选与投票人组合具有唯一约束。批量邀请、候选连带删票等仓库操作使用事务。
+
+当前仍按**单服务实例**部署：业务层版本校验依赖进程内锁，会话与限流也未共享；尚未统一行程更新、修改记录及邀请等跨服务事务。更换数据库不等于完成水平扩容。测试资源中的 `application-default.properties` 仅用于 JSON 回归测试，不会打包进入应用；生产启动不使用该测试配置。启动建表仅用于当前初始结构，未来修改结构应增加显式迁移。
+
+适配器测试使用 H2 的 MySQL 兼容模式；真实 MySQL 测试需另行设置 `MYSQL_TEST_URL`、`MYSQL_TEST_USER`、`MYSQL_TEST_PASSWORD` 指向专用空测试库，再执行 `mvn -pl travel-server -am -Dtest=MysqlPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false test`。未配置时该项跳过，不能视为真实 MySQL 联调已通过。
+
+真实 MySQL 业务回归可使用测试配置档 `mysql-business`：将 `MYSQL_TEST_URL`、`MYSQL_TEST_USER`、`MYSQL_TEST_PASSWORD` 指向独立、可清理的测试库，再运行：
+
+```powershell
+mvn -pl travel-server -am -Dspring.profiles.active=mysql-business -Dtest=AccountApiTest,ItineraryCrudTest,ItineraryInvitationTest,CollaborationApiTest,CandidateApiTest,BudgetAnalysisTest,ArchiveExportTest,OptimisticLockConcurrencyTest,MysqlPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+真实进程回归入口仍为 `python -B tools/acceptance.py`，默认显式使用隔离 JSON；设置 `ACCEPTANCE_PERSISTENCE=mysql` 并提供上述 `MYSQL_TEST_*` 后可测试独立 MySQL 库，覆盖重启持久化和沙箱订单支付、退款、幂等及账号隔离。请使用空测试库，不要指向正式业务库。若构建 JAR 被占用，可通过 `ACCEPTANCE_SERVER_CLASSPATH` 指定已编译类和依赖，启动同样的真实服务进程；默认仍验证 JAR 启动。
+
+远程生产连接应配置 `sslMode=VERIFY_IDENTITY` 及可信证书，参见 [Connector/J 连接安全说明](https://dev.mysql.com/doc/connector-j/en/connector-j-reference-using-ssl.html)。
 
 ### 3. 体验一次行程管理
 
