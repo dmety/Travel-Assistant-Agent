@@ -203,7 +203,7 @@ public class ChatTools {
                   "description", "只能取：自然/人文/美食/亲子/摄影/购物/夜游/温泉/海岛/慢节奏"),
               "departDate", str("出发日期 YYYY-MM-DD，不知道就省略"),
               "returnDate", str("返回日期 YYYY-MM-DD，不知道就省略"),
-              "details", Map.of("type", "object", "description", "增量继承用户已确认信息：origin, seniors, children, mobility, dietaryRestrictions字符串数组, mustVisit字符串数组, hotel, transportMode(WALKING/DRIVING/TRANSIT/CYCLING), maxWalkingMeters单段步行上限, maxAttractionsPerDay每天景点上限, visitDays对象为用户指定景点名到游览日的映射（1至30）, transportPreference跨城交通要求原话（高铁/飞机等，不得用市内交通覆盖）, excludedAttractionIds字符串数组, confirmedGroupCosts按费用键填全团CNY金额，vehicles车辆数，originCity出发城市/arrivalCity到达城市用于地图跨城换乘参考（非余票），queries对象含priorityDays整数数组和可选maxRouteCalls/maxFoodCalls/maxGeocodeCalls/maxDurationMillis；用户要求补查某天时设置priorityDays。只传用户提供的值")),
+              "details", Map.of("type", "object", "description", "增量继承用户已确认信息：origin, seniors, children, mobility, dietaryRestrictions字符串数组, mustVisit字符串数组, hotel, transportMode(WALKING/DRIVING/TRANSIT/CYCLING), maxWalkingMeters单段步行上限, restDays整数数组为仅休息日, onlyMustVisit明确只保留必去点时true, localTransportPreference市内打车TAXI, maxAttractionsPerDay每天景点上限, visitDays对象为用户指定景点名到游览日的映射（1至30）, transportPreference跨城交通要求原话（高铁/飞机等，不得用市内交通覆盖）, excludedAttractionIds字符串数组, confirmedGroupCosts按费用键填全团CNY金额，vehicles车辆数，originCity出发城市/arrivalCity到达城市用于地图跨城换乘参考（非余票），queries对象含priorityDays整数数组和可选maxRouteCalls/maxFoodCalls/maxGeocodeCalls/maxDurationMillis；用户要求补查某天时设置priorityDays。只传用户提供的值")),
           List.of("city", "days")),
       fn("route_plan", "算两点之间的步行 / 驾车 / 公交距离与耗时（高德路径规划），"
           + "返回值是接口预估，不含等车、排队与检票时间。"
@@ -377,10 +377,12 @@ public class ChatTools {
     int limit = Math.min(Math.max(number(args, "limit", MAX_PLACES), keywords.size()), 10);
     boolean exactNameOnly = userRawRequest != null
         && (userRawRequest.contains("名称完全匹配") || userRawRequest.contains("完全匹配的地点"));
+    boolean preciseLocal=keywords.stream().allMatch(keyword -> store.findByNameInCity(keyword,city).stream()
+        .anyMatch(a -> scenicNameMatches(keyword,a.name()) && !RatingOrder.isNonTourism(a)));
     Map<String, JumdataScenicSpot> current = new LinkedHashMap<>();
     for (String keyword : keywords) {
-      for (JumdataScenicSpot spot : searchJumdata(keyword, city, limit)) {
-        if (exactNameOnly && !sameName(keyword, spot.name())) {
+      for (JumdataScenicSpot spot : preciseLocal ? List.<JumdataScenicSpot>of() : searchJumdata(keyword, city, limit)) {
+        if (RatingOrder.isNonTourism(spot.toAttraction()) || exactNameOnly && !sameName(keyword, spot.name())) {
           continue;
         }
         current.putIfAbsent(scenicKey(spot), spot);
@@ -410,8 +412,7 @@ public class ChatTools {
             + String.join("、", keywords) + "」的结果；不使用相似景点代替。", null);
       }
     }
-    AgentPlanAttempt planAttempt = exactNameOnly
-        ? new AgentPlanAttempt(null, null) : tryAgentPlan(city, userRawRequest, limit);
+    AgentPlanAttempt planAttempt = new AgentPlanAttempt(null, null);
     if (planAttempt.outcome() != null) {
       return planAttempt.outcome();
     }
@@ -424,7 +425,7 @@ public class ChatTools {
     for (String keyword : keywords) {
       List<Attraction> matches = new ArrayList<>();
       for (Attraction attraction : store.findByNameInCity(keyword, city)) {
-        if (exactNameOnly && !sameName(keyword, attraction.name())) {
+        if (exactNameOnly && !sameName(keyword, attraction.name()) || preciseLocal && !scenicNameMatches(keyword,attraction.name())) {
           continue;
         }
         if (RatingOrder.isNonTourism(attraction)) {
@@ -670,6 +671,11 @@ public class ChatTools {
 
   private static String display(String raw) {
     return raw == null || raw.isBlank() ? "未返回/未核验" : raw;
+  }
+
+  private static boolean scenicNameMatches(String keyword,String name) {
+    if(keyword==null || name==null) return false;
+    return sameName(keyword,name) || List.of("博物院","博物馆","公园","景区","风景区").stream().anyMatch(suffix -> sameName(keyword+suffix,name));
   }
 
   private static boolean sameName(String left, String right) {
@@ -1449,7 +1455,8 @@ public class ChatTools {
     String summary = ok
         ? intent + " 结果（provider=" + outcome.providerId() + "）：" + highlight
             + summaryTail(outcome, omitWeatherNotice)
-        : intent + " 没有拿到结果：" + firstNotice(outcome);
+        : intent + " 没有拿到结果：" + firstNotice(outcome) + "；尝试结果：" + outcome.attempts().stream()
+            .map(a -> a.providerId()+":"+a.reason()+a.codes()).collect(java.util.stream.Collectors.joining("、"));
     int max = "PLAN_DRAFT".equals(intent) ? MAX_PLAN_SUMMARY : MAX_SUMMARY;
     return new Outcome(ok, cut(summary, max), new Card("envelope", intent, envelope),
         providerCodes(outcome));

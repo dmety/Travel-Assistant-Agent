@@ -40,5 +40,20 @@
     "source": "https://www.zhongshan-park.cn/index.html",
     "verifiedAt": "2026-11-06",
     "note": "官网指引入口，不保证为直接下单页面"
+  },
+  {
+    "attractionId": null,
+    "attractionName": "故宫博物院",
+    "city": "北京",
+    "channelName": "故宫博物院官方预约指引",
+    "officialUrl": "https://www.dpm.org.cn/subject_booking/",
+    "ticketTypes": [],
+    "rules": [
+      "通过官方“故宫博物院”小程序实名预约门票及展览",
+      "本记录仅核验预约指引入口，不代表已查询余票或完成预约"
+    ],
+    "source": "https://www.dpm.org.cn/subject_booking/",
+    "verifiedAt": "2026-11-28",
+    "note": "官网预约说明页；不冒充直接下单页面，余票、出行日期开放与票价另行核实"
   }
 ]

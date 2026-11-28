@@ -72,6 +72,37 @@ class ChatAgentTest {
     verify(tools,never()).execute(eq("draft_itinerary"),any(),anyList(),any());
   }
 
+  @Test void staleProviderScheduleCannotClaimRevisionWasApplied() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"update\",\"details\":{\"restDays\":[1,3],\"onlyMustVisit\":true}}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(call("p","draft_itinerary","{\"city\":\"北京\"}"));
+    var stale=Map.of("category","PLAN_DRAFT","guide",Map.of("days",List.of(Map.of("dayIndex",1,"slots",List.of(Map.of("kind","VISIT","title","天坛公园","id","D1-visit-a"))))));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any())).thenReturn(new ChatTools.Outcome(true,"草案",new ChatTools.Card("plan","PLAN_DRAFT",Map.of("result",Map.of("facts",List.of(Map.of("value",stale)))))));
+    var state=new ConversationState("北京",3,3,null,List.of(),Map.of("_structured",true,"_phase","generated","_scheduleSignature","old","details",Map.of("mustVisit",List.of("故宫"))));
+    var result=agent.chat("首末日只休息，只保留故宫",List.of(),state);
+    assertThat(result.reply()).contains("修改未落实","天坛公园").doesNotContain("已重新编排");
+    assertThat(result.state().planning()).containsEntry("_phase","needs_review");
+  }
+  @Test void failedPlanningUsesObservedFailureInsteadOfModelInventingSourceOutage() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"preview\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(call("p","draft_itinerary","{\"city\":\"北京\"}"));
+    when(tools.execute(eq("draft_itinerary"),any(),anyList(),any())).thenReturn(new ChatTools.Outcome(false,"REFUSED [BUILTIN_INPUT_MAPPING:visitDays]",null));
+    assertThat(agent.chat("先出初稿",List.of(),ConversationState.empty()).reply()).contains("BUILTIN_INPUT_MAPPING:visitDays","Provider 拒绝不等于数据源故障");
+    verify(model,times(1)).chat(anyList(),anyList(),anyInt());
+  }
+  @Test void tripCalendarUsesActualWeekdayInModelContext() {
+    when(model.complete(any(),any())).thenReturn("{\"intent\":\"question\"}");
+    when(model.chat(anyList(),anyList(),anyInt())).thenAnswer(inv -> {
+      assertThat(inv.getArgument(0).toString()).contains("2026-12-06 周日");
+      return say("2026年12月6日是周六");
+    });
+    var state=new ConversationState("北京",3,3,null,List.of(),Map.of("departDate","2026-12-05","_structured",true,"_phase","generated"));
+    assertThat(agent.chat("星期几？",List.of(),state).reply()).contains("2026年12月6日是周日");
+  }
+  @Test void calendarCorrectsModelWeekdayBeforeReply() {
+    when(model.chat(anyList(),anyList(),anyInt())).thenReturn(say("2026年12月6日周六，2026-12-06（星期六）。"));
+    assertThat(agent.chat("日期是星期几？",List.of(),ConversationState.empty()).reply())
+        .contains("2026年12月6日周日", "2026-12-06（星期日").doesNotContain("周六");
+  }
   @Test void systemPromptHasOnePresentationContractAndBoundedPrinciples() {
     when(model.chat(anyList(),anyList(),anyInt())).thenAnswer(inv -> {
       String system=((List<Map<String,Object>>)inv.getArgument(0)).getFirst().get("content").toString();

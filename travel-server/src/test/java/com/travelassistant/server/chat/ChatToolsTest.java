@@ -71,6 +71,13 @@ class ChatToolsTest {
         "KB", List.of("KB"), "KNOWN", "KNOWN", lat == null ? null : "GCJ-02");
   }
 
+  @Test void namedPalaceSearchSelectsScenicEntityInsteadOfMerchant() {
+    when(store.available()).thenReturn(true);
+    when(store.findByNameInCity("故宫","北京")).thenReturn(List.of(kbAttraction("故宫商店","4.9",null,"unverified"),kbAttraction("故宫博物院","4.9",null,"unverified")));
+    var result=tools.execute("search_attractions","{\"city\":\"北京\",\"keywords\":[\"故宫\"]}");
+    assertThat(result.ok()).isTrue();
+    assertThat(result.summary()).contains("故宫博物院").doesNotContain("故宫商店");
+  }
   @Test
   @DisplayName("核实地名：命中时给出城市，未命中时如实说没查到")
   void resolvePlace() {

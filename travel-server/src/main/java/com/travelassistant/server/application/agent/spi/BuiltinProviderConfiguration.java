@@ -54,7 +54,7 @@ public class BuiltinProviderConfiguration {
   @Bean
   public AgentProvider builtinPlanning(ContractRules rules, PlanningService planning) {
     return new BuiltinServiceProvider(descriptor(rules, "builtin.planning", "PLAN_DRAFT"),
-        context -> planning(planning, context));
+        context -> planning(planning, context, rules));
   }
 
   @Bean
@@ -135,7 +135,7 @@ public class BuiltinProviderConfiguration {
   private static final String SAFE_ADVICE =
       "已按景区知识库给出候选与逐日草案；票价与开放时间以景区公告为准，模型措辞与明细见结构化内容。";
 
-  private static AgentResult planning(PlanningService service, AgentContext context) {
+  private static AgentResult planning(PlanningService service, AgentContext context, ContractRules rules) {
     Map<String, Object> input = values(context);
     // 八个字段全透传：日期丢了就会一直重复问「请填写出发日期」，
     // 前端在补问卡片里点的日期等于白点。
@@ -153,7 +153,8 @@ public class BuiltinProviderConfiguration {
     // 既没有候选也没有模型建议时才降级，避免把「空草案」报成 OK
     boolean hasContent = !draft.candidates().isEmpty()
         || (draft.advice() != null && !draft.advice().isBlank());
-    return result(context, hasContent ? SAFE_ADVICE : null, unknown, draft.notices(),
+    return result(context, hasContent ? SAFE_ADVICE : null, unknown.stream().limit(rules.limit("maxUnknownFields")).toList(),
+        draft.notices().stream().distinct().limit(rules.limit("maxNotices")).toList(),
         List.of(draftSummary(draft)));
   }
 
@@ -177,7 +178,7 @@ public class BuiltinProviderConfiguration {
     // 编排层收敛口径：请求天数与真正排出天数分开给，前端只需一条说明，不铺空天。
     Integer effective = draft.request().effectiveDays();
     int requested = effective == null ? 0 : Math.min(effective, DraftAssembler.MAX_DAYS);
-    int rendered = draft.dailySchedules().size();
+    int rendered = draft.guide()==null?draft.dailySchedules().size():draft.guide().days().size();
     Map<String, Object> dayScope = new LinkedHashMap<>();
     dayScope.put("requestedDays", requested);
     dayScope.put("renderedDays", rendered);

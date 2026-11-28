@@ -51,8 +51,8 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     String missing = counts.entrySet().stream().map(e -> e.getKey() + e.getValue() + "项")
         .collect(java.util.stream.Collectors.joining("、"));
     if (costs.stream().anyMatch(c -> c.itemId().startsWith("intercity-") && c.groupAmountCny() == null)) missing += "（含往返跨城交通）";
-    return "已确认 " + amount(knownSubtotalCny) + "元；已覆盖部分（含已确认及参考）"
-        + amount(referenceSubtotalCny) + "~" + amount(referenceSubtotalMaxCny) + "元；"
+    return (referenceSubtotalCny.signum()==0 && unknownCostCount>0 ? "尚无可计入的确认费用或参考报价；" : "已确认 " + amount(knownSubtotalCny) + "元；已覆盖部分（含已确认及参考）"
+        + amount(referenceSubtotalCny) + "~" + amount(referenceSubtotalMaxCny) + "元；")
         + (unknownCostCount > 0 ? "未覆盖：" + missing + "。" : "")
         + "预算判断：" + budgetLabel(budgetVerdict) + "；未知费用不按零计算。";
   }
@@ -61,6 +61,7 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     StringBuilder out=new StringBuilder("旅行攻略草案\n时间为规划假设；未确定的衔接只列顺序，出发前请核对开放与预约。");
     java.util.LinkedHashSet<String> evidence=new java.util.LinkedHashSet<>();
     java.util.LinkedHashSet<String> checks=new java.util.LinkedHashSet<>();
+    java.util.Map<String,String> mealReferences=new java.util.LinkedHashMap<>();
     for (Day day : days) {
       out.append("\n\n第").append(day.dayIndex()).append("天").append(day.date()==null?"（日期待定）":" · "+day.date());
 
@@ -69,21 +70,26 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
         switch(slot.kind()) {
           case "VISIT" -> {
             String opening=between(slot.note(),"；开放：","；来源：");
-            if(opening!=null) out.append(" · 开放参考：").append(opening);
+            if(opening!=null) evidence.add(slot.title()+"；开放原文="+opening);
             String selection=between(slot.note(),"；筛选依据=","；未知项=");
             if(selection!=null) out.append(" · 候选筛选依据：").append(selection);
-            out.append(slot.status().equals("TIME_UNVERIFIED")?"（到达或开放条件尚未验证）":"");
+
           }
           case "ALTERNATIVE" -> out.append("（未排入，不计门票；可换日重排）");
           case "MEAL" -> {
+            if(slot.note().contains("用餐位置=酒店附近")) out.append(" · 回酒店后在酒店附近用餐");
             if(slot.restaurants().isEmpty()) out.append(" · 尚无匹配餐馆");
             else {
-              out.append(slot.status().equals("HOURS_COVER_PLAN")?" · 营业原文覆盖此餐时段，仍需确认供餐/订位":" · 以下为可定位备选，供餐时段待确认");
+              String names=slot.restaurants().stream().map(FoodPlace::name).collect(java.util.stream.Collectors.joining("、"));
+              String key=slot.restaurants().stream().map(food -> food.poiId()+"|"+food.name()+"|"+food.address()+"|"+food.lon()+","+food.lat()).collect(java.util.stream.Collectors.joining(";"))
+                  +(slot.note().contains("用餐位置=酒店附近")?"|酒店附近":"|景点或出发地附近");
+              String reference=mealReferences.putIfAbsent(key,"第"+day.dayIndex()+"天"+slot.title());
+              out.append(reference==null?" · 自选候选："+names:" · 自选候选同"+reference);
+
               for(FoodPlace food:slot.restaurants()) {
-                out.append("\n  ").append(food.name()).append(" · 人均参考 ")
-                    .append(food.pricePerPersonCny()==null?"未知":food.pricePerPersonCny()+"元");
+
                 evidence.add(food.name()+"；地址="+(food.address()==null?"未返回；地图坐标 "+food.lon()+","+food.lat():food.address())
-                    +"；营业原文="+(food.openHours()==null?"未知":food.openHours())+"；来源="+food.source()
+                    +"；人均参考="+(food.pricePerPersonCny()==null?"未知":food.pricePerPersonCny()+"元")+"；营业原文="+(food.openHours()==null?"未知":food.openHours())+"；来源="+food.source()
                     +"，查询于 "+food.fetchedAt()+"；人均非商家结算报价");
               }
             }
@@ -92,7 +98,7 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
           case "TRANSPORT" -> {
             if(slot.route()==null) out.append(" · ").append(slot.note());
             else {
-              out.append(" · ").append(slot.route().mode().label()).append("约").append(slot.route().durationText()).append("，").append(slot.route().distanceText());
+              out.append(" · ").append(slot.title().contains("（打车）")?"打车路径参考":slot.route().mode().label()).append("约").append(slot.route().durationText()).append("，").append(slot.route().distanceText());
               if(slot.route().walkingDistanceMeters()!=null) out.append("，其中步行约").append(slot.route().walkingDistanceMeters()).append("米");
               evidence.add(slot.route().source()+"路线估算，查询于 "+slot.route().queriedAt());
               if(slot.route().requestedDate()!=null) out.append("，地图查询过滤日期 ").append(slot.route().requestedDate()).append("（非余票验证）");
@@ -101,6 +107,7 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
             }
             if(slot.note().contains("停车候选：")) out.append("；").append(slot.note().substring(slot.note().indexOf("停车候选：")));
           }
+          case "HOTEL_REST" -> out.append(" · ").append(slot.note());
           case "REST" -> out.append(" · 休息、用餐后缓冲与机动");
           case "GAP" -> out.append(" · 活动仍待补充，保留休息或自行指定安排");
           default -> { }
@@ -113,6 +120,7 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     out.append("\n\n费用明细（人民币，全团口径；未知项另计）");
     int index=0;
     for(Cost cost:costs) {
+      if(cost.groupAmountCny()==null) continue;
       String day=cost.itemId().matches("D[0-9]+-.*")?"第"+cost.itemId().substring(1,cost.itemId().indexOf('-'))+"天 ":"";
       out.append("\n").append(++index).append(". ").append(day).append(cost.description()).append("：")
           .append(cost.groupAmountCny()==null?"金额未知":amount(cost.groupAmountCny())
@@ -132,14 +140,7 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
       }
       if(cost.source()!=null && !cost.source().isBlank() && !cost.source().startsWith("未取得")) evidence.add(cost.source()+"；信息日期 "+(cost.informationDate()==null?"未返回/未核验":cost.informationDate()));
     }
-    out.append("\n你确认的费用小计：").append(amount(knownSubtotalCny)).append("元；含参考价格的小计：")
-        .append(referenceSubtotalMaxCny != null && referenceSubtotalMaxCny.compareTo(referenceSubtotalCny) > 0
-            ? amount(referenceSubtotalCny) + "~" + amount(referenceSubtotalMaxCny)
-            : amount(referenceSubtotalCny))
-        .append("元，另有").append(unknownCostCount).append("项费用未覆盖。")
-        .append("\n人均参考下限：").append(perPersonReferenceCny==null?"人数待补":amount(perPersonReferenceCny)+"元")
-        .append("；每日参考下限：").append(perDayReferenceCny==null?"天数待补":amount(perDayReferenceCny)+"元")
-        .append("。\n预算判断：").append(budgetLabel(budgetVerdict));
+    out.append("\n未知项按预算分类列出，未按零元计；餐馆候选未代表已选定或完成订位。");
     if(!checks.isEmpty()) {
       out.append("\n\n出发前需确认"); for(String check:checks) out.append("\n- ").append(check);
     }
@@ -151,12 +152,13 @@ public record TravelGuide(List<Day> days, List<Cost> costs, BigDecimal knownSubt
     if(!queryIssues.isEmpty()) {
       out.append("\n\n尚未查齐的项目");
       for(QueryIssue issue:queryIssues) out.append("\n- ").append(issue.dayIndex()>0?"第"+issue.dayIndex()+"天 ":"全程 ").append(issue.target()).append("：").append(queryReason(issue.reason()));
-      out.append("\n可直接说‘优先补查第5天的餐馆和交通’，重新生成时会把指定日期放到查询队列前面；不会把未查项目当作查无结果。");
+      int exampleDay=queryIssues.stream().mapToInt(QueryIssue::dayIndex).filter(day -> day>=1 && day<=days.size()).findFirst().orElse(1);
+      out.append("\n可直接说‘优先补查第").append(exampleDay).append("天的餐馆和交通’，仅补查本行程内的项目；不会把未查项目当作查无结果。");
     }
     if(!evidence.isEmpty()) {
       out.append("\n\n信息依据"); for(String item:evidence) out.append("\n- ").append(item);
     }
-    out.append("\n\n可直接告诉我：‘改为3个人’、‘第一天午餐全团120元’、‘第二天少安排一个景点’或‘把酒店换成XX酒店’。调整后请再核对安排和费用。");
+    out.append("\n\n可补充具体酒店地址、交通班次或已确认费用；调整后再核对安排和预算覆盖。");
     return out.toString();
   }
   private static String queryReason(String reason) {

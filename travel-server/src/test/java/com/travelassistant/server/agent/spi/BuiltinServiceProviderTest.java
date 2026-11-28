@@ -90,6 +90,27 @@ class BuiltinServiceProviderTest {
 
   // ---------------------------------------------------------------- planning
 
+  @Test void invalidDayMappingReportsFieldPathInsteadOfSourceOutage() {
+    var values=Map.<String,Object>of("destination","北京","details",Map.of("visitDays",Map.of("故宫","not-an-integer")));
+    var result=configuration.builtinPlanning(rules,planning).invoke(context(values),budget());
+    assertEquals("REFUSED",result.status());
+    assertTrue(result.notices().toString().contains("BUILTIN_INPUT_MAPPING:visitDays"));
+    assertFalse(result.notices().toString().contains("not-an-integer"));
+  }
+  @Test void refusedMappingRetainsFieldPathWithoutExceptionPayload() {
+    when(planning.plan(any())).thenThrow(new IllegalArgumentException("private-token-do-not-expose"));
+    var result=configuration.builtinPlanning(rules,planning).invoke(context(Map.of("destination","北京")),budget());
+    assertTrue(result.notices().toString().contains("BUILTIN_INVALID_ARGUMENT"));
+    assertFalse(result.notices().toString().contains("private-token-do-not-expose"));
+  }
+  @Test void manyPlanningNoticesDoNotRejectEntireDraft() {
+    var notices=java.util.stream.IntStream.range(0,40).mapToObj(i -> "待核对项目"+i).toList();
+    when(planning.plan(any())).thenReturn(draft("规划内容",List.of(),notices));
+    var result=configuration.builtinPlanning(rules,planning).invoke(context(Map.of("destination","北京","days",3)),budget());
+    assertTrue(result.notices().size()<=rules.limit("maxNotices"));
+    assertTrue(result.facts().toString().contains("待核对项目39"));
+    assertTrue(new ContractValidator(rules).validateResult(new ContractValidator(rules).toResponseMap("builtin.planning",result)).isEmpty());
+  }
   @Test
   void planningDelegatesAndMapsResult() {
     when(planning.plan(any())).thenReturn(draft("已按候选景点排好两日行程",

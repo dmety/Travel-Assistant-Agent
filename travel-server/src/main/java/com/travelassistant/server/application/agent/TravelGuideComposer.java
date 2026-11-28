@@ -104,6 +104,22 @@ public class TravelGuideComposer {
         slots.add(slot("intercity-out", "出发", "TRANSPORT", details.origin() + " → " + request.destination(), outbound == null ? "往返衔接待确认" : mode(details)==RouteMode.TRANSIT?"地图跨城换乘参考":"地图自驾估算", outbound,
             outbound == null ? mode(details)==RouteMode.DRIVING ? "自驾路线尚未查到，请核对出发/到达点；油电过路费未知，不能确认当日游览衔接" : "铁路请先确认实际发到站、班次、余票、到达时间，再查到达站→酒店接驳；未编造火车/高铁班次与报价" : outbound.durationText() + "，" + outbound.distanceText() + (mode(details)==RouteMode.TRANSIT?"；地图换乘参考，班次、发到站、旅行日期与余票须到售票渠道核实":"；地理编码端点须核对，油电等费用未知；长途每2小时休息为规划假设"+parkingNote)));
       }
+      if(details!=null && details.restDays().contains(d)) {
+        if(d==1) {
+          slots.add(slot(prefix+"-station-hotel","到站后","TRANSPORT","车站 → 酒店（打车接驳）","待确认",null,"到达车站、酒店地址、发车时间与打车报价待确认，不编造耗时"));
+          unknown(costs,prefix+"-station-hotel","TRANSPORT","车站到酒店打车",null);
+        }
+        slots.add(slot(prefix+"-hotel-rest","当日","HOTEL_REST","酒店休息","用户指定",null,"只休息，不安排景点；三餐自行安排，费用待确认"));
+        if(d==count) {
+          slots.add(slot(prefix+"-hotel-station","返程前","TRANSPORT","酒店 → 车站（打车接驳）","待确认",null,"返程车站、班次、酒店地址与打车报价待确认，预留候车时间后再定出发时刻"));
+          slots.add(slot("intercity-back","返程","TRANSPORT",request.destination()+" → "+(details.origin()==null?"出发地待定":details.origin()),"班次待确认",inbound,"车次与费用待确认"));
+          unknown(costs,prefix+"-hotel-station","TRANSPORT","酒店到车站打车",null);
+        }
+        if(d<count) unknown(costs,prefix+"-hotel","HOTEL","住宿",null);
+        unknown(costs,prefix+"-meals","FOOD","休息日三餐",people);
+        days.add(new TravelGuide.Day(d,date,List.copyOf(slots),List.of("按用户要求保留车站接驳和酒店休息；端点、班次与费用待确认"),"用户指定休息日"));
+        continue;
+      }
       List<DraftDay.Item> visits = scheduled == null ? List.of() : scheduled.items();
       Attraction firstVisit = visits.isEmpty() ? null : byId.get(visits.getFirst().attractionId());
       LatLon firstCenter = lookup.coordinate(firstVisit);
@@ -129,7 +145,7 @@ public class TravelGuideComposer {
       }
 
       if (firstCenter == null && cityReference != null) checks.add("餐馆按城市地理参考点召回，不代表靠近景点、酒店或用户；未算往返餐馆耗时");
-      if (hotel != null && firstVisit != null) hotelTransfer(slots, costs, lookup, prefix + "-hotel-out", "早餐后", "酒店 → " + firstVisit.name(), hotel, firstCenter, details, request.destination(), people);
+      if (firstVisit != null && (hotel!=null || details!=null && (details.lodgingPreference()!=null || "TAXI".equals(details.localTransportPreference())))) hotelTransfer(slots, costs, lookup, prefix + "-hotel-out", "早餐后", "酒店 → " + firstVisit.name(), hotel, firstCenter, details, request.destination(), people);
       Attraction previous = null;
       for (int v = 0; v < visits.size(); v++) {
         var item = visits.get(v);
@@ -170,14 +186,30 @@ public class TravelGuideComposer {
           limited ? "预留60~90分钟坐下休息；设施与位置待确认，身体不适则取消下午候选" : "预留60分钟休息及机动，可按实际调整"));
       slots.addAll(insert, midday);
       LatLon lastCenter = lookup.coordinate(previous);
-      meal(slots, costs, prefix + "-dinner", "晚餐", lookup.food(lastCenter != null ? lastCenter : breakfastCenter, details, "晚餐附近餐馆"), people);
-      if (hotel != null && previous != null) hotelTransfer(slots, costs, lookup, prefix + "-hotel-back", "晚餐后", previous.name() + " → 酒店", lastCenter, hotel, details, request.destination(), people);
+      boolean dinnerAfterHotel=details!=null && "TAXI".equals(details.localTransportPreference()) && previous!=null;
+      LatLon dinnerCenter=dinnerAfterHotel?hotel:lastCenter!=null?lastCenter:breakfastCenter;
+      List<FoodPlace> dinnerOptions=dinnerCenter==null?List.of():lookup.food(dinnerCenter,details,"晚餐附近餐馆");
+      meal(slots, costs, prefix + "-dinner", "晚餐", dinnerOptions, people);
+      if(dinnerAfterHotel) {
+        var dinner=slots.removeLast();
+        slots.add(new TravelGuide.Slot(dinner.id(),dinner.period(),dinner.kind(),dinner.title(),dinner.status(),dinner.restaurants(),null,
+            dinner.note()+"；用餐位置=酒店附近"+(hotel==null?"；酒店地址未定，未沿用景区餐馆，餐费未知":"；回酒店后用餐，不沿用景区餐馆")));
+      }
+      if (previous != null && (hotel!=null || details!=null && (details.lodgingPreference()!=null || "TAXI".equals(details.localTransportPreference())))) hotelTransfer(slots, costs, lookup, prefix + "-hotel-back", "晚餐后", previous.name() + " → 酒店", lastCenter, hotel, details, request.destination(), people);
       if (d == count && details != null && details.origin() != null) slots.add(slot("intercity-back", "返程", "TRANSPORT", request.destination() + " → " + details.origin(), inbound == null ? "衔接待确认" : mode(details)==RouteMode.TRANSIT?"地图跨城换乘参考":"地图自驾估算", inbound,
-          inbound == null ? "确认返程发站/班次与出发前接驳，报价和余票未接入" : inbound.durationText() + "，" + inbound.distanceText() + "；按同一酒店/目的地参考点返程，实际末日出发点改变须重查，油电/过路费用未知"));
+          inbound == null ? "确认返程发站/班次与出发前接驳，报价和余票未接入" : inbound.durationText() + "，" + inbound.distanceText() + "；按同一酒店/目的地参考点返程，实际末日出发点改变须重查，交通费用待核实"));
       if (d < count) unknown(costs, prefix + "-hotel", "HOTEL", "住宿（按旅行日之间一晚，提前入住/延住另补）", null);
       if (limited) checks.add("少步行约束：默认单段1500米（可直接告诉我希望的步行上限）；地图返回的公交步行量可校验，未返回或景区内部步行量仍未知，不承诺无障碍");
-      unknown(costs, prefix + "-local", "TRANSPORT", "其他未列市内交通/停车", people);
+      unknown(costs, prefix + "-local", "TRANSPORT", (mode(details)==RouteMode.DRIVING && (details==null || !"TAXI".equals(details.localTransportPreference()))?"其他未列市内交通/停车":"其他未列市内交通"), people);
       checks.add("时段为假设；未验证开放、预约、游览时长与餐馆营业，不能视为已可执行");
+      var hotelBack=slots.stream().filter(slot -> slot.id().equals(prefix+"-hotel-back")).findFirst();
+      if(hotelBack.isPresent() && details!=null && "TAXI".equals(details.localTransportPreference())) {
+        var back=hotelBack.get(); slots.remove(back);
+        int at=slots.size(),lastVisit=-1;
+        for(int i=0;i<slots.size();i++) if(slots.get(i).kind().equals("VISIT")) lastVisit=i;
+        for(int i=lastVisit+1;i<slots.size();i++) if(slots.get(i).kind().equals("REST") || slots.get(i).id().equals(prefix+"-dinner")) { at=i; break; }
+        slots.add(at,back);
+      }
       slots = timeline(slots, byId, checks, date);
       for (var slot : slots) if (slot.status().equals("UNPLACED") && !alternatives.containsKey(slot.id())) {
         alternatives.put(slot.id(), slot); removedVisit = true;
@@ -195,8 +227,9 @@ public class TravelGuideComposer {
     }
     days.sort(Comparator.comparingInt(TravelGuide.Day::dayIndex));
     if (removedVisit) return composeResolved(request, candidates, original, lookup, alternatives);
-    unknown(costs, "intercity-out", "TRANSPORT", "去程火车/高铁/自驾：" + (details == null || details.origin() == null ? "出发地待补" : details.origin()) + " → " + request.destination(), people);
-    unknown(costs, "intercity-back", "TRANSPORT", "返程火车/高铁/自驾", people);
+    String intercityLabel=details!=null && requiresSpecificIntercity(details)?details.transportPreference():mode(details)==RouteMode.DRIVING?"自驾":"跨城交通";
+    unknown(costs, "intercity-out", "TRANSPORT", "去程"+intercityLabel+"：" + (details == null || details.origin() == null ? "出发地待补" : details.origin()) + " → " + request.destination(), people);
+    unknown(costs, "intercity-back", "TRANSPORT", "返程"+intercityLabel, people);
     Map<String,TravelGuide.Slot> transportSlots=new HashMap<>();
     for(var day:days) for(var slot:day.slots()) if(slot.kind().equals("TRANSPORT")) transportSlots.put(slot.id(),slot);
     List<TravelGuide.Cost> remainingTransport=new ArrayList<>();
@@ -205,7 +238,10 @@ public class TravelGuideComposer {
       if(slot==null||slot.route()==null) continue;
       var route=slot.route(); var fare=route.fare();
       Integer quantity=null; BigDecimal price=null; String unit="人"; String description=slot.title();
-      if(route.mode()==RouteMode.TRANSIT) {
+      if(slot.title().contains("（打车）")) {
+        quantity=details==null?null:details.vehicles(); unit="车次";
+        price=fare==null?null:fare.taxiAlternativePerVehicleCny(); description+="（地图打车参考，非订单报价；车辆数待确认）";
+      } else if(route.mode()==RouteMode.TRANSIT) {
         quantity=people; price=fare==null?null:fare.transitPerPersonCny(); description+="（地图换乘方案参考总价，非交易报价）";
       } else if(route.mode()==RouteMode.DRIVING) {
         quantity=details==null||details.vehicles()==null||details.vehicles()<=0?null:details.vehicles(); unit="车次";
@@ -256,9 +292,14 @@ public class TravelGuideComposer {
         : reference.compareTo(request.budget()) > 0 ? "REFERENCE_EXCEEDS_LIMIT"
         : referenceMax.compareTo(request.budget()) > 0 ? "REFERENCE_RANGE_CROSSES_LIMIT"
         : unknown > 0 || known.compareTo(reference) != 0 ? "CANNOT_DETERMINE" : "WITHIN_CONFIRMED_SCOPE";
-    notices.add("地图可能返回跨城换乘及铁路段参考，不代表指定旅行日可售班次或余票；铁路座席价仅展示备选，不重复累加到换乘总价。道路收费仅是一部分自驾成本，车辆数未提供时不按人数乘车费，油电/停车等仍需补充。");
-    notices.add("骑行路线不代表有共享车辆、可停放或适合儿童；老幼优惠、餐馆营业与忌口均须单独确认。参考小计不等于完整预算，未覆盖项不能当零。");
-    notices.add("老幼票种未核验：门票金额仅是全团按普通成人全价的参考场景，不代表老幼适用或已享优惠；人均/每日均为未覆盖项之外的小计。三餐候选来自附近检索，早餐供餐、特色菜和营业时间须核实。");
+    if(details!=null && details.origin()!=null && (requiresSpecificIntercity(details) || mode(details)==RouteMode.TRANSIT))
+      notices.add("跨城交通须确认实际发到站、班次与余票；地图换乘参考不代表已取得指定日期车票。");
+    if(mode(details)==RouteMode.DRIVING && (details==null || !"TAXI".equals(details.localTransportPreference())))
+      notices.add("道路收费仅是一部分自驾成本，车辆数未提供时不按人数乘车费，油电/停车等仍需补充。");
+    if(mode(details)==RouteMode.CYCLING) notices.add("骑行路线不代表有共享车辆、可停放或适合儿童。");
+    if(details!=null && (details.seniors()!=null && details.seniors()>0 || details.children()!=null && details.children()>0))
+      notices.add("老幼票种尚未核实，门票参考场景不代表已享优惠。");
+    notices.add("餐馆候选不代表已选定，营业与实际供餐须核实；参考小计不等于完整预算。");
     notices.add("更换人数、日期、酒店或排除景点后重新生成；用 details.confirmedGroupCosts 按费用键录入全团CNY金额。没有交易报价时不承诺精确账单。");
     return new TravelGuide(List.copyOf(days), List.copyOf(costs), known, reference, referenceMax,
         people == null ? null : reference.divide(BigDecimal.valueOf(people), 2, RoundingMode.HALF_UP),
@@ -355,12 +396,13 @@ public class TravelGuideComposer {
     }
     RouteResult route(LatLon from,LatLon to,PlanningRequest.Details details,String city,String target) {
       if(from==null||to==null) { issue("ROUTE","NO_COORDINATES",target); return null; }
-      String key=point(from)+":"+point(to)+":"+mode(details)+":"+city;
+      RouteMode localMode=details!=null && "TAXI".equals(details.localTransportPreference())?RouteMode.DRIVING:mode(details);
+      String key=point(from)+":"+point(to)+":"+localMode+":"+city;
       if(routes.containsKey(key)) { if(routes.get(key)==null) issue("ROUTE",failures.get("r:"+key),target); return routes.get(key); }
       if(amap==null||!amap.configured()) { issue("ROUTE","NOT_CONFIGURED",target); return null; }
       if(routeCalls>=routeLimit) { issue("ROUTE","BUDGET_EXHAUSTED",target); return null; }
       routeCalls++; RouteResult route=null; String reason="NO_RESULT";
-      try { route=invoke(() -> amap.route(mode(details),point(from),point(to),city)); } catch(RuntimeException e) { reason=failureReason(e); }
+      try { route=invoke(() -> amap.route(localMode,point(from),point(to),city)); } catch(RuntimeException e) { reason=failureReason(e); }
       routes.put(key,route);
       if(route==null) { failures.put("r:"+key,reason); issue("ROUTE",reason,target); }
       return route;
@@ -369,9 +411,12 @@ public class TravelGuideComposer {
 
   private void hotelTransfer(List<TravelGuide.Slot> slots, List<TravelGuide.Cost> costs, Lookup lookup,
       String id, String period, String title, LatLon from, LatLon to, PlanningRequest.Details details, String city, Integer people) {
+    boolean taxi=details!=null && "TAXI".equals(details.localTransportPreference());
+    // Without confirmed hotel endpoints, retain the requested leg instead of inventing a hotel or time.
     RouteResult route = lookup.route(from, to, details, city, title);
+    if(taxi) title += "（打车）";
     slots.add(slot(id, period, "TRANSPORT", title, route == null ? "路线待查" : "地图估算", route,
-        route == null ? "酒店或景点坐标未确定/路线不可用，耗时与费用未知" : route.durationText() + "，" + route.distanceText() + "；另留30分钟机动（假设），费用未知"));
+        route == null ? (taxi?"酒店地址及实际上下车点待确认；打车去程/返程须分别查询，耗时和报价未知":"酒店或景点坐标未确定，路线耗时与费用未知") : route.durationText() + "，" + route.distanceText() + "；另留30分钟机动（假设），费用未知"));
     unknown(costs, id, "TRANSPORT", title, people);
   }
 
@@ -416,7 +461,7 @@ public class TravelGuideComposer {
         int preferred=slot.title().equals("午餐")?720:slot.title().equals("晚餐")?1080:480;
         int latest=preferred+120;
         if(!anchored) {
-          result.add(checkedMeal(slot,preferred,duration,false,date)); continue;
+          result.add(checkedMeal(guardAdmission(slot,byId,preferred,duration,false,date,checks),preferred,duration,false,date)); continue;
         }
         if(cursor>latest) {
           result.add(new TravelGuide.Slot(slot.id(),clock(preferred)+"~"+clock(preferred+60)+"（建议餐时，地点待确认）",
@@ -501,12 +546,12 @@ public class TravelGuideComposer {
   private static TravelGuide.Slot checkedMeal(TravelGuide.Slot slot,int cursor,int duration,boolean anchored,LocalDate date) {
     List<FoodPlace> kept=new ArrayList<>(); List<String> unknown=new ArrayList<>(); List<String> closed=new ArrayList<>();
     for(FoodPlace food:slot.restaurants()) {
-      Boolean coverage=anchored?OpeningHours.covers(food.openHours(),date,cursor,duration):null;
+      Boolean coverage=OpeningHours.covers(food.openHours(),date,cursor,duration);
       if(Boolean.FALSE.equals(coverage)) closed.add(food.name()+"（"+food.address()+"，GCJ-02 "+food.lon()+","+food.lat()+"）");
       else { kept.add(food); if(coverage==null) unknown.add(food.name()); }
     }
     String status=kept.isEmpty()?"NO_MEAL_MATCH":!unknown.isEmpty()||!anchored?"MEAL_TIME_UNVERIFIED":"HOURS_COVER_PLAN";
-    String note=slot.note()+"; 校验用餐时间="+(anchored?clock(cursor)+"~"+clock(cursor+duration):"未定，不能判断供餐");
+    String note=slot.note()+"; 校验用餐时间="+(anchored?clock(cursor)+"~"+clock(cursor+duration):clock(cursor)+"~"+clock(cursor+duration)+"（仅建议餐时，到达尚未确认）");
     if(!unknown.isEmpty()) note+="；营业/供餐未核验的可定位备选："+String.join("、",unknown);
     if(!closed.isEmpty()) note+="；营业原文不覆盖实际餐时，未作为本餐候选/费用："+String.join("、",closed);
     return new TravelGuide.Slot(slot.id(),anchored?clock(cursor)+"~"+clock(cursor+duration)+"（假设）":"示意顺序（到达时间待定）","MEAL",slot.title(),status,List.copyOf(kept),null,note);

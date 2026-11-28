@@ -26,8 +26,9 @@ final class TripRequirements {
           已有需求用来理解指代，只输出当前用户明确新增或修改的字段，没说的省略，不猜日期或景点。
           字段：intent,city(目的地，绝不能把出发地当目的地),days,travelers,budget,preferences(字符串数组),
           departDate/returnDate(YYYY-MM-DD，按天气选日尚未确认时省略),weatherRequest(天气选日原话),
-          details对象字段：origin,originCity,arrivalCity,hotel(仅具体酒店名或地址，特色住宿不填这里),
+          details对象字段：restDays(只休息不游览的第几天整数数组),onlyMustVisit(明确只保留必去点时true),localTransportPreference(市内打车为TAXI，与跨城高铁分开),origin,originCity,arrivalCity,hotel(仅具体酒店名或地址，特色住宿不填这里),
           lodgingPreference,budgetScope,transportPreference(跨城交通原话，如往返高铁；不得被市内公交地铁覆盖),maxAttractionsPerDay(每天最多景点数，正整数),transportMode(明确自驾DRIVING/公交TRANSIT/步行WALKING/骑行CYCLING，委托你选择舒适交通可取TRANSIT),
+          seniors不得仅凭爸妈、父母等亲属称谓推断年龄或人数；年龄和老人人数未明确时省略。
           seniors,children(非负整数人数；明确没有=0；只说有但没说数量则省略),mobility,dietaryRestrictions(无忌口为空数组),mustVisit(明确必去的名称数组),
           visitDays(仅用户明确指定的景点名到第几天的对象，如故宫放第二天为{"故宫":2}),excludedAttractionIds(取消/不去的景点名称数组，不编造ID),includeWeather(问天气或按天气选日为true)。
           budgetScope只有用户明确说“全团/总预算”时取group_total，明确说“人均/每人”时取per_person；仅说预算金额时必须省略，不能按人数推断。
@@ -45,6 +46,19 @@ final class TripRequirements {
       JsonNode patch=mapper.readTree(raw.substring(begin,end+1));
       String intent=patch.path("intent").asText("question");
       if (!Set.of("start","update","confirm","preview","weather","question").contains(intent)) return old;
+      if (!intent.equals("start")) {
+        Map<String,Integer> datedVisits=explicitVisitDates(old,text);
+        if(!datedVisits.isEmpty() && patch instanceof com.fasterxml.jackson.databind.node.ObjectNode mutable) {
+          if(!text.matches("(?s).*(出发|启程|返程|返回|回程|改期|行程日期|旅行日期|旅行时间).*")) {
+            mutable.remove("departDate"); mutable.remove("returnDate");
+          }
+          var detail=mutable.withObject("details");
+          Map<String,Object> assignments=new LinkedHashMap<>();
+          if(old.planning().get("details") instanceof Map<?,?> prior && prior.get("visitDays") instanceof Map<?,?> saved)
+            saved.forEach((k,v)->assignments.put(k.toString(),v));
+          assignments.putAll(datedVisits); detail.set("visitDays",mapper.valueToTree(assignments));
+        }
+      }
       Map<String,Object> planning=new LinkedHashMap<>(old.planning());
       if (intent.equals("start")) planning.clear();
       if (!intent.equals("question")) planning.remove("_budgetSummary");
@@ -69,6 +83,8 @@ final class TripRequirements {
           if(details.get(e.getKey()) instanceof List<?> values) values.forEach(v->names.add(v.toString()));
           e.getValue().forEach(v->names.add(v.asText())); details.put(e.getKey(),List.copyOf(names));
         } else if(Set.of("seniors","children").contains(e.getKey())) {
+          if(e.getKey().equals("seniors") && text.matches("(?s).*(爸妈|父母|爸爸|妈妈).*")
+              && !text.matches("(?s).*(老人|老年|[0-9一二三四五六七八九十]+岁).*")) return;
           Integer count=partyCount(e.getValue());
           if(count!=null) details.put(e.getKey(),count);
           else if(e.getValue().isBoolean() && e.getValue().asBoolean()) details.remove(e.getKey());
@@ -91,6 +107,17 @@ final class TripRequirements {
       if (explicitBudgetScope != null) details.put("budgetScope", explicitBudgetScope);
       if(details.get("mustVisit") instanceof List<?> must && details.get("excludedAttractionIds") instanceof List<?> excluded)
         details.put("mustVisit",must.stream().filter(v->!excluded.contains(v)).toList());
+      String hotel=String.valueOf(details.get("hotel"));
+      boolean unselected=text.matches("(?s).*(酒店|住宿).{0,4}(未订|没订|未定|没定|未选|没选|还没订).*" );
+      if(unselected || hotel.matches(".*(附近|周边|一带|片区)$")) {
+        if(!hotel.equals("null")) details.putIfAbsent("lodgingPreference",hotel);
+        details.remove("hotel");
+      }
+      if(text.matches("(?s).*(首末日|首尾两天|第一天和最后一天).*") && text.matches("(?s).*(只|仅).*(休息|车站).*")) {
+        if(old.days()!=null) details.put("restDays",List.of(1,old.days()));
+      }
+      if(text.contains("只保留") || text.contains("仅保留")) details.put("onlyMustVisit",true);
+      if(text.contains("打车") || text.contains("出租车") || "TAXI".equals(details.get("transportMode"))) details.put("localTransportPreference","TAXI");
       planning.put("details",details);
       boolean fresh=intent.equals("start");
       String city=patch.hasNonNull("city")?patch.get("city").asText():fresh?null:old.city();
@@ -101,6 +128,30 @@ final class TripRequirements {
       if(patch.path("preferences").isArray()) patch.get("preferences").forEach(v->{if(!prefs.contains(v.asText()))prefs.add(v.asText());});
       return new ConversationState(city,days,people,budget,prefs,planning);
     } catch (RuntimeException | java.io.IOException ignored) { return old; }
+  }
+
+  private static Map<String,Integer> explicitVisitDates(ConversationState state,String text) {
+    Map<String,Integer> result=new LinkedHashMap<>();
+    if(!(state.planning().get("details") instanceof Map<?,?> details) || !(details.get("mustVisit") instanceof List<?> names)) return result;
+    try {
+      LocalDate departure=LocalDate.parse(String.valueOf(state.planning().get("departDate")));
+      for(Object raw:names) {
+        String name=raw.toString().replaceAll("(博物院|博物馆|公园|景区)$", "");
+        if(name.length()<2) continue;
+        var match=java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(name)+".{0,12}?(\\d{1,2})月(\\d{1,2})日").matcher(text);
+        boolean found=match.find();
+        if(!found) {
+          match=java.util.regex.Pattern.compile("(\\d{1,2})月(\\d{1,2})日.{0,5}?"+java.util.regex.Pattern.quote(name)).matcher(text);
+          found=match.find();
+        }
+        if(found) {
+          LocalDate date=LocalDate.of(departure.getYear(),Integer.parseInt(match.group(1)),Integer.parseInt(match.group(2)));
+          long day=java.time.temporal.ChronoUnit.DAYS.between(departure,date)+1;
+          if(day>=1 && day<=30) result.put(raw.toString(),(int)day);
+        }
+      }
+    } catch(java.time.DateTimeException ignored) { }
+    return result;
   }
 
   private static ConversationState extractionState(ConversationState state) {

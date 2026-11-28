@@ -463,6 +463,13 @@ public final class ConsoleUI implements AutoCloseable {
   }
 
   /** Show long output in a scrollable full-screen viewer; q or Esc returns to the prompt. */
+  public void viewLongText(String title,String text) {
+    if(!fullscreen || terminal==null) return;
+    int width=Math.max(19,terminal.getWidth()-1);
+    long rows=text.lines().mapToLong(line -> wrap(line,width).size()).sum();
+    if(rows>Math.max(1,terminal.getHeight()-4)) viewText(title,text);
+  }
+
   public void viewText(String title, String text) {
     if (!fullscreen || terminal == null || reader == null) {
       println(title);

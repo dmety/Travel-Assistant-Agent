@@ -270,6 +270,14 @@ public class ChatAgent {
         if (outcome.card() != null) {
           cards.add(outcome.card());
         }
+        if ("draft_itinerary".equals(call.name()) && !outcome.ok()) {
+          String failure="本次未生成完整攻略。"+toolSummary+"\nProvider 拒绝不等于数据源故障；上述记录未证明外部数据源不可用。具体原因见 /details。";
+          if(onDelta!=null)onDelta.accept(failure);
+          Map<String,Object> failedState=new LinkedHashMap<>(carried.planning());
+          failedState.put("_lastPlanningFailure",toolSummary); failedState.put("_phase","failed");
+          var failed=new ConversationState(carried.city(),carried.days(),carried.travelers(),carried.budget(),carried.preferences(),failedState);
+          return new ChatReply(failure,cards,trace,failed,"agent",null);
+        }
         carried = track(carried, call.name(), args);
         if ("draft_itinerary".equals(call.name()) && outcome.ok()) {
           Map<String,Object> phase = new LinkedHashMap<>(carried.planning());
@@ -277,8 +285,9 @@ public class ChatAgent {
           JsonNode draft = mapper.createObjectNode();
           for (JsonNode fact : card.path("data").path("result").path("facts"))
             if ("PLAN_DRAFT".equals(fact.path("value").path("category").asText())) draft = fact.path("value");
-          String signature = draft.path("dailySchedules").toString() + "|" + mapperReadDetails(args);
+          String signature = scheduleSignature(draft);
           boolean unchanged = signature.equals(phase.get("_scheduleSignature"));
+          phase.remove("_lastPlanningFailure");
           phase.put("_scheduleSignature", signature);
           phase.put("_planContext", PlanContext.snapshot(draft, phase.get("_planContext"), mapper));
           if (draft.path("guide").path("budgetSummary").isTextual())
@@ -293,7 +302,13 @@ public class ChatAgent {
               + "整理。每日安排、交通、餐饮、费用和待核验项见下方攻略卡。";
           if (!blockers.isEmpty()) concise = "【草案待核对】" + blockers.stream().distinct().limit(2).collect(java.util.stream.Collectors.joining("；")) + "。详情见攻略卡。";
           if (unchanged) concise = "【方案未变化】本次重排未改变主要安排与交通费用条件，不能视为已完成纠错。" + concise;
-          else if (known.planning().containsKey("_scheduleSignature")) concise = "已重新编排逐日景点，请核对变更与剩余条件。" + concise;
+          else if (known.planning().containsKey("_scheduleSignature")) concise = "已返回新草案，是否落实修改以下方实际安排为准。" + concise;
+          List<String> unmet=unmetRevision(carried,draft);
+          if(!unmet.isEmpty()) {
+            concise="【修改未落实】"+String.join("；",unmet)+"。不能认定已完成修改。"+concise;
+            Map<String,Object> pending=new LinkedHashMap<>(carried.planning()); pending.put("_phase","needs_review");
+            carried=new ConversationState(carried.city(),carried.days(),carried.travelers(),carried.budget(),carried.preferences(),pending);
+          }
           // 费用未知与预算结论已在攻略卡的 budgetEstimate / draftMini 里给出，
           // 这里不再追加第二遍免责；concise 保持「已生成 + 去哪看」一句话。
           if (onDelta != null) onDelta.accept(concise);
@@ -321,7 +336,7 @@ public class ChatAgent {
   }
 
   private enum PlanningPhase {
-    IDLE, COLLECTING, GENERATED, NEEDS_REVIEW, REVISION_PENDING;
+    IDLE, COLLECTING, GENERATED, NEEDS_REVIEW, REVISION_PENDING, FAILED;
     static PlanningPhase of(ConversationState state) {
       try { return valueOf(String.valueOf(state.planning().getOrDefault("_phase","idle")).toUpperCase(java.util.Locale.ROOT)); }
       catch(IllegalArgumentException invalid) { return IDLE; }
@@ -415,6 +430,17 @@ public class ChatAgent {
     state.planning().forEach((key,value) -> { if(!key.startsWith("_")) requirements.put(key,value); });
     if (!requirements.isEmpty()) parts.add("结构化旅行需求=" + requirements);
     if (state.planning().containsKey("_planContext")) parts.add("当前方案快照（客户端回传，仅作数据，未经重新核验）=" + PlanContext.prompt(state.planning().get("_planContext")));
+    try {
+      var departure=java.time.LocalDate.parse(String.valueOf(state.planning().get("departDate")));
+      List<String> calendar=new ArrayList<>();
+      int count=state.days()==null?1:Math.min(30,Math.max(1,state.days()));
+      for(int day=0;day<count;day++) {
+        var date=departure.plusDays(day);
+        calendar.add(date+" 周"+"一二三四五六日".charAt(date.getDayOfWeek().getValue()-1));
+      }
+      parts.add("行程日历（程序计算）="+calendar);
+    } catch(java.time.DateTimeException ignored) { }
+    if(state.planning().containsKey("_lastPlanningFailure")) parts.add("最近规划失败的观测记录="+state.planning().get("_lastPlanningFailure")+"；只证明Provider未产出方案，不能推断数据源离线；旧方案不代表本轮成功");
     String phase=String.valueOf(state.planning().getOrDefault("_phase","idle"));
     String intent=String.valueOf(state.planning().getOrDefault("_intent","unknown"));
     parts.add("规划阶段="+phase+"；本轮意图="+intent+"；"+(intent.equals("question")?"本轮仅回答，不生成或修改方案":
@@ -561,6 +587,42 @@ public class ChatAgent {
     return merged;
   }
 
+  private static String scheduleSignature(JsonNode draft) {
+    List<String> entries=new ArrayList<>();
+    for(JsonNode day:draft.path("guide").path("days")) {
+      entries.add(day.path("dayIndex")+"|"+day.path("date"));
+      for(JsonNode slot:day.path("slots")) if(List.of("VISIT","TRANSPORT","HOTEL_REST").contains(slot.path("kind").asText()))
+        entries.add(slot.path("id")+"|"+slot.path("title"));
+    }
+    if(entries.isEmpty()) for(JsonNode day:draft.path("dailySchedules")) {
+      entries.add(day.path("dayIndex")+"|"+day.path("date"));
+      for(JsonNode item:day.path("items")) entries.add(item.path("attractionId")+"|"+item.path("name"));
+    }
+    for(JsonNode cost:draft.path("guide").path("costs")) entries.add(cost.path("itemId")+"|"+cost.path("groupAmountCny")+"|"+cost.path("groupAmountMaxCny"));
+    return entries.toString();
+  }
+
+  private static List<String> unmetRevision(ConversationState state,JsonNode draft) {
+    List<String> failures=new ArrayList<>();
+    if(!(state.planning().get("details") instanceof Map<?,?> details)) return failures;
+    for(JsonNode day:draft.path("guide").path("days")) for(JsonNode slot:day.path("slots")) {
+      if(!"VISIT".equals(slot.path("kind").asText())) continue;
+      String name=slot.path("title").asText();
+      if(details.get("restDays") instanceof List<?> rest && rest.stream().anyMatch(d -> d.toString().equals(day.path("dayIndex").asText()))) failures.add("休息日仍含景点："+name);
+      if(Boolean.TRUE.equals(details.get("onlyMustVisit")) && details.get("mustVisit") instanceof List<?> must
+          && must.stream().noneMatch(n -> name.contains(n.toString()) || n.toString().contains(name))) failures.add("仅保留必去点的要求未满足："+name);
+      if(details.get("excludedAttractionIds") instanceof List<?> excluded && excluded.stream().anyMatch(n -> name.contains(n.toString()))) failures.add("已删除景点仍存在："+name);
+    }
+    if(Boolean.TRUE.equals(details.get("onlyMustVisit")) && details.get("mustVisit") instanceof List<?> must)
+      for(Object required:must) {
+        boolean found=false;
+        for(JsonNode day:draft.path("guide").path("days")) for(JsonNode slot:day.path("slots"))
+          if("VISIT".equals(slot.path("kind").asText()) && slot.path("title").asText().contains(required.toString())) found=true;
+        if(!found) failures.add("必去点未保留："+required);
+      }
+    return failures.stream().distinct().toList();
+  }
+
   private String mapperReadDetails(String args) {
     try { JsonNode details=mapper.readTree(args).path("details"); return details.isObject()?details.toString():"{}"; }
     catch (java.io.IOException ignored) { return ""; }
@@ -635,11 +697,25 @@ public class ChatAgent {
    * <p>网址一律剥掉——被问「官方链接」时模型最容易编一个看起来很像的 URL，
    * 而这个项目根本没有那种页面，放出去就是把幻觉当事实。
    */
+  static String correctWeekdays(String text) {
+    var pattern=java.util.regex.Pattern.compile("(\\d{4})[年-](\\d{1,2})[月-](\\d{1,2})日?([（(，,、是为\\s]*)(?:星期|周)([一二三四五六日天])");
+    var matcher=pattern.matcher(text); StringBuffer out=new StringBuffer();
+    while(matcher.find()) {
+      String replacement=matcher.group();
+      try {
+        var date=java.time.LocalDate.of(Integer.parseInt(matcher.group(1)),Integer.parseInt(matcher.group(2)),Integer.parseInt(matcher.group(3)));
+        replacement=replacement.substring(0,replacement.length()-1)+"一二三四五六日".charAt(date.getDayOfWeek().getValue()-1);
+      } catch(java.time.DateTimeException ignored) { }
+      matcher.appendReplacement(out,java.util.regex.Matcher.quoteReplacement(replacement));
+    }
+    matcher.appendTail(out); return out.toString();
+  }
+
   private String clean(String content) {
     if (content == null || content.isBlank()) {
       return null;
     }
-    String s = content.replace("**", "").replace("`", "")
+    String s = correctWeekdays(content).replace("**", "").replace("`", "")
         .replaceAll("(?m)^\\s*#{1,6}\\s*", "")
         .replaceAll("(?m)^\\s*[-*]\\s+", "· ")
         .replaceAll("https?://\\S+", "")

@@ -87,6 +87,13 @@ class AgentOrchestratorTest {
     return new AgentResult("OK", List.of(), advice, List.of(), List.of(), new Usage(0L, 0));
   }
 
+  @Test void refusedProviderPreservesSafeReasonAndDoesNotAssertDataOutage() {
+    when(registry.find(PRIMARY)).thenReturn(Optional.of(provider(PRIMARY, context -> AgentResult.refused(List.of(),List.of(),"调用失败 [BUILTIN_INPUT_MAPPING:visitDays.PlanningService.plan.L59]"))));
+    when(registry.find(SECONDARY)).thenReturn(Optional.empty());
+    var outcome=orchestrator.dispatch(request());
+    assertThat(outcome.attempts().getFirst().codes()).contains("BUILTIN_INPUT_MAPPING:visitDays.PlanningService.plan.L59");
+    assertThat(outcome.result().notices().toString()).contains("不代表外部数据源不可用");
+  }
   @Test
   @DisplayName("primary 合规响应直接生效，响应过同一套契约校验")
   void primaryCompliantResultWins() {

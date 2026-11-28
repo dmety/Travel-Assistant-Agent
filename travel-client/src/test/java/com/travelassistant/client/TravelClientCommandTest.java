@@ -39,6 +39,60 @@ class TravelClientCommandTest {
     else System.setProperty("travel.cli.history-file",previousHistory);
   }
 
+  @Test void planSummaryPrecedesAndSuppressesIncidentalPlaceCards() throws Exception {
+    var bytes=new ByteArrayOutputStream(); var previous=System.out;
+    try(var output=new PrintStream(bytes,true,StandardCharsets.UTF_8)) {
+      System.setOut(output);
+      try(var ui=ConsoleUI.plain()) {
+        var client=new TravelClient("http://127.0.0.1:1",ui);
+        var cards=JSON.readTree("[{\"type\":\"places\",\"data\":[{\"name\":\"无关候选\"}]},{\"type\":\"envelope\",\"intent\":\"PLAN_DRAFT\",\"data\":{\"result\":{\"facts\":[{\"value\":{\"category\":\"PLAN_DRAFT\",\"guideText\":\"完整正文\",\"dailySchedules\":[{\"dayIndex\":2,\"date\":\"2026-12-06\",\"items\":[{\"name\":\"故宫\"}]}]}}]}}}]");
+        var print=TravelClient.class.getDeclaredMethod("printChatCards",JsonNode.class);print.setAccessible(true);print.invoke(client,cards);
+      }
+    } finally { System.setOut(previous); }
+    String text=bytes.toString(StandardCharsets.UTF_8);
+    assertTrue(text.contains("逐日摘要")); assertFalse(text.contains("无关候选")); assertFalse(text.contains("完整正文"));
+  }
+
+  @Test void failedToolDetailsIncludeConcreteSafeCause() throws Exception {
+    var bytes=new ByteArrayOutputStream(); var previous=System.out;
+    try(var output=new PrintStream(bytes,true,StandardCharsets.UTF_8)) {
+      System.setOut(output);
+      try(var ui=ConsoleUI.plain()) {
+        var client=new TravelClient("http://127.0.0.1:1",ui);
+        client.rememberResult(JSON.readTree("{\"cards\":[],\"trace\":[{\"tool\":\"draft_itinerary\",\"ok\":false,\"summary\":\"builtin.planning REFUSED BUILTIN_INPUT_MAPPING:visitDays.BuiltinProviderConfiguration.planning.L147\"}]}"));
+        var show=TravelClient.class.getDeclaredMethod("showLatestDetails"); show.setAccessible(true); show.invoke(client);
+      }
+    } finally { System.setOut(previous); }
+    assertTrue(bytes.toString(StandardCharsets.UTF_8).contains("BUILTIN_INPUT_MAPPING:visitDays"));
+  }
+
+  @Test void emptyEnvelopeDoesNotPrintRelatedMaterialsHeading() throws Exception {
+    var bytes=new ByteArrayOutputStream(); var previous=System.out;
+    try(var output=new PrintStream(bytes,true,StandardCharsets.UTF_8)) {
+      System.setOut(output);
+      try(var ui=ConsoleUI.plain()) {
+        var client=new TravelClient("http://127.0.0.1:1",ui);
+        var print=TravelClient.class.getDeclaredMethod("printChatCards",JsonNode.class); print.setAccessible(true);
+        print.invoke(client,JSON.readTree("[{\"type\":\"envelope\",\"intent\":\"PLAN_DRAFT\",\"data\":{\"result\":{\"facts\":[]}}}]"));
+      }
+    } finally { System.setOut(previous); }
+    assertFalse(bytes.toString(StandardCharsets.UTF_8).contains("相关资料"));
+  }
+  @Test void historyShowsLatestMessageFirst() throws Exception {
+    var bytes=new ByteArrayOutputStream(); var previous=System.out;
+    try(var output=new PrintStream(bytes,true,StandardCharsets.UTF_8)) {
+      System.setOut(output);
+      try(var ui=ConsoleUI.plain()) {
+        var client=new TravelClient("http://127.0.0.1:1",ui);
+        var remember=TravelClient.class.getDeclaredMethod("rememberChat",String.class,String.class); remember.setAccessible(true);
+        remember.invoke(client,"user","较早需求"); remember.invoke(client,"assistant","最新回复");
+        var show=TravelClient.class.getDeclaredMethod("showConversationHistory"); show.setAccessible(true); show.invoke(client);
+      }
+    } finally { System.setOut(previous); }
+    String text=bytes.toString(StandardCharsets.UTF_8);
+    assertTrue(text.indexOf("最新回复")<text.indexOf("较早需求"));
+  }
+
   @Test void plainFollowUpKeepsPlanDetailsAndNewTripClearsThem() throws Exception {
     var client=new TravelClient("http://localhost:1");
     JsonNode plan=JSON.readTree("{\"cards\":[{\"intent\":\"PLAN_DRAFT\",\"data\":{\"result\":{\"facts\":[{\"value\":{\"category\":\"PLAN_DRAFT\",\"guideText\":\"旧方案\"}}]}}}]}");

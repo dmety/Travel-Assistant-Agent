@@ -48,7 +48,14 @@ public record PlanningRequest(
       String transportMode, Boolean includeWeather, List<String> excludedAttractionIds,
       java.util.Map<String, BigDecimal> confirmedGroupCosts, Integer maxWalkingMeters, QueryOptions queries, Integer vehicles, String originCity, String arrivalCity,
       String lodgingPreference, String budgetScope, String transportPreference, Integer maxAttractionsPerDay,
-      java.util.Map<String,Integer> visitDays) {
+      java.util.Map<String,Integer> visitDays, List<Integer> restDays, Boolean onlyMustVisit, String localTransportPreference) {
+    public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
+        List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
+        java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity,
+        String lodgingPreference,String budgetScope,String transportPreference,Integer maxAttractionsPerDay,java.util.Map<String,Integer> visitDays) {
+      this(origin,seniors,children,mobility,dietaryRestrictions,mustVisit,hotel,transportMode,includeWeather,excludedAttractionIds,
+          confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,lodgingPreference,budgetScope,transportPreference,maxAttractionsPerDay,visitDays,List.of(),false,null);
+    }
     public Details(String origin,Integer seniors,Integer children,String mobility,List<String> dietaryRestrictions,
         List<String> mustVisit,String hotel,String transportMode,Boolean includeWeather,List<String> excludedAttractionIds,
         java.util.Map<String,BigDecimal> confirmedGroupCosts,Integer maxWalkingMeters,QueryOptions queries,Integer vehicles,String originCity,String arrivalCity,
@@ -70,6 +77,7 @@ public record PlanningRequest(
           confirmedGroupCosts,maxWalkingMeters,queries,vehicles,originCity,arrivalCity,null,null,null);
     }
     public Details {
+      restDays=restDays==null?List.of():restDays.stream().filter(day -> day!=null && day>=1 && day<=30).distinct().toList();
       visitDays=visitDays==null?java.util.Map.of():java.util.Map.copyOf(visitDays);
       if(visitDays.values().stream().anyMatch(day -> day<1 || day>30)) throw new IllegalArgumentException("指定游览日必须为1至30");
       confirmedGroupCosts = confirmedGroupCosts == null ? java.util.Map.of() : java.util.Map.copyOf(confirmedGroupCosts);

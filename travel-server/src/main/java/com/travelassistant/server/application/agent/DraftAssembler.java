@@ -99,8 +99,9 @@ public final class DraftAssembler {
       notices.add("有 " + (selected.size() - scheduledItems)
           + " 个候选景点未进入逐日草案：坐标缺失或距离较远时不强行安排在同一天；预算粗估仍按候选保守计入");
     }
-    if (daily.size() < plannedDays) {
-      int trimmed = plannedDays - daily.size();
+    int requestedVisitDays=plannedDays-(request.details()==null?0:(int)request.details().restDays().stream().filter(day -> day<=plannedDays).count());
+    if (daily.size() < requestedVisitDays) {
+      int trimmed = requestedVisitDays - daily.size();
       // 编排层收敛：宁可少给几天，也不把「暂无候选」重复刷成十行。差额只说一次。
       checks.add(new DraftCheck(TRIMMED_CHECK, "INFO", "date",
           "本轮可查景点 " + safe.size() + " 个，只排出 " + daily.size() + " 天逐日草案；"
@@ -132,7 +133,9 @@ public final class DraftAssembler {
    */
   public static List<DraftDay> arrange(PlanningRequest request, List<Attraction> selected) {
     List<Attraction> safe = uniqueForSchedule(selected == null ? List.of() : selected).stream()
-        .filter(a -> !incompatibleClimbing(request,a)).toList();
+        .filter(a -> !incompatibleClimbing(request,a))
+        .filter(a -> request.details()==null || !Boolean.TRUE.equals(request.details().onlyMustVisit())
+            || request.details().mustVisit().stream().anyMatch(name -> PlanningService.matchesMustVisit(name,a))).toList();
     Integer effective = request.effectiveDays();
     if (effective == null || effective <= 0 || safe.isEmpty()) {
       return List.of();
@@ -148,7 +151,7 @@ public final class DraftAssembler {
     int allowedDays = Math.min(effective, MAX_DAYS);
     List<List<Attraction>> groups;
     boolean constrained = limitedMobility(request) || request.details()!=null && request.details().origin()!=null || request.details() != null && (!request.details().mustVisit().isEmpty()
-        || request.details().maxAttractionsPerDay() != null || !request.details().visitDays().isEmpty())
+        || request.details().maxAttractionsPerDay() != null || !request.details().visitDays().isEmpty() || !request.details().restDays().isEmpty() || Boolean.TRUE.equals(request.details().onlyMustVisit()))
         || ordered.stream().anyMatch(a -> java.util.stream.IntStream.range(1, allowedDays + 1)
             .anyMatch(day -> OpeningHours.evaluate(a.openTime(), dateForDay(request, day)).status() == OpeningHours.Status.CLOSED));
     if (!constrained) {
@@ -162,6 +165,7 @@ public final class DraftAssembler {
         boolean placed = false;
         Integer assigned=assignedDay(request,attraction);
         for (int day = 0; day < allowedDays; day++) {
+          if(request.details()!=null && request.details().restDays().contains(day+1)) continue;
           if(assigned!=null && day+1!=assigned) continue;
           if (groups.get(day).size() >= scheduleLimit(request, day + 1)) continue;
           if (OpeningHours.evaluate(attraction.openTime(), dateForDay(request, day + 1)).status() == OpeningHours.Status.CLOSED) continue;
@@ -169,7 +173,7 @@ public final class DraftAssembler {
           placed = true;
           break;
         }
-        if (!placed && assigned==null && java.util.stream.IntStream.range(1, allowedDays + 1).allMatch(day ->
+        if (!placed && assigned==null && (request.details()==null || request.details().restDays().isEmpty()) && java.util.stream.IntStream.range(1, allowedDays + 1).allMatch(day ->
             OpeningHours.evaluate(attraction.openTime(), dateForDay(request, day)).status() == OpeningHours.Status.CLOSED)) {
           for (var group : groups) if (group.size() < scheduleLimit(request, groups.indexOf(group) + 1)) { group.add(attraction); break; }
         }

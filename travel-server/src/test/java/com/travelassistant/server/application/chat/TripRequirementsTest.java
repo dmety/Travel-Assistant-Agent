@@ -9,6 +9,40 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.assertj.core.api.Assertions.*;
 
 class TripRequirementsTest {
+  @Test void unbookedHotelAreaDoesNotBecomeConfirmedRouteEndpoint() {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("{\"intent\":\"update\",\"details\":{\"hotel\":\"王府井附近\"}}");
+    var next=TripRequirements.update(model,new ObjectMapper(),ConversationState.empty(),"酒店未订，住王府井附近");
+    var detail=(java.util.Map<?,?>)next.planning().get("details");
+    assertThat(detail.containsKey("hotel")).isFalse();
+    assertThat(detail.get("lodgingPreference")).isEqualTo("王府井附近");
+  }
+  @Test void explicitRestOnlyRevisionSurvivesIncompleteModelPatch() {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("{\"intent\":\"update\"}");
+    var old=new ConversationState("北京",3,3,null,java.util.List.of(),java.util.Map.of("_structured",true,"_phase","generated","details",java.util.Map.of("mustVisit",java.util.List.of("故宫"),"localTransportPreference","TAXI")));
+    var next=TripRequirements.update(model,new ObjectMapper(),old,"首末日都只安排车站往返和酒店休息，删除天坛和世界公园，只保留12月6日故宫");
+    var detail=(java.util.Map<?,?>)next.planning().get("details");
+    assertThat(detail.get("restDays")).isEqualTo(java.util.List.of(1,3));
+    assertThat(detail.get("onlyMustVisit")).isEqualTo(true);
+    assertThat(detail.get("localTransportPreference")).isEqualTo("TAXI");
+  }
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings={"12月6日是周日，故宫就安排12月6日。确认开始规划","只保留12月6日故宫。确认开始规划"})
+  void assigningPalaceDateDoesNotMoveDepartureDate(String message) {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("{\"intent\":\"confirm\",\"departDate\":\"2026-12-06\",\"details\":{\"visitDays\":{\"故宫\":1}}}");
+    var old=new ConversationState("北京",3,3,null,java.util.List.of(),java.util.Map.of("_structured",true,"_phase","collecting","departDate","2026-12-05","returnDate","2026-12-07","details",java.util.Map.of("mustVisit",java.util.List.of("故宫"))));
+    var next=TripRequirements.update(model,new ObjectMapper(),old,message);
+    assertThat(next.planning()).containsEntry("departDate","2026-12-05").containsEntry("returnDate","2026-12-07");
+    assertThat(((java.util.Map<?,?>)next.planning().get("details")).get("visitDays").toString()).contains("故宫=2");
+  }
+  @Test void parentsAloneDoNotConfirmSeniorCount() {
+    var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
+    when(model.complete(anyString(),anyString())).thenReturn("{\"intent\":\"update\",\"details\":{\"seniors\":2}}");
+    var state=TripRequirements.update(model,new ObjectMapper(),ConversationState.empty(),"带爸妈去北京");
+    assertThat(((java.util.Map<?,?>)state.planning().get("details")).containsKey("seniors")).isFalse();
+  }
   @Test void extractionFailureCannotReplayOldConfirmationAndNewTripClearsSnapshot() {
     var model=mock(DeepSeekClient.class); when(model.configured()).thenReturn(true);
     when(model.complete(anyString(),anyString())).thenReturn("invalid", "{\"intent\":\"start\",\"city\":\"上海\"}");

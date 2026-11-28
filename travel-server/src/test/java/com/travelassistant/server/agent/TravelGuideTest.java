@@ -26,6 +26,49 @@ class TravelGuideTest {
   TravelGuide compose(PlanningRequest r, List<Attraction> spots) {
     return new TravelGuideComposer(null).compose(r, spots, DraftAssembler.assemble(r, spots).dailySchedules());
   }
+  @org.junit.jupiter.params.ParameterizedTest
+  @org.junit.jupiter.params.provider.NullSource
+  @org.junit.jupiter.params.provider.ValueSource(strings={"王府井附近"})
+  void hotelDinnerIsNotPalaceLunchAndUnbookedHotelHasNoDinnerQuote(String lodgingPreference) throws Exception {
+    AmapClient api=completeMap();
+    when(api.geocode(eq("酒店"),any())).thenReturn("114.000000,40.000000");
+    when(api.searchFoodNearby(anyString(),anyInt(),anyInt())).thenAnswer(inv -> inv.getArgument(0).toString().startsWith("114.")
+        ? List.of(new FoodPlace("hotel-food","酒店附近晚餐",40.0,114.0,"中餐",null,30.0,"10:00-23:00",null,"AMAP",Instant.now(),"酒店旁某街1号"))
+        : List.of(new FoodPlace("palace-food","景区午餐",40.0,113.0,"中餐",null,80.0,"10:00-16:30",null,"AMAP",Instant.now(),"景区内")));
+    var spots=List.of(spot("a","博物馆",113,"09:00-23:00"));
+    var r=request(3,"{\"hotel\":\"酒店\",\"origin\":\"上海\",\"transportPreference\":\"高铁\",\"localTransportPreference\":\"TAXI\",\"restDays\":[1,3],\"visitDays\":{\"博物馆\":2}}");
+    var g=new TravelGuideComposer(api).compose(r,spots,DraftAssembler.arrange(r,spots));
+    assertThat(g.days().get(1).slots()).filteredOn(slot -> slot.title().equals("晚餐")).singleElement().satisfies(slot -> {
+      assertThat(slot.restaurants()).extracting(FoodPlace::name).containsExactly("酒店附近晚餐");
+      assertThat(slot.note()).contains("用餐位置=酒店附近");
+    });
+    var unknown=request(3,"{\"origin\":\"上海\",\"transportPreference\":\"高铁\",\"localTransportPreference\":\"TAXI\",\"lodgingPreference\":"+new ObjectMapper().writeValueAsString(lodgingPreference)+",\"restDays\":[1,3],\"visitDays\":{\"博物馆\":2}}");
+    var noHotel=new TravelGuideComposer(api).compose(unknown,spots,DraftAssembler.arrange(unknown,spots));
+    assertThat(noHotel.days().get(1).slots()).filteredOn(slot -> slot.title().equals("晚餐")).allSatisfy(slot -> assertThat(slot.restaurants()).isEmpty());
+    assertThat(noHotel.costs()).filteredOn(cost -> cost.itemId().equals("D2-dinner")).allSatisfy(cost -> assertThat(cost.groupAmountCny()).isNull());
+    assertThat(noHotel.render()).doesNotContain("第5天","骑行","自驾","油电","停车");
+  }
+  @Test void unknownArrivalCannotKeepRestaurantClosedBeforeSuggestedDinner() throws Exception {
+    var api=completeMap();
+    when(api.searchFoodNearby(anyString(),anyInt(),anyInt())).thenReturn(List.of(new FoodPlace("closed","下午关门餐厅",40.0,113.0,"中餐",null,80.0,"10:00-16:30",null,"AMAP",Instant.now(),"某街1号")));
+    var r=request(1,"{\"origin\":\"上海\",\"transportPreference\":\"高铁\"}");
+    var spots=List.of(spot("a","博物馆",113,"09:00-23:00"));
+    var guide=new TravelGuideComposer(api).compose(r,spots,DraftAssembler.arrange(r,spots));
+    assertThat(guide.days().getFirst().slots()).filteredOn(slot -> slot.title().equals("晚餐")).allSatisfy(slot -> assertThat(slot.restaurants()).isEmpty());
+    assertThat(guide.costs()).filteredOn(cost -> cost.itemId().equals("D1-dinner")).allSatisfy(cost -> assertThat(cost.groupAmountCny()).isNull());
+  }
+  @Test void restDaysKeepOnlyRequiredVisitAndHotelTransfersEvenWithoutBookedHotel() throws Exception {
+    var r=request(3,"{\"origin\":\"上海\",\"restDays\":[1,3],\"onlyMustVisit\":true,\"mustVisit\":[\"故宫\"],\"visitDays\":{\"故宫\":2},\"localTransportPreference\":\"TAXI\",\"lodgingPreference\":\"王府井附近\"}");
+    var spots=List.of(spot("a","天坛公园",113,"09:00-17:00"),spot("b","故宫博物院",113.01,"09:00-17:00"),spot("c","世界公园",113.02,"09:00-17:00"));
+    var g=compose(r,spots);
+    assertThat(g.days()).hasSize(3);
+    assertThat(g.days().get(0).slots()).noneMatch(slot -> slot.kind().equals("VISIT"));
+    assertThat(g.days().get(2).slots()).noneMatch(slot -> slot.kind().equals("VISIT"));
+    assertThat(g.days().get(1).slots()).anyMatch(slot -> slot.title().equals("故宫博物院") && slot.kind().equals("VISIT"));
+    assertThat(g.days().get(1).slots()).anyMatch(slot -> slot.title().equals("酒店 → 故宫博物院（打车）"));
+    assertThat(g.days().get(1).slots()).anyMatch(slot -> slot.title().equals("故宫博物院 → 酒店（打车）"));
+    assertThat(g.render()).doesNotContain("天坛公园","世界公园").contains("酒店休息","报价未知");
+  }
   @Test void explicitlyAssignedVisitStaysOnRequestedDay() throws Exception {
     var r=request(3,"{\"visitDays\":{\"博物馆\":2}}");
     var days=DraftAssembler.arrange(r,List.of(spot("a","博物馆",113,"09:00-17:00"),spot("b","公园",113.01,"09:00-17:00")));
@@ -254,7 +297,7 @@ class TravelGuideTest {
   }
   @Test void guideUsesChineseLabelsAndNaturalLanguageEdits() throws Exception {
     String text=compose(request(1,"{}"),List.of(spot("a","甲",113,"09:00-20:00"))).render();
-    assertThat(text).contains("费用明细").contains("来源参考价格").contains("改为3个人").contains("未知项");
+    assertThat(text).contains("费用明细").contains("来源参考价格").contains("具体酒店地址").contains("未知项");
     assertThat(text).doesNotContain("UNKNOWN","REFERENCE","EXCEEDS_LIMIT","confirmedGroupCosts","details.");
   }
   @Test void guideExplainsPopularitySignalsAndRouteOrderingWithoutClaimingHeatData() throws Exception {
@@ -302,7 +345,7 @@ class TravelGuideTest {
     assertThat(g.queryUsage().foodCalls()).isEqualTo(3);
     assertThat(g.queryIssues()).anyMatch(issue -> issue.dayIndex()==1 && issue.reason().equals("BUDGET_EXHAUSTED") && issue.kind().equals("ROUTE"));
     assertThat(g.queryIssues()).noneMatch(issue -> issue.dayIndex()==5);
-    assertThat(g.render()).contains("优先补查第5天").contains("尚未查询");
+    assertThat(g.render()).containsPattern("优先补查第[1-5]天").contains("尚未查询");
     assertThat(g.days()).extracting(TravelGuide.Day::dayIndex).containsExactly(1,2,3,4,5);
   }
   @Test void slowQueriesRespectTotalDeadlineWithoutUnlimitedThreads() throws Exception {

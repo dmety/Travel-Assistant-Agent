@@ -927,6 +927,7 @@ public class TravelClient {
       ui.warn(note.isBlank() ? "助手暂时没有返回内容。" : note);
     }
     printChatCards(result.path("cards"));
+    if(latestPlanResult==null || !latestPlanResult.equals(result)) ui.viewLongText("助手回复 · 从头阅读",reply);
     rememberChat("user", prompt.isBlank() && !images.isEmpty() ? "[附图问题]" : prompt);
     if (!reply.isBlank()) rememberChat("assistant", reply);
   }
@@ -934,17 +935,14 @@ public class TravelClient {
   /** 将 Agent 的结构化结果压缩成终端可读的小卡片，不输出原始 JSON 或内部过程。 */
   private void printChatCards(JsonNode cards) {
     if (cards == null || !cards.isArray() || cards.isEmpty()) return;
-    boolean heading = false;
+    boolean hasPlan=false;
+    for(JsonNode card:cards) if("PLAN_DRAFT".equals(card.path("intent").asText()) && findPlanDraft(card.path("data"))!=null) hasPlan=true;
     int shownCards = 0;
     for (JsonNode card : cards) {
       if (shownCards >= 4) break;
       String type = card.path("type").asText("");
+      if(hasPlan && !"PLAN_DRAFT".equals(card.path("intent").asText())) continue;
       JsonNode data = card.path("data");
-      if (!heading && ("places".equals(type) || "weather".equals(type)
-          || "route".equals(type) || "vote".equals(type) || "envelope".equals(type))) {
-        ui.section("相关资料");
-        heading = true;
-      }
       boolean rendered = switch (type) {
         case "intake" -> printPlanningIntakeCard();
         case "places" -> printPlacesCard(data);
@@ -1109,6 +1107,15 @@ public class TravelClient {
               connectionWarningShown = true;
             }
           }
+          JsonNode guideDays=draft.path("guide").path("days");
+          if(guideDays.isArray() && !guideDays.isEmpty()) {
+            rows.clear();
+            for(JsonNode day:guideDays) {
+              List<String> names=new ArrayList<>();
+              for(JsonNode slot:day.path("slots")) if("VISIT".equals(slot.path("kind").asText()) || "HOTEL_REST".equals(slot.path("kind").asText()) || "TRANSPORT".equals(slot.path("kind").asText()) && slot.path("title").asText().contains("车站")) names.add(slot.path("title").asText());
+              rows.add(List.of("第 "+day.path("dayIndex").asInt()+" 天",day.path("date").asText("日期待定"),String.join("、",names)));
+            }
+          }
           ui.note("旅行攻略草案 · 逐日摘要");
           for (var row : rows) ui.note(row.get(0) + " · " + row.get(1) + "：" + row.get(2));
           JsonNode guide = draft.path("guide");
@@ -1128,7 +1135,6 @@ public class TravelClient {
           }
           printBudgetWarning(draft.path("request"), guide);
           if (guide.path("budgetSummary").isTextual()) ui.note(guide.path("budgetSummary").asText());
-          printGuideBudgetSummary(guide);
           ui.note("输入 /details 从头阅读完整方案（PgUp/PgDn 翻页，q 返回）。");
           return true;
         }
@@ -1202,16 +1208,18 @@ public class TravelClient {
       return;
     }
     StringBuilder detail = new StringBuilder();
-    if (!detailResult.equals(latestChatResult)) detail.append("保留的最近方案；本轮追问未生成新方案。\n");
+    if (!detailResult.equals(latestChatResult)) detail.append("保留的最近方案；本轮未生成新方案。\n");
+    if ("failed".equals(chatState == null ? "" : chatState.path("planning").path("_phase").asText()))
+      detail.append("本轮规划失败；下方旧方案不代表本轮成功，失败记录见工具查询状态。\n");
     if ("revision_pending".equals(chatState == null ? "" : chatState.path("planning").path("_phase").asText()))
       detail.append("需求已修改，以下旧方案待重排。\n");
     StringBuilder toolDetail = new StringBuilder("\n\n工具查询状态");
-    JsonNode traces = detailResult.path("trace");
+    JsonNode traces = latestChatResult.path("trace");
     if (traces.isArray() && !traces.isEmpty()) {
       for (JsonNode trace : traces) toolDetail.append("\n- ")
           .append(cardText(trace, "label", cardText(trace, "tool", "工具")))
           .append(trace.path("ok").asBoolean() ? "：已返回" : "：未成功")
-          ;
+          .append(trace.path("ok").asBoolean() ? "" : "\n  " + trace.path("summary").asText("未返回具体原因"));
     } else toolDetail.append("\n- 本轮没有工具调用记录");
 
     JsonNode cards = detailResult.path("cards");
@@ -1310,12 +1318,12 @@ public class TravelClient {
   private void showConversationHistory() {
     if (transcriptHistory.isEmpty()) { ui.warn("本机还没有保存的对话记录。"); return; }
     StringBuilder history = new StringBuilder();
-    for (int i = 0; i < transcriptHistory.size(); i++) {
+    for (int i = transcriptHistory.size()-1; i >= 0; i--) {
       TranscriptEntry entry = transcriptHistory.get(i);
       history.append(i + 1).append(". ").append("user".equals(entry.role()) ? "你" : "助手")
           .append("\n").append(entry.text()).append("\n\n");
     }
-    ui.viewText("本机对话历史 · /search 可检索", history.toString());
+    ui.viewText("本机对话历史 · 最新在前 · /search 可检索", history.toString());
   }
 
   private void searchConversation(String query) {

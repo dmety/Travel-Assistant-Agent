@@ -95,7 +95,7 @@ public class AgentOrchestrator {
         raw = found.get().invoke(agentContext, budget);
       } catch (HttpAgentAdapter.ContractViolationException e) {
         attempts.add(new DispatchOutcome.Attempt(providerId, "REJECTED",
-            "CONTRACT_VIOLATION", e.failures().stream().map(RuleFailure::code).toList()));
+            "CONTRACT_VIOLATION", e.failures().stream().flatMap(f -> java.util.stream.Stream.of(f.code(),f.code()+":"+f.rule()+":"+f.field())).toList()));
         continue;
       } catch (RuntimeException e) {
         // 异常文本不外泄给调用方，也不写进响应。
@@ -107,11 +107,17 @@ public class AgentOrchestrator {
           validator.toResponseMap(providerId, result));
       if (!failures.isEmpty()) {
         attempts.add(new DispatchOutcome.Attempt(providerId, "REJECTED",
-            "CONTRACT_VIOLATION", failures.stream().map(RuleFailure::code).toList()));
+            "CONTRACT_VIOLATION", failures.stream().flatMap(f -> java.util.stream.Stream.of(f.code(),f.code()+":"+f.rule()+":"+f.field())).toList()));
         continue;
       }
       if (STATUS_REFUSED.equals(result.status())) {
-        attempts.add(new DispatchOutcome.Attempt(providerId, STATUS_REFUSED, "REFUSED", List.of()));
+        List<String> causes=new ArrayList<>();
+        for(String notice:result.notices()) {
+          var match=java.util.regex.Pattern.compile("\\[(BUILTIN_[A-Z_]+(?::[A-Za-z_0-9.\\[\\]]+)?)\\]").matcher(notice);
+          while(match.find()) causes.add(match.group(1));
+        }
+        if(causes.isEmpty()) causes.add(RULES_PROVIDER.equals(providerId)?"RULES_NO_GENERATOR":"PROVIDER_REFUSED_WITHOUT_REASON");
+        attempts.add(new DispatchOutcome.Attempt(providerId, STATUS_REFUSED, "REFUSED", List.copyOf(causes)));
         continue;
       }
       attempts.add(new DispatchOutcome.Attempt(providerId, result.status(), "OK", List.of()));
@@ -164,7 +170,7 @@ public class AgentOrchestrator {
       List<DispatchOutcome.Attempt> attempts, List<Fact> facts,
       List<String> anchorNotices, List<String> anchorUnknown) {
     List<String> notices = new ArrayList<>(anchorNotices);
-    notices.add("全部 Provider 不可用，本次只返回已核实事实，不生成建议");
+    notices.add("规划链未取得可用结果；Provider 拒绝或执行失败，不代表外部数据源不可用");
     AgentResult refused = new AgentResult(STATUS_REFUSED, facts, null,
         cap(anchorUnknown, rules.limit("maxUnknownFields")),
         cap(notices, rules.limit("maxNotices")), new Usage(0L, 0));
